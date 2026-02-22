@@ -160,102 +160,6 @@
           <div id="athletes-list" class="athletes-list"></div>
         </div>
 
-        <!-- VIEW: EINTRAGEN -->
-        <div id="view-entry" class="view">
-          <h1 class="view-h1 padded">Eintragen</h1>
-
-          <div class="entry-block">
-            <div class="eb-num">1</div>
-            <div class="eb-content">
-              <div class="eb-label">Athlet wählen</div>
-              <div class="search-row">
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="round"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <input
-                  type="search"
-                  id="entry-search"
-                  class="search-input"
-                  placeholder="Suchen…"
-                />
-              </div>
-              <div id="entry-athlete-list" class="entry-athlete-list"></div>
-              <div
-                id="selected-athlete-chip"
-                class="selected-chip"
-                style="display: none"
-              >
-                <span id="selected-chip-name"></span>
-                <button class="chip-clear" id="clear-athlete">✕</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="entry-block">
-            <div class="eb-num">2</div>
-            <div class="eb-content">
-              <div class="eb-label">Art wählen</div>
-              <div class="type-grid">
-                <button class="type-btn active" data-type="training">
-                  <span class="tb-icon">🥋</span>
-                  <span class="tb-name">Training</span>
-                  <span class="tb-pts pos">+1</span>
-                </button>
-                <button class="type-btn" data-type="tournament">
-                  <span class="tb-icon">🏅</span>
-                  <span class="tb-name">Turnier</span>
-                  <span class="tb-pts pos">+50</span>
-                </button>
-                <button class="type-btn" data-type="penalty">
-                  <span class="tb-icon">⚠️</span>
-                  <span class="tb-name">Verwarnung</span>
-                  <span class="tb-pts neg">−5</span>
-                </button>
-                <button class="type-btn" data-type="misconduct">
-                  <span class="tb-icon">🚫</span>
-                  <span class="tb-name">Fehlverhalten</span>
-                  <span class="tb-pts neg">−20</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="entry-block">
-            <div class="eb-num">3</div>
-            <div class="eb-content">
-              <div class="eb-label">Details</div>
-              <div class="field">
-                <label>Notiz <span class="opt">optional</span></label>
-                <input
-                  type="text"
-                  id="entry-note"
-                  placeholder="z.B. Turnier München, Verwarnung wegen…"
-                />
-              </div>
-              <div class="field">
-                <label>Datum</label>
-                <input type="date" id="entry-date" />
-              </div>
-            </div>
-          </div>
-
-          <div class="entry-submit-wrap">
-            <button class="btn-cta full" id="btn-submit-entry">
-              Eintragen
-            </button>
-            <div id="entry-msg" class="form-msg center"></div>
-          </div>
-        </div>
-
         <!-- VIEW: ANLEGEN -->
         <div id="view-add" class="view">
           <h1 class="view-h1 padded">Athlet anlegen</h1>
@@ -347,9 +251,9 @@
       </div>
       <!-- /app-body -->
 
-      <!-- Bottom Nav -->
+      <!-- Bottom Nav — 3 items only -->
       <nav class="bottom-nav">
-        <button class="bnav" data-view="dashboard">
+        <button class="bnav active" data-view="dashboard">
           <svg
             width="21"
             height="21"
@@ -382,23 +286,6 @@
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           <span>Athleten</span>
-        </button>
-        <button class="bnav bnav-primary" data-view="entry">
-          <div class="bnav-fab">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              stroke-width="2.5"
-              stroke-linecap="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </div>
-          <span>Eintragen</span>
         </button>
         <button class="bnav" data-view="add">
           <svg
