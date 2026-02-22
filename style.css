@@ -1066,7 +1066,7 @@ body {
 
 /* ══ BOTTOM NAV ═══════════════════════════════════════════════ */
 .bottom-nav {
-  height: var(--bnav-h);
+  height: calc(var(--bnav-h) + env(safe-area-inset-bottom));
   background: var(--surface);
   border-top: 1px solid var(--border);
   display: flex;
@@ -1524,7 +1524,7 @@ body {
   }
 
   .app-body {
-    padding-bottom: 0;
+    padding-bottom: calc(var(--bnav-h) + env(safe-area-inset-bottom) + 16px);
   }
 
   #screen-app {
