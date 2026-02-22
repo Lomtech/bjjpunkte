@@ -50,11 +50,11 @@ const BELT_NEXT = {
 };
 
 const TYPES = {
-  training: { label: "Training", icon: "🥋", pts: 1 },
-  tournament: { label: "Turnier", icon: "🏅", pts: 50 },
-  minus: { label: "−1 Punkt", icon: "➖", pts: -1 },
-  penalty: { label: "Verwarnung", icon: "⚠️", pts: -5 },
-  misconduct: { label: "Fehlverhalten", icon: "🚫", pts: -20 },
+  training:   { label: "Training",      icon: "🥋",  pts: 1   },
+  tournament: { label: "Turnier",       icon: "🏅",  pts: 50  },
+  minus:      { label: "−1 Punkt",      icon: "➖",  pts: -1  },
+  penalty:    { label: "Verwarnung",    icon: "⚠️",  pts: -5  },
+  misconduct: { label: "Fehlverhalten", icon: "🚫",  pts: -20 },
 };
 
 // ── STATE ────────────────────────────────────────────────────
@@ -261,7 +261,7 @@ function renderAthletesList(filter = "") {
         <div class="ar-belt-lbl">${BELT_NAMES[a.belt] || a.belt}</div>
       </div>
       <div class="ar-quick">
-        <button class="ar-btn minus" data-id="${a.id}" title="Verwarnung −5">−</button>
+        <button class="ar-btn minus" data-id="${a.id}" title="−1 Punkt">−</button>
         <span class="ar-pts-inline">${pts}</span>
         <button class="ar-btn plus" data-id="${a.id}" title="Training +1">+</button>
       </div>
@@ -275,7 +275,7 @@ function renderAthletesList(filter = "") {
       e.stopPropagation();
       await quickEntry(a.id, "training");
     });
-    // Quick -5 penalty
+    // Quick -1
     row.querySelector(".ar-btn.minus").addEventListener("click", async (e) => {
       e.stopPropagation();
       await quickEntry(a.id, "minus");
@@ -554,7 +554,7 @@ function openModal(athleteId) {
     .map(
       (b) => `
     <button class="bg-btn${b === selectedModalBelt ? " active" : ""}" data-belt="${b}" id="mbi-${b}">
-      <span class="bg-dot ${b}"></span>${BELT_NAMES[b].replace("gurt", "").replace("gurt", "")}
+      <span class="bg-dot ${b}"></span>${BELT_NAMES[b].replace("gurt", "")}
     </button>
   `,
     )
@@ -594,49 +594,54 @@ function openModal(athleteId) {
   $("btn-deactivate").textContent =
     a.active === false ? "Athlet reaktivieren" : "Athlet deaktivieren";
 
+  // ── Modal quick-entry buttons ─────────────────────────────
+  document.querySelectorAll(".mqs-btn").forEach((btn) => {
+    // Clone to remove old listeners
+    const fresh = btn.cloneNode(true);
+    btn.parentNode.replaceChild(fresh, btn);
+    fresh.addEventListener("click", async () => {
+      if (!openAthleteId) return;
+      const t = TYPES[fresh.dataset.type];
+      if (!t) return;
+      const { error } = await sb.from("activities").insert({
+        athlete_id: openAthleteId,
+        type: fresh.dataset.type,
+        points: t.pts,
+        date: TODAY,
+        note: t.label,
+        created_by: currentUser.id,
+      });
+      if (error) return toast("Fehler", "err");
+      const athlete = athletes.find((x) => x.id === openAthleteId);
+      toast(`${t.icon} ${athlete?.name} · ${t.pts > 0 ? "+" : ""}${t.pts}`, "ok");
+      await loadActivities();
+      renderAll();
+      openModal(openAthleteId); // refresh modal with updated pts
+    });
+  });
+
   $("modal").classList.add("open");
 }
 
-// Quick entry helper (used from athlete list + modal)
+// ── Quick entry helper ───────────────────────────────────────
 async function quickEntry(athleteId, type) {
-  async function quickEntry(athleteId, type) {
-    const t = TYPES[type];
-    const { error } = await sb.from("activities").insert({
-      athlete_id: athleteId,
-      type,
-      points: t.pts,
-      date: TODAY,
-      note: t.label,
-      created_by: currentUser.id,
-    });
-    if (error) return toast("Fehler: " + error.message, "err");
-    const a = athletes.find((x) => x.id === athleteId);
-    toast(`${t.icon} ${a?.name} · ${t.pts > 0 ? "+" : ""}${t.pts}`, "ok");
-    await loadActivities();
-    renderAll();
-    // ← NEU: Modal aktualisieren wenn offen
-    if (openAthleteId === athleteId) openModal(athleteId);
-  }
-}
-
-btn.addEventListener("click", async () => {
-  if (!openAthleteId) return;
-  const t = TYPES[btn.dataset.type];
+  const t = TYPES[type];
   const { error } = await sb.from("activities").insert({
-    athlete_id: openAthleteId,
-    type: btn.dataset.type,
+    athlete_id: athleteId,
+    type,
     points: t.pts,
     date: TODAY,
     note: t.label,
     created_by: currentUser.id,
   });
-  if (error) return toast("Fehler", "err");
-  const a = athletes.find((x) => x.id === openAthleteId);
+  if (error) return toast("Fehler: " + error.message, "err");
+  const a = athletes.find((x) => x.id === athleteId);
   toast(`${t.icon} ${a?.name} · ${t.pts > 0 ? "+" : ""}${t.pts}`, "ok");
   await loadActivities();
   renderAll();
-  openModal(openAthleteId); // refresh modal
-});
+  // Modal aktualisieren wenn offen
+  if (openAthleteId === athleteId) openModal(athleteId);
+}
 
 // Belt from modal
 $("modal-belt-btn").addEventListener("click", async () => {
