@@ -115,8 +115,19 @@ document.getElementById("btn-login").addEventListener("click", async () => {
     return setAuthMessage("Bitte alle Felder ausfüllen.", "error");
 
   setAuthMessage("Wird eingeloggt…", "");
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) setAuthMessage(error.message, "error");
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    // Klartextfehler auf Deutsch
+    const msg = error.message.includes("Invalid login")
+      ? "E-Mail oder Passwort falsch."
+      : error.message;
+    return setAuthMessage(msg, "error");
+  }
+  // Manuell weiterleiten falls onAuthStateChange nicht feuert
+  if (data?.user) {
+    setAuthMessage("✓ Eingeloggt! Wird geladen…", "success");
+    await onLogin(data.user);
+  }
 });
 
 document.getElementById("btn-register").addEventListener("click", async () => {
@@ -143,7 +154,21 @@ document.getElementById("btn-register").addEventListener("click", async () => {
     options: { data: { full_name: name, belt } },
   });
 
-  if (error) return setAuthMessage(error.message, "error");
+  if (error) {
+    console.error("Signup error:", error);
+    // Klartextfehler auf Deutsch
+    let msg = error.message;
+    if (
+      msg.includes("already registered") ||
+      msg.includes("already been registered")
+    )
+      msg = "Diese E-Mail ist bereits registriert. Bitte einloggen.";
+    else if (msg.includes("Password should be"))
+      msg = "Passwort muss mindestens 6 Zeichen haben.";
+    else if (msg.includes("valid email"))
+      msg = "Bitte eine gültige E-Mail-Adresse eingeben.";
+    return setAuthMessage(msg, "error");
+  }
 
   // Profil anlegen
   if (data.user) {
@@ -154,7 +179,18 @@ document.getElementById("btn-register").addEventListener("click", async () => {
       belt,
       created_at: new Date().toISOString(),
     });
-    setAuthMessage("✓ Account erstellt! Du wirst eingeloggt…", "success");
+
+    // Wenn E-Mail-Bestätigung AUS: direkt einloggen
+    if (data.session) {
+      setAuthMessage("✓ Account erstellt! Wird geladen…", "success");
+      await onLogin(data.user);
+    } else {
+      // E-Mail-Bestätigung AN: Hinweis anzeigen
+      setAuthMessage(
+        "✓ Account erstellt! Bitte bestätige deine E-Mail und logge dich dann ein.",
+        "success",
+      );
+    }
   }
 });
 
