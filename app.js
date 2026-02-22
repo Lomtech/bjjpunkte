@@ -1,561 +1,619 @@
 // ============================================================
-// BJJ PUNKTE SYSTEM — app.js
-// Supabase Auth + Punkte-Tracking + Leaderboard
+// BJJ TRAINER APP — app.js
+// Trainer-only Dashboard: Athleten verwalten, Punkte eintragen
 // ============================================================
 
 // ─── SUPABASE CONFIG ─────────────────────────────────────────
-// Credentials werden sicher via Netlify Function geladen.
-// Netlify Env Vars: SUPABASE_URL, SUPABASE_ANON_KEY
+const LOCAL_SUPABASE_URL = ""; // nur für lokales Testen
+const LOCAL_SUPABASE_ANON_KEY = ""; // nur für lokales Testen
 
 const { createClient } = supabase;
-let sb; // wird nach Config-Fetch initialisiert
-
-// Lokaler Fallback: Falls du ohne Netlify CLI testest, trag hier deine Credentials ein.
-// Auf Netlify werden diese durch die Function überschrieben.
-const LOCAL_SUPABASE_URL = "https://ktwgvuasjezokhsfpfqb.supabase.co"; // nur für lokales Testen
-const LOCAL_SUPABASE_ANON_KEY =
-  "sb_publishable_Ep1SfoAKBOgshy1A6c--9g_Qjx0T1LL"; // nur für lokales Testen
+let sb;
 
 async function initSupabase() {
   try {
     const res = await fetch("/.netlify/functions/config");
     if (res.ok) {
       const { supabaseUrl, supabaseAnonKey } = await res.json();
-      if (!supabaseUrl || !supabaseAnonKey)
-        throw new Error("Supabase-Credentials fehlen in den Netlify Env Vars");
-      sb = createClient(supabaseUrl, supabaseAnonKey);
-      return;
+      if (supabaseUrl && supabaseAnonKey) {
+        sb = createClient(supabaseUrl, supabaseAnonKey);
+        return;
+      }
     }
-  } catch (_) {
-    // Function nicht erreichbar – Fallback auf lokale Werte
-  }
+  } catch (_) {}
 
-  // Fallback: lokale Werte (nur für Entwicklung)
   if (LOCAL_SUPABASE_URL && LOCAL_SUPABASE_ANON_KEY) {
-    console.warn(
-      "⚠ Netlify Function nicht erreichbar – nutze lokale Credentials (nur Entwicklung)",
-    );
     sb = createClient(LOCAL_SUPABASE_URL, LOCAL_SUPABASE_ANON_KEY);
     return;
   }
 
-  // Kein Fallback verfügbar
-  const msg =
-    "Supabase nicht konfiguriert. Starte mit `netlify dev` oder trag lokale Credentials ein.";
-  document.getElementById("auth-message").textContent = "⚠ " + msg;
-  document.getElementById("auth-message").className = "auth-message error";
-  throw new Error(msg);
+  showLoginMsg(
+    "⚠ Supabase nicht konfiguriert. Netlify Env Vars oder lokale Credentials setzen.",
+    "error",
+  );
+  throw new Error("No Supabase config");
 }
 
 // ─── CONSTANTS ───────────────────────────────────────────────
-const MAX_POINTS = 192; // 4 mal / Woche * 48 Wochen
-const BELT_THRESHOLD = 200; // Punkte für Gürtel-Aufstieg (inkl. Turnierpunkte)
-const TOURNAMENT_POINTS = 50;
-const TRAINING_POINTS = 1;
+const MAX_POINTS = 192;
+const BELT_THRESHOLD = 200;
 
-const BELTS = [
-  { key: "white", name: "Weißgurt", next: "Blaugurt", threshold: 200 },
-  { key: "blue", name: "Blaugurt", next: "Lillagurt", threshold: 200 },
-  { key: "purple", name: "Lillagurt", next: "Braungurt", threshold: 200 },
-  { key: "brown", name: "Braungurt", next: "Schwarzgurt", threshold: 200 },
-  { key: "black", name: "Schwarzgurt", next: null, threshold: null },
-];
+const BELT_NAMES = {
+  white: "Weißgurt",
+  blue: "Blaugurt",
+  purple: "Lillagurt",
+  brown: "Braungurt",
+  black: "Schwarzgurt",
+};
+
+const BELT_NEXT = {
+  white: "blue",
+  blue: "purple",
+  purple: "brown",
+  brown: "black",
+  black: null,
+};
+
+const ENTRY_TYPES = {
+  training: { label: "Training", icon: "🥋", points: 1 },
+  tournament: { label: "Turnier", icon: "🏅", points: 50 },
+  penalty: { label: "Verwarnung", icon: "⚠", points: -5 },
+  misconduct: { label: "Fehlverhalten", icon: "🚫", points: -20 },
+};
 
 // ─── STATE ───────────────────────────────────────────────────
 let currentUser = null;
-let currentProfile = null;
-let currentActivities = [];
-let lastActivityId = null;
+let athletes = []; // alle Athleten aus DB
+let activities = {}; // { athlete_id: [...] } für aktuelles Jahr
+let selectedType = "training";
+let openAthleteId = null;
+
+const YEAR = new Date().getFullYear();
 
 // ─── INIT ─────────────────────────────────────────────────────
 (async () => {
-  await initSupabase(); // Config von Netlify Function holen
+  await initSupabase();
+
   const {
     data: { session },
   } = await sb.auth.getSession();
   if (session) {
     await onLogin(session.user);
   } else {
-    showScreen("auth");
+    showScreen("login");
   }
 
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === "SIGNED_IN" && session) {
-      await onLogin(session.user);
-    } else if (event === "SIGNED_OUT") {
-      showScreen("auth");
-    }
+    if (event === "SIGNED_IN" && session) await onLogin(session.user);
+    if (event === "SIGNED_OUT") showScreen("login");
   });
 })();
 
-// ─── AUTH EVENTS ─────────────────────────────────────────────
-document.querySelectorAll(".tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document
-      .querySelectorAll(".tab-btn")
-      .forEach((b) => b.classList.remove("active"));
-    document
-      .querySelectorAll(".auth-form")
-      .forEach((f) => f.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(`${btn.dataset.tab}-form`).classList.add("active");
-    setAuthMessage("", "");
-  });
-});
-
+// ─── LOGIN / LOGOUT ──────────────────────────────────────────
 document.getElementById("btn-login").addEventListener("click", async () => {
-  if (!sb)
-    return setAuthMessage(
-      "Supabase nicht initialisiert. Seite neu laden.",
-      "error",
-    );
+  if (!sb) return;
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
   if (!email || !password)
-    return setAuthMessage("Bitte alle Felder ausfüllen.", "error");
+    return showLoginMsg("Bitte alle Felder ausfüllen.", "error");
 
-  setAuthMessage("Wird eingeloggt…", "");
+  showLoginMsg("Wird eingeloggt…", "");
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
-    // Klartextfehler auf Deutsch
     const msg = error.message.includes("Invalid login")
       ? "E-Mail oder Passwort falsch."
       : error.message;
-    return setAuthMessage(msg, "error");
+    return showLoginMsg(msg, "error");
   }
-  // Manuell weiterleiten falls onAuthStateChange nicht feuert
-  if (data?.user) {
-    setAuthMessage("✓ Eingeloggt! Wird geladen…", "success");
-    await onLogin(data.user);
-  }
+  if (data?.user) await onLogin(data.user);
 });
 
-document.getElementById("btn-register").addEventListener("click", async () => {
-  if (!sb)
-    return setAuthMessage(
-      "Supabase nicht initialisiert. Seite neu laden.",
-      "error",
-    );
-  const name = document.getElementById("reg-name").value.trim();
-  const email = document.getElementById("reg-email").value.trim();
-  const password = document.getElementById("reg-password").value;
-  const belt = document.getElementById("reg-belt").value;
-
-  if (!name || !email || !password)
-    return setAuthMessage("Bitte alle Felder ausfüllen.", "error");
-  if (password.length < 6)
-    return setAuthMessage("Passwort mindestens 6 Zeichen.", "error");
-
-  setAuthMessage("Account wird erstellt…", "");
-
-  const { data, error } = await sb.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: name, belt } },
-  });
-
-  if (error) {
-    console.error("Signup error:", error);
-    // Klartextfehler auf Deutsch
-    let msg = error.message;
-    if (
-      msg.includes("already registered") ||
-      msg.includes("already been registered")
-    )
-      msg = "Diese E-Mail ist bereits registriert. Bitte einloggen.";
-    else if (msg.includes("Password should be"))
-      msg = "Passwort muss mindestens 6 Zeichen haben.";
-    else if (msg.includes("valid email"))
-      msg = "Bitte eine gültige E-Mail-Adresse eingeben.";
-    return setAuthMessage(msg, "error");
-  }
-
-  // Profil anlegen
-  if (data.user) {
-    await sb.from("profiles").upsert({
-      id: data.user.id,
-      full_name: name,
-      email,
-      belt,
-      created_at: new Date().toISOString(),
-    });
-
-    // Wenn E-Mail-Bestätigung AUS: direkt einloggen
-    if (data.session) {
-      setAuthMessage("✓ Account erstellt! Wird geladen…", "success");
-      await onLogin(data.user);
-    } else {
-      // E-Mail-Bestätigung AN: Hinweis anzeigen
-      setAuthMessage(
-        "✓ Account erstellt! Bitte bestätige deine E-Mail und logge dich dann ein.",
-        "success",
-      );
-    }
-  }
+// Enter key on password
+document.getElementById("login-password").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("btn-login").click();
 });
 
-document.getElementById("btn-logout").addEventListener("click", async () => {
-  await sb.auth.signOut();
-});
+document
+  .getElementById("btn-logout")
+  .addEventListener("click", () => sb.auth.signOut());
 
-// ─── ON LOGIN ─────────────────────────────────────────────────
 async function onLogin(user) {
   currentUser = user;
-  await loadProfile();
-  await loadActivities();
-  renderAll();
-  showScreen("app");
 
-  // Realtime für Leaderboard
-  sb.channel("public:activities")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "activities" },
-      () => {
-        loadLeaderboard();
-      },
-    )
-    .subscribe();
-}
-
-// ─── DATA LOADING ─────────────────────────────────────────────
-async function loadProfile() {
-  const { data } = await sb
+  // Trainer-Check: is_trainer Flag in profiles prüfen
+  const { data: profile } = await sb
     .from("profiles")
     .select("*")
-    .eq("id", currentUser.id)
+    .eq("id", user.id)
     .single();
 
-  if (data) {
-    currentProfile = data;
-  } else {
-    // Fallback: Profil aus User-Metadata
-    const meta = currentUser.user_metadata;
-    currentProfile = {
-      id: currentUser.id,
-      full_name: meta.full_name || currentUser.email.split("@")[0],
-      email: currentUser.email,
-      belt: meta.belt || "white",
-    };
-    await sb.from("profiles").upsert(currentProfile);
+  if (!profile || !profile.is_trainer) {
+    await sb.auth.signOut();
+    return showLoginMsg("Kein Trainer-Account. Zugriff verweigert.", "error");
   }
+
+  document.getElementById("sidebar-trainer").textContent =
+    profile.full_name || user.email;
+  document
+    .querySelectorAll("#dash-year, #rank-year, #lb-year")
+    .forEach((el) => {
+      if (el) el.textContent = YEAR;
+    });
+  document.getElementById("dash-year").textContent = YEAR;
+  document.getElementById("rank-year").textContent = YEAR;
+
+  await loadAllData();
+  showScreen("app");
+  showView("dashboard");
+}
+
+// ─── DATA ────────────────────────────────────────────────────
+async function loadAllData() {
+  await Promise.all([loadAthletes(), loadActivities()]);
+  renderAll();
+}
+
+async function loadAthletes() {
+  const { data, error } = await sb.from("athletes").select("*").order("name");
+  if (error) {
+    console.error(error);
+    return;
+  }
+  athletes = data || [];
 }
 
 async function loadActivities() {
-  const year = new Date().getFullYear();
-  const { data } = await sb
-    .from("activities")
-    .select("*")
-    .eq("user_id", currentUser.id)
-    .gte("created_at", `${year}-01-01`)
-    .order("created_at", { ascending: false });
-
-  currentActivities = data || [];
-}
-
-async function loadLeaderboard() {
-  const year = new Date().getFullYear();
-
-  // Punkte pro User für das aktuelle Jahr
-  const { data } = await sb
-    .from("activities")
-    .select("user_id, points, profiles(full_name, belt)")
-    .gte("created_at", `${year}-01-01`);
-
-  if (!data) return;
-
-  // Aggregieren
-  const aggregated = {};
-  data.forEach((row) => {
-    const uid = row.user_id;
-    if (!aggregated[uid]) {
-      aggregated[uid] = {
-        uid,
-        name: row.profiles?.full_name || "Unbekannt",
-        belt: row.profiles?.belt || "white",
-        points: 0,
-      };
-    }
-    aggregated[uid].points += row.points;
-  });
-
-  const sorted = Object.values(aggregated).sort((a, b) => b.points - a.points);
-  renderLeaderboard(sorted);
-}
-
-// ─── ACTIONS ──────────────────────────────────────────────────
-document
-  .getElementById("btn-add-training")
-  .addEventListener("click", async () => {
-    await addActivity("training", TRAINING_POINTS);
-  });
-
-document
-  .getElementById("btn-add-tournament")
-  .addEventListener("click", async () => {
-    await addActivity("tournament", TOURNAMENT_POINTS);
-  });
-
-document.getElementById("btn-undo").addEventListener("click", async () => {
-  if (!lastActivityId) return;
-  const { error } = await sb
-    .from("activities")
-    .delete()
-    .eq("id", lastActivityId);
-  if (!error) {
-    showToast("Eintrag rückgängig gemacht", "");
-    lastActivityId = null;
-    document.getElementById("btn-undo").disabled = true;
-    await loadActivities();
-    renderAll();
-    loadLeaderboard();
-  }
-});
-
-async function addActivity(type, points) {
-  const today = new Date().toISOString();
-  const label = type === "training" ? "Training" : "Turnier";
-
   const { data, error } = await sb
     .from("activities")
-    .insert({
-      user_id: currentUser.id,
-      type,
-      points,
-      created_at: today,
-    })
-    .select()
-    .single();
+    .select("*")
+    .gte("date", `${YEAR}-01-01`)
+    .lte("date", `${YEAR}-12-31`)
+    .order("date", { ascending: false });
 
   if (error) {
-    showToast("Fehler: " + error.message, "");
+    console.error(error);
     return;
   }
 
-  lastActivityId = data.id;
-  document.getElementById("btn-undo").disabled = false;
-
-  await loadActivities();
-  renderAll();
-  loadLeaderboard();
-
-  if (type === "training") {
-    showToast(`🥋 Training eingetragen! +${points} Punkt`, "success");
-  } else {
-    showToast(`🏅 Turnier eingetragen! +${points} Punkte`, "tournament");
-  }
-
-  // Punkte-Animation
-  const pd = document.getElementById("points-display");
-  pd.classList.remove("pulse");
-  void pd.offsetWidth;
-  pd.classList.add("pulse");
+  // Gruppieren nach athlete_id
+  activities = {};
+  (data || []).forEach((a) => {
+    if (!activities[a.athlete_id]) activities[a.athlete_id] = [];
+    activities[a.athlete_id].push(a);
+  });
 }
 
-// ─── RENDER ────────────────────────────────────────────────────
+// ─── RENDER ALL ───────────────────────────────────────────────
 function renderAll() {
-  if (!currentProfile) return;
-
-  const year = new Date().getFullYear();
-  const totalPoints = currentActivities.reduce(
-    (s, a) => s + (a.points || 0),
-    0,
-  );
-  const trainingCount = currentActivities.filter(
-    (a) => a.type === "training",
-  ).length;
-  const tournamentCount = currentActivities.filter(
-    (a) => a.type === "tournament",
-  ).length;
-
-  // Header
-  document.getElementById("header-username").textContent =
-    currentProfile.full_name;
-  document.getElementById("header-year").textContent = year;
-  document.getElementById("points-year").textContent = year;
-  document.getElementById("lb-year").textContent = year;
-
-  // Points
-  document.getElementById("points-display").textContent = totalPoints;
-
-  // Progress Bar
-  const pct = Math.min((totalPoints / MAX_POINTS) * 100, 100);
-  document.getElementById("progress-bar").style.width = pct + "%";
-  document.getElementById("progress-label").textContent =
-    Math.round(pct) + "% abgeschlossen";
-  const sessionsLeft = Math.max(0, MAX_POINTS - trainingCount);
-  document.getElementById("sessions-left").textContent =
-    sessionsLeft + " Trainings übrig";
-
-  // Belt
-  const belt = getBeltInfo(currentProfile.belt);
-  document.getElementById("belt-name").textContent = belt.name;
-  const beltVisual = document.getElementById("belt-visual");
-  beltVisual.className = "belt-visual " + currentProfile.belt;
-  if (belt.next) {
-    document.getElementById("belt-next-info").textContent =
-      `→ Nächster Gürtel: ${belt.next} (${BELT_THRESHOLD} Punkte)`;
-  } else {
-    document.getElementById("belt-next-info").textContent =
-      "Höchster Gürtel erreicht 🏆";
-  }
-
-  // Belt Achievement
-  const achievementEl = document.getElementById("belt-achievement");
-  if (totalPoints >= BELT_THRESHOLD && belt.next) {
-    achievementEl.style.display = "block";
-    document.getElementById("achievement-sub").textContent =
-      `${totalPoints} Punkte erreicht – bereit für den ${belt.next}!`;
-  } else {
-    achievementEl.style.display = "none";
-  }
-
-  // Stats
-  document.getElementById("stat-trainings").textContent = trainingCount;
-  document.getElementById("stat-tournaments").textContent = tournamentCount;
-
-  // Diese Woche
-  const weekStart = getWeekStart();
-  const weekCount = currentActivities.filter(
-    (a) => a.type === "training" && new Date(a.created_at) >= weekStart,
-  ).length;
-  document.getElementById("stat-week").textContent = weekCount;
-
-  // Streak (vereinfacht: Wochen mit mind. 1 Training in Folge)
-  document.getElementById("stat-streak").textContent =
-    calcStreak(currentActivities);
-
-  // History
-  renderHistory();
-
-  // Leaderboard laden
-  loadLeaderboard();
+  renderDashboard();
+  renderAthletesGrid();
+  populateAthleteSelects();
+  updateGroupCount();
 }
 
-function renderHistory() {
-  const list = document.getElementById("history-list");
-  document.getElementById("history-count").textContent =
-    currentActivities.length;
+// ─── DASHBOARD ────────────────────────────────────────────────
+function renderDashboard() {
+  const activeAthletes = athletes.filter((a) => a.active !== false);
+  document.getElementById("stat-total-athletes").textContent =
+    activeAthletes.length;
 
-  if (currentActivities.length === 0) {
-    list.innerHTML =
-      '<div class="empty-state">Noch keine Einträge – fang mit dem nächsten Training an!</div>';
+  // Heute eingetragene Trainings
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayTrainings = Object.values(activities)
+    .flat()
+    .filter((a) => a.type === "training" && a.date === todayStr).length;
+  document.getElementById("stat-trainings-today").textContent = todayTrainings;
+
+  // Durchschnittspunkte
+  const pts = activeAthletes.map((a) => getAthletePoints(a.id));
+  const avg = pts.length
+    ? Math.round(pts.reduce((s, p) => s + p, 0) / pts.length)
+    : 0;
+  document.getElementById("stat-avg-points").textContent = avg;
+
+  // Gürtel-bereit (≥200 Punkte und nicht Schwarzgurt)
+  const beltReady = activeAthletes.filter((a) => {
+    const p = getAthletePoints(a.id);
+    return p >= BELT_THRESHOLD && a.belt !== "black";
+  });
+  document.getElementById("stat-belt-ready").textContent = beltReady.length;
+
+  // Rangliste
+  const ranked = [...activeAthletes]
+    .map((a) => ({ ...a, pts: getAthletePoints(a.id) }))
+    .sort((a, b) => b.pts - a.pts);
+
+  const rankList = document.getElementById("ranking-list");
+  rankList.innerHTML = "";
+  const maxPts = ranked[0]?.pts || 1;
+
+  ranked.slice(0, 15).forEach((a, i) => {
+    const pct = Math.min((a.pts / MAX_POINTS) * 100, 100);
+    const rankClass = i === 0 ? "r1" : i === 1 ? "r2" : i === 2 ? "r3" : "";
+    const isBeltReady = a.pts >= BELT_THRESHOLD && a.belt !== "black";
+
+    const el = document.createElement("div");
+    el.className = "rank-item";
+    el.innerHTML = `
+      <div class="rank-num ${rankClass}">${i + 1}</div>
+      <div class="rank-belt belt-${a.belt}"></div>
+      <div class="rank-name">${esc(a.name)}</div>
+      <div class="rank-bar-wrap">
+        <div class="rank-bar" style="width:${pct}%"></div>
+      </div>
+      <div class="rank-pts">${a.pts}</div>
+      ${isBeltReady ? `<div class="rank-belt-badge">🏆 ${BELT_NAMES[BELT_NEXT[a.belt]] || ""}</div>` : ""}
+    `;
+    el.addEventListener("click", () => openAthleteModal(a.id));
+    rankList.appendChild(el);
+  });
+
+  // Gürtel-bereit Section
+  const beltSection = document.getElementById("belt-ready-section");
+  const beltList = document.getElementById("belt-ready-list");
+  if (beltReady.length) {
+    beltSection.style.display = "block";
+    beltList.innerHTML = beltReady
+      .map(
+        (a) => `
+      <div class="belt-ready-card" onclick="openAthleteModal('${a.id}')">
+        <div class="rank-belt belt-${BELT_NEXT[a.belt]} rank-belt" style="width:28px;height:7px;border-radius:2px;flex-shrink:0"></div>
+        <strong>${esc(a.name)}</strong>
+        <span style="font-size:12px;color:var(--text3)">${getAthletePoints(a.id)} Punkte → ${BELT_NAMES[BELT_NEXT[a.belt]] || ""}</span>
+      </div>
+    `,
+      )
+      .join("");
+  } else {
+    beltSection.style.display = "none";
+  }
+}
+
+// ─── ATHLETES GRID ────────────────────────────────────────────
+function renderAthletesGrid(filter = "") {
+  const grid = document.getElementById("athletes-grid");
+  grid.innerHTML = "";
+
+  const filtered = athletes.filter(
+    (a) => !filter || a.name.toLowerCase().includes(filter.toLowerCase()),
+  );
+
+  if (!filtered.length) {
+    grid.innerHTML =
+      '<p style="color:var(--text3);grid-column:1/-1;padding:20px">Keine Athleten gefunden.</p>';
     return;
   }
 
-  list.innerHTML = currentActivities
-    .slice(0, 30)
-    .map((a) => {
-      const date = new Date(a.created_at);
-      const dateStr = date.toLocaleDateString("de-DE", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-      const timeStr = date.toLocaleTimeString("de-DE", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const isTournament = a.type === "tournament";
-      return `
-      <div class="history-item ${isTournament ? "tournament-item" : "training-item"}">
-        <span class="history-icon">${isTournament ? "🏅" : "🥋"}</span>
-        <div class="history-info">
-          <div class="history-title">${isTournament ? "Turnier" : "Training"}</div>
-          <div class="history-date">${dateStr} · ${timeStr}</div>
-        </div>
-        <div class="history-points ${isTournament ? "" : "training-pts"}">+${a.points}</div>
+  filtered.forEach((a) => {
+    const pts = getAthletePoints(a.id);
+    const pct = Math.min((pts / MAX_POINTS) * 100, 100);
+    const ready = pts >= BELT_THRESHOLD && a.belt !== "black";
+
+    const card = document.createElement("div");
+    card.className = `athlete-card ${a.active === false ? "inactive" : ""}`;
+    card.innerHTML = `
+      ${ready ? '<div class="ac-belt-ready-dot"></div>' : ""}
+      <div class="ac-belt belt-${a.belt}"></div>
+      <div class="ac-name">${esc(a.name)}</div>
+      <div class="ac-belt-label">${BELT_NAMES[a.belt] || a.belt}</div>
+      <div class="ac-pts">${pts}</div>
+      <div class="ac-pts-label">Punkte ${YEAR}</div>
+      <div class="ac-progress">
+        <div class="ac-progress-bar" style="width:${pct}%"></div>
       </div>
     `;
-    })
-    .join("");
+    card.addEventListener("click", () => openAthleteModal(a.id));
+    grid.appendChild(card);
+  });
 }
 
-function renderLeaderboard(data) {
-  const list = document.getElementById("leaderboard-list");
-  if (!data || data.length === 0) {
-    list.innerHTML = '<div class="empty-state">Noch keine Daten.</div>';
-    return;
-  }
+// ─── ATHLETE SELECTS ──────────────────────────────────────────
+function populateAthleteSelects() {
+  const actives = athletes.filter((a) => a.active !== false);
+  const opts =
+    `<option value="">— Athlet wählen —</option>` +
+    actives
+      .map(
+        (a) =>
+          `<option value="${a.id}">${esc(a.name)} (${BELT_NAMES[a.belt]})</option>`,
+      )
+      .join("");
 
-  const rankClasses = ["gold", "silver", "bronze"];
-
-  list.innerHTML = data
-    .slice(0, 10)
-    .map(
-      (u, i) => `
-    <div class="lb-item">
-      <div class="lb-rank ${rankClasses[i] || ""}">${i + 1}</div>
-      <div class="lb-belt ${u.belt}"></div>
-      <div class="lb-name ${u.uid === currentUser?.id ? "is-me" : ""}">
-        ${u.name}${u.uid === currentUser?.id ? " (Du)" : ""}
-      </div>
-      <div class="lb-points">${u.points}</div>
-    </div>
-  `,
-    )
-    .join("");
+  document.getElementById("single-athlete").innerHTML = opts;
+  document.getElementById("belt-athlete").innerHTML = opts;
 }
 
-// ─── HELPERS ───────────────────────────────────────────────────
-function getBeltInfo(key) {
-  return BELTS.find((b) => b.key === key) || BELTS[0];
+function updateGroupCount() {
+  const n = athletes.filter((a) => a.active !== false).length;
+  document.getElementById("group-athlete-count").textContent = `${n} Athleten`;
 }
 
-function getWeekStart() {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Montag
-  const monday = new Date(d.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
-  return monday;
+// ─── HELPERS ──────────────────────────────────────────────────
+function getAthletePoints(id) {
+  return (activities[id] || []).reduce((s, a) => s + (a.points || 0), 0);
 }
 
-function calcStreak(activities) {
-  // Zählt Wochen mit mind. 1 Training in Folge (rückwärts von heute)
-  const trainings = activities
-    .filter((a) => a.type === "training")
-    .map((a) => new Date(a.created_at));
-
-  if (trainings.length === 0) return 0;
-
-  let streak = 0;
-  let checkDate = getWeekStart();
-  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-
-  for (let i = 0; i < 52; i++) {
-    const weekEnd = new Date(checkDate.getTime() + msPerWeek);
-    const hasTraining = trainings.some((d) => d >= checkDate && d < weekEnd);
-    if (hasTraining) {
-      streak++;
-      checkDate = new Date(checkDate.getTime() - msPerWeek);
-    } else {
-      break;
-    }
-  }
-  return streak;
+function esc(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
+// ─── NAV ──────────────────────────────────────────────────────
+document.querySelectorAll(".nav-item").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document
+      .querySelectorAll(".nav-item")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    showView(btn.dataset.view);
+  });
+});
+
+function showView(name) {
+  document
+    .querySelectorAll(".view")
+    .forEach((v) => v.classList.remove("active"));
+  const v = document.getElementById(`view-${name}`);
+  if (v) v.classList.add("active");
+}
+
+// ─── TRAINING ACTIONS ─────────────────────────────────────────
+
+// Datum-Felder auf heute setzen
+const today = new Date().toISOString().slice(0, 10);
+document.getElementById("group-date").value = today;
+document.getElementById("single-date").value = today;
+
+// Gruppen-Training: alle aktiven Athleten +1
+document
+  .getElementById("btn-group-training")
+  .addEventListener("click", async () => {
+    const date = document.getElementById("group-date").value;
+    const actives = athletes.filter((a) => a.active !== false);
+    if (!actives.length) return toast("Keine aktiven Athleten", "err");
+
+    const rows = actives.map((a) => ({
+      athlete_id: a.id,
+      type: "training",
+      points: 1,
+      date,
+      note: "Gruppen-Training",
+      created_by: currentUser.id,
+    }));
+
+    const { error } = await sb.from("activities").insert(rows);
+    if (error) return toast("Fehler: " + error.message, "err");
+
+    toast(`✓ ${actives.length} Athleten +1 Punkt eingetragen`, "ok");
+    await loadActivities();
+    renderAll();
+  });
+
+// Entry-Type Buttons
+document.querySelectorAll(".entry-type-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document
+      .querySelectorAll(".entry-type-btn")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedType = btn.dataset.type;
+  });
+});
+
+// Einzel-Eintrag
+document
+  .getElementById("btn-single-entry")
+  .addEventListener("click", async () => {
+    const athleteId = document.getElementById("single-athlete").value;
+    const date = document.getElementById("single-date").value;
+    const note = document.getElementById("single-note").value.trim();
+
+    if (!athleteId) return toast("Bitte einen Athleten wählen", "err");
+    if (!date) return toast("Bitte ein Datum wählen", "err");
+
+    const entry = ENTRY_TYPES[selectedType];
+    const { error } = await sb.from("activities").insert({
+      athlete_id: athleteId,
+      type: selectedType,
+      points: entry.points,
+      date,
+      note: note || entry.label,
+      created_by: currentUser.id,
+    });
+
+    if (error) return toast("Fehler: " + error.message, "err");
+
+    const a = athletes.find((a) => a.id === athleteId);
+    const ptsStr = entry.points > 0 ? `+${entry.points}` : `${entry.points}`;
+    toast(`${entry.icon} ${a?.name || "Athlet"} — ${ptsStr} Punkte`, "ok");
+    document.getElementById("single-note").value = "";
+
+    await loadActivities();
+    renderAll();
+  });
+
+// Gürtel vergeben
+document
+  .getElementById("btn-belt-promote")
+  .addEventListener("click", async () => {
+    const athleteId = document.getElementById("belt-athlete").value;
+    const newBelt = document.getElementById("belt-new").value;
+    if (!athleteId) return toast("Bitte einen Athleten wählen", "err");
+
+    const { error } = await sb
+      .from("athletes")
+      .update({ belt: newBelt })
+      .eq("id", athleteId);
+    if (error) return toast("Fehler: " + error.message, "err");
+
+    const a = athletes.find((a) => a.id === athleteId);
+    toast(`🥋 ${a?.name || "Athlet"} → ${BELT_NAMES[newBelt]}`, "ok");
+    await loadAthletes();
+    renderAll();
+  });
+
+// Athlet anlegen
+document
+  .getElementById("btn-add-athlete")
+  .addEventListener("click", async () => {
+    const name = document.getElementById("new-name").value.trim();
+    const email = document.getElementById("new-email").value.trim();
+    const belt = document.getElementById("new-belt").value;
+    const by = document.getElementById("new-birthyear").value;
+
+    if (!name) return showAddMsg("Name ist erforderlich.", "error");
+
+    const { error } = await sb.from("athletes").insert({
+      name,
+      email: email || null,
+      belt,
+      birth_year: by || null,
+      active: true,
+      created_by: currentUser.id,
+    });
+
+    if (error) return showAddMsg("Fehler: " + error.message, "error");
+
+    showAddMsg(`✓ ${name} wurde angelegt!`, "success");
+    document.getElementById("new-name").value = "";
+    document.getElementById("new-email").value = "";
+    document.getElementById("new-birthyear").value = "";
+    document.getElementById("new-belt").value = "white";
+
+    await loadAthletes();
+    renderAll();
+  });
+
+// Suche
+document.getElementById("search-athletes").addEventListener("input", (e) => {
+  renderAthletesGrid(e.target.value);
+});
+
+// ─── ATHLETE MODAL ────────────────────────────────────────────
+window.openAthleteModal = function (athleteId) {
+  const a = athletes.find((x) => x.id === athleteId);
+  if (!a) return;
+  openAthleteId = athleteId;
+
+  const acts = activities[athleteId] || [];
+  const pts = acts.reduce((s, x) => s + (x.points || 0), 0);
+  const trainings = acts.filter((x) => x.type === "training").length;
+  const tournaments = acts.filter((x) => x.type === "tournament").length;
+  const penalties = acts.filter((x) => x.points < 0).length;
+  const pct = Math.min((trainings / MAX_POINTS) * 100, 100);
+
+  document.getElementById("modal-name").textContent = a.name;
+  document.getElementById("modal-belt-label").textContent =
+    BELT_NAMES[a.belt] || a.belt;
+  document.getElementById("modal-points").textContent = pts;
+  document.getElementById("ms-trainings").textContent = trainings;
+  document.getElementById("ms-tournaments").textContent = tournaments;
+  document.getElementById("ms-penalties").textContent = penalties;
+  document.getElementById("modal-progress-bar").style.width = pct + "%";
+  document.getElementById("modal-progress-label").textContent =
+    `${trainings} Trainings`;
+
+  // Belt bar color
+  const bar = document.getElementById("modal-belt-bar");
+  bar.className = `modal-belt-bar belt-${a.belt}`;
+
+  // History
+  const hist = document.getElementById("modal-history");
+  hist.innerHTML =
+    acts.length === 0
+      ? '<p style="color:var(--text3);font-size:13px;padding:8px">Noch keine Einträge.</p>'
+      : acts
+          .slice(0, 40)
+          .map((x) => {
+            const e = ENTRY_TYPES[x.type] || {
+              label: x.type,
+              icon: "●",
+              points: x.points,
+            };
+            const pos = x.points >= 0;
+            const pStr = pos ? `+${x.points}` : `${x.points}`;
+            return `
+          <div class="hist-item ${x.type}">
+            <span class="hist-icon">${e.icon}</span>
+            <div class="hist-info">
+              <div class="hist-title">${esc(x.note || e.label)}</div>
+              <div class="hist-date">${x.date}</div>
+            </div>
+            <div class="hist-pts ${pos ? "pos" : "neg"}">${pStr}</div>
+          </div>
+        `;
+          })
+          .join("");
+
+  // Deactivate button text
+  const btn = document.getElementById("btn-deactivate-athlete");
+  btn.textContent =
+    a.active === false ? "Athlet reaktivieren" : "Athlet deaktivieren";
+
+  document.getElementById("modal-overlay").classList.add("open");
+};
+
+document.getElementById("modal-close").addEventListener("click", closeModal);
+document.getElementById("modal-overlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("modal-overlay")) closeModal();
+});
+
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+  openAthleteId = null;
+}
+
+document
+  .getElementById("btn-deactivate-athlete")
+  .addEventListener("click", async () => {
+    if (!openAthleteId) return;
+    const a = athletes.find((x) => x.id === openAthleteId);
+    const active = a?.active !== false ? false : true;
+    const { error } = await sb
+      .from("athletes")
+      .update({ active })
+      .eq("id", openAthleteId);
+    if (error) return toast("Fehler: " + error.message, "err");
+    toast(`${a.name} ${active ? "reaktiviert" : "deaktiviert"}`, "ok");
+    closeModal();
+    await loadAthletes();
+    renderAll();
+  });
+
+// ─── UI HELPERS ───────────────────────────────────────────────
 function showScreen(name) {
   document
     .querySelectorAll(".screen")
     .forEach((s) => s.classList.remove("active"));
-  document.getElementById(`${name}-screen`).classList.add("active");
+  const s = document.getElementById(`screen-${name}`);
+  if (s) s.classList.add("active");
+  if (name === "app") s.style.display = "flex";
 }
 
-function setAuthMessage(msg, type) {
-  const el = document.getElementById("auth-message");
+function showLoginMsg(msg, type) {
+  const el = document.getElementById("login-msg");
   el.textContent = msg;
-  el.className = "auth-message" + (type ? " " + type : "");
+  el.className = `login-msg ${type || ""}`;
 }
 
-let toastTimeout;
-function showToast(msg, type) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.className = "toast show" + (type ? " " + type : "");
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    t.className = "toast";
-  }, 2800);
+function showAddMsg(msg, type) {
+  const el = document.getElementById("add-msg");
+  el.textContent = msg;
+  el.className = `add-msg ${type || ""}`;
+  setTimeout(() => {
+    el.textContent = "";
+  }, 3000);
+}
+
+let toastTimer;
+function toast(msg, type = "") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.className = "toast";
+  }, 3000);
 }
