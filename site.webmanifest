@@ -1,6 +1,6 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "BJJ Trainer",
+  "short_name": "BJJ",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
