@@ -3,8 +3,7 @@
 // ============================================================
 
 const LOCAL_SUPABASE_URL = "https://ktwgvuasjezokhsfpfqb.supabase.c";
-const LOCAL_SUPABASE_ANON_KEY =
-  "sb_publishable_Ep1SfoAKBOgshy1A6c--9g_Qjx0T1LL";
+const LOCAL_SUPABASE_ANON_KEY = "sb_publishable_Ep1SfoAKBOgshy1A6c--9g_Qjx0T1LL";
 
 const { createClient } = supabase;
 let sb;
