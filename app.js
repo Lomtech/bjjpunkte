@@ -12,8 +12,9 @@ let sb; // wird nach Config-Fetch initialisiert
 
 // Lokaler Fallback: Falls du ohne Netlify CLI testest, trag hier deine Credentials ein.
 // Auf Netlify werden diese durch die Function überschrieben.
-const LOCAL_SUPABASE_URL = ""; // nur für lokales Testen
-const LOCAL_SUPABASE_ANON_KEY = ""; // nur für lokales Testen
+const LOCAL_SUPABASE_URL = "https://ktwgvuasjezokhsfpfqb.supabase.co"; // nur für lokales Testen
+const LOCAL_SUPABASE_ANON_KEY =
+  "sb_publishable_Ep1SfoAKBOgshy1A6c--9g_Qjx0T1LL"; // nur für lokales Testen
 
 async function initSupabase() {
   try {
