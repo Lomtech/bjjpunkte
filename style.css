@@ -538,8 +538,6 @@ body {
   font-size: 10px;
   color: var(--text3);
   margin-left: auto;
-}
-.rgh-count.gold {
   font-size: 9px;
   background: rgba(184,120,10,0.12);
   color: var(--gold);
@@ -859,6 +857,11 @@ body {
   align-items: center;
   padding-bottom: env(safe-area-inset-bottom);
   flex-shrink: 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
 }
 
 .bnav {
