@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BJJ Punkte System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen" class="screen active">
+      <div class="auth-bg">
+        <div class="noise"></div>
+        <div class="auth-glow"></div>
+      </div>
+      <div class="auth-container">
+        <div class="logo">
+          <span class="logo-icon">⬡</span>
+          <h1>BJJ<span>POINTS</span></h1>
+        </div>
+        <p class="tagline">Track dein Training. Verdiene deinen Gürtel.</p>
+
+        <div class="auth-tabs">
+          <button class="tab-btn active" data-tab="login">Login</button>
+          <button class="tab-btn" data-tab="register">Registrieren</button>
+        </div>
+
+        <div id="login-form" class="auth-form active">
+          <div class="input-group">
+            <label>E-Mail</label>
+            <input type="email" id="login-email" placeholder="du@example.com" />
+          </div>
+          <div class="input-group">
+            <label>Passwort</label>
+            <input type="password" id="login-password" placeholder="••••••••" />
+          </div>
+          <button class="btn-primary" id="btn-login">Einloggen</button>
+        </div>
+
+        <div id="register-form" class="auth-form">
+          <div class="input-group">
+            <label>Name</label>
+            <input type="text" id="reg-name" placeholder="Max Mustermann" />
+          </div>
+          <div class="input-group">
+            <label>E-Mail</label>
+            <input type="email" id="reg-email" placeholder="du@example.com" />
+          </div>
+          <div class="input-group">
+            <label>Passwort</label>
+            <input
+              type="password"
+              id="reg-password"
+              placeholder="Mindestens 6 Zeichen"
+            />
+          </div>
+          <div class="input-group">
+            <label>Aktueller Gürtel</label>
+            <select id="reg-belt">
+              <option value="white">Weißgurt</option>
+              <option value="blue">Blaugurt</option>
+              <option value="purple">Lillagurt</option>
+              <option value="brown">Braungurt</option>
+              <option value="black">Schwarzgurt</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="btn-register">Registrieren</button>
+        </div>
+
+        <div id="auth-message" class="auth-message"></div>
+      </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app-screen" class="screen">
+      <header>
+        <div class="header-left">
+          <span class="logo-icon small">⬡</span>
+          <span class="header-title">BJJ<strong>POINTS</strong></span>
+        </div>
+        <div class="header-right">
+          <span id="header-year" class="year-badge"></span>
+          <div class="user-menu">
+            <span id="header-username"></span>
+            <button class="btn-logout" id="btn-logout">↪</button>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <!-- BELT + POINTS HERO -->
+        <section class="hero-section">
+          <div class="belt-display">
+            <div class="belt-visual" id="belt-visual">
+              <div class="belt-stripe"></div>
+            </div>
+            <div class="belt-info">
+              <div class="belt-name" id="belt-name">Weißgurt</div>
+              <div class="belt-next" id="belt-next-info"></div>
+            </div>
+          </div>
+
+          <div class="points-hero">
+            <div class="points-big" id="points-display">0</div>
+            <div class="points-label">
+              Punkte <span id="points-year"></span>
+            </div>
+            <div class="points-max">/ 192 max</div>
+          </div>
+
+          <div class="progress-section">
+            <div class="progress-bar-outer">
+              <div class="progress-bar-inner" id="progress-bar"></div>
+              <div class="progress-milestones">
+                <span class="milestone" style="left: 52%">100</span>
+                <span class="milestone" style="left: 75.5%">144</span>
+                <span
+                  class="milestone"
+                  style="left: 100%; transform: translateX(-100%)"
+                  >192</span
+                >
+              </div>
+            </div>
+            <div class="progress-meta">
+              <span id="progress-label">0% abgeschlossen</span>
+              <span id="sessions-left">192 Einheiten übrig</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACHIEVEMENT BELT -->
+        <section
+          class="achievement-section"
+          id="belt-achievement"
+          style="display: none"
+        >
+          <div class="achievement-card">
+            <span class="achievement-icon">🏆</span>
+            <div>
+              <div class="achievement-title">Gürtelaufstieg erreicht!</div>
+              <div class="achievement-sub" id="achievement-sub">
+                Du hast 200 Punkte erreicht
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACTION BUTTONS -->
+        <section class="actions-section">
+          <button class="action-card training-card" id="btn-add-training">
+            <div class="action-icon">🥋</div>
+            <div class="action-label">Training</div>
+            <div class="action-sub">+1 Punkt</div>
+          </button>
+          <button class="action-card tournament-card" id="btn-add-tournament">
+            <div class="action-icon">🏅</div>
+            <div class="action-label">Turnier</div>
+            <div class="action-sub">+50 Punkte</div>
+          </button>
+          <button class="action-card undo-card" id="btn-undo" disabled>
+            <div class="action-icon">↩</div>
+            <div class="action-label">Rückgängig</div>
+            <div class="action-sub">Letzter Eintrag</div>
+          </button>
+        </section>
+
+        <!-- STATS ROW -->
+        <section class="stats-row">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-trainings">0</div>
+            <div class="stat-label">Trainings</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-tournaments">0</div>
+            <div class="stat-label">Turniere</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-week">0</div>
+            <div class="stat-label">Diese Woche</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-streak">0</div>
+            <div class="stat-label">Wochen-Streak</div>
+          </div>
+        </section>
+
+        <!-- HISTORY -->
+        <section class="history-section">
+          <div class="section-header">
+            <h2>Aktivitäten</h2>
+            <span id="history-count" class="count-badge">0</span>
+          </div>
+          <div id="history-list" class="history-list">
+            <div class="empty-state">
+              Noch keine Einträge – fang mit dem nächsten Training an!
+            </div>
+          </div>
+        </section>
+
+        <!-- LEADERBOARD -->
+        <section class="leaderboard-section">
+          <div class="section-header">
+            <h2>Rangliste <span id="lb-year"></span></h2>
+          </div>
+          <div id="leaderboard-list" class="leaderboard-list"></div>
+        </section>
+      </main>
+
+      <!-- TOAST -->
+      <div id="toast" class="toast"></div>
+
+      <!-- ADMIN PANEL (nur für Trainer) -->
+      <div id="admin-panel" class="admin-panel" style="display: none">
+        <div class="section-header">
+          <h2>⚙ Trainer-Panel</h2>
+        </div>
+        <div class="admin-actions">
+          <button class="btn-danger" id="btn-reset-year">
+            Jahrespunkte zurücksetzen
+          </button>
+          <button class="btn-secondary" id="btn-add-training-admin">
+            Training für alle +1
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
