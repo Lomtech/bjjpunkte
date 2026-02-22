@@ -215,12 +215,26 @@ function renderAthletesList(filter = '') {
         <div class="ar-name">${esc(a.name)}</div>
         <div class="ar-belt-lbl">${BELT_NAMES[a.belt] || a.belt}</div>
       </div>
-      <div class="ar-right">
-        <div class="ar-pts">${pts}</div>
+      <div class="ar-quick">
+        <button class="ar-btn minus" data-id="${a.id}" title="Verwarnung −5">−</button>
+        <span class="ar-pts-inline">${pts}</span>
+        <button class="ar-btn plus" data-id="${a.id}" title="Training +1">+</button>
+      </div>
+      <div class="ar-prog-wrap">
         <div class="ar-prog"><div class="ar-prog-fill" style="width:${pct}%"></div></div>
         ${ready ? '<div class="ar-belt-ready"></div>' : ''}
       </div>
     `;
+    // Quick +1 training
+    row.querySelector('.ar-btn.plus').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await quickEntry(a.id, 'training');
+    });
+    // Quick -5 penalty
+    row.querySelector('.ar-btn.minus').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await quickEntry(a.id, 'penalty');
+    });
     row.addEventListener('click', () => openModal(a.id));
     list.appendChild(row);
   });
@@ -491,8 +505,21 @@ function openModal(athleteId) {
   $('modal').classList.add('open');
 }
 
-// Quick entry from modal
-document.querySelectorAll('.mqs-btn').forEach(btn => {
+// Quick entry helper (used from athlete list + modal)
+async function quickEntry(athleteId, type) {
+  const t = TYPES[type];
+  const { error } = await sb.from('activities').insert({
+    athlete_id: athleteId, type, points: t.pts,
+    date: TODAY, note: t.label, created_by: currentUser.id,
+  });
+  if (error) return toast('Fehler: ' + error.message, 'err');
+  const a = athletes.find(x => x.id === athleteId);
+  toast(`${t.icon} ${a?.name} · ${t.pts > 0 ? '+' : ''}${t.pts}`, 'ok');
+  await loadActivities();
+  renderAll();
+}
+
+
   btn.addEventListener('click', async () => {
     if (!openAthleteId) return;
     const t = TYPES[btn.dataset.type];
@@ -507,7 +534,6 @@ document.querySelectorAll('.mqs-btn').forEach(btn => {
     renderAll();
     openModal(openAthleteId); // refresh modal
   });
-});
 
 // Belt from modal
 $('modal-belt-btn').addEventListener('click', async () => {

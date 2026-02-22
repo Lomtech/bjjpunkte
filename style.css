@@ -615,18 +615,54 @@ body {
   margin-top: 1px;
 }
 
-.ar-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.ar-quick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
-.ar-pts {
+.ar-pts-inline {
   font-family: var(--ff-head);
   font-size: 22px;
   font-weight: 700;
   color: var(--text);
+  min-width: 36px;
+  text-align: center;
   line-height: 1;
 }
 
+.ar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text2);
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+.ar-btn.plus  { border-color: rgba(26,110,60,0.35); color: var(--green); }
+.ar-btn.minus { border-color: rgba(170,40,32,0.3);  color: var(--red); }
+.ar-btn:active { transform: scale(0.88); }
+
+.ar-prog-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .ar-prog {
-  width: 60px;
+  width: 48px;
   height: 4px;
   background: var(--surface2);
   border-radius: 4px;
