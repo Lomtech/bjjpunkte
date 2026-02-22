@@ -1066,7 +1066,7 @@ body {
 
 /* ══ BOTTOM NAV ═══════════════════════════════════════════════ */
 .bottom-nav {
-  height: calc(var(--bnav-h) + env(safe-area-inset-bottom));
+  height: var(--bnav-h);
   background: var(--surface);
   border-top: 1px solid var(--border);
   display: flex;
