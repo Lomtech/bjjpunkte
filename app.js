@@ -3,7 +3,8 @@
 // ============================================================
 
 const LOCAL_SUPABASE_URL = "https://ktwgvuasjezokhsfpfqb.supabase.c";
-const LOCAL_SUPABASE_ANON_KEY = "sb_publishable_Ep1SfoAKBOgshy1A6c--9g_Qjx0T1LL";
+const LOCAL_SUPABASE_ANON_KEY =
+  "sb_publishable_Ep1SfoAKBOgshy1A6c--9g_Qjx0T1LL";
 
 const { createClient } = supabase;
 let sb;
@@ -50,19 +51,16 @@ const BELT_NEXT = {
 };
 
 const TYPES = {
-  training:   { label: "Training",      icon: "🥋",  pts: 1   },
-  tournament: { label: "Turnier",       icon: "🏅",  pts: 50  },
-  minus:      { label: "−1 Punkt",      icon: "➖",  pts: -1  },
-  penalty:    { label: "Verwarnung",    icon: "⚠️",  pts: -5  },
-  misconduct: { label: "Fehlverhalten", icon: "🚫",  pts: -20 },
+  training: { label: "Training", icon: "🥋", pts: 1 },
+  tournament: { label: "Turnier", icon: "🏅", pts: 50 },
+  penalty: { label: "Verwarnung", icon: "⚠️", pts: -5 },
+  misconduct: { label: "Fehlverhalten", icon: "🚫", pts: -20 },
 };
 
 // ── STATE ────────────────────────────────────────────────────
 let currentUser = null;
 let athletes = [];
 let activitiesMap = {}; // { athlete_id: [...] }
-let selectedType = "training";
-let selectedAthleteId = null;
 let openAthleteId = null;
 let selectedNewBelt = "white";
 let selectedPromoteBelt = "blue";
@@ -159,7 +157,6 @@ function getPoints(id) {
 function renderAll() {
   renderDashboard();
   renderAthletesList();
-  renderEntryAthletes();
   renderBeltAthleteSelect();
   setGroupLabel();
 }
@@ -275,124 +272,15 @@ function renderAthletesList(filter = "") {
       e.stopPropagation();
       await quickEntry(a.id, "training");
     });
-    // Quick -1
+    // Quick -1 Punkt
     row.querySelector(".ar-btn.minus").addEventListener("click", async (e) => {
       e.stopPropagation();
-      await quickEntry(a.id, "minus");
+      await quickEntryCustom(a.id, "penalty", -1, "−1 Punkt");
     });
     row.addEventListener("click", () => openModal(a.id));
     list.appendChild(row);
   });
 }
-
-// ── ENTRY VIEW ───────────────────────────────────────────────
-function renderEntryAthletes(filter = "") {
-  const list = $("entry-athlete-list");
-  const chip = $("selected-athlete-chip");
-
-  if (selectedAthleteId) {
-    list.style.display = "none";
-    chip.style.display = "inline-flex";
-    const a = athletes.find((x) => x.id === selectedAthleteId);
-    $("selected-chip-name").textContent = a
-      ? `${a.name} · ${BELT_NAMES[a.belt]}`
-      : "";
-    return;
-  }
-
-  chip.style.display = "none";
-  list.style.display = "flex";
-
-  const filtered = athletes
-    .filter((a) => a.active !== false)
-    .filter(
-      (a) => !filter || a.name.toLowerCase().includes(filter.toLowerCase()),
-    );
-
-  list.innerHTML =
-    filtered.length === 0
-      ? '<div style="padding:8px;color:var(--text3);font-size:13px">Kein Athlet gefunden</div>'
-      : filtered
-          .map(
-            (a) => `
-        <div class="eal-item" data-id="${a.id}">
-          <div class="eal-dot belt-${a.belt}"></div>
-          <div class="eal-name">${esc(a.name)}</div>
-          <div class="eal-belt">${BELT_NAMES[a.belt]}</div>
-        </div>
-      `,
-          )
-          .join("");
-
-  list.querySelectorAll(".eal-item").forEach((el) => {
-    el.addEventListener("click", () => {
-      selectedAthleteId = el.dataset.id;
-      renderEntryAthletes();
-      updateEntryBtn();
-    });
-  });
-}
-
-$("clear-athlete").addEventListener("click", () => {
-  selectedAthleteId = null;
-  $("entry-search").value = "";
-  renderEntryAthletes();
-  updateEntryBtn();
-});
-
-$("entry-search").addEventListener("input", (e) =>
-  renderEntryAthletes(e.target.value),
-);
-
-function updateEntryBtn() {
-  const a = athletes.find((x) => x.id === selectedAthleteId);
-  const t = TYPES[selectedType];
-  const ptsStr = t.pts > 0 ? `+${t.pts}` : `${t.pts}`;
-  $("btn-submit-entry").textContent = a
-    ? `${t.icon} ${a.name} · ${ptsStr} Punkte eintragen`
-    : "Eintragen";
-}
-
-// Type buttons
-document.querySelectorAll(".type-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document
-      .querySelectorAll(".type-btn")
-      .forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    selectedType = btn.dataset.type;
-    updateEntryBtn();
-  });
-});
-
-// Submit entry
-$("btn-submit-entry").addEventListener("click", async () => {
-  if (!selectedAthleteId)
-    return showEntryMsg("Bitte einen Athleten wählen.", "error");
-  const date = $("entry-date").value;
-  const note = $("entry-note").value.trim();
-  const t = TYPES[selectedType];
-
-  const { error } = await sb.from("activities").insert({
-    athlete_id: selectedAthleteId,
-    type: selectedType,
-    points: t.pts,
-    date,
-    note: note || t.label,
-    created_by: currentUser.id,
-  });
-  if (error) return showEntryMsg("Fehler: " + error.message, "error");
-
-  const a = athletes.find((x) => x.id === selectedAthleteId);
-  const ptsStr = t.pts > 0 ? `+${t.pts}` : `${t.pts}`;
-  toast(`${t.icon} ${a?.name} · ${ptsStr} Punkte`, "ok");
-  $("entry-note").value = "";
-  showEntryMsg("✓ Eingetragen!", "success");
-  setTimeout(() => showEntryMsg("", ""), 2000);
-
-  await loadActivities();
-  renderAll();
-});
 
 // ── GROUP TRAINING ───────────────────────────────────────────
 function setGroupLabel() {
@@ -613,7 +501,10 @@ function openModal(athleteId) {
       });
       if (error) return toast("Fehler", "err");
       const athlete = athletes.find((x) => x.id === openAthleteId);
-      toast(`${t.icon} ${athlete?.name} · ${t.pts > 0 ? "+" : ""}${t.pts}`, "ok");
+      toast(
+        `${t.icon} ${athlete?.name} · ${t.pts > 0 ? "+" : ""}${t.pts}`,
+        "ok",
+      );
       await loadActivities();
       renderAll();
       openModal(openAthleteId); // refresh modal with updated pts
@@ -626,20 +517,25 @@ function openModal(athleteId) {
 // ── Quick entry helper ───────────────────────────────────────
 async function quickEntry(athleteId, type) {
   const t = TYPES[type];
+  await quickEntryCustom(athleteId, type, t.pts, t.label);
+}
+
+async function quickEntryCustom(athleteId, type, pts, note) {
+  const t = TYPES[type];
   const { error } = await sb.from("activities").insert({
     athlete_id: athleteId,
     type,
-    points: t.pts,
+    points: pts,
     date: TODAY,
-    note: t.label,
+    note,
     created_by: currentUser.id,
   });
   if (error) return toast("Fehler: " + error.message, "err");
   const a = athletes.find((x) => x.id === athleteId);
-  toast(`${t.icon} ${a?.name} · ${t.pts > 0 ? "+" : ""}${t.pts}`, "ok");
+  const icon = t?.icon || "●";
+  toast(`${icon} ${a?.name} · ${pts > 0 ? "+" : ""}${pts}`, "ok");
   await loadActivities();
   renderAll();
-  // Modal aktualisieren wenn offen
   if (openAthleteId === athleteId) openModal(athleteId);
 }
 
@@ -729,12 +625,6 @@ function showAddMsg(msg, type) {
   el.className = `form-msg center ${type || ""}`;
 }
 
-function showEntryMsg(msg, type) {
-  const el = $("entry-msg");
-  el.textContent = msg;
-  el.className = `form-msg center ${type || ""}`;
-}
-
 let toastTimer;
 function toast(msg, type = "") {
   const el = $("toast");
@@ -746,8 +636,4 @@ function toast(msg, type = "") {
   }, 3000);
 }
 
-// Date defaults
-document.addEventListener("DOMContentLoaded", () => {
-  const ed = $("entry-date");
-  if (ed) ed.value = TODAY;
-});
+// ── EOF ──────────────────────────────────────────────────────
