@@ -195,29 +195,43 @@ function renderDashboard() {
     alert.style.display = "none";
   }
 
-  // Ranking
-  const ranked = [...active]
-    .map((a) => ({ ...a, pts: getPoints(a.id) }))
-    .sort((a, b) => b.pts - a.pts);
-  const list = $("ranking-list");
-  list.innerHTML = "";
-  ranked.slice(0, 20).forEach((a, i) => {
-    const pct = Math.min((a.pts / MAX_PTS) * 100, 100);
-    const rankCls =
-      i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
-    const ready = a.pts >= BELT_THRESHOLD && a.belt !== "black";
-    const div = document.createElement("div");
-    div.className = "rank-row";
-    div.innerHTML = `
-      <div class="rr-num ${rankCls}">${i + 1}</div>
-      <div class="rr-belt belt-${a.belt}"></div>
-      <div class="rr-name">${esc(a.name)}</div>
-      <div class="rr-bar-wrap"><div class="rr-bar" style="width:${pct}%"></div></div>
-      <div class="rr-pts">${a.pts}</div>
-      ${ready ? `<div class="rr-badge">🏆 ${BELT_NAMES[BELT_NEXT[a.belt]] || ""}</div>` : ""}
+  // Ranking – grouped by belt (black first → white last)
+  const rankList = $("ranking-list");
+  rankList.innerHTML = "";
+
+  const beltOrder = ["black", "brown", "purple", "blue", "white"];
+  beltOrder.forEach((belt) => {
+    const group = active
+      .filter((a) => a.belt === belt)
+      .map((a) => ({ ...a, pts: getPoints(a.id) }))
+      .sort((a, b) => b.pts - a.pts);
+    if (!group.length) return;
+
+    // Group header
+    const hd = document.createElement("div");
+    hd.className = "rank-group-hd";
+    hd.innerHTML = `
+      <div class="rgh-belt belt-${belt}"></div>
+      <div class="rgh-label">${BELT_NAMES[belt]}</div>
+      <div class="rgh-count">${group.length} Athleten</div>
     `;
-    div.addEventListener("click", () => openModal(a.id));
-    list.appendChild(div);
+    rankList.appendChild(hd);
+
+    group.forEach((a, i) => {
+      const pct = Math.min((a.pts / MAX_PTS) * 100, 100);
+      const ready = a.pts >= BELT_THRESHOLD && a.belt !== "black";
+      const div = document.createElement("div");
+      div.className = "rank-row";
+      div.innerHTML = `
+        <div class="rr-num">${i + 1}</div>
+        <div class="rr-name">${esc(a.name)}</div>
+        <div class="rr-bar-wrap"><div class="rr-bar" style="width:${pct}%"></div></div>
+        <div class="rr-pts">${a.pts}</div>
+        ${ready ? `<div class="rr-badge">🏆</div>` : ""}
+      `;
+      div.addEventListener("click", () => openModal(a.id));
+      rankList.appendChild(div);
+    });
   });
 }
 
@@ -621,6 +635,7 @@ $("btn-deactivate").addEventListener("click", async () => {
 });
 
 $("modal-close").addEventListener("click", closeModal);
+$("btn-close-modal").addEventListener("click", closeModal);
 $("modal").addEventListener("click", (e) => {
   if (e.target === $("modal")) closeModal();
 });
