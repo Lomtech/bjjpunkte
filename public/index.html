@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>BJJ Punkte</title>
+    <link rel="stylesheet" href="/css/base.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">🥋 BJJ Punkte</div>
+      <div class="actions">
+        <span id="whoami" class="muted"></span>
+        <button id="btnLogout" class="btn secondary hidden">Logout</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- LOGIN -->
+      <section id="view-login" class="card">
+        <h1>Login</h1>
+        <p class="muted">Melde dich an. (Supabase Auth)</p>
+        <div class="grid">
+          <label>
+            <span>E-Mail</span>
+            <input id="loginEmail" type="email" autocomplete="email" />
+          </label>
+          <label>
+            <span>Passwort</span>
+            <input
+              id="loginPassword"
+              type="password"
+              autocomplete="current-password"
+            />
+          </label>
+        </div>
+        <div class="row">
+          <button id="btnLogin" class="btn">Login</button>
+          <button id="btnSignup" class="btn secondary">Signup</button>
+        </div>
+        <p id="loginMsg" class="msg"></p>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="hidden">
+        <div class="card">
+          <h2>Dashboard</h2>
+          <div class="stats">
+            <div class="stat">
+              <div class="label">Punkte (Jahr)</div>
+              <div id="statPoints" class="value">–</div>
+            </div>
+            <div class="stat">
+              <div class="label">Trainings (Jahr)</div>
+              <div id="statTrainings" class="value">–</div>
+            </div>
+            <div class="stat">
+              <div class="label">Bis 200</div>
+              <div id="statTo200" class="value">–</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Historie (dieses Jahr)</h3>
+          <div id="eventList" class="list"></div>
+        </div>
+
+        <div id="coachArea" class="hidden">
+          <div class="card">
+            <h2>Coach Panel</h2>
+
+            <div class="row wrap">
+              <button id="btnRefreshCoach" class="btn secondary">
+                Aktualisieren
+              </button>
+              <span class="muted">Nur für Coach/Admin</span>
+            </div>
+
+            <hr class="sep" />
+
+            <h3>Training anlegen</h3>
+            <div class="grid">
+              <label>
+                <span>Start (ISO / Datum+Zeit)</span>
+                <input id="classStartsAt" type="datetime-local" />
+              </label>
+              <label>
+                <span>Typ</span>
+                <select id="classType">
+                  <option value="nogi">No-Gi</option>
+                  <option value="gi">Gi</option>
+                  <option value="openmat">Open Mat</option>
+                </select>
+              </label>
+            </div>
+            <div class="row">
+              <button id="btnCreateClass" class="btn">
+                Training erstellen
+              </button>
+              <span id="classMsg" class="msg"></span>
+            </div>
+
+            <hr class="sep" />
+
+            <h3>Anwesenheit (+1 Punkt)</h3>
+            <div class="grid">
+              <label>
+                <span>Training</span>
+                <select id="selectClass"></select>
+              </label>
+              <label>
+                <span>Athlet</span>
+                <select id="selectAthlete"></select>
+              </label>
+            </div>
+            <div class="row">
+              <button id="btnMarkAttendance" class="btn">
+                Anwesend markieren
+              </button>
+              <span id="attMsg" class="msg"></span>
+            </div>
+
+            <hr class="sep" />
+
+            <h3>Turnierpunkte (+50)</h3>
+            <div class="grid">
+              <label>
+                <span>Athlet</span>
+                <select id="selectAthlete2"></select>
+              </label>
+              <label>
+                <span>Punkte</span>
+                <input id="tournPoints" type="number" value="50" />
+              </label>
+            </div>
+            <div class="row">
+              <button id="btnAddTournamentPoints" class="btn">
+                Punkte vergeben
+              </button>
+              <span id="tournMsg" class="msg"></span>
+            </div>
+
+            <hr class="sep" />
+
+            <h3>Leaderboard</h3>
+            <div id="leaderboard" class="list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- CONFIG: Set your Supabase URL/Anon Key here -->
+    <script>
+      window.APP_CONFIG = {
+        SUPABASE_URL: "YOUR_SUPABASE_URL",
+        SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_KEY",
+      };
+    </script>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
