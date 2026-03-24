@@ -1,403 +1,342 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-    />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#f5f0e8" />
-    <title>BJJ Trainer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Favicon Browser-Tab -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-96x96.png" />
 
-    <!-- iOS Homescreen -->
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="BJJ Trainer" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#f5f0e8" />
+  <title>BJJ Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <!-- Favicon Browser-Tab -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-96x96.png" />
 
-    <!-- Android / PWA Homescreen -->
-    <link rel="manifest" href="/site.webmanifest" />
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <!-- ══ LOGIN ══════════════════════════════════════════════════ -->
-    <div id="screen-login" class="screen active">
-      <div class="login-page">
-        <div class="login-top">
-          <div class="login-logo">BJJ</div>
-          <div class="login-logo-sub">TRAINER PORTAL</div>
+  <!-- iOS Homescreen -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="BJJ Trainer" />
+
+  <!-- Android / PWA Homescreen -->
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- ══ LOGIN ══════════════════════════════════════════════════ -->
+  <div id="screen-login" class="screen active">
+    <div class="login-page">
+      <div class="login-top">
+        <div class="login-logo">BJJ</div>
+        <div class="login-logo-sub">TRAINER PORTAL</div>
+      </div>
+      <div class="login-card">
+        <h2 class="login-title">Willkommen</h2>
+        <p class="login-sub">Nur für autorisierte Trainer</p>
+        <div class="field">
+          <label>E-Mail</label>
+          <input type="email" id="login-email" placeholder="trainer@gym.de" autocomplete="email" />
         </div>
-        <div class="login-card">
-          <h2 class="login-title">Willkommen</h2>
-          <p class="login-sub">Nur für autorisierte Trainer</p>
-          <div class="field">
-            <label>E-Mail</label>
-            <input
-              type="email"
-              id="login-email"
-              placeholder="trainer@gym.de"
-              autocomplete="email"
-            />
-          </div>
-          <div class="field">
-            <label>Passwort</label>
-            <input
-              type="password"
-              id="login-password"
-              placeholder="••••••••"
-              autocomplete="current-password"
-            />
-          </div>
-          <button class="btn-cta" id="btn-login">Einloggen</button>
-          <div id="login-msg" class="form-msg"></div>
+        <div class="field">
+          <label>Passwort</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
         </div>
+        <button class="btn-cta" id="btn-login">Einloggen</button>
+        <div id="login-msg" class="form-msg"></div>
       </div>
     </div>
+  </div>
 
-    <!-- ══ APP ════════════════════════════════════════════════════ -->
-    <div id="screen-app" class="screen">
-      <header class="topbar">
-        <div class="topbar-brand">BJJ<span>TRAINER</span></div>
-        <div class="topbar-right">
-          <span id="topbar-trainer" class="topbar-trainer"></span>
-          <button id="btn-logout" class="icon-btn" title="Ausloggen">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.2"
-              stroke-linecap="round"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
+  <!-- ══ APP ════════════════════════════════════════════════════ -->
+  <div id="screen-app" class="screen">
+    <header class="topbar">
+      <div class="topbar-brand">BJJ<span>TRAINER</span></div>
+      <div class="topbar-right">
+        <span id="topbar-trainer" class="topbar-trainer"></span>
+        <button id="btn-logout" class="icon-btn" title="Ausloggen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <!-- VIEW: DASHBOARD -->
+      <div id="view-dashboard" class="view active">
+        <div class="quick-hero">
+          <div class="quick-label">Schnellaktion</div>
+          <button class="quick-big-btn" id="btn-quick-group">
+            <span class="qb-emoji">🥋</span>
+            <span class="qb-info">
+              <span class="qb-title">Gruppen-Training heute</span>
+              <span class="qb-sub" id="quick-count-label">Alle Athleten · +1 Punkt</span>
+            </span>
+            <span class="qb-badge">+1</span>
           </button>
         </div>
-      </header>
 
-      <div class="app-body">
-        <!-- VIEW: DASHBOARD -->
-        <div id="view-dashboard" class="view active">
-          <div class="quick-hero">
-            <div class="quick-label">Schnellaktion</div>
-            <button class="quick-big-btn" id="btn-quick-group">
-              <span class="qb-emoji">🥋</span>
-              <span class="qb-info">
-                <span class="qb-title">Gruppen-Training heute</span>
-                <span class="qb-sub" id="quick-count-label"
-                  >Alle Athleten · +1 Punkt</span
-                >
-              </span>
-              <span class="qb-badge">+1</span>
-            </button>
+        <div class="stats-strip">
+          <div class="ss-item">
+            <div class="ss-num" id="stat-athletes">0</div>
+            <div class="ss-lbl">Athleten</div>
           </div>
-
-          <div class="stats-strip">
-            <div class="ss-item">
-              <div class="ss-num" id="stat-athletes">0</div>
-              <div class="ss-lbl">Athleten</div>
-            </div>
-            <div class="ss-divider"></div>
-            <div class="ss-item">
-              <div class="ss-num" id="stat-today">0</div>
-              <div class="ss-lbl">Heute</div>
-            </div>
-            <div class="ss-divider"></div>
-            <div class="ss-item highlight">
-              <div class="ss-num" id="stat-belt-ready">0</div>
-              <div class="ss-lbl">Gürtel-bereit</div>
-            </div>
-            <div class="ss-divider"></div>
-            <div class="ss-item">
-              <div class="ss-num" id="stat-avg">0</div>
-              <div class="ss-lbl">Ø Punkte</div>
-            </div>
+          <div class="ss-divider"></div>
+          <div class="ss-item">
+            <div class="ss-num" id="stat-today">0</div>
+            <div class="ss-lbl">Heute</div>
           </div>
-
-          <div id="belt-alert" class="belt-alert" style="display: none">
-            <span class="ba-icon">🏆</span>
-            <div>
-              <div class="ba-title">Gürtel-Aufstieg bereit</div>
-              <div id="ba-names" class="ba-names"></div>
-            </div>
+          <div class="ss-divider"></div>
+          <div class="ss-item highlight">
+            <div class="ss-num" id="stat-belt-ready">0</div>
+            <div class="ss-lbl">Gürtel-bereit</div>
           </div>
-
-          <div class="section-card">
-            <div class="sc-header">
-              <span class="sc-title">Rangliste</span>
-              <span id="rank-year" class="sc-year"></span>
-            </div>
-            <div id="ranking-list"></div>
+          <div class="ss-divider"></div>
+          <div class="ss-item">
+            <div class="ss-num" id="stat-avg">0</div>
+            <div class="ss-lbl">Ø Punkte</div>
           </div>
         </div>
 
-        <!-- VIEW: ATHLETEN -->
-        <div id="view-athletes" class="view">
-          <div class="view-topbar">
-            <h1 class="view-h1">Athleten</h1>
-            <button class="btn-sm-cta" id="btn-goto-add">+ Neu</button>
+        <div id="belt-alert" class="belt-alert" style="display: none">
+          <span class="ba-icon">🏆</span>
+          <div>
+            <div class="ba-title">Gürtel-Aufstieg bereit</div>
+            <div id="ba-names" class="ba-names"></div>
           </div>
-          <div class="search-row">
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.2"
-              stroke-linecap="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="search"
-              id="search-athletes"
-              class="search-input"
-              placeholder="Suchen…"
-            />
-          </div>
-          <div id="athletes-list" class="athletes-list"></div>
         </div>
 
-        <!-- VIEW: ANLEGEN -->
-        <div id="view-add" class="view">
-          <h1 class="view-h1 padded">Athlet anlegen</h1>
-
-          <div class="form-section">
-            <div class="field">
-              <label>Name <span class="req">*</span></label>
-              <input
-                type="text"
-                id="new-name"
-                placeholder="Max Mustermann"
-                autocomplete="off"
-              />
-            </div>
-            <div class="field">
-              <label>E-Mail <span class="opt">optional</span></label>
-              <input type="email" id="new-email" placeholder="max@example.de" />
-            </div>
-            <div class="field">
-              <label>Geburtsjahr <span class="opt">optional</span></label>
-              <input
-                type="number"
-                id="new-birthyear"
-                placeholder="1995"
-                min="1950"
-                max="2015"
-              />
-            </div>
-            <div class="field">
-              <label>Gürtel</label>
-              <div class="belt-grid" id="belt-picker">
-                <button class="bg-btn active" data-belt="white">
-                  <span class="bg-dot white"></span>Weiß
-                </button>
-                <button class="bg-btn" data-belt="blue">
-                  <span class="bg-dot blue"></span>Blau
-                </button>
-                <button class="bg-btn" data-belt="purple">
-                  <span class="bg-dot purple"></span>Lila
-                </button>
-                <button class="bg-btn" data-belt="brown">
-                  <span class="bg-dot brown"></span>Braun
-                </button>
-                <button class="bg-btn" data-belt="black">
-                  <span class="bg-dot black"></span>Schwarz
-                </button>
-              </div>
-            </div>
-            <button class="btn-cta full" id="btn-add-athlete">
-              Athlet anlegen
-            </button>
-            <div id="add-msg" class="form-msg center"></div>
+        <div class="section-card">
+          <div class="sc-header">
+            <span class="sc-title">Rangliste</span>
+            <span id="rank-year" class="sc-year"></span>
           </div>
-
-          <div class="section-divider">Gürtel vergeben</div>
-
-          <div class="form-section">
-            <div class="field">
-              <label>Athlet</label>
-              <select id="belt-athlete">
-                <option value="">— Athlet wählen —</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Neuer Gürtel</label>
-              <div class="belt-grid" id="promote-picker">
-                <button class="bg-btn" data-belt="white">
-                  <span class="bg-dot white"></span>Weiß
-                </button>
-                <button class="bg-btn active" data-belt="blue">
-                  <span class="bg-dot blue"></span>Blau
-                </button>
-                <button class="bg-btn" data-belt="purple">
-                  <span class="bg-dot purple"></span>Lila
-                </button>
-                <button class="bg-btn" data-belt="brown">
-                  <span class="bg-dot brown"></span>Braun
-                </button>
-                <button class="bg-btn" data-belt="black">
-                  <span class="bg-dot black"></span>Schwarz
-                </button>
-              </div>
-            </div>
-            <button class="btn-cta full gold" id="btn-belt-promote">
-              🥋 Gürtel vergeben
-            </button>
-          </div>
+          <div id="ranking-list"></div>
         </div>
       </div>
-      <!-- /app-body -->
 
-      <!-- Bottom Nav — 3 items only -->
-      <nav class="bottom-nav">
-        <button class="bnav active" data-view="dashboard">
-          <svg
-            width="21"
-            height="21"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <rect x="3" y="3" width="7" height="7" rx="1.5" />
-            <rect x="14" y="3" width="7" height="7" rx="1.5" />
-            <rect x="3" y="14" width="7" height="7" rx="1.5" />
-            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      <!-- VIEW: ATHLETEN -->
+      <div id="view-athletes" class="view">
+        <div class="view-topbar">
+          <h1 class="view-h1">Athleten</h1>
+          <button class="btn-sm-cta" id="btn-goto-add">+ Neu</button>
+        </div>
+        <div class="search-row">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <span>Dashboard</span>
-        </button>
-        <button class="bnav" data-view="athletes">
-          <svg
-            width="21"
-            height="21"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          <span>Athleten</span>
-        </button>
-        <button class="bnav" data-view="add">
-          <svg
-            width="21"
-            height="21"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="8.5" cy="7" r="4" />
-            <line x1="20" y1="8" x2="20" y2="14" />
-            <line x1="23" y1="11" x2="17" y2="11" />
-          </svg>
-          <span>Anlegen</span>
-        </button>
-      </nav>
-    </div>
+          <input type="search" id="search-athletes" class="search-input" placeholder="Suchen…" />
+        </div>
+        <div id="athletes-list" class="athletes-list"></div>
+      </div>
 
-    <!-- MODAL: ATHLET DETAIL -->
-    <div id="modal" class="modal-backdrop">
-      <div class="modal-sheet">
-        <div class="modal-handle"></div>
+      <!-- VIEW: ANLEGEN -->
+      <div id="view-add" class="view">
+        <h1 class="view-h1 padded">Athlet anlegen</h1>
 
-        <div class="modal-head">
-          <div class="modal-belt-bar" id="modal-belt-bar"></div>
-          <div class="modal-head-info">
-            <div class="modal-name" id="modal-name"></div>
-            <div class="modal-belt-lbl" id="modal-belt-lbl"></div>
+        <div class="form-section">
+          <div class="field">
+            <label>Name <span class="req">*</span></label>
+            <input type="text" id="new-name" placeholder="Max Mustermann" autocomplete="off" />
           </div>
-          <div class="modal-pts" id="modal-pts"></div>
+          <div class="field">
+            <label>E-Mail <span class="opt">optional</span></label>
+            <input type="email" id="new-email" placeholder="max@example.de" />
+          </div>
+          <div class="field">
+            <label>Geburtsjahr <span class="opt">optional</span></label>
+            <input type="number" id="new-birthyear" placeholder="1995" min="1950" max="2015" />
+          </div>
+          <div class="field">
+            <label>Gürtel</label>
+            <div class="belt-grid" id="belt-picker">
+              <button class="bg-btn active" data-belt="white">
+                <span class="bg-dot white"></span>Weiß
+              </button>
+              <button class="bg-btn" data-belt="blue">
+                <span class="bg-dot blue"></span>Blau
+              </button>
+              <button class="bg-btn" data-belt="purple">
+                <span class="bg-dot purple"></span>Lila
+              </button>
+              <button class="bg-btn" data-belt="brown">
+                <span class="bg-dot brown"></span>Braun
+              </button>
+              <button class="bg-btn" data-belt="black">
+                <span class="bg-dot black"></span>Schwarz
+              </button>
+            </div>
+          </div>
+          <button class="btn-cta full" id="btn-add-athlete">
+            Athlet anlegen
+          </button>
+          <div id="add-msg" class="form-msg center"></div>
         </div>
 
-        <div class="modal-stats">
-          <div class="mst-item">
-            <div class="mst-n" id="ms-trainings">0</div>
-            <div class="mst-l">Trainings</div>
-          </div>
-          <div class="mst-item">
-            <div class="mst-n" id="ms-tournaments">0</div>
-            <div class="mst-l">Turniere</div>
-          </div>
-          <div class="mst-item red">
-            <div class="mst-n" id="ms-penalties">0</div>
-            <div class="mst-l">Strafen</div>
-          </div>
-        </div>
+        <div class="section-divider">Gürtel vergeben</div>
 
-        <div class="modal-prog">
-          <div class="modal-prog-bg">
-            <div class="modal-prog-fill" id="modal-prog-fill"></div>
+        <div class="form-section">
+          <div class="field">
+            <label>Athlet</label>
+            <select id="belt-athlete">
+              <option value="">— Athlet wählen —</option>
+            </select>
           </div>
-          <div class="modal-prog-meta">
-            <span id="modal-prog-txt"></span><span>max 192</span>
+          <div class="field">
+            <label>Neuer Gürtel</label>
+            <div class="belt-grid" id="promote-picker">
+              <button class="bg-btn" data-belt="white">
+                <span class="bg-dot white"></span>Weiß
+              </button>
+              <button class="bg-btn active" data-belt="blue">
+                <span class="bg-dot blue"></span>Blau
+              </button>
+              <button class="bg-btn" data-belt="purple">
+                <span class="bg-dot purple"></span>Lila
+              </button>
+              <button class="bg-btn" data-belt="brown">
+                <span class="bg-dot brown"></span>Braun
+              </button>
+              <button class="bg-btn" data-belt="black">
+                <span class="bg-dot black"></span>Schwarz
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div class="modal-quick-section">
-          <div class="mqs-label">Schnell eintragen</div>
-          <div class="mqs-grid">
-            <button class="mqs-btn training" data-type="training">
-              🥋 +1 Training
-            </button>
-            <button class="mqs-btn tournament" data-type="tournament">
-              🏅 +50 Turnier
-            </button>
-            <button class="mqs-btn penalty" data-type="penalty">
-              ⚠️ −5 Verwarnung
-            </button>
-            <button class="mqs-btn misconduct" data-type="misconduct">
-              🚫 −20 Fehlverhalten
-            </button>
-          </div>
-        </div>
-
-        <div class="modal-belt-promote">
-          <div class="mqs-label">Gürtel vergeben</div>
-          <div class="belt-grid" id="modal-belt-grid"></div>
-          <button class="btn-cta gold full mt8" id="modal-belt-btn">
+          <button class="btn-cta full gold" id="btn-belt-promote">
             🥋 Gürtel vergeben
           </button>
         </div>
+      </div>
+    </div>
+    <!-- /app-body -->
 
-        <div class="modal-hist-hd">Verlauf</div>
-        <div id="modal-history" class="modal-history"></div>
+    <!-- Bottom Nav — 3 items only -->
+    <nav class="bottom-nav">
+      <button class="bnav active" data-view="dashboard">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="bnav" data-view="athletes">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        <span>Athleten</span>
+      </button>
+      <button class="bnav" data-view="add">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="8.5" cy="7" r="4" />
+          <line x1="20" y1="8" x2="20" y2="14" />
+          <line x1="23" y1="11" x2="17" y2="11" />
+        </svg>
+        <span>Anlegen</span>
+      </button>
+    </nav>
+  </div>
 
-        <div class="modal-footer">
-          <button class="btn-close-modal" id="btn-close-modal">
-            Schließen
+  <!-- MODAL: ATHLET DETAIL -->
+  <div id="modal" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+
+      <div class="modal-head">
+        <div class="modal-belt-bar" id="modal-belt-bar"></div>
+        <div class="modal-head-info">
+          <div class="modal-name" id="modal-name"></div>
+          <div class="modal-belt-lbl" id="modal-belt-lbl"></div>
+        </div>
+        <div class="modal-pts" id="modal-pts"></div>
+      </div>
+
+      <div class="modal-stats">
+        <div class="mst-item">
+          <div class="mst-n" id="ms-trainings">0</div>
+          <div class="mst-l">Trainings</div>
+        </div>
+        <div class="mst-item">
+          <div class="mst-n" id="ms-tournaments">0</div>
+          <div class="mst-l">Turniere</div>
+        </div>
+        <div class="mst-item red">
+          <div class="mst-n" id="ms-penalties">0</div>
+          <div class="mst-l">Strafen</div>
+        </div>
+      </div>
+
+      <div class="modal-prog">
+        <div class="modal-prog-bg">
+          <div class="modal-prog-fill" id="modal-prog-fill"></div>
+        </div>
+        <div class="modal-prog-meta">
+          <span id="modal-prog-txt"></span><span>max 192</span>
+        </div>
+      </div>
+
+      <div class="modal-quick-section">
+        <div class="mqs-label">Schnell eintragen</div>
+        <div class="mqs-grid">
+          <button class="mqs-btn training" data-type="training">
+            🥋 +1 Training
           </button>
-          <button class="btn-danger-sm" id="btn-deactivate">
-            Athlet deaktivieren
+          <button class="mqs-btn tournament" data-type="tournament">
+            🏅 +50 Turnier
+          </button>
+          <button class="mqs-btn penalty" data-type="penalty">
+            ⚠️ −5 Verwarnung
+          </button>
+          <button class="mqs-btn misconduct" data-type="misconduct">
+            🚫 −20 Fehlverhalten
           </button>
         </div>
       </div>
+
+      <div class="modal-belt-promote">
+        <div class="mqs-label">Gürtel vergeben</div>
+        <div class="belt-grid" id="modal-belt-grid"></div>
+        <button class="btn-cta gold full mt8" id="modal-belt-btn">
+          🥋 Gürtel vergeben
+        </button>
+      </div>
+
+      <div class="modal-hist-hd">Verlauf</div>
+      <div id="modal-history" class="modal-history"></div>
+
+      <div class="modal-footer">
+        <button class="btn-close-modal" id="btn-close-modal">
+          Schließen
+        </button>
+        <button class="btn-danger-sm" id="btn-deactivate">
+          Athlet deaktivieren
+        </button>
+      </div>
     </div>
+  </div>
 
-    <div id="toast" class="toast"></div>
+  <div id="toast" class="toast"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js"></script>
-  </body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="https://www.impulseto.work/api/pixel.js" data-website-id="9d061b93-1044-436f-b972-df1c93044f90"
+    data-domain="https://bjjpunkte.netlify.app/"></script>
+  <script src="app.js"></script>
+</body>
+
 </html>
