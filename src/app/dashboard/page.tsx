@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Users, TrendingUp, Calendar, Award } from 'lucide-react'
+import { Users, TrendingUp, Calendar, Award, Cake, FileWarning } from 'lucide-react'
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
@@ -10,6 +10,39 @@ import type { Belt } from '@/types/database'
 interface AttendanceRow { id: string; checked_in_at: string; class_type: string; member_id: string }
 interface PromotionRow { id: string; new_belt: string; new_stripes: number; promoted_at: string; member_id: string }
 interface MemberRow { id: string; first_name: string; last_name: string; belt: string }
+interface MemberBirthday {
+  id: string
+  first_name: string
+  last_name: string
+  date_of_birth: string
+}
+interface MemberWithContract {
+  id: string
+  contract_end_date: string | null
+}
+
+function upcomingBirthdays(members: MemberBirthday[]): Array<MemberBirthday & { nextBirthday: Date; age: number }> {
+  const now = new Date()
+  const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+
+  return members
+    .filter(m => m.date_of_birth)
+    .map(m => {
+      const dob = new Date(m.date_of_birth)
+      const thisYear = new Date(now.getFullYear(), dob.getMonth(), dob.getDate())
+      const nextBirthday = thisYear < now
+        ? new Date(now.getFullYear() + 1, dob.getMonth(), dob.getDate())
+        : thisYear
+      const age = nextBirthday.getFullYear() - dob.getFullYear()
+      return { ...m, nextBirthday, age }
+    })
+    .filter(m => m.nextBirthday >= now && m.nextBirthday <= in7)
+    .sort((a, b) => a.nextBirthday.getTime() - b.nextBirthday.getTime())
+}
+
+function initials(first: string, last: string) {
+  return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase()
+}
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
@@ -19,6 +52,8 @@ export default function DashboardPage() {
   const [recentPromotions, setRecentPromotions] = useState<PromotionRow[]>([])
   const [beltCounts, setBeltCounts] = useState<Record<string, number>>({})
   const [memberMap, setMemberMap] = useState<Map<string, { first_name: string; last_name: string }>>(new Map())
+  const [birthdayMembers, setBirthdayMembers] = useState<Array<MemberBirthday & { nextBirthday: Date; age: number }>>([])
+  const [expiringContracts, setExpiringContracts] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -27,6 +62,7 @@ export default function DashboardPage() {
       if (!gym) { setLoading(false); return }
 
       const today = new Date().toISOString().split('T')[0]
+      const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
       const [
         { count: total },
@@ -35,6 +71,8 @@ export default function DashboardPage() {
         { data: rawPromotions },
         { data: beltStats },
         { data: membersList },
+        { data: birthdayList },
+        { data: contractList },
       ] = await Promise.all([
         supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id),
         supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id).eq('is_active', true),
@@ -42,6 +80,8 @@ export default function DashboardPage() {
         supabase.from('belt_promotions').select('id, new_belt, new_stripes, promoted_at, member_id').eq('gym_id', gym.id).order('promoted_at', { ascending: false }).limit(5),
         supabase.from('members').select('belt').eq('gym_id', gym.id).eq('is_active', true),
         supabase.from('members').select('id, first_name, last_name').eq('gym_id', gym.id),
+        supabase.from('members').select('id, first_name, last_name, date_of_birth').eq('gym_id', gym.id).eq('is_active', true).not('date_of_birth', 'is', null),
+        supabase.from('members').select('id, contract_end_date').eq('gym_id', gym.id).eq('is_active', true).not('contract_end_date', 'is', null).lte('contract_end_date', in30),
       ])
 
       setTotalMembers(total ?? 0)
@@ -54,8 +94,10 @@ export default function DashboardPage() {
         return acc
       }, {})
       setBeltCounts(counts)
-
       setMemberMap(new Map((membersList ?? []).map(m => [m.id, m])))
+
+      setBirthdayMembers(upcomingBirthdays((birthdayList as MemberBirthday[]) ?? []))
+      setExpiringContracts(((contractList as MemberWithContract[]) ?? []).length)
       setLoading(false)
     }
     load()
@@ -64,7 +106,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-full">
-        <div className="text-slate-400 text-sm">Lädt...</div>
+        <div className="text-slate-400 text-sm">Laedt...</div>
       </div>
     )
   }
@@ -83,7 +125,7 @@ export default function DashboardPage() {
         <StatCard icon={<Users size={18} />} label="Aktive Mitglieder" value={activeMembers} color="blue" />
         <StatCard icon={<Users size={18} />} label="Gesamt" value={totalMembers} color="slate" />
         <StatCard icon={<Calendar size={18} />} label="Heute anwesend" value={todayAttendance.length} color="green" />
-        <StatCard icon={<Award size={18} />} label="Letzte Promotions" value={recentPromotions.length} color="amber" />
+        <StatCard icon={<FileWarning size={18} />} label="Vertraege laufen ab" value={expiringContracts} color="amber" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -136,6 +178,38 @@ export default function DashboardPage() {
             <p className="text-slate-400 text-sm">Noch niemand eingecheckt.</p>
           )}
         </div>
+      </div>
+
+      {/* Birthdays */}
+      <div className="mt-6 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <h2 className="font-semibold text-slate-500 text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
+          <Cake size={14} />
+          Geburtstage naechste 7 Tage
+        </h2>
+        {birthdayMembers.length > 0 ? (
+          <div className="space-y-3">
+            {birthdayMembers.map(m => (
+              <div key={m.id} className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-amber-700">{initials(m.first_name, m.last_name)}</span>
+                </div>
+                <div className="flex-1">
+                  <Link href={`/dashboard/members/${m.id}`} className="text-slate-900 font-medium text-sm hover:text-amber-600">
+                    {m.first_name} {m.last_name}
+                  </Link>
+                  <p className="text-slate-400 text-xs">
+                    {m.nextBirthday.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  {m.age} Jahre
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-slate-400 text-sm">Keine Geburtstage in den naechsten 7 Tagen.</p>
+        )}
       </div>
 
       {/* Recent promotions */}

@@ -24,6 +24,7 @@ export default function NewMemberPage() {
     first_name: '', last_name: '', email: '', phone: '',
     date_of_birth: '', join_date: new Date().toISOString().split('T')[0],
     belt: 'white' as Belt, stripes: 0, notes: '',
+    contract_end_date: '',
   })
 
   function set(field: string, value: string | number) {
@@ -49,6 +50,7 @@ export default function NewMemberPage() {
       belt: form.belt,
       stripes: form.stripes,
       notes: form.notes || null,
+      contract_end_date: form.contract_end_date || null,
       is_active: true,
     })
     if (error) { setError(error.message); setLoading(false); return }
@@ -77,6 +79,9 @@ export default function NewMemberPage() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Geburtsdatum" value={form.date_of_birth} onChange={v => set('date_of_birth', v)} type="date" />
             <Field label="Mitglied seit" value={form.join_date} onChange={v => set('join_date', v)} type="date" required />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Vertragsende" value={form.contract_end_date} onChange={v => set('contract_end_date', v)} type="date" />
           </div>
         </div>
 

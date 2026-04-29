@@ -14,9 +14,9 @@ export interface Database {
         Relationships: Rel[]
       }
       members: {
-        Row: { id: string; gym_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; date_of_birth: string | null; join_date: string; belt: Belt; stripes: number; is_active: boolean; notes: string | null; stripe_customer_id: string | null; subscription_status: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'; created_at: string }
-        Insert: { gym_id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; date_of_birth?: string | null; join_date?: string; belt?: Belt; stripes?: number; is_active?: boolean; notes?: string | null; stripe_customer_id?: string | null; subscription_status?: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial' }
-        Update: { first_name?: string; last_name?: string; email?: string | null; phone?: string | null; date_of_birth?: string | null; join_date?: string; belt?: Belt; stripes?: number; is_active?: boolean; notes?: string | null; stripe_customer_id?: string | null; subscription_status?: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial' }
+        Row: { id: string; gym_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; date_of_birth: string | null; join_date: string; belt: Belt; stripes: number; is_active: boolean; notes: string | null; stripe_customer_id: string | null; subscription_status: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'; contract_end_date: string | null; monthly_fee_override_cents: number | null; created_at: string }
+        Insert: { gym_id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; date_of_birth?: string | null; join_date?: string; belt?: Belt; stripes?: number; is_active?: boolean; notes?: string | null; stripe_customer_id?: string | null; subscription_status?: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'; contract_end_date?: string | null; monthly_fee_override_cents?: number | null }
+        Update: { first_name?: string; last_name?: string; email?: string | null; phone?: string | null; date_of_birth?: string | null; join_date?: string; belt?: Belt; stripes?: number; is_active?: boolean; notes?: string | null; stripe_customer_id?: string | null; subscription_status?: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'; contract_end_date?: string | null; monthly_fee_override_cents?: number | null }
         Relationships: Rel[]
       }
       belt_promotions: {

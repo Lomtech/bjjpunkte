@@ -23,6 +23,8 @@ interface Member {
   subscription_status: string | null
   stripe_customer_id: string | null
   notes: string | null
+  contract_end_date: string | null
+  date_of_birth: string | null
 }
 
 interface Promotion {
@@ -150,6 +152,12 @@ export default function MemberDetailPage() {
         <InfoCard label="Kontakt" value={member.email ?? member.phone ?? '—'} />
       </div>
 
+      <ContractSection
+        memberId={member.id}
+        contractEndDate={member.contract_end_date}
+        onUpdated={(newDate) => setMember(m => m ? { ...m, contract_end_date: newDate } : m)}
+      />
+
       {member.notes && (
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-5">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Notizen</p>
@@ -224,6 +232,85 @@ function InfoCard({ label, value }: { label: string; value: string }) {
     <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
       <p className="text-slate-900 font-semibold text-sm">{value}</p>
+    </div>
+  )
+}
+
+function ContractSection({
+  memberId,
+  contractEndDate,
+  onUpdated,
+}: {
+  memberId: string
+  contractEndDate: string | null
+  onUpdated: (newDate: string | null) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(contractEndDate ?? '')
+  const [saving, setSaving] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    const supabase = createClient()
+    await supabase.from('members').update({ contract_end_date: value || null }).eq('id', memberId)
+    onUpdated(value || null)
+    setSaving(false)
+    setEditing(false)
+  }
+
+  const now = new Date()
+  const diffDays = contractEndDate
+    ? (new Date(contractEndDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    : null
+
+  const isExpired = diffDays !== null && diffDays < 0
+  const isExpiring = diffDays !== null && diffDays >= 0 && diffDays <= 30
+
+  return (
+    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Vertragsende</p>
+        <button
+          onClick={() => { setEditing(e => !e); setValue(contractEndDate ?? '') }}
+          className="text-xs text-amber-600 hover:text-amber-500 font-medium"
+        >
+          {editing ? 'Abbrechen' : 'Bearbeiten'}
+        </button>
+      </div>
+
+      {editing ? (
+        <div className="flex items-center gap-3">
+          <input
+            type="date"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-amber-400"
+          />
+          <button
+            onClick={save}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
+          >
+            {saving ? 'Speichert...' : 'Speichern'}
+          </button>
+        </div>
+      ) : (
+        <div>
+          <p className="text-slate-900 font-semibold text-sm">
+            {contractEndDate ? new Date(contractEndDate).toLocaleDateString('de-DE') : '—'}
+          </p>
+          {isExpired && (
+            <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
+              Vertrag ist abgelaufen ({Math.abs(Math.floor(diffDays!))} Tage ueberfaellig)
+            </div>
+          )}
+          {isExpiring && (
+            <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
+              Vertrag laeuft in {Math.floor(diffDays!)} Tagen ab
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
