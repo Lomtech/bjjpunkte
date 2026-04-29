@@ -5,8 +5,8 @@ import { LogOut, Users, LayoutDashboard, CheckSquare, Settings } from 'lucide-re
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
 
   const { data: gym } = await supabase.from('gyms').select('name').single()
 

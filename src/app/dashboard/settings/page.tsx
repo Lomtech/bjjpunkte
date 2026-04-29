@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [monthlyFee, setMonthlyFee] = useState('')
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [stripeConfigured, setStripeConfigured] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -24,6 +25,7 @@ export default function SettingsPage() {
         setMonthlyFee(data.monthly_fee_cents ? ((data.monthly_fee_cents as number) / 100).toFixed(2) : '')
       }
     })
+    fetch('/api/stripe/status').then(r => r.json()).then(d => setStripeConfigured(d.configured))
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -44,7 +46,6 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const stripeConfigured = !!process.env.NEXT_PUBLIC_STRIPE_CONFIGURED
 
   return (
     <div className="p-8 max-w-xl">
