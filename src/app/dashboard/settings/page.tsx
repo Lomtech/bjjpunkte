@@ -19,7 +19,6 @@ export default function SettingsPage() {
   const [stripeConfigured, setStripeConfigured]   = useState(false)
   const [stripeAccountId, setStripeAccountId]     = useState<string | null>(null)
   const [connectLoading, setConnectLoading]       = useState(false)
-  const [connectEnabled, setConnectEnabled]       = useState(false)
 
   // URL feedback from OAuth callback
   const stripeConnected = searchParams.get('stripe_connected') === '1'
@@ -39,7 +38,6 @@ export default function SettingsPage() {
     })
     fetch('/api/stripe/status').then(r => r.json()).then(d => {
       setStripeConfigured(d.configured)
-      setConnectEnabled(!!d.clientId)
     })
   }, [])
 
@@ -66,10 +64,12 @@ export default function SettingsPage() {
     try {
       const { data: { session } } = await createClient().auth.getSession()
       const res = await fetch('/api/stripe/connect', {
+        method: 'POST',
         headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
+      else if (data.error) alert(data.error)
     } catch {
       // ignore
     }
@@ -247,20 +247,14 @@ export default function SettingsPage() {
                     <p>→ <strong className="text-slate-700">1,60 €</strong> Plattformgebühr</p>
                     <p className="text-slate-400">+ Stripe-Transaktionsgebühren (~1,4% + 0,25€)</p>
                   </div>
-                  {connectEnabled ? (
-                    <button
-                      type="button"
-                      onClick={handleConnect}
-                      disabled={connectLoading || !stripeConfigured}
-                      className="w-full py-2.5 rounded-xl bg-[#635BFF] hover:bg-[#7a73ff] disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-                    >
-                      {connectLoading ? 'Wird verbunden...' : '⚡ Mit Stripe verbinden'}
-                    </button>
-                  ) : (
-                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
-                      <strong>STRIPE_CLIENT_ID</strong> fehlt in Vercel → Stripe Connect ist noch nicht aktiviert.
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleConnect}
+                    disabled={connectLoading || !stripeConfigured}
+                    className="w-full py-2.5 rounded-xl bg-[#635BFF] hover:bg-[#7a73ff] disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    {connectLoading ? 'Stripe öffnet...' : '⚡ Mit Stripe verbinden'}
+                  </button>
                 </div>
               )}
             </div>

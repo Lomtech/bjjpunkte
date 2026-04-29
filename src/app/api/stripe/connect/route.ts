@@ -1,43 +1,64 @@
 import { NextResponse } from 'next/server'
+import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
-// Generates Stripe Connect Express OAuth URL for a gym owner
-export async function GET(req: Request) {
-  const clientId = process.env.STRIPE_CLIENT_ID
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
-
-  if (!clientId) {
-    return NextResponse.json({ error: 'STRIPE_CLIENT_ID nicht konfiguriert' }, { status: 400 })
-  }
-
-  // Verify auth
-  const authHeader = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = createClient(
+function authClient(accessToken: string) {
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
   )
+}
+
+// Creates a Stripe Express account for the gym + returns onboarding link
+// No STRIPE_CLIENT_ID needed — account is created programmatically
+export async function POST(req: Request) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY
+  if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert' }, { status: 400 })
+
+  const authHeader = req.headers.get('Authorization')
+  const accessToken = authHeader?.replace('Bearer ', '')
+  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  // Get gym id as state (CSRF protection)
-  const { data: gym } = await supabase.from('gyms').select('id').single()
+  const { data: gym } = await supabase.from('gyms').select('id, email, name, stripe_account_id').single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: clientId,
-    scope: 'read_write',
-    redirect_uri: `${appUrl}/api/stripe/connect/callback`,
-    state: (gym as { id: string }).id,
-    'suggested_capabilities[]': 'card_payments',
+  const gymData = gym as { id: string; email: string | null; name: string; stripe_account_id: string | null }
+  const stripe = new Stripe(stripeKey)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+
+  let accountId = gymData.stripe_account_id
+
+  // Create Express account if not yet existing
+  if (!accountId) {
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country: 'DE',
+      email: gymData.email ?? undefined,
+      business_type: 'individual',
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+      metadata: { gymId: gymData.id, gymName: gymData.name },
+    })
+    accountId = account.id
+    await supabase.from('gyms').update({ stripe_account_id: accountId }).eq('id', gymData.id)
+  }
+
+  // Generate onboarding link (or re-onboard if incomplete)
+  const link = await stripe.accountLinks.create({
+    account: accountId,
+    refresh_url: `${appUrl}/dashboard/settings?stripe_error=refresh`,
+    return_url:  `${appUrl}/dashboard/settings?stripe_connected=1`,
+    type: 'account_onboarding',
   })
 
-  const url = `https://connect.stripe.com/express/oauth/authorize?${params}`
-  return NextResponse.json({ url })
+  return NextResponse.json({ url: link.url })
 }
 
 // Disconnect: remove stripe_account_id
@@ -46,11 +67,7 @@ export async function DELETE(req: Request) {
   const accessToken = authHeader?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
-  )
+  const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
