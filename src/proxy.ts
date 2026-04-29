@@ -1,40 +1,23 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  const { pathname } = request.nextUrl
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register')
+  const isDashboard = pathname.startsWith('/dashboard')
 
-  const { data: { session } } = await supabase.auth.getSession()
+  // Check for Supabase auth cookie (key is "supabase.auth.token", possibly chunked as ".0", ".1")
+  const hasSession = request.cookies.getAll().some(c => c.name.startsWith('supabase.auth.token'))
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/register')
-
-  if (!session && !isAuthPage && request.nextUrl.pathname !== '/') {
+  if (!hasSession && isDashboard) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (session && isAuthPage) {
+  if (hasSession && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return supabaseResponse
+  return NextResponse.next({ request })
 }
 
 export const config = {
