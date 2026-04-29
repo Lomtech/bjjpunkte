@@ -1,16 +1,14 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { AuthGuard } from '@/components/AuthGuard'
 import { LogOut, Users, LayoutDashboard, CheckSquare, Settings } from 'lucide-react'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
-
   const { data: gym } = await supabase.from('gyms').select('name').single()
 
   return (
+    <AuthGuard>
     <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
       <aside className="w-60 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
@@ -49,6 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {children}
       </main>
     </div>
+    </AuthGuard>
   )
 }
 
