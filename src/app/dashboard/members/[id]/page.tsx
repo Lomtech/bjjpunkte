@@ -105,9 +105,12 @@ export default function MemberDetailPage() {
 
   async function deletePromotion(promoId: string, isLatest: boolean) {
     if (!confirm(isLatest
-      ? 'Graduierung rückgängig machen? Der Gürtel des Mitglieds wird auf den vorherigen Stand zurückgesetzt.'
-      : 'Diesen Eintrag aus dem Verlauf löschen? (Gürtel wird nicht verändert, da dies nicht die letzte Graduierung ist.)'
+      ? 'Graduierung rückgängig machen? Der Gürtel wird auf den vorherigen Stand zurückgesetzt.'
+      : 'Eintrag aus dem Verlauf löschen? (Gürtel bleibt unverändert.)'
     )) return
+
+    // Capture promo data BEFORE any state update
+    const promoSnapshot = promotions.find(p => p.id === promoId)
 
     setDeletingPromoId(promoId)
     const supabase = createClient()
@@ -121,16 +124,22 @@ export default function MemberDetailPage() {
 
     if (res.ok) {
       const json = await res.json()
+      // Remove from list
       setPromotions(ps => ps.filter(p => p.id !== promoId))
-      // If the belt was reverted, update the member state too
-      if (json.reverted && member) {
-        const promo = promotions.find(p => p.id === promoId)
-        if (promo) {
-          setMember(m => m ? { ...m, belt: promo.previous_belt, stripes: promo.previous_stripes } : m)
-        }
+      // Revert member belt if this was the latest promotion
+      if (json.reverted && member && promoSnapshot) {
+        setMember(m => m ? {
+          ...m,
+          belt: promoSnapshot.previous_belt,
+          stripes: promoSnapshot.previous_stripes,
+        } : m)
       }
     }
     setDeletingPromoId(null)
+  }
+
+  function handlePromoted(belt: Belt, stripes: number) {
+    setMember(m => m ? { ...m, belt: belt as string, stripes } : m)
   }
 
   if (loading) {
@@ -204,6 +213,7 @@ export default function MemberDetailPage() {
         <PromoteButton
           memberId={member.id} gymId={gymId}
           currentBelt={member.belt as Belt} currentStripes={member.stripes}
+          onPromoted={handlePromoted}
         />
       </div>
 
