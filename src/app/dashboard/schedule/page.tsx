@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ChevronLeft, ChevronRight, Plus, X, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil } from 'lucide-react'
 import { NewClassModal } from './NewClassModal'
+import { EditClassModal } from './EditClassModal'
 
 interface ClassRow {
   id: string
@@ -94,6 +95,7 @@ export default function SchedulePage() {
   const [roster, setRoster] = useState<BookingMember[]>([])
   const [rosterLoading, setRosterLoading] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [editingClass, setEditingClass] = useState<ClassRow | null>(null)
 
   const loadClasses = useCallback(async (token: string, from: Date) => {
     setLoading(true)
@@ -315,16 +317,25 @@ export default function SchedulePage() {
                               ))}
                             </div>
                           )}
-                          {!cls.is_cancelled && (
+                          <div className="flex items-center justify-between">
                             <button
-                              onClick={() => handleCancel(cls)}
-                              disabled={cancellingId === cls.id}
-                              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                              onClick={() => { setEditingClass(cls); setExpandedId(null) }}
+                              className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors"
                             >
-                              <X size={11} />
-                              Klasse absagen
+                              <Pencil size={11} />
+                              Bearbeiten
                             </button>
-                          )}
+                            {!cls.is_cancelled && (
+                              <button
+                                onClick={() => handleCancel(cls)}
+                                disabled={cancellingId === cls.id}
+                                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                              >
+                                <X size={11} />
+                                Absagen
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -352,6 +363,18 @@ export default function SchedulePage() {
           onClose={() => setShowModal(false)}
           onCreated={() => {
             setShowModal(false)
+            loadClasses(accessToken, weekStart)
+          }}
+        />
+      )}
+
+      {editingClass && (
+        <EditClassModal
+          cls={editingClass}
+          accessToken={accessToken}
+          onClose={() => setEditingClass(null)}
+          onSaved={() => {
+            setEditingClass(null)
             loadClasses(accessToken, weekStart)
           }}
         />
