@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
-// Webhook uses service role key to bypass RLS — Stripe has no user session/cookies
-function adminClient() {
+// Uses anon key + SECURITY DEFINER RPC function to bypass RLS
+// Stripe signature is validated before any DB call — this is safe
+function anonClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
 
@@ -28,37 +29,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Webhook-Signatur ungültig' }, { status: 400 })
   }
 
-  const supabase = adminClient()
+  const supabase = anonClient()
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
-    const memberId = session.metadata?.memberId
+    const memberId = session.metadata?.memberId ?? null
     const paymentIntentId = session.payment_intent as string
 
-    if (memberId && session.payment_status === 'paid') {
-      await supabase.from('payments')
-        .update({ status: 'paid', paid_at: new Date().toISOString() })
-        .eq('stripe_payment_intent_id', paymentIntentId)
-
-      await supabase.from('members')
-        .update({ subscription_status: 'active' })
-        .eq('id', memberId)
+    if (session.payment_status === 'paid') {
+      await supabase.rpc('handle_stripe_payment', {
+        p_payment_intent_id: paymentIntentId,
+        p_status: 'paid',
+        p_member_id: memberId,
+      })
     }
   }
 
   if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as Stripe.PaymentIntent
-    await supabase.from('payments')
-      .update({ status: 'failed' })
-      .eq('stripe_payment_intent_id', pi.id)
 
+    // Find member_id from payments table first
     const { data: payment } = await supabase
-      .from('payments').select('member_id').eq('stripe_payment_intent_id', pi.id).single()
-    if (payment) {
-      await supabase.from('members')
-        .update({ subscription_status: 'past_due' })
-        .eq('id', (payment as { member_id: string }).member_id)
-    }
+      .from('payments')
+      .select('member_id')
+      .eq('stripe_payment_intent_id', pi.id)
+      .single()
+
+    await supabase.rpc('handle_stripe_payment', {
+      p_payment_intent_id: pi.id,
+      p_status: 'failed',
+      p_member_id: (payment as { member_id: string } | null)?.member_id ?? null,
+    })
   }
 
   return NextResponse.json({ received: true })
