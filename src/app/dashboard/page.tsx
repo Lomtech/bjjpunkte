@@ -1,4 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Users, TrendingUp, Calendar, Award } from 'lucide-react'
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
@@ -6,38 +9,65 @@ import type { Belt } from '@/types/database'
 
 interface AttendanceRow { id: string; checked_in_at: string; class_type: string; member_id: string }
 interface PromotionRow { id: string; new_belt: string; new_stripes: number; promoted_at: string; member_id: string }
+interface MemberRow { id: string; first_name: string; last_name: string; belt: string }
 
-export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: gym } = await supabase.from('gyms').select('id, name').single()
-  if (!gym) return null
+export default function DashboardPage() {
+  const [loading, setLoading] = useState(true)
+  const [totalMembers, setTotalMembers] = useState(0)
+  const [activeMembers, setActiveMembers] = useState(0)
+  const [todayAttendance, setTodayAttendance] = useState<AttendanceRow[]>([])
+  const [recentPromotions, setRecentPromotions] = useState<PromotionRow[]>([])
+  const [beltCounts, setBeltCounts] = useState<Record<string, number>>({})
+  const [memberMap, setMemberMap] = useState<Map<string, { first_name: string; last_name: string }>>(new Map())
 
-  const today = new Date().toISOString().split('T')[0]
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient()
+      const { data: gym } = await supabase.from('gyms').select('id, name').single()
+      if (!gym) { setLoading(false); return }
 
-  const [
-    { count: totalMembers },
-    { count: activeMembers },
-    { data: rawAttendance },
-    { data: rawPromotions },
-    { data: beltStats },
-  ] = await Promise.all([
-    supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id),
-    supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id).eq('is_active', true),
-    supabase.from('attendance').select('id, checked_in_at, class_type, member_id').eq('gym_id', gym.id).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),
-    supabase.from('belt_promotions').select('id, new_belt, new_stripes, promoted_at, member_id').eq('gym_id', gym.id).order('promoted_at', { ascending: false }).limit(5),
-    supabase.from('members').select('belt').eq('gym_id', gym.id).eq('is_active', true),
-  ])
+      const today = new Date().toISOString().split('T')[0]
 
-  const todayAttendance = rawAttendance as AttendanceRow[] | null
-  const recentPromotions = rawPromotions as PromotionRow[] | null
+      const [
+        { count: total },
+        { count: active },
+        { data: rawAttendance },
+        { data: rawPromotions },
+        { data: beltStats },
+        { data: membersList },
+      ] = await Promise.all([
+        supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id),
+        supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id).eq('is_active', true),
+        supabase.from('attendance').select('id, checked_in_at, class_type, member_id').eq('gym_id', gym.id).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),
+        supabase.from('belt_promotions').select('id, new_belt, new_stripes, promoted_at, member_id').eq('gym_id', gym.id).order('promoted_at', { ascending: false }).limit(5),
+        supabase.from('members').select('belt').eq('gym_id', gym.id).eq('is_active', true),
+        supabase.from('members').select('id, first_name, last_name').eq('gym_id', gym.id),
+      ])
 
-  const { data: membersList } = await supabase.from('members').select('id, first_name, last_name').eq('gym_id', gym.id)
-  const memberMap = new Map((membersList ?? []).map(m => [m.id, m]))
+      setTotalMembers(total ?? 0)
+      setActiveMembers(active ?? 0)
+      setTodayAttendance((rawAttendance as AttendanceRow[]) ?? [])
+      setRecentPromotions((rawPromotions as PromotionRow[]) ?? [])
 
-  const beltCounts = (beltStats ?? []).reduce<Record<string, number>>((acc, m) => {
-    acc[m.belt] = (acc[m.belt] ?? 0) + 1
-    return acc
-  }, {})
+      const counts = ((beltStats ?? []) as MemberRow[]).reduce<Record<string, number>>((acc, m) => {
+        acc[m.belt] = (acc[m.belt] ?? 0) + 1
+        return acc
+      }, {})
+      setBeltCounts(counts)
+
+      setMemberMap(new Map((membersList ?? []).map(m => [m.id, m])))
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center h-full">
+        <div className="text-slate-400 text-sm">Lädt...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8">
@@ -50,10 +80,10 @@ export default async function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={<Users size={18} />} label="Aktive Mitglieder" value={activeMembers ?? 0} color="blue" />
-        <StatCard icon={<Users size={18} />} label="Gesamt" value={totalMembers ?? 0} color="slate" />
-        <StatCard icon={<Calendar size={18} />} label="Heute anwesend" value={todayAttendance?.length ?? 0} color="green" />
-        <StatCard icon={<Award size={18} />} label="Letzte Promotions" value={recentPromotions?.length ?? 0} color="amber" />
+        <StatCard icon={<Users size={18} />} label="Aktive Mitglieder" value={activeMembers} color="blue" />
+        <StatCard icon={<Users size={18} />} label="Gesamt" value={totalMembers} color="slate" />
+        <StatCard icon={<Calendar size={18} />} label="Heute anwesend" value={todayAttendance.length} color="green" />
+        <StatCard icon={<Award size={18} />} label="Letzte Promotions" value={recentPromotions.length} color="amber" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -88,7 +118,7 @@ export default async function DashboardPage() {
               Alle →
             </Link>
           </div>
-          {todayAttendance && todayAttendance.length > 0 ? (
+          {todayAttendance.length > 0 ? (
             <div className="space-y-1">
               {todayAttendance.slice(0, 6).map(a => {
                 const m = memberMap.get(a.member_id)
@@ -109,7 +139,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent promotions */}
-      {recentPromotions && recentPromotions.length > 0 && (
+      {recentPromotions.length > 0 && (
         <div className="mt-6 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h2 className="font-semibold text-slate-500 text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
             <Award size={14} />

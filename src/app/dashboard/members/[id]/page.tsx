@@ -1,5 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
@@ -7,22 +10,110 @@ import { PromoteButton } from './PromoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
 
-export default async function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const supabase = await createClient()
-  const { data: gym } = await supabase.from('gyms').select('id, monthly_fee_cents').single()
-  if (!gym) return null
+interface Member {
+  id: string
+  first_name: string
+  last_name: string
+  email: string | null
+  phone: string | null
+  belt: string
+  stripes: number
+  join_date: string
+  is_active: boolean
+  subscription_status: string | null
+  stripe_customer_id: string | null
+  notes: string | null
+}
 
-  const { data: member } = await supabase
-    .from('members').select('*').eq('id', id).eq('gym_id', gym.id).single()
-  if (!member) notFound()
+interface Promotion {
+  id: string
+  previous_belt: string
+  previous_stripes: number
+  new_belt: string
+  new_stripes: number
+  promoted_at: string
+}
 
-  const [{ data: promotions }, { data: attendance }, { count: totalSessions }, { data: payments }] = await Promise.all([
-    supabase.from('belt_promotions').select('*').eq('member_id', id).order('promoted_at', { ascending: false }),
-    supabase.from('attendance').select('*').eq('member_id', id).order('checked_in_at', { ascending: false }).limit(10),
-    supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('member_id', id),
-    supabase.from('payments').select('*').eq('member_id', id).order('created_at', { ascending: false }).limit(6),
-  ])
+interface Attendance {
+  id: string
+  checked_in_at: string
+  class_type: string
+}
+
+interface Payment {
+  id: string
+  amount_cents: number
+  status: string
+  paid_at: string | null
+  created_at: string
+}
+
+export default function MemberDetailPage() {
+  const params = useParams()
+  const id = params.id as string
+
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+  const [member, setMember] = useState<Member | null>(null)
+  const [gymId, setGymId] = useState<string>('')
+  const [monthlyFeeCents, setMonthlyFeeCents] = useState(0)
+  const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [attendance, setAttendance] = useState<Attendance[]>([])
+  const [totalSessions, setTotalSessions] = useState(0)
+  const [payments, setPayments] = useState<Payment[]>([])
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient()
+      const { data: gym } = await supabase.from('gyms').select('id, monthly_fee_cents').single()
+      if (!gym) { setLoading(false); return }
+
+      setGymId(gym.id)
+      setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
+
+      const { data: memberData } = await supabase
+        .from('members').select('*').eq('id', id).eq('gym_id', gym.id).single()
+
+      if (!memberData) { setNotFound(true); setLoading(false); return }
+      setMember(memberData as Member)
+
+      const [
+        { data: promotionsData },
+        { data: attendanceData },
+        { count },
+        { data: paymentsData },
+      ] = await Promise.all([
+        supabase.from('belt_promotions').select('*').eq('member_id', id).order('promoted_at', { ascending: false }),
+        supabase.from('attendance').select('*').eq('member_id', id).order('checked_in_at', { ascending: false }).limit(10),
+        supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('member_id', id),
+        supabase.from('payments').select('*').eq('member_id', id).order('created_at', { ascending: false }).limit(6),
+      ])
+
+      setPromotions((promotionsData as Promotion[]) ?? [])
+      setAttendance((attendanceData as Attendance[]) ?? [])
+      setTotalSessions(count ?? 0)
+      setPayments((paymentsData as Payment[]) ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center h-full">
+        <div className="text-slate-400 text-sm">Lädt...</div>
+      </div>
+    )
+  }
+
+  if (notFound || !member) {
+    return (
+      <div className="p-8">
+        <Link href="/dashboard/members" className="text-slate-400 hover:text-slate-600 text-sm">← Mitglieder</Link>
+        <p className="mt-6 text-slate-500">Mitglied nicht gefunden.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8 max-w-3xl">
@@ -55,7 +146,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
 
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <InfoCard label="Mitglied seit" value={new Date(member.join_date).toLocaleDateString('de-DE')} />
-        <InfoCard label="Trainings gesamt" value={String(totalSessions ?? 0)} />
+        <InfoCard label="Trainings gesamt" value={String(totalSessions)} />
         <InfoCard label="Kontakt" value={member.email ?? member.phone ?? '—'} />
       </div>
 
@@ -70,7 +161,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
         <h2 className="font-semibold text-slate-900 mb-4">Belt-Promotion</h2>
         <PromoteButton
-          memberId={member.id} gymId={gym.id}
+          memberId={member.id} gymId={gymId}
           currentBelt={member.belt as Belt} currentStripes={member.stripes}
         />
       </div>
@@ -78,17 +169,17 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
       {/* Billing */}
       <BillingSection
         memberId={member.id}
-        gymId={gym.id}
+        gymId={gymId}
         memberEmail={member.email}
         memberName={`${member.first_name} ${member.last_name}`}
         subscriptionStatus={member.subscription_status ?? 'none'}
         stripeCustomerId={member.stripe_customer_id}
-        monthlyFeeCents={gym.monthly_fee_cents ?? 0}
-        payments={(payments ?? []) as { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }[]}
+        monthlyFeeCents={monthlyFeeCents}
+        payments={payments}
       />
 
       {/* Promotion history */}
-      {promotions && promotions.length > 0 && (
+      {promotions.length > 0 && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
           <h2 className="font-semibold text-slate-900 mb-4">Promotion-Verlauf</h2>
           <div className="space-y-3">
@@ -107,7 +198,7 @@ export default async function MemberDetailPage({ params }: { params: Promise<{ i
       )}
 
       {/* Recent attendance */}
-      {attendance && attendance.length > 0 && (
+      {attendance.length > 0 && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h2 className="font-semibold text-slate-900 mb-4">Letzte Trainings</h2>
           <div className="space-y-2">

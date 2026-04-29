@@ -1,12 +1,8 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { AuthGuard } from '@/components/AuthGuard'
 import { LogOut, Users, LayoutDashboard, CheckSquare, Settings } from 'lucide-react'
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: gym } = await supabase.from('gyms').select('name').single()
-
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
     <div className="flex h-screen bg-slate-50">
@@ -18,8 +14,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <span className="text-xs font-black text-white">RC</span>
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-slate-900 text-sm truncate">{gym?.name ?? 'Mein Gym'}</p>
-              <p className="text-xs text-slate-400">RollCall</p>
+              <p className="font-semibold text-slate-900 text-sm truncate">RollCall</p>
+              <p className="text-xs text-slate-400">BJJ Management</p>
             </div>
           </div>
         </div>

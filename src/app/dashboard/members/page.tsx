@@ -1,4 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Plus, Users } from 'lucide-react'
 import { BeltBadge } from '@/components/BeltBadge'
@@ -15,19 +18,51 @@ const SUB_LABELS: Record<string, string> = {
   active: 'Aktiv', trial: 'Testphase', past_due: 'Überfällig', cancelled: 'Gekündigt', none: '–',
 }
 
-export default async function MembersPage() {
-  const supabase = await createClient()
-  const { data: gym } = await supabase.from('gyms').select('id').single()
-  if (!gym) return null
+interface Member {
+  id: string
+  first_name: string
+  last_name: string
+  email: string | null
+  phone: string | null
+  belt: string
+  stripes: number
+  join_date: string
+  is_active: boolean
+  subscription_status: string | null
+}
 
-  const { data: members } = await supabase
-    .from('members')
-    .select('*')
-    .eq('gym_id', gym.id)
-    .order('last_name')
+export default function MembersPage() {
+  const [loading, setLoading] = useState(true)
+  const [members, setMembers] = useState<Member[]>([])
 
-  const active = members?.filter(m => m.is_active) ?? []
-  const inactive = members?.filter(m => !m.is_active) ?? []
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient()
+      const { data: gym } = await supabase.from('gyms').select('id').single()
+      if (!gym) { setLoading(false); return }
+
+      const { data } = await supabase
+        .from('members')
+        .select('*')
+        .eq('gym_id', gym.id)
+        .order('last_name')
+
+      setMembers((data as Member[]) ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const active = members.filter(m => m.is_active)
+  const inactive = members.filter(m => !m.is_active)
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center h-full">
+        <div className="text-slate-400 text-sm">Lädt...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-8">
@@ -45,7 +80,7 @@ export default async function MembersPage() {
         </Link>
       </div>
 
-      {members && members.length > 0 ? (
+      {members.length > 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <table className="w-full">
             <thead>
