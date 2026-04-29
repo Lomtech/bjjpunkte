@@ -9,7 +9,7 @@ import type { Belt } from '@/types/database'
 import { PromoteButton } from './PromoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
-import { ExternalLink, Copy, Check } from 'lucide-react'
+import { ExternalLink, Copy, Check, Undo2 } from 'lucide-react'
 
 interface Member {
   id: string
@@ -65,6 +65,7 @@ export default function MemberDetailPage() {
   const [attendance, setAttendance] = useState<Attendance[]>([])
   const [totalSessions, setTotalSessions] = useState(0)
   const [payments, setPayments] = useState<Payment[]>([])
+  const [deletingPromoId, setDeletingPromoId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -101,6 +102,36 @@ export default function MemberDetailPage() {
     }
     load()
   }, [id])
+
+  async function deletePromotion(promoId: string, isLatest: boolean) {
+    if (!confirm(isLatest
+      ? 'Graduierung rückgängig machen? Der Gürtel des Mitglieds wird auf den vorherigen Stand zurückgesetzt.'
+      : 'Diesen Eintrag aus dem Verlauf löschen? (Gürtel wird nicht verändert, da dies nicht die letzte Graduierung ist.)'
+    )) return
+
+    setDeletingPromoId(promoId)
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token ?? ''
+
+    const res = await fetch(`/api/promotions/${promoId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (res.ok) {
+      const json = await res.json()
+      setPromotions(ps => ps.filter(p => p.id !== promoId))
+      // If the belt was reverted, update the member state too
+      if (json.reverted && member) {
+        const promo = promotions.find(p => p.id === promoId)
+        if (promo) {
+          setMember(m => m ? { ...m, belt: promo.previous_belt, stripes: promo.previous_stripes } : m)
+        }
+      }
+    }
+    setDeletingPromoId(null)
+  }
 
   if (loading) {
     return (
@@ -197,17 +228,31 @@ export default function MemberDetailPage() {
       {promotions.length > 0 && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
           <h2 className="font-semibold text-slate-900 mb-4">Promotion-Verlauf</h2>
-          <div className="space-y-3">
-            {promotions.map(p => (
-              <div key={p.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                <div className="flex items-center gap-3">
-                  <BeltBadge belt={p.previous_belt as Belt} stripes={p.previous_stripes} />
-                  <span className="text-slate-400">→</span>
-                  <BeltBadge belt={p.new_belt as Belt} stripes={p.new_stripes} />
+          <div className="space-y-0">
+            {promotions.map((p, i) => {
+              const isLatest = i === 0
+              return (
+                <div key={p.id} className="group flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <BeltBadge belt={p.previous_belt as Belt} stripes={p.previous_stripes} />
+                    <span className="text-slate-400">→</span>
+                    <BeltBadge belt={p.new_belt as Belt} stripes={p.new_stripes} />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-slate-400 text-sm">{new Date(p.promoted_at).toLocaleDateString('de-DE')}</span>
+                    <button
+                      onClick={() => deletePromotion(p.id, isLatest)}
+                      disabled={deletingPromoId === p.id}
+                      title={isLatest ? 'Graduierung rückgängig machen' : 'Eintrag löschen'}
+                      className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-all disabled:opacity-30"
+                    >
+                      <Undo2 size={13} />
+                      {isLatest ? 'Rückgängig' : 'Löschen'}
+                    </button>
+                  </div>
                 </div>
-                <span className="text-slate-400 text-sm">{new Date(p.promoted_at).toLocaleDateString('de-DE')}</span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

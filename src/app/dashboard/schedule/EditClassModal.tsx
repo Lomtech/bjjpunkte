@@ -23,6 +23,7 @@ interface ClassRow {
   starts_at: string
   ends_at: string
   max_capacity: number | null
+  is_cancelled: boolean
   recurrence_parent_id: string | null
   recurrence_type: string
 }
@@ -46,6 +47,7 @@ function toTimeString(iso: string) {
 
 export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
   const isRecurring = !!cls.recurrence_parent_id
+  const [reactivating, setReactivating] = useState(false)
 
   const [classType, setClassType]     = useState<ClassType>(cls.class_type as ClassType)
   const [title, setTitle]             = useState(cls.title)
@@ -85,6 +87,17 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
     const data = await res.json()
     setSaving(false)
     if (!res.ok) { setError(data.error ?? 'Fehler beim Speichern'); return }
+    onSaved()
+  }
+
+  async function handleReactivate() {
+    setReactivating(true)
+    await fetch(`/api/classes/${cls.id}?scope=single`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ is_cancelled: false }),
+    })
+    setReactivating(false)
     onSaved()
   }
 
@@ -198,6 +211,21 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          {/* Reactivate cancelled class */}
+          {cls.is_cancelled && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between">
+              <p className="text-sm text-red-700 font-medium">Diese Klasse ist abgesagt.</p>
+              <button
+                type="button"
+                onClick={handleReactivate}
+                disabled={reactivating}
+                className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-400 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {reactivating ? '…' : '✓ Reaktivieren'}
+              </button>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
