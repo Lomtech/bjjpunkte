@@ -151,7 +151,7 @@ export default function MemberDetailPage() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-6 max-w-3xl">
       <div className="mb-8">
         <Link href="/dashboard/members" className="text-slate-400 hover:text-slate-600 text-sm">← Mitglieder</Link>
         <div className="flex items-start justify-between mt-3">
@@ -179,7 +179,7 @@ export default function MemberDetailPage() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
         <InfoCard label="Mitglied seit" value={new Date(member.join_date).toLocaleDateString('de-DE')} />
         <InfoCard label="Trainings gesamt" value={String(totalSessions)} />
         <InfoCard label="Kontakt" value={member.email ?? member.phone ?? '—'} />
@@ -399,12 +399,12 @@ function ContractSection({
           </p>
           {isExpired && (
             <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
-              Vertrag ist abgelaufen ({Math.abs(Math.floor(diffDays!))} Tage ueberfaellig)
+              Vertrag ist abgelaufen ({Math.abs(Math.floor(diffDays!))} Tage überfällig)
             </div>
           )}
           {isExpiring && (
             <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
-              Vertrag laeuft in {Math.floor(diffDays!)} Tagen ab
+              Vertrag läuft in {Math.floor(diffDays!)} Tagen ab
             </div>
           )}
         </div>

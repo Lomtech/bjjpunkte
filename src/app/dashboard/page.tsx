@@ -8,40 +8,26 @@ import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 
 interface AttendanceRow { id: string; checked_in_at: string; class_type: string; member_id: string }
-interface PromotionRow { id: string; new_belt: string; new_stripes: number; promoted_at: string; member_id: string }
-interface MemberRow { id: string; first_name: string; last_name: string; belt: string }
-interface MemberBirthday {
-  id: string
-  first_name: string
-  last_name: string
-  date_of_birth: string
-}
-interface MemberWithContract {
-  id: string
-  contract_end_date: string | null
-}
+interface PromotionRow  { id: string; new_belt: string; new_stripes: number; promoted_at: string; member_id: string }
+interface MemberRow     { id: string; first_name: string; last_name: string; belt: string }
+interface MemberBirthday { id: string; first_name: string; last_name: string; date_of_birth: string }
+interface MemberWithContract { id: string; contract_end_date: string | null }
 
-function upcomingBirthdays(members: MemberBirthday[]): Array<MemberBirthday & { nextBirthday: Date; age: number }> {
+function upcomingBirthdays(members: MemberBirthday[]) {
   const now = new Date()
   const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-
   return members
     .filter(m => m.date_of_birth)
     .map(m => {
       const dob = new Date(m.date_of_birth)
       const thisYear = new Date(now.getFullYear(), dob.getMonth(), dob.getDate())
       const nextBirthday = thisYear < now
-        ? new Date(now.getFullYear() + 1, dob.getMonth(), dob.getDate())
-        : thisYear
+        ? new Date(now.getFullYear() + 1, dob.getMonth(), dob.getDate()) : thisYear
       const age = nextBirthday.getFullYear() - dob.getFullYear()
       return { ...m, nextBirthday, age }
     })
     .filter(m => m.nextBirthday >= now && m.nextBirthday <= in7)
     .sort((a, b) => a.nextBirthday.getTime() - b.nextBirthday.getTime())
-}
-
-function initials(first: string, last: string) {
-  return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase()
 }
 
 export default function DashboardPage() {
@@ -52,17 +38,17 @@ export default function DashboardPage() {
   const [recentPromotions, setRecentPromotions] = useState<PromotionRow[]>([])
   const [beltCounts, setBeltCounts] = useState<Record<string, number>>({})
   const [memberMap, setMemberMap] = useState<Map<string, { first_name: string; last_name: string }>>(new Map())
-  const [birthdayMembers, setBirthdayMembers] = useState<Array<MemberBirthday & { nextBirthday: Date; age: number }>>([])
+  const [birthdayMembers, setBirthdayMembers] = useState<ReturnType<typeof upcomingBirthdays>>([])
   const [expiringContracts, setExpiringContracts] = useState(0)
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id, name').single()
+      const { data: gym } = await supabase.from('gyms').select('id').single()
       if (!gym) { setLoading(false); return }
 
       const today = new Date().toISOString().split('T')[0]
-      const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const in30  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
       const [
         { count: total },
@@ -88,14 +74,10 @@ export default function DashboardPage() {
       setActiveMembers(active ?? 0)
       setTodayAttendance((rawAttendance as AttendanceRow[]) ?? [])
       setRecentPromotions((rawPromotions as PromotionRow[]) ?? [])
-
-      const counts = ((beltStats ?? []) as MemberRow[]).reduce<Record<string, number>>((acc, m) => {
-        acc[m.belt] = (acc[m.belt] ?? 0) + 1
-        return acc
-      }, {})
-      setBeltCounts(counts)
+      setBeltCounts(((beltStats ?? []) as MemberRow[]).reduce<Record<string, number>>((acc, m) => {
+        acc[m.belt] = (acc[m.belt] ?? 0) + 1; return acc
+      }, {}))
       setMemberMap(new Map((membersList ?? []).map(m => [m.id, m])))
-
       setBirthdayMembers(upcomingBirthdays((birthdayList as MemberBirthday[]) ?? []))
       setExpiringContracts(((contractList as MemberWithContract[]) ?? []).length)
       setLoading(false)
@@ -104,68 +86,62 @@ export default function DashboardPage() {
   }, [])
 
   if (loading) {
-    return (
-      <div className="p-8 flex items-center justify-center h-full">
-        <div className="text-slate-400 text-sm">Laedt...</div>
-      </div>
-    )
+    return <div className="flex items-center justify-center h-full text-slate-400 text-sm">Lädt…</div>
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          {new Date().toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+    <div className="p-4 md:p-6 max-w-4xl">
+      <div className="mb-5">
+        <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-400 text-sm mt-0.5">
+          {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={<Users size={18} />} label="Aktive Mitglieder" value={activeMembers} color="blue" />
-        <StatCard icon={<Users size={18} />} label="Gesamt" value={totalMembers} color="slate" />
-        <StatCard icon={<Calendar size={18} />} label="Heute anwesend" value={todayAttendance.length} color="green" />
-        <StatCard icon={<FileWarning size={18} />} label="Vertraege laufen ab" value={expiringContracts} color="amber" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <StatCard icon={<Users size={16} />} label="Aktive Mitglieder" value={activeMembers} color="blue" />
+        <StatCard icon={<Users size={16} />} label="Gesamt" value={totalMembers} color="slate" />
+        <StatCard icon={<Calendar size={16} />} label="Heute anwesend" value={todayAttendance.length} color="green" />
+        <StatCard icon={<FileWarning size={16} />} label="Verträge laufen ab" value={expiringContracts} color="amber" />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4">
         {/* Belt distribution */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-5 flex items-center gap-2 text-sm uppercase tracking-wide text-slate-500">
-            <TrendingUp size={14} />
-            Belt-Verteilung
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <TrendingUp size={13} /> Belt-Verteilung
           </h2>
-          {(['white','blue','purple','brown','black'] as Belt[]).map(belt => (
-            <div key={belt} className="flex items-center gap-3 mb-3">
-              <div className="w-20 flex-shrink-0"><BeltBadge belt={belt} stripes={0} /></div>
-              <div className="flex-1 bg-slate-100 rounded-full h-1.5">
-                <div
-                  className="h-1.5 rounded-full bg-amber-400"
-                  style={{ width: `${activeMembers ? ((beltCounts[belt] ?? 0) / activeMembers) * 100 : 0}%` }}
-                />
+          <div className="space-y-3">
+            {(['white','blue','purple','brown','black'] as Belt[]).map(belt => (
+              <div key={belt} className="flex items-center gap-3">
+                <div className="w-20 flex-shrink-0"><BeltBadge belt={belt} stripes={0} /></div>
+                <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                  <div
+                    className="h-1.5 rounded-full bg-amber-400 transition-all"
+                    style={{ width: `${activeMembers ? ((beltCounts[belt] ?? 0) / activeMembers) * 100 : 0}%` }}
+                  />
+                </div>
+                <span className="text-slate-500 text-xs w-4 text-right font-medium">{beltCounts[belt] ?? 0}</span>
               </div>
-              <span className="text-slate-500 text-sm w-5 text-right font-medium">{beltCounts[belt] ?? 0}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Today's attendance */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold text-slate-500 text-sm uppercase tracking-wide flex items-center gap-2">
-              <Calendar size={14} />
-              Heute im Training
+        {/* Today's training */}
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <Calendar size={13} /> Heute im Training
             </h2>
-            <Link href="/dashboard/attendance" className="text-xs text-amber-600 hover:text-amber-500 font-medium">
-              Alle →
-            </Link>
+            <Link href="/dashboard/attendance" className="text-xs text-amber-600 hover:text-amber-500 font-medium">Alle →</Link>
           </div>
           {todayAttendance.length > 0 ? (
-            <div className="space-y-1">
+            <div className="space-y-0">
               {todayAttendance.slice(0, 6).map(a => {
                 const m = memberMap.get(a.member_id)
                 return (
-                  <div key={a.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                  <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                     <span className="text-slate-800 text-sm font-medium">{m?.first_name} {m?.last_name}</span>
                     <span className="text-xs text-slate-400">
                       {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} · {a.class_type}
@@ -181,45 +157,43 @@ export default function DashboardPage() {
       </div>
 
       {/* Birthdays */}
-      <div className="mt-6 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <h2 className="font-semibold text-slate-500 text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
-          <Cake size={14} />
-          Geburtstage naechste 7 Tage
+      <div className="mt-4 bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+        <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Cake size={13} /> Geburtstage nächste 7 Tage
         </h2>
         {birthdayMembers.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {birthdayMembers.map(m => (
               <div key={m.id} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-amber-700">{initials(m.first_name, m.last_name)}</span>
+                <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-amber-600">{m.first_name[0]}{m.last_name[0]}</span>
                 </div>
-                <div className="flex-1">
-                  <Link href={`/dashboard/members/${m.id}`} className="text-slate-900 font-medium text-sm hover:text-amber-600">
+                <div className="flex-1 min-w-0">
+                  <Link href={`/dashboard/members/${m.id}`} className="text-slate-900 font-medium text-sm hover:text-amber-600 truncate block">
                     {m.first_name} {m.last_name}
                   </Link>
                   <p className="text-slate-400 text-xs">
                     {m.nextBirthday.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}
                   </p>
                 </div>
-                <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                  {m.age} Jahre
+                <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex-shrink-0">
+                  {m.age} J.
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-slate-400 text-sm">Keine Geburtstage in den naechsten 7 Tagen.</p>
+          <p className="text-slate-400 text-sm">Keine Geburtstage in den nächsten 7 Tagen.</p>
         )}
       </div>
 
       {/* Recent promotions */}
       {recentPromotions.length > 0 && (
-        <div className="mt-6 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <h2 className="font-semibold text-slate-500 text-sm uppercase tracking-wide mb-4 flex items-center gap-2">
-            <Award size={14} />
-            Letzte Promotions
+        <div className="mt-4 bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <Award size={13} /> Letzte Graduierungen
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {recentPromotions.map(p => {
               const m = memberMap.get(p.member_id)
               return (
@@ -247,13 +221,13 @@ function StatCard({ icon, label, value, color }: {
     blue:  'bg-blue-50 text-blue-600',
     green: 'bg-green-50 text-green-600',
     amber: 'bg-amber-50 text-amber-600',
-    slate: 'bg-slate-100 text-slate-500',
+    slate: 'bg-gray-100 text-slate-500',
   }
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
-      <div className={`inline-flex p-2 rounded-lg mb-3 ${colors[color]}`}>{icon}</div>
-      <div className="text-3xl font-bold text-slate-900">{value}</div>
-      <div className="text-slate-500 text-sm mt-1">{label}</div>
+    <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+      <div className={`inline-flex p-2 rounded-lg mb-2.5 ${colors[color]}`}>{icon}</div>
+      <div className="text-2xl font-bold text-slate-900">{value}</div>
+      <div className="text-slate-500 text-xs mt-0.5">{label}</div>
     </div>
   )
 }
