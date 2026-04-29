@@ -15,8 +15,8 @@ const CLASS_TYPES: { value: ClassType; label: string }[] = [
 
 interface Member { id: string; first_name: string; last_name: string }
 
-export function CheckInForm({ gymId, members, checkedInIds }: {
-  gymId: string; members: Member[]; checkedInIds: string[]
+export function CheckInForm({ gymId, members, checkedInIds, onCheckedIn }: {
+  gymId: string; members: Member[]; checkedInIds: string[]; onCheckedIn?: () => void
 }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
@@ -34,7 +34,8 @@ export function CheckInForm({ gymId, members, checkedInIds }: {
     await supabase.from('attendance').insert({ member_id: memberId, gym_id: gymId, class_type: classType })
     setChecked(prev => new Set([...prev, memberId]))
     setLoading(null)
-    router.refresh()
+    if (onCheckedIn) onCheckedIn()
+    else router.refresh()
   }
 
   return (

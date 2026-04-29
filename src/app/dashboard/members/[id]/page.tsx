@@ -9,6 +9,7 @@ import type { Belt } from '@/types/database'
 import { PromoteButton } from './PromoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
+import { ExternalLink, Copy, Check } from 'lucide-react'
 
 interface Member {
   id: string
@@ -25,6 +26,7 @@ interface Member {
   notes: string | null
   contract_end_date: string | null
   date_of_birth: string | null
+  portal_token: string | null
 }
 
 interface Promotion {
@@ -186,6 +188,11 @@ export default function MemberDetailPage() {
         payments={payments}
       />
 
+      {/* Member portal link */}
+      {member.portal_token && (
+        <PortalLinkSection token={member.portal_token} />
+      )}
+
       {/* Promotion history */}
       {promotions.length > 0 && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
@@ -232,6 +239,52 @@ function InfoCard({ label, value }: { label: string; value: string }) {
     <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
       <p className="text-slate-900 font-semibold text-sm">{value}</p>
+    </div>
+  )
+}
+
+function PortalLinkSection({ token }: { token: string }) {
+  const [copied, setCopied] = useState(false)
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  const portalUrl = `${appUrl}/portal/${token}`
+
+  function copy() {
+    navigator.clipboard.writeText(portalUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-5">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mitgliederbereich</p>
+        <a
+          href={portalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-amber-600 hover:text-amber-500 font-medium flex items-center gap-1"
+        >
+          <ExternalLink size={12} /> Öffnen
+        </a>
+      </div>
+      <p className="text-slate-500 text-xs mb-3">
+        Diesen Link an das Mitglied schicken — dort sieht es Trainings, Zahlungen und Statistiken.
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          readOnly
+          value={portalUrl}
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-xs font-mono focus:outline-none truncate"
+        />
+        <button
+          onClick={copy}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+            copied ? 'bg-green-500 text-white' : 'bg-amber-500 hover:bg-amber-400 text-white'
+          }`}
+        >
+          {copied ? <><Check size={12} /> Kopiert</> : <><Copy size={12} /> Kopieren</>}
+        </button>
+      </div>
     </div>
   )
 }

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CheckInForm } from './CheckInForm'
 import { BeltBadge } from '@/components/BeltBadge'
+import { Trash2 } from 'lucide-react'
 import type { Belt } from '@/types/database'
 
 interface AttendanceEntry {
@@ -19,29 +20,47 @@ export default function AttendancePage() {
   const [gymId, setGymId] = useState<string | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [todayLog, setTodayLog] = useState<AttendanceEntry[]>([])
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function load() {
-      const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id').single()
-      if (!gym) { setLoading(false); return }
+  const loadData = useCallback(async () => {
+    const supabase = createClient()
+    const { data: gym } = await supabase.from('gyms').select('id').single()
+    if (!gym) { setLoading(false); return }
 
-      setGymId(gym.id)
-      const today = new Date().toISOString().split('T')[0]
+    setGymId(gym.id)
+    const today = new Date().toISOString().split('T')[0]
 
-      const [{ data: membersData }, { data: rawAttendance }] = await Promise.all([
-        supabase.from('members').select('id, first_name, last_name, belt, stripes')
-          .eq('gym_id', gym.id).eq('is_active', true).order('last_name'),
-        supabase.from('attendance').select('id, checked_in_at, class_type, member_id')
-          .eq('gym_id', gym.id).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),
-      ])
+    const [{ data: membersData }, { data: rawAttendance }] = await Promise.all([
+      supabase.from('members').select('id, first_name, last_name, belt, stripes')
+        .eq('gym_id', gym.id).eq('is_active', true).order('last_name'),
+      supabase.from('attendance').select('id, checked_in_at, class_type, member_id')
+        .eq('gym_id', gym.id).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),
+    ])
 
-      setMembers((membersData as Member[]) ?? [])
-      setTodayLog((rawAttendance as AttendanceEntry[]) ?? [])
-      setLoading(false)
-    }
-    load()
+    setMembers((membersData as Member[]) ?? [])
+    setTodayLog((rawAttendance as AttendanceEntry[]) ?? [])
+    setLoading(false)
   }, [])
+
+  useEffect(() => { loadData() }, [loadData])
+
+  async function deleteAttendance(attendanceId: string) {
+    if (!confirm('Eintrag wirklich löschen?')) return
+    setDeletingId(attendanceId)
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      const res = await fetch(`/api/attendance/${attendanceId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session?.access_token ?? ''}` },
+      })
+      if (res.ok) {
+        setTodayLog(prev => prev.filter(a => a.id !== attendanceId))
+      }
+    } catch {
+      // ignore
+    }
+    setDeletingId(null)
+  }
 
   const memberMap = new Map(members.map(m => [m.id, m]))
   const checkedInIds = todayLog.map(a => a.member_id)
@@ -68,7 +87,7 @@ export default function AttendancePage() {
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h2 className="font-semibold text-slate-900 mb-4">Einchecken</h2>
-          <CheckInForm gymId={gymId} members={members} checkedInIds={checkedInIds} />
+          <CheckInForm gymId={gymId} members={members} checkedInIds={checkedInIds} onCheckedIn={() => loadData()} />
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
@@ -81,7 +100,7 @@ export default function AttendancePage() {
               {todayLog.map(a => {
                 const m = memberMap.get(a.member_id)
                 return (
-                  <div key={a.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+                  <div key={a.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0 group">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 text-xs font-bold">
                         {m?.first_name?.[0]}{m?.last_name?.[0]}
@@ -91,9 +110,19 @@ export default function AttendancePage() {
                         {m && <BeltBadge belt={m.belt as Belt} stripes={m.stripes} />}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-slate-500 text-xs">{new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</p>
-                      <p className="text-slate-400 text-xs capitalize">{a.class_type}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-slate-500 text-xs">{new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-slate-400 text-xs capitalize">{a.class_type}</p>
+                      </div>
+                      <button
+                        onClick={() => deleteAttendance(a.id)}
+                        disabled={deletingId === a.id}
+                        title="Eintrag löschen"
+                        className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all disabled:opacity-40"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 )
