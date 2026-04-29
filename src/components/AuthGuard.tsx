@@ -1,27 +1,35 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
 
-    // Check session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) router.replace('/login')
-    })
-
-    // Listen for auth changes (logout, token expiry)
+    // onAuthStateChange fires INITIAL_SESSION once the session is fully
+    // loaded from storage — no race condition vs. getSession()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) router.replace('/login')
+      if (event === 'INITIAL_SESSION') {
+        if (!session) {
+          router.replace('/login')
+        } else {
+          setReady(true)
+        }
+      } else if (event === 'SIGNED_OUT') {
+        router.replace('/login')
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [router])
+
+  // Show nothing while session is being determined
+  if (!ready) return null
 
   return <>{children}</>
 }
