@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
+// Platform fee: 2% of each transaction goes to RollCall
+const PLATFORM_FEE_PERCENT = 0.02
+
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
   if (!stripeKey) {
@@ -30,6 +33,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Ungültiger Betrag (Minimum: 0,50 €)' }, { status: 400 })
   }
 
+  // Get gym's connected Stripe account (if any)
+  const { data: gymData } = await supabase
+    .from('gyms').select('stripe_account_id').eq('id', gymId).single()
+  const connectedAccountId = (gymData as { stripe_account_id: string | null } | null)?.stripe_account_id
+
   // Get or create Stripe customer
   const { data: memberRaw } = await supabase.from('members').select('stripe_customer_id').eq('id', memberId).single()
   const member = memberRaw as { stripe_customer_id: string | null } | null
@@ -46,8 +54,10 @@ export async function POST(req: Request) {
     await (supabase.from('members') as any).update({ stripe_customer_id: customerId }).eq('id', memberId)
   }
 
-  // Create Checkout session
-  const session = await stripe.checkout.sessions.create({
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+
+  // Build session params — route to connected account if available
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
     payment_method_types: ['card'],
     line_items: [{
@@ -59,10 +69,21 @@ export async function POST(req: Request) {
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/dashboard/members/${memberId}?payment=success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/dashboard/members/${memberId}`,
+    success_url: `${appUrl}/dashboard/members/${memberId}?payment=success`,
+    cancel_url: `${appUrl}/dashboard/members/${memberId}`,
     metadata: { memberId, gymId },
-  })
+  }
+
+  // Connect: platform takes 2%, rest goes to gym's Stripe account
+  if (connectedAccountId) {
+    const platformFeeCents = Math.max(50, Math.round(amountCents * PLATFORM_FEE_PERCENT))
+    sessionParams.payment_intent_data = {
+      application_fee_amount: platformFeeCents,
+      transfer_data: { destination: connectedAccountId },
+    }
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams)
 
   // Record pending payment
   await supabase.from('payments').insert({
