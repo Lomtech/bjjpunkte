@@ -11,16 +11,20 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient()
 
-    // onAuthStateChange fires INITIAL_SESSION once the session is fully
-    // loaded from storage — no race condition vs. getSession()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'INITIAL_SESSION') {
-        if (!session) {
-          router.replace('/login')
-        } else {
-          setReady(true)
-        }
-      } else if (event === 'SIGNED_OUT') {
+    // getSession() awaits internal initialization before reading from storage
+    // — this is reliable regardless of when the effect runs
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.replace('/login')
+      } else {
+        setReady(true)
+      }
+    })
+
+    // Handle future sign-outs
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setReady(false)
         router.replace('/login')
       }
     })
@@ -28,7 +32,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [router])
 
-  // Show nothing while session is being determined
   if (!ready) return null
 
   return <>{children}</>
