@@ -32,9 +32,9 @@ export interface Database {
         Relationships: Rel[]
       }
       classes: {
-        Row: { id: string; gym_id: string; title: string; class_type: ClassType; description: string | null; instructor: string | null; starts_at: string; ends_at: string; max_capacity: number | null; is_cancelled: boolean; created_at: string }
-        Insert: { gym_id: string; title: string; class_type: ClassType; description?: string | null; instructor?: string | null; starts_at: string; ends_at: string; max_capacity?: number | null; is_cancelled?: boolean }
-        Update: { title?: string; class_type?: ClassType; description?: string | null; instructor?: string | null; starts_at?: string; ends_at?: string; max_capacity?: number | null; is_cancelled?: boolean }
+        Row: { id: string; gym_id: string; title: string; class_type: ClassType; description: string | null; instructor: string | null; starts_at: string; ends_at: string; max_capacity: number | null; is_cancelled: boolean; recurrence_type: string; recurrence_until: string | null; recurrence_parent_id: string | null; created_at: string }
+        Insert: { gym_id: string; title: string; class_type: ClassType; description?: string | null; instructor?: string | null; starts_at: string; ends_at: string; max_capacity?: number | null; is_cancelled?: boolean; recurrence_type?: string; recurrence_until?: string | null; recurrence_parent_id?: string | null }
+        Update: { title?: string; class_type?: ClassType; description?: string | null; instructor?: string | null; starts_at?: string; ends_at?: string; max_capacity?: number | null; is_cancelled?: boolean; recurrence_type?: string; recurrence_until?: string | null; recurrence_parent_id?: string | null }
         Relationships: Rel[]
       }
       class_bookings: {

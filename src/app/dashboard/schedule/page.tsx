@@ -17,6 +17,8 @@ interface ClassRow {
   is_cancelled: boolean
   confirmed_count: number
   waitlist_count: number
+  recurrence_parent_id: string | null
+  recurrence_type: string
 }
 
 interface BookingMember {
@@ -123,10 +125,21 @@ export default function SchedulePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekStart])
 
-  async function handleCancel(classId: string) {
-    if (!confirm('Klasse wirklich absagen?')) return
-    setCancellingId(classId)
-    await fetch(`/api/classes/${classId}`, {
+  async function handleCancel(cls: ClassRow) {
+    const isRecurring = !!cls.recurrence_parent_id
+
+    let scope = 'single'
+    if (isRecurring) {
+      const choice = window.confirm(
+        `"${cls.title}" ist ein Serientermin.\n\nOK = Nur diesen Termin absagen\nAbbrechen = Diesen und alle zukünftigen absagen`
+      )
+      scope = choice ? 'single' : 'future'
+    } else {
+      if (!confirm('Klasse wirklich absagen?')) return
+    }
+
+    setCancellingId(cls.id)
+    await fetch(`/api/classes/${cls.id}?scope=${scope}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${accessToken}` },
     })
@@ -256,9 +269,14 @@ export default function SchedulePage() {
                             <span className={`w-1.5 h-1.5 rounded-full ${TYPE_DOT[cls.class_type] ?? TYPE_DOT.gi}`} />
                             {TYPE_LABELS[cls.class_type] ?? cls.class_type}
                           </span>
-                          {cls.is_cancelled && (
-                            <span className="text-xs text-red-400 font-medium">Abgesagt</span>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {cls.recurrence_type && cls.recurrence_type !== 'none' && (
+                              <span className="text-slate-300" title="Wiederkehrend">🔁</span>
+                            )}
+                            {cls.is_cancelled && (
+                              <span className="text-xs text-red-400 font-medium">Abgesagt</span>
+                            )}
+                          </div>
                         </div>
                         <p className="text-slate-900 text-xs font-semibold leading-tight truncate">{cls.title}</p>
                         <p className="text-slate-400 text-xs mt-0.5">
@@ -299,7 +317,7 @@ export default function SchedulePage() {
                           )}
                           {!cls.is_cancelled && (
                             <button
-                              onClick={() => handleCancel(cls.id)}
+                              onClick={() => handleCancel(cls)}
                               disabled={cancellingId === cls.id}
                               className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
                             >
