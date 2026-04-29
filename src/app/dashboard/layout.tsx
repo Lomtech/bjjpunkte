@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { AuthGuard } from '@/components/AuthGuard'
-import { LogOut, Users, LayoutDashboard, CheckSquare, Settings, TrendingUp } from 'lucide-react'
+import { LogOut, Users, LayoutDashboard, CheckSquare, Settings, TrendingUp, Calendar } from 'lucide-react'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,6 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <NavLink href="/dashboard" icon={<LayoutDashboard size={16} />} label="Dashboard" />
           <NavLink href="/dashboard/members" icon={<Users size={16} />} label="Mitglieder" />
           <NavLink href="/dashboard/attendance" icon={<CheckSquare size={16} />} label="Anwesenheit" />
+          <NavLink href="/dashboard/schedule" icon={<Calendar size={16} />} label="Stundenplan" />
           <NavLink href="/dashboard/revenue" icon={<TrendingUp size={16} />} label="Einnahmen" />
           <NavLink href="/dashboard/settings" icon={<Settings size={16} />} label="Einstellungen" />
         </nav>

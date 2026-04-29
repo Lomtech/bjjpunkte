@@ -26,9 +26,21 @@ export interface Database {
         Relationships: Rel[]
       }
       attendance: {
-        Row: { id: string; member_id: string; gym_id: string; checked_in_at: string; class_type: ClassType }
-        Insert: { member_id: string; gym_id: string; class_type?: ClassType }
-        Update: { class_type?: ClassType }
+        Row: { id: string; member_id: string; gym_id: string; checked_in_at: string; class_type: ClassType; checked_out_at: string | null; class_id: string | null }
+        Insert: { member_id: string; gym_id: string; class_type?: ClassType; checked_out_at?: string | null; class_id?: string | null }
+        Update: { class_type?: ClassType; checked_out_at?: string | null; class_id?: string | null }
+        Relationships: Rel[]
+      }
+      classes: {
+        Row: { id: string; gym_id: string; title: string; class_type: ClassType; description: string | null; instructor: string | null; starts_at: string; ends_at: string; max_capacity: number | null; is_cancelled: boolean; created_at: string }
+        Insert: { gym_id: string; title: string; class_type: ClassType; description?: string | null; instructor?: string | null; starts_at: string; ends_at: string; max_capacity?: number | null; is_cancelled?: boolean }
+        Update: { title?: string; class_type?: ClassType; description?: string | null; instructor?: string | null; starts_at?: string; ends_at?: string; max_capacity?: number | null; is_cancelled?: boolean }
+        Relationships: Rel[]
+      }
+      class_bookings: {
+        Row: { id: string; class_id: string; member_id: string; gym_id: string; status: 'confirmed' | 'waitlist' | 'cancelled'; created_at: string }
+        Insert: { class_id: string; member_id: string; gym_id: string; status?: 'confirmed' | 'waitlist' | 'cancelled' }
+        Update: { status?: 'confirmed' | 'waitlist' | 'cancelled' }
         Relationships: Rel[]
       }
       payments: {

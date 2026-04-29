@@ -1,10 +1,33 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
-import { Calendar, CreditCard, Dumbbell, TrendingUp } from 'lucide-react'
+import { Calendar, CreditCard, Dumbbell, TrendingUp, Clock, CheckCircle, LogOut } from 'lucide-react'
+
+interface UpcomingBooking {
+  class_id: string
+  title: string
+  class_type: string
+  starts_at: string
+  ends_at: string
+  instructor: string | null
+  booking_status: 'confirmed' | 'waitlist'
+}
+
+interface UpcomingClass {
+  id: string
+  title: string
+  class_type: string
+  instructor: string | null
+  starts_at: string
+  ends_at: string
+  max_capacity: number | null
+  confirmed_count: number
+  waitlist_count: number
+  my_status: string | null
+}
 
 interface MemberData {
   member: {
@@ -17,10 +40,24 @@ interface MemberData {
   totalSessions: number
   payments: { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }[]
   totalPaidCents: number
+  upcoming_bookings: UpcomingBooking[] | null
+}
+
+interface AttendanceState {
+  attendanceId: string
+  checkedOut: boolean
 }
 
 const CLASS_LABELS: Record<string, string> = {
   gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat', kids: 'Kids', competition: 'Competition',
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  gi:          'bg-blue-50 text-blue-700',
+  'no-gi':     'bg-slate-100 text-slate-600',
+  'open mat':  'bg-amber-50 text-amber-700',
+  kids:        'bg-green-50 text-green-700',
+  competition: 'bg-red-50 text-red-700',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -33,6 +70,21 @@ const STATUS_LABELS: Record<string, string> = {
   paid: 'Bezahlt', pending: 'Ausstehend', failed: 'Fehlgeschlagen', refunded: 'Erstattet',
 }
 
+function formatDateTime(iso: string) {
+  const d = new Date(iso)
+  return {
+    date: d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }),
+    time: d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+  }
+}
+
+function canCheckin(startsAt: string, endsAt: string): boolean {
+  const now = Date.now()
+  const start = new Date(startsAt).getTime()
+  const end = new Date(endsAt).getTime()
+  return now >= start - 60 * 60 * 1000 && now <= end
+}
+
 export default function MemberPortalPage() {
   const params = useParams()
   const token = params.token as string
@@ -41,7 +93,17 @@ export default function MemberPortalPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  // Classes section
+  const [classes, setClasses] = useState<UpcomingClass[]>([])
+  const [classesLoading, setClassesLoading] = useState(false)
+  const [bookingId, setBookingId] = useState<string | null>(null)
+
+  // Attendance states keyed by class_id
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceState>>({})
+  const [checkinLoading, setCheckinLoading] = useState<string | null>(null)
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+
+  const loadPortal = useCallback(() => {
     fetch(`/api/portal/${token}`)
       .then(r => r.json())
       .then(d => {
@@ -51,6 +113,67 @@ export default function MemberPortalPage() {
       .catch(() => setError('Verbindungsfehler'))
       .finally(() => setLoading(false))
   }, [token])
+
+  const loadClasses = useCallback(() => {
+    setClassesLoading(true)
+    fetch(`/api/portal/${token}/classes`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setClasses(d) })
+      .catch(() => {/* ignore */})
+      .finally(() => setClassesLoading(false))
+  }, [token])
+
+  useEffect(() => {
+    loadPortal()
+    loadClasses()
+  }, [loadPortal, loadClasses])
+
+  async function handleBook(classId: string) {
+    setBookingId(classId)
+    await fetch(`/api/portal/${token}/book/${classId}`, { method: 'POST' })
+    setBookingId(null)
+    loadClasses()
+    loadPortal()
+  }
+
+  async function handleCancel(classId: string) {
+    setBookingId(classId)
+    await fetch(`/api/portal/${token}/book/${classId}`, { method: 'DELETE' })
+    setBookingId(null)
+    loadClasses()
+    loadPortal()
+  }
+
+  async function handleCheckin(classId: string) {
+    setCheckinLoading(classId)
+    const res = await fetch(`/api/portal/${token}/checkin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classId }),
+    })
+    const result = await res.json()
+    if (result.success && result.attendance_id) {
+      setAttendanceMap(prev => ({
+        ...prev,
+        [classId]: { attendanceId: result.attendance_id, checkedOut: false },
+      }))
+    }
+    setCheckinLoading(null)
+  }
+
+  async function handleCheckout(classId: string, attendanceId: string) {
+    setCheckoutLoading(classId)
+    await fetch(`/api/portal/${token}/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attendanceId }),
+    })
+    setAttendanceMap(prev => ({
+      ...prev,
+      [classId]: { ...prev[classId], checkedOut: true },
+    }))
+    setCheckoutLoading(null)
+  }
 
   if (loading) {
     return (
@@ -138,6 +261,133 @@ export default function MemberPortalPage() {
             label="Bezahlt"
             value={`${(totalPaidCents / 100).toFixed(0)} €`}
           />
+        </div>
+
+        {/* Upcoming classes */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <Clock size={15} className="text-slate-400" />
+            Nächste Trainings
+          </h2>
+
+          {classesLoading ? (
+            <p className="text-slate-400 text-sm">Lädt…</p>
+          ) : classes.length === 0 ? (
+            <p className="text-slate-400 text-sm">Keine Trainings in den nächsten Tagen.</p>
+          ) : (
+            <div className="space-y-3">
+              {classes.map(cls => {
+                const { date, time } = formatDateTime(cls.starts_at)
+                const endTime = new Date(cls.ends_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+                const spotsLeft = cls.max_capacity != null ? cls.max_capacity - cls.confirmed_count : null
+                const isBooked = cls.my_status === 'confirmed'
+                const isWaitlist = cls.my_status === 'waitlist'
+                const isLoading = bookingId === cls.id
+                const attendanceState = attendanceMap[cls.id]
+                const showCheckin = isBooked && canCheckin(cls.starts_at, cls.ends_at) && !attendanceState
+
+                return (
+                  <div key={cls.id} className="rounded-xl border border-slate-100 p-4 bg-slate-50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${TYPE_COLORS[cls.class_type] ?? TYPE_COLORS.gi}`}>
+                            {CLASS_LABELS[cls.class_type] ?? cls.class_type}
+                          </span>
+                          {isWaitlist && (
+                            <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-amber-50 text-amber-600">
+                              Warteliste
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-slate-900 text-sm font-semibold">{cls.title}</p>
+                        <p className="text-slate-500 text-xs mt-0.5">{date} · {time}–{endTime}</p>
+                        {cls.instructor && (
+                          <p className="text-slate-400 text-xs">{cls.instructor}</p>
+                        )}
+                        <p className="text-slate-400 text-xs mt-0.5">
+                          {spotsLeft != null
+                            ? spotsLeft > 0 ? `${spotsLeft} Plätze frei` : 'Ausgebucht'
+                            : `${cls.confirmed_count} gebucht`}
+                          {cls.waitlist_count > 0 && ` · ${cls.waitlist_count} auf Warteliste`}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                        {isBooked ? (
+                          <button
+                            onClick={() => handleCancel(cls.id)}
+                            disabled={isLoading}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-medium transition-colors disabled:opacity-50"
+                          >
+                            {isLoading ? '…' : 'Absagen'}
+                          </button>
+                        ) : isWaitlist ? (
+                          <button
+                            onClick={() => handleCancel(cls.id)}
+                            disabled={isLoading}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition-colors disabled:opacity-50"
+                          >
+                            {isLoading ? '…' : 'Abmelden'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBook(cls.id)}
+                            disabled={isLoading}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-400 text-white font-medium transition-colors disabled:opacity-50"
+                          >
+                            {isLoading ? '…' : 'Zusagen'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Check-in area */}
+                    {showCheckin && (
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <button
+                          onClick={() => handleCheckin(cls.id)}
+                          disabled={checkinLoading === cls.id}
+                          className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle size={14} />
+                          {checkinLoading === cls.id ? 'Einchecken…' : 'Einchecken'}
+                        </button>
+                      </div>
+                    )}
+
+                    {attendanceState && !attendanceState.checkedOut && (
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
+                            <CheckCircle size={14} />
+                            Eingecheckt
+                          </span>
+                          <button
+                            onClick={() => handleCheckout(cls.id, attendanceState.attendanceId)}
+                            disabled={checkoutLoading === cls.id}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition-colors disabled:opacity-50 flex items-center gap-1"
+                          >
+                            <LogOut size={11} />
+                            {checkoutLoading === cls.id ? '…' : 'Auschecken'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {attendanceState?.checkedOut && (
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <span className="text-sm text-slate-400 flex items-center gap-1.5">
+                          <CheckCircle size={14} />
+                          Ausgecheckt
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Payments */}
