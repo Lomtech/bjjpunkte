@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { CreditCard, Send, ExternalLink } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
 
@@ -29,9 +30,13 @@ export function BillingSection({ memberId, gymId, memberEmail, memberName, subsc
     setLoading(true)
     setError('')
     try {
+      const { data: { session } } = await createClient().auth.getSession()
       const res = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
         body: JSON.stringify({ memberId, gymId, memberEmail, memberName, amountCents: monthlyFeeCents }),
       })
       const data = await res.json()

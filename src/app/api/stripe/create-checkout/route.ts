@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
@@ -8,11 +8,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Stripe nicht konfiguriert. Bitte STRIPE_SECRET_KEY in den Einstellungen hinterlegen.' }, { status: 400 })
   }
 
-  const stripe = new Stripe(stripeKey)
-  const supabase = await createClient()
+  // Verify auth via Bearer token (localStorage-based session)
+  const authHeader = req.headers.get('Authorization')
+  const accessToken = authHeader?.replace('Bearer ', '')
+  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const stripe = new Stripe(stripeKey)
 
   const { memberId, gymId, memberEmail, memberName, amountCents } = await req.json()
 
