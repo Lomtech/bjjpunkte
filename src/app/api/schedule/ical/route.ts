@@ -24,7 +24,9 @@ export async function GET(req: Request) {
   const { data: gym } = await supabase.from('gyms').select('name').eq('id', gymId).single()
 
   function toIcalDate(iso: string) {
-    return iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '').replace('T', 'T')
+    // Parse via Date to handle Postgres format "2026-05-07 18:00:00+00" (space, no T)
+    return new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+    // Output: "20260507T180000Z" — valid iCal UTC format
   }
 
   const events = (classes ?? []).map((c: any) => [
