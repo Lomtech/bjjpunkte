@@ -1,4 +1,9 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 const PLANS = [
   {
@@ -8,6 +13,7 @@ const PLANS = [
     members: '30 Mitglieder',
     color: 'border-slate-200',
     badge: '',
+    planKey: 'free',
     features: [
       'Bis zu 30 Mitglieder',
       'Mitgliederverwaltung',
@@ -25,11 +31,12 @@ const PLANS = [
     name: 'Starter',
     price: '29',
     period: '/Monat',
-    members: '75 Mitglieder',
+    members: '50 Mitglieder',
     color: 'border-slate-200',
     badge: '',
+    planKey: 'starter',
     features: [
-      'Bis zu 75 Mitglieder',
+      'Bis zu 50 Mitglieder',
       'Alles aus Free',
       'Zahlungserinnerungen (Auto)',
       'Geburtstags-E-Mails (Auto)',
@@ -46,11 +53,12 @@ const PLANS = [
     name: 'Grow',
     price: '59',
     period: '/Monat',
-    members: '200 Mitglieder',
+    members: '150 Mitglieder',
     color: 'border-amber-300',
     badge: 'Beliebt',
+    planKey: 'grow',
     features: [
-      'Bis zu 200 Mitglieder',
+      'Bis zu 150 Mitglieder',
       'Alles aus Starter',
       'WhatsApp-Bulk-Kampagnen',
       'Öffentlicher Stundenplan (Embed)',
@@ -70,6 +78,7 @@ const PLANS = [
     members: 'Unbegrenzt',
     color: 'border-slate-200',
     badge: '',
+    planKey: 'pro',
     features: [
       'Unbegrenzte Mitglieder',
       'Alles aus Grow',
@@ -86,6 +95,24 @@ const PLANS = [
 ]
 
 export default function PricingPage() {
+  const router = useRouter()
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+
+  async function handleUpgrade(plan: string) {
+    setLoadingPlan(plan)
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.push(`/register?plan=${plan}`); return }
+    const res = await fetch('/api/stripe/owner-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ plan }),
+    })
+    const data = await res.json()
+    if (data.url) window.location.href = data.url
+    setLoadingPlan(null)
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -128,12 +155,22 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href={plan.ctaHref}
-                className={`block text-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${plan.ctaStyle}`}
-              >
-                {plan.cta}
-              </Link>
+              {plan.planKey === 'free' ? (
+                <Link
+                  href={plan.ctaHref}
+                  className={`block text-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${plan.ctaStyle}`}
+                >
+                  {plan.cta}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => handleUpgrade(plan.planKey)}
+                  disabled={loadingPlan === plan.planKey}
+                  className={`block w-full text-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${plan.ctaStyle}`}
+                >
+                  {loadingPlan === plan.planKey ? 'Wird geladen…' : plan.cta}
+                </button>
+              )}
             </div>
           ))}
         </div>

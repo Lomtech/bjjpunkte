@@ -60,6 +60,9 @@ export default function SettingsPage() {
   const [gymPlan, setGymPlan]       = useState<string>('free')
   const [memberCount, setMemberCount] = useState(0)
   const [planLimit, setPlanLimit]   = useState(30)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const [portalLoading, setPortalLoading] = useState(false)
+  const [upgradedBanner, setUpgradedBanner] = useState(false)
 
   const webhookUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/stripe/webhook`
@@ -71,6 +74,14 @@ export default function SettingsPage() {
 
   const stripeConnected = searchParams.get('stripe_connected') === '1'
   const stripeError     = searchParams.get('stripe_error')
+
+  useEffect(() => {
+    if (searchParams.get('upgraded') === '1') {
+      setUpgradedBanner(true)
+      const t = setTimeout(() => setUpgradedBanner(false), 5000)
+      return () => clearTimeout(t)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const supabase = createClient()
@@ -155,6 +166,32 @@ export default function SettingsPage() {
     const { data: { session } } = await createClient().auth.getSession()
     await fetch('/api/stripe/connect', { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
     setStripeAccountId(null)
+  }
+
+  async function handleUpgrade(plan: string) {
+    setLoadingPlan(plan)
+    const { data: { session } } = await createClient().auth.getSession()
+    if (!session) { window.location.href = `/register?plan=${plan}`; return }
+    const res = await fetch('/api/stripe/owner-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ plan }),
+    })
+    const data = await res.json()
+    if (data.url) window.location.href = data.url
+    setLoadingPlan(null)
+  }
+
+  async function handlePortal() {
+    setPortalLoading(true)
+    const { data: { session } } = await createClient().auth.getSession()
+    const res = await fetch('/api/stripe/owner-portal', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+    })
+    const data = await res.json()
+    if (data.url) window.location.href = data.url
+    setPortalLoading(false)
   }
 
   async function handleSignupSave() {
@@ -255,46 +292,84 @@ export default function SettingsPage() {
         <p className="text-slate-400 text-xs mt-0.5">Gym-Profil und Zahlungseinstellungen</p>
       </div>
 
+      {/* Upgrade success banner */}
+      {upgradedBanner && (
+        <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
+          <CheckCircle2 size={15} className="text-green-600 flex-shrink-0" />
+          <p className="text-green-800 text-sm font-medium">✓ Plan erfolgreich aktualisiert!</p>
+        </div>
+      )}
+
       {/* Plan Status Banner */}
-      <div className={`rounded-2xl p-5 border flex items-center justify-between mb-5 ${
+      <div className={`rounded-2xl p-5 border mb-5 ${
         gymPlan === 'pro' ? 'bg-slate-900 border-slate-700' :
         gymPlan === 'grow' ? 'bg-amber-50 border-amber-200' :
         gymPlan === 'starter' ? 'bg-blue-50 border-blue-200' :
         'bg-white border-slate-200'
       }`}>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              gymPlan === 'pro' ? 'bg-amber-500 text-white' :
-              gymPlan === 'grow' ? 'bg-amber-500 text-white' :
-              gymPlan === 'starter' ? 'bg-blue-600 text-white' :
-              'bg-slate-200 text-slate-600'
-            }`}>
-              {gymPlan.toUpperCase()}
-            </span>
-            <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-slate-900'}`}>
-              Aktueller Plan
-            </span>
-          </div>
-          <p className={`text-sm ${gymPlan === 'pro' ? 'text-slate-300' : 'text-slate-500'}`}>
-            {memberCount} / {gymPlan === 'pro' ? '∞' : planLimit} aktive Mitglieder
-          </p>
-          {gymPlan !== 'pro' && memberCount >= planLimit * 0.9 && (
-            <p className="text-amber-600 text-xs mt-1 font-medium">
-              ⚠️ Fast am Limit — upgrade für mehr Mitglieder
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                gymPlan === 'pro' ? 'bg-amber-500 text-white' :
+                gymPlan === 'grow' ? 'bg-amber-500 text-white' :
+                gymPlan === 'starter' ? 'bg-blue-600 text-white' :
+                'bg-slate-200 text-slate-600'
+              }`}>
+                {gymPlan.toUpperCase()}
+              </span>
+              <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-slate-900'}`}>
+                Aktueller Plan
+              </span>
+            </div>
+            <p className={`text-sm ${gymPlan === 'pro' ? 'text-slate-300' : 'text-slate-500'}`}>
+              {memberCount} / {gymPlan === 'pro' ? '∞' : planLimit} aktive Mitglieder
             </p>
+            {gymPlan !== 'pro' && memberCount >= planLimit * 0.9 && (
+              <p className="text-amber-600 text-xs mt-1 font-medium">
+                Fast am Limit — upgrade für mehr Mitglieder
+              </p>
+            )}
+          </div>
+          {gymPlan === 'free' ? (
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <button
+                onClick={() => handleUpgrade('starter')}
+                disabled={loadingPlan !== null}
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                {loadingPlan ? 'Wird geladen…' : 'Upgraden →'}
+              </button>
+            </div>
+          ) : gymPlan === 'pro' ? (
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <button
+                onClick={handlePortal}
+                disabled={portalLoading}
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-amber-500 text-white hover:bg-amber-400 disabled:opacity-50"
+              >
+                {portalLoading ? 'Wird geladen…' : 'Abo verwalten'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              <button
+                onClick={() => handleUpgrade(gymPlan === 'starter' ? 'grow' : 'pro')}
+                disabled={loadingPlan !== null}
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                {loadingPlan ? 'Wird geladen…' : 'Plan ändern →'}
+              </button>
+              <button
+                onClick={handlePortal}
+                disabled={portalLoading}
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {portalLoading ? 'Wird geladen…' : 'Abo verwalten'}
+              </button>
+            </div>
           )}
         </div>
-        <a
-          href="/pricing"
-          target="_blank"
-          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex-shrink-0 ${
-            gymPlan === 'pro' ? 'bg-amber-500 text-white hover:bg-amber-400' :
-            'bg-slate-900 text-white hover:bg-slate-800'
-          }`}
-        >
-          {gymPlan === 'free' ? 'Upgraden →' : gymPlan === 'pro' ? 'Pro aktiv ✓' : 'Plan ändern →'}
-        </a>
       </div>
 
       {stripeConnected && (

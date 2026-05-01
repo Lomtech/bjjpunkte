@@ -36,6 +36,18 @@ export async function POST(req: Request) {
     const memberId = session.metadata?.memberId ?? null
     const paymentIntentId = session.payment_intent as string | null
 
+    // Handle owner plan upgrades
+    if (session.metadata?.type === 'owner_plan') {
+      const { gymId, plan } = session.metadata
+      const PLAN_LIMITS: Record<string, number> = { starter: 50, grow: 150, pro: 9999 }
+      await (supabase.from('gyms') as any).update({
+        plan,
+        plan_member_limit: PLAN_LIMITS[plan] ?? 30,
+        osss_stripe_customer_id: session.customer as string,
+        osss_stripe_subscription_id: session.subscription as string,
+      }).eq('id', gymId)
+    }
+
     if (session.payment_status === 'paid') {
       // First try to update by payment_intent_id (normal case)
       if (paymentIntentId) {
@@ -108,6 +120,14 @@ export async function POST(req: Request) {
       await (supabase.from('members') as any)
         .update({ stripe_subscription_id: null, subscription_status: 'cancelled' })
         .eq('id', memberId)
+    }
+    // Check if this is an owner plan subscription
+    const { data: gymWithSub } = await (supabase.from('gyms') as any)
+      .select('id').eq('osss_stripe_subscription_id', sub.id).single()
+    if (gymWithSub) {
+      await (supabase.from('gyms') as any).update({
+        plan: 'free', plan_member_limit: 30, osss_stripe_subscription_id: null
+      }).eq('id', gymWithSub.id)
     }
   }
 
