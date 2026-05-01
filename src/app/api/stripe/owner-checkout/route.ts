@@ -31,6 +31,12 @@ export async function POST(req: Request) {
   const accessToken = authHeader?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
+  // Parse body early before any DB calls
+  const { plan } = await req.json()
+  if (!plan || !PLAN_PRICES[plan]) {
+    return NextResponse.json({ error: 'Ungültiger Plan' }, { status: 400 })
+  }
+
   const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
@@ -38,15 +44,10 @@ export async function POST(req: Request) {
   const { data: gym } = await (supabase.from('gyms') as any).select('id').eq('owner_id', user.id).single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
-  const { plan } = await req.json()
-  if (!plan || !PLAN_PRICES[plan]) {
-    return NextResponse.json({ error: 'Ungültiger Plan' }, { status: 400 })
-  }
-
   const stripe = new Stripe(stripeKey)
   const appUrl = getAppUrl()
 
-  const session = await stripe.checkout.sessions.create({
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
     line_items: [
       {
@@ -65,7 +66,12 @@ export async function POST(req: Request) {
     },
     success_url: `${appUrl}/dashboard/settings?upgraded=1`,
     cancel_url: `${appUrl}/dashboard/settings`,
-  })
+  }
 
-  return NextResponse.json({ url: session.url })
+  try {
+    const session = await stripe.checkout.sessions.create(sessionParams)
+    return NextResponse.json({ url: session.url })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message ?? 'Stripe-Fehler' }, { status: 500 })
+  }
 }

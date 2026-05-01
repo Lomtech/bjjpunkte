@@ -116,7 +116,7 @@ export default function AttendancePage() {
                         <p className="text-slate-400 text-xs capitalize truncate">{a.class_type}</p>
                       </div>
                       <button onClick={() => deleteAttendance(a.id)} disabled={deletingId === a.id}
-                        className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all disabled:opacity-40 touch-manipulation"
+                        className="opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all disabled:opacity-40 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
                         title="Löschen">
                         <Trash2 size={14} />
                       </button>

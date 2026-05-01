@@ -370,11 +370,11 @@ export default function MemberPortalPage() {
           <div className="flex flex-col items-center">
             <div className="bg-white border-2 border-slate-100 rounded-2xl p-3 shadow-sm">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://bjjpunkte.vercel.app'}/portal/${token}`)}&color=0f172a&bgcolor=ffffff&margin=10`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://bjjpunkte.vercel.app'}/portal/${token}`)}&color=0f172a&bgcolor=ffffff&margin=10`}
                 alt="QR Code"
-                width={200}
-                height={200}
-                className="rounded-lg"
+                width={240}
+                height={240}
+                className="rounded-lg w-full max-w-[240px]"
               />
             </div>
             <p className="text-slate-400 text-xs mt-3 text-center">
@@ -462,7 +462,7 @@ export default function MemberPortalPage() {
                           <button
                             onClick={() => handleCancel(cls.id)}
                             disabled={isLoading}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-medium transition-colors disabled:opacity-50"
+                            className="text-xs px-3 min-h-[44px] rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-medium transition-colors disabled:opacity-50"
                           >
                             {isLoading ? '…' : 'Absagen'}
                           </button>
@@ -470,7 +470,7 @@ export default function MemberPortalPage() {
                           <button
                             onClick={() => handleCancel(cls.id)}
                             disabled={isLoading}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition-colors disabled:opacity-50"
+                            className="text-xs px-3 min-h-[44px] rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition-colors disabled:opacity-50"
                           >
                             {isLoading ? '…' : 'Abmelden'}
                           </button>
@@ -478,7 +478,7 @@ export default function MemberPortalPage() {
                           <button
                             onClick={() => handleBook(cls.id)}
                             disabled={isLoading}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-400 text-white font-medium transition-colors disabled:opacity-50"
+                            className="text-xs px-3 min-h-[44px] rounded-lg bg-green-500 hover:bg-green-400 text-white font-medium transition-colors disabled:opacity-50"
                           >
                             {isLoading ? '…' : 'Zusagen'}
                           </button>

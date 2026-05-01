@@ -20,7 +20,8 @@ export async function POST(req: Request) {
 
   const stripe = new Stripe(stripeKey)
   const body = await req.text()
-  const sig = req.headers.get('stripe-signature')!
+  const sig = req.headers.get('stripe-signature')
+  if (!sig) return new Response('Missing stripe-signature', { status: 400 })
 
   let event: Stripe.Event
   try {
@@ -60,23 +61,35 @@ export async function POST(req: Request) {
         // Fallback: if nothing was updated (payment_intent was null when record was created),
         // find the most recent pending payment for this member and update it
         if ((!updated || updated.length === 0) && memberId) {
-          await supabase
+          const { data: pendingPayment } = await supabase
             .from('payments')
-            .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_payment_intent_id: paymentIntentId })
+            .select('id')
             .eq('member_id', memberId)
             .eq('status', 'pending')
             .order('created_at', { ascending: false })
             .limit(1)
+            .single()
+          if (pendingPayment) {
+            await supabase.from('payments')
+              .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_payment_intent_id: paymentIntentId })
+              .eq('id', pendingPayment.id)
+          }
         }
       } else if (memberId) {
         // No payment_intent at all — update most recent pending for this member
-        await supabase
+        const { data: pendingPayment } = await supabase
           .from('payments')
-          .update({ status: 'paid', paid_at: new Date().toISOString() })
+          .select('id')
           .eq('member_id', memberId)
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
           .limit(1)
+          .single()
+        if (pendingPayment) {
+          await supabase.from('payments')
+            .update({ status: 'paid', paid_at: new Date().toISOString() })
+            .eq('id', pendingPayment.id)
+        }
       }
     }
   }
@@ -133,18 +146,31 @@ export async function POST(req: Request) {
 
   if (event.type === 'invoice.paid') {
     const inv = event.data.object as Stripe.Invoice
-    const memberId   = (inv as any).subscription_details?.metadata?.memberId ?? inv.metadata?.memberId
-    const gymId      = (inv as any).subscription_details?.metadata?.gymId    ?? inv.metadata?.gymId
-    const amountCents = inv.amount_paid
+    const memberId        = (inv as any).subscription_details?.metadata?.memberId ?? inv.metadata?.memberId
+    const gymId           = (inv as any).subscription_details?.metadata?.gymId    ?? inv.metadata?.gymId
+    const amountCents     = inv.amount_paid
+    const paymentIntentId = typeof (inv as any).payment_intent === 'string' ? (inv as any).payment_intent : null
     if (memberId && amountCents > 0) {
-      await supabase.from('payments').insert({
-        gym_id:    gymId ?? null,
-        member_id: memberId,
-        amount_cents: amountCents,
-        status:    'paid',
-        paid_at:   new Date().toISOString(),
-        stripe_payment_intent_id: typeof (inv as any).payment_intent === 'string' ? (inv as any).payment_intent : null,
-      })
+      // Idempotenz-Check: nicht erneut einfügen, wenn payment_intent bereits existiert
+      let alreadyProcessed = false
+      if (paymentIntentId) {
+        const { data: existing } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .single()
+        if (existing) alreadyProcessed = true
+      }
+      if (!alreadyProcessed) {
+        await supabase.from('payments').insert({
+          gym_id:    gymId ?? null,
+          member_id: memberId,
+          amount_cents: amountCents,
+          status:    'paid',
+          paid_at:   new Date().toISOString(),
+          stripe_payment_intent_id: paymentIntentId,
+        })
+      }
     }
   }
 

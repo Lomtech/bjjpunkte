@@ -456,18 +456,18 @@ function ContactBar({ firstName, phone, email }: { firstName: string; phone: str
         {phone && (
           <>
             <a href={`tel:${phone}`}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
               <Phone size={14} /> Anrufen
             </a>
             <button onClick={() => setShowWa(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors">
               <MessageCircle size={14} /> WhatsApp
             </button>
           </>
         )}
         {email && (
           <a href={`mailto:${email}`}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
+            className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
             <Mail size={14} /> E-Mail
           </a>
         )}

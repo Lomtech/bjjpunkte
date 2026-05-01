@@ -285,7 +285,7 @@ export default function KioskPage() {
           <div className="flex gap-2 mb-5 flex-wrap">
             {classTypes.map(t => (
               <button key={t.value} onClick={() => setClassType(t.value)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                className={`px-4 py-2 min-h-[44px] rounded-full text-sm font-semibold transition-colors ${
                   classType === t.value
                     ? 'bg-amber-500 text-white'
                     : 'bg-white/10 text-slate-300 hover:bg-white/20'

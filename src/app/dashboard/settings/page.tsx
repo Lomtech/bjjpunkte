@@ -307,7 +307,7 @@ export default function SettingsPage() {
         gymPlan === 'starter' ? 'bg-blue-50 border-blue-200' :
         'bg-white border-slate-200'
       }`}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -845,16 +845,16 @@ export default function SettingsPage() {
         </div>
         <div className="p-5 space-y-4">
           <form onSubmit={handleStaffInvite} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
                 <input value={staffName} onChange={e => setStaffName(e.target.value)} required placeholder="Max Mustermann"
-                  className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+                  className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
                 <input type="email" value={staffEmail} onChange={e => setStaffEmail(e.target.value)} required placeholder="trainer@gym.de"
-                  className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+                  className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
               </div>
             </div>
             <button type="submit" disabled={staffInviting}

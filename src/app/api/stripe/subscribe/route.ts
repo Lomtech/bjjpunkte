@@ -98,7 +98,18 @@ export async function DELETE(req: Request) {
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
   )
 
+  const { data: { user } } = await supabase.auth.getUser(accessToken)
+  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
   const { memberId } = await req.json()
+
+  // Gym-Ownership: Member muss zum Gym des Users gehören
+  const { data: gym } = await supabase.from('gyms').select('id').single()
+  if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const { data: memberCheck } = await supabase.from('members').select('gym_id').eq('id', memberId).single()
+  if (!memberCheck || memberCheck.gym_id !== gym.id) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
+
   const { data: memberRaw } = await supabase.from('members').select('stripe_subscription_id').eq('id', memberId).single()
   const subId = (memberRaw as any)?.stripe_subscription_id
   if (!subId) return NextResponse.json({ error: 'Kein Abonnement gefunden' }, { status: 404 })

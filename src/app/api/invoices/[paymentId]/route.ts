@@ -1,15 +1,37 @@
+import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+function adminClient() {
+  return createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
 
 export async function GET(req: Request, { params }: { params: Promise<{ paymentId: string }> }) {
   const { paymentId } = await params
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  // Auth check: accept Bearer token (fetch calls) or cookie-based session (browser navigation)
+  let user: { id: string } | null = null
+  const authHeader = req.headers.get('Authorization')
+  const accessToken = authHeader?.replace('Bearer ', '')
+  if (accessToken) {
+    const supabase = createClient(url, anonKey, { global: { headers: { Authorization: `Bearer ${accessToken}` } } })
+    const { data } = await supabase.auth.getUser(accessToken)
+    user = data.user
+  } else {
+    // Fallback: cookie-based session (browser <a href> link)
+    const serverSupabase = await createServerClient()
+    const { data } = await serverSupabase.auth.getUser()
+    user = data.user
+  }
+  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const supabaseAdmin = adminClient()
 
   // Load payment with member and gym data
-  const { data: payment } = await supabase
+  const { data: payment } = await supabaseAdmin
     .from('payments')
     .select(`
       *,
@@ -25,20 +47,28 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   const member = payment.members as any
   const pmt = payment as any
 
+  // Null-safety: gyms or members could be null
+  if (!gym) return new Response('Gym nicht gefunden', { status: 404 })
+  if (!member) return new Response('Mitglied nicht gefunden', { status: 404 })
+
   // Generate invoice number if not yet set
   let invoiceNumber = pmt.invoice_number
-  if (!invoiceNumber && pmt.status === 'paid') {
-    const year = new Date(pmt.paid_at || pmt.created_at).getFullYear()
-    // Atomically increment counter
-    const { data: updated } = await supabase
-      .from('gyms')
-      .update({ invoice_counter: (gym.invoice_counter ?? 0) + 1 })
-      .eq('id', pmt.gym_id)
-      .select('invoice_counter')
-      .single()
-    const counter = updated?.invoice_counter ?? 1
-    invoiceNumber = `${gym.invoice_prefix ?? 'RE'}-${year}-${String(counter).padStart(4, '0')}`
-    await supabase.from('payments').update({ invoice_number: invoiceNumber }).eq('id', paymentId)
+  try {
+    if (!invoiceNumber && pmt.status === 'paid') {
+      const year = new Date(pmt.paid_at || pmt.created_at).getFullYear()
+      // Atomically increment counter
+      const { data: updated } = await supabaseAdmin
+        .from('gyms')
+        .update({ invoice_counter: (gym.invoice_counter ?? 0) + 1 })
+        .eq('id', pmt.gym_id)
+        .select('invoice_counter')
+        .single()
+      const counter = updated?.invoice_counter ?? 1
+      invoiceNumber = `${gym.invoice_prefix ?? 'RE'}-${year}-${String(counter).padStart(4, '0')}`
+      await supabaseAdmin.from('payments').update({ invoice_number: invoiceNumber }).eq('id', paymentId)
+    }
+  } catch {
+    // invoice number generation is non-critical — continue without it
   }
 
   const date = new Date(pmt.paid_at || pmt.created_at)

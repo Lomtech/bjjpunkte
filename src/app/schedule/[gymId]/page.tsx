@@ -85,7 +85,7 @@ function ScheduleContent() {
             {gym?.signup_enabled && (
               <a
                 href={`/schedule/${gymId}#signup`}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold rounded-xl transition-colors"
+                className="px-4 py-2 min-h-[44px] inline-flex items-center bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold rounded-xl transition-colors"
               >
                 Mitglied werden
               </a>
@@ -94,7 +94,7 @@ function ScheduleContent() {
         </div>
       )}
 
-      <div className={`${isEmbed ? '' : 'max-w-2xl mx-auto px-5 py-6'} space-y-6`}>
+      <div className={`${isEmbed ? 'px-4 py-4' : 'max-w-2xl mx-auto px-5 py-6'} space-y-6`}>
         {days.length === 0 ? (
           <div className="text-center py-12 text-slate-400 text-sm">Keine Trainings in den nächsten 14 Tagen geplant.</div>
         ) : days.map(day => (

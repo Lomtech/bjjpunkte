@@ -216,14 +216,14 @@ export default function LeadsPage() {
             <p className="font-semibold text-slate-900 text-sm">Neuer Interessent</p>
           </div>
           <form onSubmit={handleCreate} className="p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Vorname *</label>
                 <input
                   required value={form.first_name}
                   onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
                   placeholder="Max"
-                  className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
               <div>
@@ -232,18 +232,18 @@ export default function LeadsPage() {
                   required value={form.last_name}
                   onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
                   placeholder="Mustermann"
-                  className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">E-Mail</label>
                 <input
                   type="email" value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   placeholder="max@example.com"
-                  className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
               <div>
@@ -252,17 +252,17 @@ export default function LeadsPage() {
                   type="tel" value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="+49 151 234567"
-                  className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Quelle</label>
                 <select
                   value={form.source}
                   onChange={e => setForm(f => ({ ...f, source: e.target.value as LeadSource }))}
-                  className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
                   <option value="walk-in">Walk-in</option>
                   <option value="referral">Empfehlung</option>
                   <option value="instagram">Instagram</option>
@@ -275,7 +275,7 @@ export default function LeadsPage() {
                 <input
                   type="date" value={form.trial_date}
                   onChange={e => setForm(f => ({ ...f, trial_date: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
             </div>
@@ -300,11 +300,11 @@ export default function LeadsPage() {
             </div>
             <div className="flex gap-2 pt-1">
               <button type="submit" disabled={saving}
-                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors">
+                className="flex-1 sm:flex-none px-4 py-2.5 min-h-[44px] rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors">
                 {saving ? 'Speichern…' : 'Speichern'}
               </button>
               <button type="button" onClick={() => setShowForm(false)}
-                className="px-4 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors">
+                className="flex-1 sm:flex-none px-4 py-2.5 min-h-[44px] rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors">
                 Abbrechen
               </button>
             </div>

@@ -40,6 +40,13 @@ export async function POST(req: Request) {
     belt, stripes, notes, contract_end_date, parent_member_id,
   } = body
 
+  // Eingabevalidierung
+  if (!first_name?.trim()) return NextResponse.json({ error: 'Vorname fehlt' }, { status: 400 })
+  if (!last_name?.trim()) return NextResponse.json({ error: 'Nachname fehlt' }, { status: 400 })
+  if (!join_date) return NextResponse.json({ error: 'Eintrittsdatum fehlt' }, { status: 400 })
+  const VALID_BELTS = ['white', 'blue', 'purple', 'brown', 'black']
+  if (belt && !VALID_BELTS.includes(belt)) return NextResponse.json({ error: 'Ungültiger Gürtel' }, { status: 400 })
+
   const { data: member, error } = await (supabase.from('members') as any).insert({
     gym_id: gymData.id,
     first_name,
