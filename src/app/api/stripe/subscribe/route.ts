@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      payment_method_types: ['card', 'sepa_debit'],
+      payment_method_types: ['card'], // sepa_debit nicht für Subscriptions verfügbar ohne extra Stripe-Aktivierung
       line_items: [{ price: price.id, quantity: 1 }],
       mode: 'subscription',
       success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
