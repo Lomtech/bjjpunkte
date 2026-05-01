@@ -34,14 +34,38 @@ export async function POST(req: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const memberId = session.metadata?.memberId ?? null
-    const paymentIntentId = session.payment_intent as string
+    const paymentIntentId = session.payment_intent as string | null
 
     if (session.payment_status === 'paid') {
-      await supabase.rpc('handle_stripe_payment', {
-        p_payment_intent_id: paymentIntentId,
-        p_status: 'paid',
-        p_member_id: memberId,
-      })
+      // First try to update by payment_intent_id (normal case)
+      if (paymentIntentId) {
+        const { data: updated } = await supabase
+          .from('payments')
+          .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_payment_intent_id: paymentIntentId })
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .select('id')
+
+        // Fallback: if nothing was updated (payment_intent was null when record was created),
+        // find the most recent pending payment for this member and update it
+        if ((!updated || updated.length === 0) && memberId) {
+          await supabase
+            .from('payments')
+            .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_payment_intent_id: paymentIntentId })
+            .eq('member_id', memberId)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(1)
+        }
+      } else if (memberId) {
+        // No payment_intent at all — update most recent pending for this member
+        await supabase
+          .from('payments')
+          .update({ status: 'paid', paid_at: new Date().toISOString() })
+          .eq('member_id', memberId)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+      }
     }
   }
 

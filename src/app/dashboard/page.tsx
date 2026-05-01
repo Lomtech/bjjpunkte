@@ -101,9 +101,9 @@ export default function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <StatCard icon={<Users size={16} />} label="Aktive Mitglieder" value={activeMembers} color="blue" />
-        <StatCard icon={<Users size={16} />} label="Gesamt" value={totalMembers} color="slate" />
         <StatCard icon={<Calendar size={16} />} label="Heute anwesend" value={todayAttendance.length} color="green" />
         <StatCard icon={<FileWarning size={16} />} label="Verträge laufen ab" value={expiringContracts} color="amber" />
+        <StatCard icon={<TrendingUp size={16} />} label="Inaktive Mitglieder" value={totalMembers - activeMembers} color="slate" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">

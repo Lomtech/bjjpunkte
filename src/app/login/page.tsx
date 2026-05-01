@@ -32,10 +32,10 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500 mb-4 shadow-lg">
-            <span className="text-lg font-black text-white tracking-tight">RC</span>
+            <span className="text-xl font-black text-white italic tracking-tight">oss</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">RollCall</h1>
-          <p className="text-slate-500 mt-1 text-sm">BJJ Gym Management</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-wide">Osss</h1>
+          <p className="text-slate-500 mt-1 text-sm">Gym-Software für BJJ</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">

@@ -207,10 +207,10 @@ export default function MemberPortalPage() {
         <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
-              <span className="text-xs font-black text-white">RC</span>
+              <span className="text-[10px] font-black text-white italic">oss</span>
             </div>
             <div>
-              <p className="font-semibold text-slate-900 text-sm">RollCall</p>
+              <p className="font-bold text-slate-900 text-sm tracking-wide">Osss</p>
               {gym && <p className="text-xs text-slate-400">{gym.name}</p>}
             </div>
           </div>
@@ -308,7 +308,7 @@ export default function MemberPortalPage() {
                         <p className="text-slate-400 text-xs mt-0.5">
                           {spotsLeft != null
                             ? spotsLeft > 0 ? `${spotsLeft} Plätze frei` : 'Ausgebucht'
-                            : `${cls.confirmed_count} gebucht`}
+                            : `${cls.confirmed_count} Anmeldungen`}
                           {cls.waitlist_count > 0 && ` · ${cls.waitlist_count} auf Warteliste`}
                         </p>
                       </div>
@@ -449,7 +449,7 @@ export default function MemberPortalPage() {
           )}
         </div>
 
-        <p className="text-center text-slate-300 text-xs pb-4">Powered by RollCall</p>
+        <p className="text-center text-slate-300 text-xs pb-4">Powered by <span className="font-bold italic">Osss</span></p>
       </div>
     </div>
   )

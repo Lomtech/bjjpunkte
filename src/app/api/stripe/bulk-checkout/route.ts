@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { getAppUrl } from '@/lib/app-url'
 
 const PLATFORM_FEE_PERCENT = 0.02
 
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ count: 0, message: 'Keine aktiven Mitglieder mit E-Mail gefunden.' })
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+  const appUrl = getAppUrl()
   let created = 0
 
   for (const member of members) {

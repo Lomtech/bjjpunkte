@@ -87,7 +87,7 @@ export function PromoteButton({
             ? 'Wird gespeichert…'
             : isBeltChange
               ? `Aufsteigen zu ${BELT_LABELS[next.belt]} Belt`
-              : 'Stripe hinzufügen'}
+              : 'Streifen vergeben'}
       </button>
     </div>
   )

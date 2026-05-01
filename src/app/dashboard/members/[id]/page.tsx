@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 import { PromoteButton } from './PromoteButton'
+import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
 import { ExternalLink, Copy, Check, Undo2 } from 'lucide-react'
@@ -142,6 +143,15 @@ export default function MemberDetailPage() {
     setMember(m => m ? { ...m, belt: belt as string, stripes } : m)
   }
 
+  function handleDemoted(belt: Belt, stripes: number) {
+    setMember(m => m ? { ...m, belt: belt as string, stripes } : m)
+    // Reload promotions to show new demotion entry
+    const supabase = createClient()
+    supabase.from('belt_promotions').select('*').eq('member_id', id)
+      .order('promoted_at', { ascending: false })
+      .then(({ data }) => { if (data) setPromotions(data as Promotion[]) })
+  }
+
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-full">
@@ -209,7 +219,14 @@ export default function MemberDetailPage() {
 
       {/* Belt Promotion */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
-        <h2 className="font-semibold text-slate-900 mb-4">Belt-Promotion</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-slate-900">Belt-Promotion</h2>
+          <DemoteButton
+            memberId={member.id} gymId={gymId}
+            currentBelt={member.belt as Belt} currentStripes={member.stripes}
+            onDemoted={handleDemoted}
+          />
+        </div>
         <PromoteButton
           memberId={member.id} gymId={gymId}
           currentBelt={member.belt as Belt} currentStripes={member.stripes}

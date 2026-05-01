@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { getAppUrl } from '@/lib/app-url'
 
 // Platform fee: 2% of each transaction goes to RollCall
 const PLATFORM_FEE_PERCENT = 0.02
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
     await (supabase.from('members') as any).update({ stripe_customer_id: customerId }).eq('id', memberId)
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+  const appUrl = getAppUrl()
 
   // Build session params — route to connected account if available
   const sessionParams: Stripe.Checkout.SessionCreateParams = {

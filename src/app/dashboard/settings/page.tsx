@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap } from 'lucide-react'
+import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield } from 'lucide-react'
 
 export default function SettingsPage() {
   const searchParams = useSearchParams()
@@ -17,6 +17,10 @@ export default function SettingsPage() {
   const [stripeConfigured, setStripeConfigured] = useState(false)
   const [stripeAccountId, setStripeAccountId]   = useState<string | null>(null)
   const [connectLoading, setConnectLoading]     = useState(false)
+  const [copied, setCopied]                     = useState(false)
+  const webhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/stripe/webhook`
+    : '/api/stripe/webhook'
 
   const stripeConnected = searchParams.get('stripe_connected') === '1'
   const stripeError     = searchParams.get('stripe_error')
@@ -56,6 +60,12 @@ export default function SettingsPage() {
       else if (data.error) alert(data.error)
     } catch { /* ignore */ }
     setConnectLoading(false)
+  }
+
+  async function copyWebhookUrl() {
+    await navigator.clipboard.writeText(webhookUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleDisconnect() {
@@ -189,9 +199,94 @@ export default function SettingsPage() {
         <button type="submit" disabled={loading}
           className="w-full py-3 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold transition-colors flex items-center justify-center gap-2 text-sm">
           <Save size={15} />
-          {saved ? '✓ Gespeichert' : loading ? 'Wird gespeichert…' : 'Einstellungen speichern'}
+          {saved ? 'Gespeichert' : loading ? 'Wird gespeichert…' : 'Einstellungen speichern'}
         </button>
       </form>
+
+      {/* Production Checklist */}
+      <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <Shield size={12} /> Produktiv-Checkliste
+          </p>
+        </div>
+        <div className="divide-y divide-gray-100">
+
+          {/* APP_URL */}
+          <div className="px-5 py-3 flex items-start gap-3">
+            <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${
+              !webhookUrl.includes('localhost') ? 'bg-green-100' : 'bg-amber-100'
+            }`}>
+              {!webhookUrl.includes('localhost')
+                ? <Check size={10} className="text-green-600" />
+                : <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-800">Produktions-URL</p>
+              {webhookUrl.includes('localhost')
+                ? <p className="text-xs text-amber-600 mt-0.5">Setze <code className="font-mono bg-amber-50 px-1 rounded">NEXT_PUBLIC_APP_URL</code> in Vercel auf deine Domain.</p>
+                : <p className="text-xs text-slate-400 mt-0.5">{webhookUrl.replace('/api/stripe/webhook', '')}</p>
+              }
+            </div>
+          </div>
+
+          {/* Webhook */}
+          <div className="px-5 py-3 flex items-start gap-3">
+            <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-800">Stripe Webhook</p>
+              <p className="text-xs text-slate-400 mt-0.5 mb-2">
+                Im <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> diese URL als Endpunkt eintragen (Events: <code className="font-mono bg-gray-100 px-1 rounded text-xs">checkout.session.completed</code>, <code className="font-mono bg-gray-100 px-1 rounded text-xs">payment_intent.payment_failed</code>):
+              </p>
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <code className="text-xs font-mono text-slate-600 flex-1 truncate">{webhookUrl}</code>
+                <button onClick={copyWebhookUrl} className="flex-shrink-0 text-slate-400 hover:text-amber-600 transition-colors">
+                  {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stripe Connect */}
+          <div className="px-5 py-3 flex items-start gap-3">
+            <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${
+              stripeAccountId ? 'bg-green-100' : 'bg-amber-100'
+            }`}>
+              {stripeAccountId
+                ? <Check size={10} className="text-green-600" />
+                : <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />
+              }
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-800">Stripe Connect verbunden</p>
+              {stripeAccountId
+                ? <p className="text-xs text-slate-400 mt-0.5">Beiträge gehen direkt auf dein Konto.</p>
+                : <p className="text-xs text-amber-600 mt-0.5">Verbinde dein Stripe-Konto oben.</p>
+              }
+            </div>
+          </div>
+
+          {/* DSGVO */}
+          <div className="px-5 py-3 flex items-start gap-3">
+            <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-800">Datenschutz</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">
+                  Datenschutzerklärung <ExternalLink size={10} />
+                </a>
+                {' '}— passe Namen und Kontakt an.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   )
 }

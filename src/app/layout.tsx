@@ -8,8 +8,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "RollCall – BJJ Gym Management",
-  description: "Belt tracking, member management and attendance for BJJ gyms",
+  title: "Osss – Gym-Software für BJJ",
+  description: "Mitgliederverwaltung, Belt-Tracking und Anwesenheit für BJJ-Gyms.",
 };
 
 export default function RootLayout({

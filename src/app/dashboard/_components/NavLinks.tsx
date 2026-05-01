@@ -3,14 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Users, CheckSquare, Calendar,
+  LayoutDashboard, Users, Calendar,
   TrendingUp, Settings, LogOut,
 } from 'lucide-react'
 
 const NAV = [
   { href: '/dashboard',            label: 'Dashboard',     icon: LayoutDashboard },
   { href: '/dashboard/members',    label: 'Mitglieder',    icon: Users },
-  { href: '/dashboard/attendance', label: 'Anwesenheit',   icon: CheckSquare },
   { href: '/dashboard/schedule',   label: 'Stundenplan',   icon: Calendar },
   { href: '/dashboard/revenue',    label: 'Einnahmen',     icon: TrendingUp },
   { href: '/dashboard/settings',   label: 'Einstellungen', icon: Settings },

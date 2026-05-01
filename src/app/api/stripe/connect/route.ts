@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { getAppUrl } from '@/lib/app-url'
 
 function authClient(accessToken: string) {
   return createClient(
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
 
   const gymData = gym as { id: string; email: string | null; name: string; stripe_account_id: string | null }
   const stripe = new Stripe(stripeKey)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+  const appUrl = getAppUrl()
 
   let accountId = gymData.stripe_account_id
 
