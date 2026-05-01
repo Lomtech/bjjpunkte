@@ -246,13 +246,16 @@ export default function MemberDetailPage() {
                 const paidThisMonth = payments.some(p =>
                   p.status === 'paid' && new Date(p.paid_at ?? p.created_at) >= monthStart
                 )
-                const hasPending = payments.some(p => p.status === 'pending')
+                // Only count pending payments that are from THIS month (old pending links don't count)
+                const hasPendingThisMonth = payments.some(p =>
+                  p.status === 'pending' && new Date(p.created_at) >= monthStart
+                )
                 if (paidThisMonth) return (
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-green-50 text-green-700 border-green-200">
-                    Beitrag: Bezahlt
+                    Beitrag: Bezahlt ✓
                   </span>
                 )
-                if (hasPending) return (
+                if (hasPendingThisMonth) return (
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-200">
                     Beitrag: Ausstehend
                   </span>

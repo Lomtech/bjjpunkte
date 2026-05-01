@@ -47,15 +47,17 @@ export async function POST(req: Request) {
   }
 
   // Find members who already have a paid payment this month
+  // Must handle: paid_at may be NULL (webhook didn't fire), fallback to created_at
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const { data: paidThisMonth } = await supabase
-    .from('payments')
-    .select('member_id')
-    .eq('gym_id', gymId)
-    .eq('status', 'paid')
-    .gte('paid_at', monthStart)
-  const paidMemberIds = new Set((paidThisMonth ?? []).map((p: { member_id: string }) => p.member_id))
+  const [{ data: paidWithDate }, { data: paidNullDate }] = await Promise.all([
+    supabase.from('payments').select('member_id').eq('gym_id', gymId).eq('status', 'paid').gte('paid_at', monthStart),
+    supabase.from('payments').select('member_id').eq('gym_id', gymId).eq('status', 'paid').is('paid_at', null).gte('created_at', monthStart),
+  ])
+  const paidMemberIds = new Set([
+    ...(paidWithDate ?? []).map((p: { member_id: string }) => p.member_id),
+    ...(paidNullDate ?? []).map((p: { member_id: string }) => p.member_id),
+  ])
 
   const appUrl = getAppUrl()
   let created = 0
