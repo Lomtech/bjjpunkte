@@ -79,6 +79,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Diese E-Mail ist bereits registriert.' }, { status: 409 })
   }
 
+  // Extract IP and User-Agent for consent documentation
+  const forwarded = req.headers.get('x-forwarded-for')
+  const consentIp = forwarded ? forwarded.split(',')[0].trim() : req.headers.get('x-real-ip') ?? 'unknown'
+  const consentUserAgent = req.headers.get('user-agent') ?? ''
+
+  // Fetch gym name for consent text
+  const { data: gymWithName } = await supabase.from('gyms').select('name').eq('id', gymId).single()
+  const consentText = `Ich stimme den AGB und der Datenschutzerklärung von ${gymWithName?.name ?? 'dem Gym'} zu. Digitale Unterschrift geleistet am ${new Date().toLocaleString('de-DE')}.`
+
   const now = new Date().toISOString()
 
   const { data: member, error } = await supabase
@@ -94,6 +103,9 @@ export async function POST(req: Request) {
       emergency_contact_name:  emergencyContactName?.trim() || null,
       emergency_contact_phone: emergencyContactPhone?.trim() || null,
       signature_data:          signatureData || null,
+      consent_ip:              consentIp,
+      consent_user_agent:      consentUserAgent,
+      consent_text:            consentText,
       contract_signed_at:      now,
       gdpr_consent_at:         now,
       belt:                    belt || 'white',

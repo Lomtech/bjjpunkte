@@ -17,12 +17,27 @@ export default function AttendancePage() {
   const [members, setMembers]       = useState<Member[]>([])
   const [todayLog, setTodayLog]     = useState<AttendanceEntry[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [classTypes, setClassTypes] = useState<{ value: string; label: string }[]>([
+    { value: 'gi', label: 'Gi' },
+    { value: 'no-gi', label: 'No-Gi' },
+    { value: 'open mat', label: 'Open Mat' },
+    { value: 'kids', label: 'Kids' },
+    { value: 'competition', label: 'Competition' },
+  ])
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
-    const { data: gym } = await supabase.from('gyms').select('id').single()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: gym } = await (supabase.from('gyms') as any).select('id, class_types').single()
     if (!gym) { setLoading(false); return }
     setGymId(gym.id)
+    const rawTypes = (gym as any)?.class_types
+    if (Array.isArray(rawTypes) && rawTypes.length > 0) {
+      setClassTypes(rawTypes.map((v: string) => ({
+        value: v,
+        label: v.charAt(0).toUpperCase() + v.slice(1),
+      })))
+    }
     const today = new Date().toISOString().split('T')[0]
     const [{ data: membersData }, { data: rawAttendance }] = await Promise.all([
       supabase.from('members').select('id, first_name, last_name, belt, stripes')
@@ -72,7 +87,7 @@ export default function AttendancePage() {
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
           <h2 className="font-semibold text-slate-900 text-sm mb-4">Einchecken</h2>
-          <CheckInForm gymId={gymId} members={members} checkedInIds={checkedInIds} onCheckedIn={() => loadData()} />
+          <CheckInForm gymId={gymId} members={members} checkedInIds={checkedInIds} classTypes={classTypes} onCheckedIn={() => loadData()} />
         </div>
 
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">

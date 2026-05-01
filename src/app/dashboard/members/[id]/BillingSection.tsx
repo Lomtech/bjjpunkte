@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X } from 'lucide-react'
+import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
@@ -194,6 +194,10 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
         </div>
       ) : (
         <div className="space-y-2 mb-4">
+          <p className="text-xs text-slate-400 mb-3 flex items-center gap-1">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400"></span>
+            Karte &amp; SEPA-Lastschrift werden akzeptiert
+          </p>
           {/* Subscription status */}
           {stripeSubscriptionId ? (
             <div className="flex items-center justify-between p-3 rounded-xl bg-green-50 border border-green-200">
@@ -246,6 +250,17 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
                 <span className="text-slate-400 text-xs flex-1 min-w-0 text-right truncate">
                   {new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}
                 </span>
+                {p.status === 'paid' && (
+                  <a
+                    href={`/api/invoices/${p.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Rechnung anzeigen"
+                    className="text-slate-300 hover:text-slate-600 transition-colors flex-shrink-0"
+                  >
+                    <FileText size={13} />
+                  </a>
+                )}
                 {p.status !== 'paid' && (
                   <button
                     onClick={() => deletePayment(p.id)}

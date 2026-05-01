@@ -17,14 +17,21 @@ interface CheckedInEntry {
   time: string
 }
 
-const CLASS_TYPES = ['Gi', 'No-Gi', 'Open Mat', 'Kids', 'Competition']
+const DEFAULT_CLASS_TYPES = [
+  { value: 'gi', label: 'Gi' },
+  { value: 'no-gi', label: 'No-Gi' },
+  { value: 'open mat', label: 'Open Mat' },
+  { value: 'kids', label: 'Kids' },
+  { value: 'competition', label: 'Competition' },
+]
 
 export default function KioskPage() {
   const [loading, setLoading]     = useState(true)
   const [gymId, setGymId]         = useState('')
   const [members, setMembers]     = useState<Member[]>([])
   const [search, setSearch]       = useState('')
-  const [classType, setClassType] = useState('Gi')
+  const [classTypes, setClassTypes] = useState(DEFAULT_CLASS_TYPES)
+  const [classType, setClassType] = useState('gi')
   const [checkedIn, setCheckedIn] = useState<Map<string, CheckedInEntry>>(new Map())
   const [flash, setFlash]         = useState<{ name: string; belt: string; stripes: number } | null>(null)
   const [checkingId, setCheckingId] = useState<string | null>(null)
@@ -33,9 +40,18 @@ export default function KioskPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id').single()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, class_types').single()
       if (!gym) { setLoading(false); return }
       setGymId(gym.id)
+      const rawTypes = (gym as any)?.class_types
+      if (Array.isArray(rawTypes) && rawTypes.length > 0) {
+        setClassTypes(rawTypes.map((v: string) => ({
+          value: v,
+          label: v.charAt(0).toUpperCase() + v.slice(1),
+        })))
+        setClassType(rawTypes[0])
+      }
       const today = new Date().toISOString().split('T')[0]
       // Load members and already-checked-in for today
       const [membersRes, todayRes] = await Promise.all([
@@ -77,7 +93,7 @@ export default function KioskPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase as any).from('attendance').insert({
       member_id: member.id, gym_id: gymId,
-      class_type: classType.toLowerCase(),
+      class_type: classType,
     })
     const entry: CheckedInEntry = {
       member_id: member.id,
@@ -133,14 +149,14 @@ export default function KioskPage() {
         <div className="flex-1 flex flex-col p-5">
           {/* Class type selector */}
           <div className="flex gap-2 mb-5 flex-wrap">
-            {CLASS_TYPES.map(t => (
-              <button key={t} onClick={() => setClassType(t)}
+            {classTypes.map(t => (
+              <button key={t.value} onClick={() => setClassType(t.value)}
                 className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                  classType === t
+                  classType === t.value
                     ? 'bg-amber-500 text-white'
                     : 'bg-white/10 text-slate-300 hover:bg-white/20'
                 }`}>
-                {t}
+                {t.label}
               </button>
             ))}
           </div>

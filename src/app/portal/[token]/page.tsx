@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
-import { Calendar, CreditCard, Dumbbell, TrendingUp, Clock, CheckCircle, LogOut } from 'lucide-react'
+import { Calendar, CreditCard, Dumbbell, TrendingUp, Clock, CheckCircle, LogOut, BookOpen, Flame, Trophy } from 'lucide-react'
 
 interface UpcomingBooking {
   class_id: string
@@ -29,11 +29,19 @@ interface UpcomingClass {
   my_status: string | null
 }
 
+interface TrainingLog {
+  id: string
+  note: string
+  class_type: string | null
+  logged_at: string
+}
+
 interface MemberData {
   member: {
     id: string; first_name: string; last_name: string; email: string | null
     belt: string; stripes: number; join_date: string; is_active: boolean
     subscription_status: string; date_of_birth: string | null
+    contract_end_date?: string | null
   }
   gym: { name: string } | null
   attendance: { id: string; checked_in_at: string; class_type: string }[]
@@ -42,6 +50,74 @@ interface MemberData {
   totalPaidCents: number
   upcoming_bookings: UpcomingBooking[] | null
 }
+
+function calcStats(attendance: { checked_in_at: string }[]) {
+  const now = new Date()
+  const nowMonth = now.getMonth()
+  const nowYear = now.getFullYear()
+
+  const sessionsThisMonth = attendance.filter(a => {
+    const d = new Date(a.checked_in_at)
+    return d.getMonth() === nowMonth && d.getFullYear() === nowYear
+  }).length
+
+  // Monday-based week start
+  function startOfWeek(date: Date): Date {
+    const d = new Date(date)
+    const day = d.getDay() // 0=Sun
+    const diff = day === 0 ? -6 : 1 - day
+    d.setHours(0, 0, 0, 0)
+    d.setDate(d.getDate() + diff)
+    return d
+  }
+
+  // Build a set of week-start timestamps that have at least one session
+  const weekSet = new Set<number>()
+  for (const a of attendance) {
+    const ws = startOfWeek(new Date(a.checked_in_at))
+    weekSet.add(ws.getTime())
+  }
+
+  // Count consecutive weeks going back from current week
+  let streak = 0
+  let weekCursor = startOfWeek(now)
+  while (weekSet.has(weekCursor.getTime())) {
+    streak++
+    weekCursor.setDate(weekCursor.getDate() - 7)
+  }
+
+  return { sessionsThisMonth, streak }
+}
+
+function ContractBanner({ contractEndDate }: { contractEndDate: string }) {
+  const end = new Date(contractEndDate)
+  const now = new Date()
+  const diffMs = end.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  const formatted = end.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
+  if (diffDays < 0) {
+    return (
+      <div className="rounded-2xl px-4 py-3 border border-red-200 bg-red-50 text-red-700 text-sm font-medium">
+        Vertrag abgelaufen
+      </div>
+    )
+  }
+  if (diffDays <= 30) {
+    return (
+      <div className="rounded-2xl px-4 py-3 border border-amber-200 bg-amber-50 text-amber-700 text-sm font-medium">
+        Vertrag läuft in {diffDays} {diffDays === 1 ? 'Tag' : 'Tagen'} ab
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-2xl px-4 py-3 border border-green-200 bg-green-50 text-green-700 text-sm font-medium">
+      Vertrag gültig bis {formatted}
+    </div>
+  )
+}
+
+const CLASS_TYPE_OPTIONS = ['gi', 'no-gi', 'open mat', 'kids', 'competition']
 
 interface AttendanceState {
   attendanceId: string
@@ -103,6 +179,12 @@ export default function MemberPortalPage() {
   const [checkinLoading, setCheckinLoading] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
 
+  // Training log
+  const [logs, setLogs] = useState<TrainingLog[]>([])
+  const [logNote, setLogNote] = useState('')
+  const [logClassType, setLogClassType] = useState('')
+  const [logSaving, setLogSaving] = useState(false)
+
   const loadPortal = useCallback(() => {
     fetch(`/api/portal/${token}`)
       .then(r => r.json())
@@ -123,10 +205,32 @@ export default function MemberPortalPage() {
       .finally(() => setClassesLoading(false))
   }, [token])
 
+  const loadLogs = useCallback(() => {
+    fetch(`/api/portal/${token}/training-log`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setLogs(d) })
+      .catch(() => {/* ignore */})
+  }, [token])
+
   useEffect(() => {
     loadPortal()
     loadClasses()
-  }, [loadPortal, loadClasses])
+    loadLogs()
+  }, [loadPortal, loadClasses, loadLogs])
+
+  async function handleSaveLog() {
+    if (!logNote.trim()) return
+    setLogSaving(true)
+    await fetch(`/api/portal/${token}/training-log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: logNote, class_type: logClassType || null }),
+    })
+    setLogNote('')
+    setLogClassType('')
+    await loadLogs()
+    setLogSaving(false)
+  }
 
   async function handleBook(classId: string) {
     setBookingId(classId)
@@ -195,6 +299,7 @@ export default function MemberPortalPage() {
   }
 
   const { member, gym, attendance, totalSessions, payments, totalPaidCents } = data
+  const { sessionsThisMonth, streak } = calcStats(attendance ?? [])
 
   const beltColor: Record<string, string> = {
     white: '#e2e8f0', blue: '#3b82f6', purple: '#a855f7', brown: '#92400e', black: '#1e293b',
@@ -244,8 +349,13 @@ export default function MemberPortalPage() {
           )}
         </div>
 
+        {/* Contract banner */}
+        {member.contract_end_date && (
+          <ContractBanner contractEndDate={member.contract_end_date} />
+        )}
+
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <StatCard
             icon={<Calendar size={15} />}
             label="Mitglied seit"
@@ -253,13 +363,18 @@ export default function MemberPortalPage() {
           />
           <StatCard
             icon={<Dumbbell size={15} />}
-            label="Trainings"
+            label="Gesamt"
             value={String(totalSessions ?? 0)}
           />
           <StatCard
-            icon={<TrendingUp size={15} />}
-            label="Bezahlt"
-            value={`${(totalPaidCents / 100).toFixed(0)} €`}
+            icon={<Flame size={15} />}
+            label="Diesen Monat"
+            value={`${sessionsThisMonth}${sessionsThisMonth > 0 ? ' 🔥' : ''}`}
+          />
+          <StatCard
+            icon={<Trophy size={15} />}
+            label="Wochen-Streak"
+            value={`${streak}${streak >= 4 ? ' 🏆' : ''}`}
           />
         </div>
 
@@ -454,6 +569,69 @@ export default function MemberPortalPage() {
             </div>
           ) : (
             <p className="text-slate-400 text-sm">Noch keine Trainings aufgezeichnet.</p>
+          )}
+        </div>
+
+        {/* Technik-Logbuch */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <BookOpen size={15} className="text-slate-400" />
+            Technik-Logbuch
+          </h2>
+
+          {/* Input form */}
+          <div className="space-y-3 mb-5">
+            <textarea
+              value={logNote}
+              onChange={e => setLogNote(e.target.value)}
+              placeholder="Was hast du heute gelernt oder geübt?"
+              rows={3}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+            />
+            <div className="flex gap-2">
+              <select
+                value={logClassType}
+                onChange={e => setLogClassType(e.target.value)}
+                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                <option value="">Klasse (optional)</option>
+                {CLASS_TYPE_OPTIONS.map(t => (
+                  <option key={t} value={t}>{CLASS_LABELS[t] ?? t}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleSaveLog}
+                disabled={logSaving || !logNote.trim()}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {logSaving ? '…' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+
+          {/* Log entries */}
+          {logs.length === 0 ? (
+            <p className="text-slate-400 text-sm">Noch keine Notizen gespeichert.</p>
+          ) : (
+            <div className="space-y-3">
+              {logs.slice(0, 10).map(log => (
+                <div key={log.id} className="rounded-xl border border-slate-100 p-3 bg-slate-50">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-slate-400 text-xs">
+                      {new Date(log.logged_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
+                      {' · '}
+                      {new Date(log.logged_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {log.class_type && (
+                      <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${TYPE_COLORS[log.class_type] ?? TYPE_COLORS.gi}`}>
+                        {CLASS_LABELS[log.class_type] ?? log.class_type}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-slate-700 text-sm whitespace-pre-wrap">{log.note}</p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

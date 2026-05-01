@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download } from 'lucide-react'
 
 function toWaPhone(raw: string): string {
   let p = raw.replace(/[\s\-().]/g, '')
@@ -98,6 +98,22 @@ export default function MembersPage() {
   const inactive = nonPending.filter(m => !m.is_active)
   const activeWithEmail = active.filter(m => m.email)
 
+  function downloadCSV() {
+    const headers = ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Gürtel', 'Stripes', 'Mitglied seit', 'Status', 'Vertrag bis']
+    const rows = members.map(m => [
+      m.first_name, m.last_name, m.email ?? '', m.phone ?? '',
+      m.belt, String(m.stripes), m.join_date,
+      m.is_active ? 'Aktiv' : 'Inaktiv',
+      m.contract_end_date ?? ''
+    ])
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url
+    a.download = `mitglieder-${new Date().toISOString().split('T')[0]}.csv`
+    a.click(); URL.revokeObjectURL(url)
+  }
+
   function handleEmailAll() {
     const emails = activeWithEmail.map(m => m.email).join(',')
     window.open(`mailto:${emails}?subject=Information%20von%20eurem%20Gym`, '_blank')
@@ -158,6 +174,11 @@ export default function MembersPage() {
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors"
             title="WhatsApp Rundnachricht">
             <MessageCircle size={14} /> WhatsApp
+          </button>
+          <button onClick={downloadCSV}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-600 font-medium text-sm transition-colors"
+            title="Mitgliederliste als CSV exportieren">
+            <Download size={14} /> Export
           </button>
           <button onClick={() => setShowBulkConfirm(true)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium text-sm transition-colors border border-amber-200">

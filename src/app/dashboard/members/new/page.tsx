@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -20,6 +20,8 @@ export default function NewMemberPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [parentMemberId, setParentMemberId] = useState('')
+  const [allMembers, setAllMembers] = useState<{ id: string; first_name: string; last_name: string }[]>([])
   const [form, setForm] = useState({
     first_name: '', last_name: '', email: '', phone: '',
     date_of_birth: '', join_date: new Date().toISOString().split('T')[0],
@@ -31,6 +33,18 @@ export default function NewMemberPage() {
     setForm(f => ({ ...f, [field]: value }))
   }
 
+  useEffect(() => {
+    async function loadMembers() {
+      const supabase = createClient()
+      const { data: gym } = await supabase.from('gyms').select('id').single()
+      if (!gym) return
+      const gymId = gym.id
+      const { data: membersData } = await supabase.from('members').select('id, first_name, last_name').eq('gym_id', gymId).eq('is_active', true).order('first_name')
+      if (membersData) setAllMembers(membersData)
+    }
+    loadMembers()
+  }, [])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -39,7 +53,8 @@ export default function NewMemberPage() {
     const { data: gym } = await supabase.from('gyms').select('id').single()
     if (!gym) { setError('Kein Gym gefunden'); setLoading(false); return }
 
-    const { error } = await supabase.from('members').insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('members') as any).insert({
       gym_id: gym.id,
       first_name: form.first_name,
       last_name: form.last_name,
@@ -52,6 +67,7 @@ export default function NewMemberPage() {
       notes: form.notes || null,
       contract_end_date: form.contract_end_date || null,
       is_active: true,
+      parent_member_id: parentMemberId || null,
     })
     if (error) { setError(error.message); setLoading(false); return }
     router.push('/dashboard/members')
@@ -75,6 +91,19 @@ export default function NewMemberPage() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="E-Mail" value={form.email} onChange={v => set('email', v)} type="email" placeholder="max@gym.de" />
             <Field label="Telefon" value={form.phone} onChange={v => set('phone', v)} placeholder="+49 170 1234567" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Elternteil (optional, für Kids)</label>
+            <select
+              value={parentMemberId}
+              onChange={e => setParentMemberId(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value="">Kein Elternteil (Erwachsener)</option>
+              {allMembers.map(m => (
+                <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
+              ))}
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Geburtsdatum" value={form.date_of_birth} onChange={v => set('date_of_birth', v)} type="date" />

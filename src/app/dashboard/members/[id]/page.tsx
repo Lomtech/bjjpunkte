@@ -10,7 +10,7 @@ import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
-import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2 } from 'lucide-react'
+import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users } from 'lucide-react'
 
 /** Normalize German phone to wa.me format (no +, no spaces) */
 function toWaPhone(raw: string): string {
@@ -44,6 +44,7 @@ interface Member {
   contract_end_date: string | null
   date_of_birth: string | null
   portal_token: string | null
+  parent_member_id: string | null
 }
 
 interface Promotion {
@@ -85,6 +86,8 @@ export default function MemberDetailPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [deletingPromoId, setDeletingPromoId] = useState<string | null>(null)
   const [deletingMember, setDeletingMember]   = useState(false)
+  const [parentInfo, setParentInfo] = useState<{ id: string; first_name: string; last_name: string } | null>(null)
+  const [children, setChildren] = useState<{ id: string; first_name: string; last_name: string }[]>([])
 
   useEffect(() => {
     async function load() {
@@ -99,7 +102,26 @@ export default function MemberDetailPage() {
         .from('members').select('*').eq('id', id).eq('gym_id', gym.id).single()
 
       if (!memberData) { setNotFound(true); setLoading(false); return }
-      setMember(memberData as Member)
+      const m = memberData as unknown as Member
+      setMember(m)
+
+      // Load parent and children for family section
+      const familyQueries: Promise<void>[] = []
+      if (m.parent_member_id) {
+        familyQueries.push(
+          Promise.resolve(
+            supabase.from('members').select('id, first_name, last_name').eq('id', m.parent_member_id).single()
+          ).then(({ data }) => { if (data) setParentInfo(data as { id: string; first_name: string; last_name: string }) })
+        )
+      }
+      familyQueries.push(
+        Promise.resolve(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase.from('members') as any).select('id, first_name, last_name').eq('parent_member_id', id)
+        ).then(({ data }: { data: { id: string; first_name: string; last_name: string }[] | null }) => {
+          if (data) setChildren(data)
+        })
+      )
 
       const [
         { data: promotionsData },
@@ -218,13 +240,32 @@ export default function MemberDetailPage() {
               }`}>
                 {member.is_active ? 'Aktiv' : 'Inaktiv'}
               </span>
-              {member.subscription_status && member.subscription_status !== 'none' && (
+              {/* Payment badge: based on actual payment this month, not subscription_status */}
+              {(() => {
+                const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                const paidThisMonth = payments.some(p =>
+                  p.status === 'paid' && new Date(p.paid_at ?? p.created_at) >= monthStart
+                )
+                const hasPending = payments.some(p => p.status === 'pending')
+                if (paidThisMonth) return (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-green-50 text-green-700 border-green-200">
+                    Beitrag: Bezahlt
+                  </span>
+                )
+                if (hasPending) return (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-200">
+                    Beitrag: Ausstehend
+                  </span>
+                )
+                return null
+              })()}
+              {/* Subscription badge: separate from monthly payment status */}
+              {(member as any).stripe_subscription_id && (
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
-                  member.subscription_status === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
                   member.subscription_status === 'past_due' ? 'bg-red-50 text-red-700 border-red-200' :
-                  'bg-slate-100 text-slate-500 border-slate-200'
+                  'bg-blue-50 text-blue-700 border-blue-200'
                 }`}>
-                  Beitrag: {member.subscription_status === 'active' ? 'Bezahlt' : member.subscription_status === 'past_due' ? 'Überfällig' : member.subscription_status}
+                  {member.subscription_status === 'past_due' ? 'Abo überfällig' : 'Abo aktiv'}
                 </span>
               )}
             </div>
@@ -244,6 +285,32 @@ export default function MemberDetailPage() {
           phone={member.phone}
           email={member.email}
         />
+      )}
+
+      {/* Family links */}
+      {(parentInfo || children.length > 0) && (
+        <div className="flex flex-wrap gap-4 mb-4">
+          {parentInfo && (
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Users size={14} className="text-slate-400" />
+              <span>Kind von </span>
+              <Link href={`/dashboard/members/${parentInfo.id}`} className="text-amber-600 hover:underline font-medium">
+                {parentInfo.first_name} {parentInfo.last_name}
+              </Link>
+            </div>
+          )}
+          {children.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap">
+              <Users size={14} className="text-slate-400" />
+              <span>Kinder: </span>
+              {children.map(child => (
+                <Link key={child.id} href={`/dashboard/members/${child.id}`} className="text-amber-600 hover:underline font-medium">
+                  {child.first_name} {child.last_name}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">

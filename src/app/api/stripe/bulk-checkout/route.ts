@@ -34,10 +34,10 @@ export async function POST(req: Request) {
     .from('gyms').select('stripe_account_id').eq('id', gymId).single()
   const connectedAccountId = (gymData as { stripe_account_id: string | null } | null)?.stripe_account_id
 
-  // Fetch all active members with email
+  // Fetch all active members with email (also check subscription status)
   const { data: members } = await supabase
     .from('members')
-    .select('id, first_name, last_name, email, stripe_customer_id, monthly_fee_override_cents')
+    .select('id, first_name, last_name, email, stripe_customer_id, monthly_fee_override_cents, stripe_subscription_id')
     .eq('gym_id', gymId)
     .eq('is_active', true)
     .not('email', 'is', null)
@@ -46,12 +46,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ count: 0, message: 'Keine aktiven Mitglieder mit E-Mail gefunden.' })
   }
 
+  // Find members who already have a paid payment this month
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const { data: paidThisMonth } = await supabase
+    .from('payments')
+    .select('member_id')
+    .eq('gym_id', gymId)
+    .eq('status', 'paid')
+    .gte('paid_at', monthStart)
+  const paidMemberIds = new Set((paidThisMonth ?? []).map((p: { member_id: string }) => p.member_id))
+
   const appUrl = getAppUrl()
   let created = 0
   const results: { memberId: string; memberName: string; memberEmail: string; checkoutUrl: string | null; amountCents: number }[] = []
 
   for (const member of members) {
     try {
+      // Skip members who already paid this month
+      if (paidMemberIds.has(member.id)) continue
+      // Skip members with active subscription (they're billed automatically)
+      if ((member as { stripe_subscription_id?: string | null }).stripe_subscription_id) continue
+
       const fee = (member.monthly_fee_override_cents ?? amountCents ?? 0) as number
       if (fee < 50) continue
 
@@ -70,7 +86,7 @@ export async function POST(req: Request) {
 
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
-        payment_method_types: ['card'],
+        payment_method_types: ['card', 'sepa_debit'],
         line_items: [{
           price_data: {
             currency: 'eur',

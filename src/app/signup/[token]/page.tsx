@@ -126,6 +126,7 @@ export default function SignupPage() {
   const [ecName,       setEcName]       = useState('')
   const [ecPhone,      setEcPhone]      = useState('')
   const [belt,         setBelt]         = useState('white')
+  const [agbAccepted, setAgbAccepted] = useState(false)
   const [contractRead, setContractRead] = useState(false)
   const [gdprAccepted, setGdprAccepted] = useState(false)
   const [contractAccepted, setContractAccepted] = useState(false)
@@ -448,6 +449,21 @@ export default function SignupPage() {
                   {' '}zu. Die Daten werden nicht ohne meine Einwilligung an Dritte weitergegeben.
                 </span>
               </label>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agbAccepted}
+                  onChange={e => setAgbAccepted(e.target.checked)}
+                  className="mt-1 w-4 h-4 rounded border-gray-300 text-amber-500 flex-shrink-0"
+                  required
+                />
+                <span className="text-sm text-slate-600">
+                  Ich habe die{' '}
+                  <a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline">Datenschutzerklärung</a>
+                  {' '}und die AGB gelesen und stimme zu. Ich bin mir bewusst, dass meine digitale Unterschrift rechtlich bindend ist.
+                </span>
+              </label>
             </div>
 
             {error && (
@@ -461,7 +477,7 @@ export default function SignupPage() {
                 className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 text-slate-700 font-medium transition-colors">
                 <ChevronLeft size={16} /> Zurück
               </button>
-              <button disabled={!step4Valid || submitting} onClick={submit}
+              <button disabled={!step4Valid || !agbAccepted || submitting} onClick={submit}
                 className="flex-1 py-3.5 rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-base transition-colors flex items-center justify-center gap-2">
                 {submitting ? 'Wird gesendet…' : '🥋 Jetzt anmelden'}
               </button>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText } from 'lucide-react'
+import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2, Users, ReceiptEuro, Tag } from 'lucide-react'
 
 export default function SettingsPage() {
   const searchParams = useSearchParams()
@@ -25,6 +25,14 @@ export default function SettingsPage() {
   const [legalEmail, setLegalEmail]     = useState('')
   const [legalSaving, setLegalSaving]   = useState(false)
   const [legalSaved, setLegalSaved]     = useState(false)
+  // Staff
+  type StaffMember = { id: string; name: string; email: string; role: string; accepted_at: string | null; invite_token: string }
+  const [staffList, setStaffList]           = useState<StaffMember[]>([])
+  const [staffEmail, setStaffEmail]         = useState('')
+  const [staffName, setStaffName]           = useState('')
+  const [staffInviting, setStaffInviting]   = useState(false)
+  const [staffInviteUrl, setStaffInviteUrl] = useState<string | null>(null)
+  const [copiedStaff, setCopiedStaff]       = useState(false)
   // Signup
   const [signupEnabled, setSignupEnabled]           = useState(false)
   const [signupToken, setSignupToken]               = useState<string | null>(null)
@@ -32,6 +40,20 @@ export default function SettingsPage() {
   const [signupSaving, setSignupSaving]             = useState(false)
   const [signupSaved, setSignupSaved]               = useState(false)
   const [copiedSignup, setCopiedSignup]             = useState(false)
+  // Class Types
+  const [classTypesInput, setClassTypesInput]   = useState('gi, no-gi, open mat, kids, competition')
+  const [classTypesSaving, setClassTypesSaving] = useState(false)
+  const [classTypesSaved, setClassTypesSaved]   = useState(false)
+  // Invoice & Tax
+  const [taxNumber, setTaxNumber]               = useState('')
+  const [ustid, setUstid]                       = useState('')
+  const [isKleinunternehmer, setIsKleinunternehmer] = useState(true)
+  const [invoicePrefix, setInvoicePrefix]       = useState('RE')
+  const [bankIban, setBankIban]                 = useState('')
+  const [bankBic, setBankBic]                   = useState('')
+  const [bankName, setBankName]                 = useState('')
+  const [invoiceSaving, setInvoiceSaving]       = useState(false)
+  const [invoiceSaved, setInvoiceSaved]         = useState(false)
 
   const webhookUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/stripe/webhook`
@@ -60,11 +82,29 @@ export default function SettingsPage() {
         setLegalName(((data as unknown) as { legal_name: string | null }).legal_name ?? '')
         setLegalAddress(((data as unknown) as { legal_address: string | null }).legal_address ?? '')
         setLegalEmail(((data as unknown) as { legal_email: string | null }).legal_email ?? '')
+        setTaxNumber(((data as unknown) as { tax_number: string | null }).tax_number ?? '')
+        setUstid(((data as unknown) as { ustid: string | null }).ustid ?? '')
+        setIsKleinunternehmer(((data as unknown) as { is_kleinunternehmer: boolean }).is_kleinunternehmer ?? true)
+        setInvoicePrefix(((data as unknown) as { invoice_prefix: string | null }).invoice_prefix ?? 'RE')
+        setBankIban(((data as unknown) as { bank_iban: string | null }).bank_iban ?? '')
+        setBankBic(((data as unknown) as { bank_bic: string | null }).bank_bic ?? '')
+        setBankName(((data as unknown) as { bank_name: string | null }).bank_name ?? '')
+        const rawClassTypes = (data as any)?.class_types
+        if (Array.isArray(rawClassTypes)) setClassTypesInput(rawClassTypes.join(', '))
       }
     })
     fetch('/api/stripe/status').then(r => r.json()).then(d => {
       setStripeConfigured(d.configured)
       setWebhookActive(d.webhookActive)
+    })
+
+    // Load staff
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return
+      const res = await fetch('/api/staff', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (res.ok) setStaffList(await res.json())
     })
   }, [])
 
@@ -121,6 +161,70 @@ export default function SettingsPage() {
       .update({ legal_name: legalName || null, legal_address: legalAddress || null, legal_email: legalEmail || null })
       .eq('owner_id', user?.id ?? '')
     setLegalSaving(false); setLegalSaved(true); setTimeout(() => setLegalSaved(false), 2000)
+  }
+
+  async function handleInvoiceSave() {
+    setInvoiceSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await (supabase.from('gyms') as any).update({
+      tax_number: taxNumber || null,
+      ustid: ustid || null,
+      is_kleinunternehmer: isKleinunternehmer,
+      invoice_prefix: invoicePrefix || 'RE',
+      bank_iban: bankIban || null,
+      bank_bic: bankBic || null,
+      bank_name: bankName || null,
+    }).eq('owner_id', user?.id ?? '')
+    setInvoiceSaving(false); setInvoiceSaved(true); setTimeout(() => setInvoiceSaved(false), 2000)
+  }
+
+  async function handleClassTypesSave() {
+    setClassTypesSaving(true)
+    const types = classTypesInput.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await (supabase.from('gyms') as any).update({ class_types: types }).eq('owner_id', user?.id ?? '')
+    setClassTypesSaving(false); setClassTypesSaved(true); setTimeout(() => setClassTypesSaved(false), 2000)
+  }
+
+  async function handleStaffInvite(e: React.FormEvent) {
+    e.preventDefault()
+    if (!staffEmail || !staffName) return
+    setStaffInviting(true)
+    const { data: { session } } = await createClient().auth.getSession()
+    const res = await fetch('/api/staff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+      body: JSON.stringify({ email: staffEmail, name: staffName, role: 'trainer' }),
+    })
+    if (res.ok) {
+      const newStaff = await res.json()
+      setStaffList(prev => [newStaff, ...prev])
+      const appUrl = window.location.origin
+      const url = `${appUrl}/staff/accept?token=${newStaff.invite_token}`
+      setStaffInviteUrl(url)
+      setStaffEmail('')
+      setStaffName('')
+    }
+    setStaffInviting(false)
+  }
+
+  async function handleStaffDelete(id: string) {
+    if (!confirm('Trainer wirklich entfernen?')) return
+    const { data: { session } } = await createClient().auth.getSession()
+    await fetch(`/api/staff/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+    })
+    setStaffList(prev => prev.filter(s => s.id !== id))
+  }
+
+  async function copyStaffUrl() {
+    if (!staffInviteUrl) return
+    await navigator.clipboard.writeText(staffInviteUrl)
+    setCopiedStaff(true)
+    setTimeout(() => setCopiedStaff(false), 2000)
   }
 
   async function copySignupUrl() {
@@ -357,6 +461,108 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Rechnungen & Steuer */}
+      <div className="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <ReceiptEuro size={12} /> Rechnungen &amp; Steuer
+          </p>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* Kleinunternehmer toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Kleinunternehmer (§19 UStG)</p>
+              <p className="text-xs text-slate-400 mt-0.5">Keine Umsatzsteuer auf Rechnungen</p>
+            </div>
+            <button type="button" onClick={() => setIsKleinunternehmer(v => !v)}
+              className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${isKleinunternehmer ? 'bg-amber-500' : 'bg-gray-200'}`}>
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isKleinunternehmer ? 'translate-x-4' : ''}`} />
+            </button>
+          </div>
+
+          {/* Tax fields */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Steuernummer</label>
+            <input value={taxNumber} onChange={e => setTaxNumber(e.target.value)} placeholder="12/345/67890"
+              className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+          </div>
+          {!isKleinunternehmer && (
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">USt-IdNr.</label>
+              <input value={ustid} onChange={e => setUstid(e.target.value)} placeholder="DE123456789"
+                className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+              <p className="text-xs text-slate-400 mt-1">Auf Rechnungen wird 19% USt. ausgewiesen.</p>
+            </div>
+          )}
+
+          {/* Invoice prefix */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Rechnungspräfix</label>
+            <input value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value)} placeholder="RE"
+              className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+            <p className="text-xs text-slate-400 mt-1">Beispiel: RE → RE-2025-0001</p>
+          </div>
+
+          {/* Bank details */}
+          <div className="pt-2 border-t border-slate-100">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Bankverbindung</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Bank</label>
+                <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Sparkasse München"
+                  className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">IBAN</label>
+                <input value={bankIban} onChange={e => setBankIban(e.target.value)} placeholder="DE89 3704 0044 0532 0130 00"
+                  className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 font-mono" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">BIC</label>
+                <input value={bankBic} onChange={e => setBankBic(e.target.value)} placeholder="COBADEFFXXX"
+                  className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 font-mono" />
+              </div>
+            </div>
+          </div>
+
+          <button type="button" onClick={handleInvoiceSave} disabled={invoiceSaving}
+            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+            <Save size={14} />
+            {invoiceSaved ? 'Gespeichert ✓' : invoiceSaving ? 'Wird gespeichert…' : 'Rechnungseinstellungen speichern'}
+          </button>
+        </div>
+      </div>
+
+      {/* Trainings-Typen */}
+      <div className="mt-4 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <Tag size={15} className="text-slate-400" />
+          Trainings-Typen
+        </h2>
+        <p className="text-slate-500 text-sm mb-4">
+          Definiere die Klassen-Typen deines Gyms (kommagetrennt). Standard: gi, no-gi, open mat, kids, competition
+        </p>
+        <input
+          type="text"
+          value={classTypesInput}
+          onChange={e => setClassTypesInput(e.target.value)}
+          placeholder="gi, no-gi, open mat, kids, competition"
+          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 mb-3"
+        />
+        <div className="flex flex-wrap gap-2 mb-4">
+          {classTypesInput.split(',').map(s => s.trim()).filter(Boolean).map((t, i) => (
+            <span key={i} className="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
+              {t}
+            </span>
+          ))}
+        </div>
+        <button onClick={handleClassTypesSave} disabled={classTypesSaving}
+          className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
+          {classTypesSaved ? 'Gespeichert ✓' : classTypesSaving ? 'Wird gespeichert…' : 'Speichern'}
+        </button>
+      </div>
+
       {/* Production Checklist */}
       <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
@@ -455,6 +661,78 @@ export default function SettingsPage() {
             </div>
           </div>
 
+        </div>
+      </div>
+
+      {/* Staff / Trainer */}
+      <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <Users size={12} /> Trainer &amp; Personal
+          </p>
+        </div>
+        <div className="p-5 space-y-4">
+          <form onSubmit={handleStaffInvite} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+                <input value={staffName} onChange={e => setStaffName(e.target.value)} required placeholder="Max Mustermann"
+                  className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
+                <input type="email" value={staffEmail} onChange={e => setStaffEmail(e.target.value)} required placeholder="trainer@gym.de"
+                  className="w-full px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+              </div>
+            </div>
+            <button type="submit" disabled={staffInviting}
+              className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+              <UserPlus size={14} />
+              {staffInviting ? 'Einladung wird erstellt…' : 'Trainer einladen'}
+            </button>
+          </form>
+
+          {staffInviteUrl && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-medium text-amber-800 flex items-center gap-1.5">
+                <Link2 size={11} /> Einladungs-Link (jetzt kopieren)
+              </p>
+              <div className="flex items-center gap-2 bg-white border border-amber-200 rounded-lg px-3 py-2">
+                <code className="text-xs font-mono text-slate-600 flex-1 truncate min-w-0">{staffInviteUrl}</code>
+                <button type="button" onClick={copyStaffUrl} className="flex-shrink-0 text-slate-400 hover:text-amber-600 transition-colors">
+                  {copiedStaff ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                </button>
+              </div>
+              <p className="text-xs text-amber-700">Kein Resend konfiguriert — schicke diesen Link manuell an den Trainer.</p>
+            </div>
+          )}
+
+          {staffList.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-slate-500">Aktuelles Personal ({staffList.length})</p>
+              <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 overflow-hidden">
+                {staffList.map(s => (
+                  <div key={s.id} className="flex items-center gap-3 px-4 py-3 bg-white">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{s.name}</p>
+                      <p className="text-xs text-slate-400 truncate">{s.email}</p>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      s.accepted_at
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'bg-amber-100 text-amber-700 border border-amber-200'
+                    }`}>
+                      {s.accepted_at ? 'Aktiv' : 'Eingeladen'}
+                    </span>
+                    <button type="button" onClick={() => handleStaffDelete(s.id)}
+                      className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

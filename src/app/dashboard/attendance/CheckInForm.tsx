@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { ClassType } from '@/types/database'
 
-const CLASS_TYPES: { value: ClassType; label: string }[] = [
+const DEFAULT_CLASS_TYPES: { value: string; label: string }[] = [
   { value: 'gi', label: 'Gi' },
   { value: 'no-gi', label: 'No-Gi' },
   { value: 'open mat', label: 'Open Mat' },
@@ -15,12 +14,12 @@ const CLASS_TYPES: { value: ClassType; label: string }[] = [
 
 interface Member { id: string; first_name: string; last_name: string }
 
-export function CheckInForm({ gymId, members, checkedInIds, onCheckedIn }: {
-  gymId: string; members: Member[]; checkedInIds: string[]; onCheckedIn?: () => void
+export function CheckInForm({ gymId, members, checkedInIds, classTypes = DEFAULT_CLASS_TYPES, onCheckedIn }: {
+  gymId: string; members: Member[]; checkedInIds: string[]; classTypes?: { value: string; label: string }[]; onCheckedIn?: () => void
 }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
-  const [classType, setClassType] = useState<ClassType>('gi')
+  const [classType, setClassType] = useState<string>(classTypes[0]?.value ?? 'gi')
   const [loading, setLoading] = useState<string | null>(null)
   const [checked, setChecked] = useState<Set<string>>(new Set(checkedInIds))
 
@@ -31,7 +30,8 @@ export function CheckInForm({ gymId, members, checkedInIds, onCheckedIn }: {
   async function checkIn(memberId: string) {
     setLoading(memberId)
     const supabase = createClient()
-    await supabase.from('attendance').insert({ member_id: memberId, gym_id: gymId, class_type: classType })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('attendance') as any).insert({ member_id: memberId, gym_id: gymId, class_type: classType })
     setChecked(prev => new Set([...prev, memberId]))
     setLoading(null)
     if (onCheckedIn) onCheckedIn()
@@ -43,7 +43,7 @@ export function CheckInForm({ gymId, members, checkedInIds, onCheckedIn }: {
       <div>
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Klasse</label>
         <div className="flex flex-wrap gap-1.5">
-          {CLASS_TYPES.map(ct => (
+          {classTypes.map(ct => (
             <button
               key={ct.value}
               onClick={() => setClassType(ct.value)}

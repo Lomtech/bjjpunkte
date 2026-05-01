@@ -8,6 +8,13 @@ function anonClient() {
   )
 }
 
+function serviceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ token: string; classId: string }> }
@@ -43,5 +50,49 @@ export async function DELETE(
   })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // After successful cancellation, notify first waitlisted member
+  const supabaseService = serviceClient()
+
+  const { data: waitlisted } = await supabaseService
+    .from('class_bookings')
+    .select('member_id')
+    .eq('class_id', classId)
+    .eq('status', 'waitlist')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single()
+
+  if (waitlisted && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+    const { data: wlMember } = await supabaseService
+      .from('members')
+      .select('first_name, email, portal_token')
+      .eq('id', waitlisted.member_id)
+      .single()
+
+    const { data: cls } = await supabaseService
+      .from('classes')
+      .select('title, starts_at')
+      .eq('id', classId)
+      .single()
+
+    if (wlMember?.email && cls) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bjjpunkte.vercel.app'
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL,
+          to: wlMember.email,
+          subject: `Platz frei: ${cls.title} 🥋`,
+          html: `<p>Hallo ${wlMember.first_name}!<br><br>Ein Platz im Kurs <strong>${cls.title}</strong> ist jetzt frei.<br><a href="${appUrl}/portal/${wlMember.portal_token}">Jetzt buchen →</a></p>`,
+        }),
+      }).catch(() => {})
+    }
+  }
+
   return NextResponse.json(data)
 }

@@ -4,23 +4,34 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, Calendar,
-  TrendingUp, Settings, LogOut,
+  TrendingUp, Settings, LogOut, UserPlus,
 } from 'lucide-react'
 
 const NAV = [
-  { href: '/dashboard',            label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/dashboard/members',    label: 'Mitglieder',    icon: Users },
-  { href: '/dashboard/schedule',   label: 'Stundenplan',   icon: Calendar },
-  { href: '/dashboard/revenue',    label: 'Einnahmen',     icon: TrendingUp },
-  { href: '/dashboard/settings',   label: 'Einstellungen', icon: Settings },
+  { href: '/dashboard',            label: 'Dashboard',     icon: LayoutDashboard, ownerOnly: false },
+  { href: '/dashboard/members',    label: 'Mitglieder',    icon: Users,           ownerOnly: false },
+  { href: '/dashboard/leads',      label: 'Interessenten', icon: UserPlus,        ownerOnly: true  },
+  { href: '/dashboard/schedule',   label: 'Stundenplan',   icon: Calendar,        ownerOnly: false },
+  { href: '/dashboard/revenue',    label: 'Einnahmen',     icon: TrendingUp,      ownerOnly: true  },
+  { href: '/dashboard/settings',   label: 'Einstellungen', icon: Settings,        ownerOnly: true  },
 ]
 
-// Mobile bottom nav: 4 core tabs – check-in is now in the schedule
+// Trainer sees only schedule + attendance (kiosk lives under attendance)
+const TRAINER_NAV = [
+  { href: '/dashboard/schedule',              label: 'Stundenplan',  icon: Calendar },
+  { href: '/dashboard/attendance/kiosk',      label: 'Anwesenheit',  icon: Users    },
+]
+
 const BOTTOM_NAV = [
-  { href: '/dashboard',          label: 'Übersicht',   icon: LayoutDashboard },
-  { href: '/dashboard/members',  label: 'Mitglieder',  icon: Users },
-  { href: '/dashboard/schedule', label: 'Stundenplan', icon: Calendar },
-  { href: '/dashboard/settings', label: 'Einstellungen', icon: Settings },
+  { href: '/dashboard',          label: 'Übersicht',     icon: LayoutDashboard, ownerOnly: false },
+  { href: '/dashboard/members',  label: 'Mitglieder',    icon: Users,           ownerOnly: false },
+  { href: '/dashboard/schedule', label: 'Stundenplan',   icon: Calendar,        ownerOnly: false },
+  { href: '/dashboard/settings', label: 'Einstellungen', icon: Settings,        ownerOnly: true  },
+]
+
+const TRAINER_BOTTOM_NAV = [
+  { href: '/dashboard/schedule',         label: 'Stundenplan', icon: Calendar },
+  { href: '/dashboard/attendance/kiosk', label: 'Anwesenheit', icon: Users    },
 ]
 
 function isActive(href: string, pathname: string) {
@@ -28,12 +39,14 @@ function isActive(href: string, pathname: string) {
   return pathname.startsWith(href)
 }
 
-export function SidebarNav() {
+export function SidebarNav({ isTrainer = false }: { isTrainer?: boolean }) {
   const pathname = usePathname()
+  const items = isTrainer ? TRAINER_NAV : NAV.filter((n) => !n.ownerOnly || !isTrainer)
+
   return (
     <>
       <nav className="flex-1 px-2 py-3 space-y-0.5">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
           return (
             <Link key={href} href={href}
@@ -57,12 +70,14 @@ export function SidebarNav() {
   )
 }
 
-export function BottomNav() {
+export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
   const pathname = usePathname()
+  const items = isTrainer ? TRAINER_BOTTOM_NAV : BOTTOM_NAV.filter((n) => !n.ownerOnly || !isTrainer)
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
       <div className="flex items-stretch">
-        {BOTTOM_NAV.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
           return (
             <Link key={href} href={href}

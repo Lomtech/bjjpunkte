@@ -25,6 +25,8 @@ export default function EditMemberPage() {
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
+  const [parentMemberId, setParentMemberId] = useState('')
+  const [allMembers, setAllMembers] = useState<{ id: string; first_name: string; last_name: string }[]>([])
   const [form, setForm] = useState({
     first_name: '', last_name: '', email: '', phone: '',
     date_of_birth: '', join_date: '', belt: 'white' as Belt, stripes: 0,
@@ -57,7 +59,16 @@ export default function EditMemberPage() {
             ? String(Number(d.monthly_fee_override_cents) / 100)
             : '',
         })
+        setParentMemberId(String(d.parent_member_id ?? ''))
       }
+
+      // Load all active members for parent dropdown
+      const { data: gymData } = await supabase.from('gyms').select('id').single()
+      if (gymData) {
+        const { data: membersData } = await supabase.from('members').select('id, first_name, last_name').eq('gym_id', gymData.id).eq('is_active', true).order('first_name')
+        if (membersData) setAllMembers(membersData)
+      }
+
       setLoading(false)
     }
     load()
@@ -91,6 +102,7 @@ export default function EditMemberPage() {
       emergency_contact_name:    form.emergency_contact_name.trim() || null,
       emergency_contact_phone:   form.emergency_contact_phone.trim() || null,
       monthly_fee_override_cents: overrideCents,
+      parent_member_id: parentMemberId || null,
     }).eq('id', id)
 
     if (err) { setError(err.message); setSaving(false); return }
@@ -124,6 +136,19 @@ export default function EditMemberPage() {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Geburtsdatum" type="date" value={form.date_of_birth} onChange={v => set('date_of_birth', v)} />
             <Field label="Mitglied seit *" type="date" value={form.join_date} onChange={v => set('join_date', v)} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Elternteil (optional, für Kids)</label>
+            <select
+              value={parentMemberId}
+              onChange={e => setParentMemberId(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value="">Kein Elternteil (Erwachsener)</option>
+              {allMembers.filter(m => m.id !== id).map(m => (
+                <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
+              ))}
+            </select>
           </div>
           <Field label="Adresse" value={form.address} onChange={v => set('address', v)} placeholder="Musterstraße 1, 80331 München" />
         </div>
