@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -11,7 +11,7 @@ type StaffInfo = {
   gyms: { name: string } | null
 }
 
-export default function StaffAcceptPage() {
+function StaffAcceptForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -127,6 +127,7 @@ export default function StaffAcceptPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5] px-4">
       <div className="bg-white rounded-2xl p-8 shadow-sm max-w-sm w-full">
+
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-6">
           <div className="w-9 h-9 rounded-xl bg-[#0f172a] border border-amber-500/30 flex flex-col items-center justify-center flex-shrink-0 gap-0.5">
@@ -200,5 +201,17 @@ export default function StaffAcceptPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function StaffAcceptPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]">
+        <p className="text-gray-500">Lädt…</p>
+      </div>
+    }>
+      <StaffAcceptForm />
+    </Suspense>
   )
 }
