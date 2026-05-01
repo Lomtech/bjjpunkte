@@ -9,12 +9,12 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: {
-    default: "Osss – Gym-Software für BJJ",
+    default: "Osss – Gym Management Software",
     template: "%s | Osss",
   },
-  description: "Mitgliederverwaltung, Belt-Tracking, Anwesenheit und Zahlungen für BJJ-Gyms.",
+  description: "Mitgliederverwaltung, Belt-Tracking, Anwesenheit und Zahlungen für Kampfsport-Gyms.",
   applicationName: "Osss",
-  keywords: ["BJJ", "Jiu-Jitsu", "Gym Software", "Mitgliederverwaltung", "Belt Tracking"],
+  keywords: ["Gym Software", "Kampfsport", "Mitgliederverwaltung", "Belt Tracking", "BJJ", "Judo", "Karate"],
   authors: [{ name: "Osss" }],
   creator: "Osss",
   manifest: "/manifest.webmanifest",
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: "Osss – Gym-Software für BJJ",
-    description: "Mitgliederverwaltung, Belt-Tracking und Zahlungen für BJJ-Gyms.",
+    title: "Osss – Gym Management Software",
+    description: "Mitgliederverwaltung, Belt-Tracking und Zahlungen für Kampfsport-Gyms.",
     type: "website",
     locale: "de_DE",
   },

@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
 import {
   Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle,
   Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
-  Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus,
+  Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, type BeltSystem, type SportType } from '@/lib/belt-system'
 
@@ -31,6 +32,11 @@ export default function SettingsPage() {
   const [monthlyFee, setMonthlyFee] = useState('')
   const [loading, setLoading]       = useState(false)
   const [saved, setSaved]           = useState(false)
+
+  // Logo
+  const [logoUrl, setLogoUrl]         = useState<string | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const logoInputRef                  = useRef<HTMLInputElement>(null)
 
   // Stripe
   const [stripeConfigured, setStripeConfigured] = useState(false)
@@ -127,6 +133,7 @@ export default function SettingsPage() {
         setAddress(data.address ?? '')
         setPhone(data.phone ?? '')
         setEmail(data.email ?? '')
+        setLogoUrl(data.logo_url ?? null)
         setMonthlyFee(data.monthly_fee_cents ? ((data.monthly_fee_cents as number) / 100).toFixed(2) : '')
         setStripeAccountId((data as any).stripe_account_id)
         setSignupEnabled((data as any).signup_enabled ?? false)
@@ -172,6 +179,32 @@ export default function SettingsPage() {
     await supabase.from('gyms').update({ name, address: address||null, phone: phone||null, email: email||null, monthly_fee_cents: feeCents })
       .eq('owner_id', user?.id ?? '')
     setLoading(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
+  }
+
+  async function handleLogoUpload(file: File) {
+    if (!file.type.startsWith('image/')) return
+    setLogoUploading(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setLogoUploading(false); return }
+    const ext = file.name.split('.').pop() ?? 'png'
+    const path = `${user.id}/logo.${ext}`
+    const { error: uploadErr } = await supabase.storage
+      .from('gym-logos')
+      .upload(path, file, { upsert: true, contentType: file.type })
+    if (uploadErr) { alert('Upload fehlgeschlagen: ' + uploadErr.message); setLogoUploading(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('gym-logos').getPublicUrl(path)
+    await supabase.from('gyms').update({ logo_url: publicUrl }).eq('owner_id', user.id)
+    setLogoUrl(publicUrl)
+    setLogoUploading(false)
+  }
+
+  async function handleLogoRemove() {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('gyms').update({ logo_url: null }).eq('owner_id', user.id)
+    setLogoUrl(null)
   }
 
   async function handleConnect() {
@@ -429,6 +462,55 @@ export default function SettingsPage() {
           <div className={sectionCls}>
             <SectionHeader icon={<Building2 size={12} />} title="Gym-Profil" />
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
+
+              {/* Logo upload */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Gym-Logo</label>
+                <div className="flex items-center gap-4">
+                  {/* Preview */}
+                  <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100 border border-gray-200 flex items-center justify-center">
+                    {logoUrl ? (
+                      <Image src={logoUrl} alt="Logo" width={64} height={64} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full bg-[#111827]">
+                        <span className="text-[11px] font-black text-amber-400 italic leading-none">oss</span>
+                        <div className="flex gap-0.5">
+                          {[0,1,2].map(i => <div key={i} className="w-1 h-1 rounded-full bg-amber-500 opacity-70" />)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f) }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={logoUploading}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-semibold transition-colors"
+                    >
+                      <ImagePlus size={13} />
+                      {logoUploading ? 'Wird hochgeladen…' : logoUrl ? 'Logo ändern' : 'Logo hochladen'}
+                    </button>
+                    {logoUrl && (
+                      <button
+                        type="button"
+                        onClick={handleLogoRemove}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-slate-500 hover:text-red-500 hover:border-red-200 text-xs font-medium transition-colors"
+                      >
+                        <X size={12} /> Entfernen
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">Erscheint im Menü und auf Mitglieder-Portalen. PNG oder JPG, min. 100×100 px.</p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Gym-Name *</label>
                 <input value={name} onChange={e => setName(e.target.value)} required className={inputCls} />

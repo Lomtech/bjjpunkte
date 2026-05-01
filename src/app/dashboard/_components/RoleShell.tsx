@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { SidebarNav, BottomNav } from './NavLinks'
+import Image from 'next/image'
 
 type Role = 'owner' | 'trainer' | null
 
 export function RoleShell({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role>(null)
   const [ready, setReady] = useState(false)
+  const [gymName, setGymName] = useState<string>('')
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -25,12 +28,14 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
       // Check owner first
       const { data: gym } = await supabase
         .from('gyms')
-        .select('id')
+        .select('id, name, logo_url')
         .eq('owner_id', userId)
         .maybeSingle()
 
       if (gym) {
         setRole('owner')
+        setGymName(gym.name ?? '')
+        setLogoUrl(gym.logo_url ?? null)
         localStorage.setItem('userRole', 'owner')
         setReady(true)
         return
@@ -39,15 +44,24 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
       // Check staff
       const { data: staff } = await supabase
         .from('gym_staff')
-        .select('id')
+        .select('id, gym_id')
         .eq('user_id', userId)
         .maybeSingle()
 
       if (staff) {
         setRole('trainer')
         localStorage.setItem('userRole', 'trainer')
+        // Load gym info for the staff's gym
+        const { data: staffGym } = await supabase
+          .from('gyms')
+          .select('name, logo_url')
+          .eq('id', (staff as any).gym_id)
+          .maybeSingle()
+        if (staffGym) {
+          setGymName(staffGym.name ?? '')
+          setLogoUrl(staffGym.logo_url ?? null)
+        }
       } else {
-        // Fallback: treat as owner (e.g. first-time setup)
         setRole('owner')
         localStorage.setItem('userRole', 'owner')
       }
@@ -55,7 +69,6 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
       setReady(true)
     }
 
-    // Use cached role from localStorage for instant render, then verify async
     const cached = localStorage.getItem('userRole') as Role
     if (cached) {
       setRole(cached)
@@ -76,16 +89,30 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="px-4 py-5 border-b border-white/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#0f172a] border border-amber-500/30 flex flex-col items-center justify-center flex-shrink-0 gap-0.5">
-              <span className="text-[11px] font-black text-amber-400 italic leading-none tracking-tight">oss</span>
-              <div className="flex gap-0.5">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="w-1 h-1 rounded-full bg-amber-500 opacity-70" />
-                ))}
+            {logoUrl ? (
+              <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-white/10">
+                <Image
+                  src={logoUrl}
+                  alt={gymName || 'Gym Logo'}
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover"
+                />
               </div>
-            </div>
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-[#0f172a] border border-amber-500/30 flex flex-col items-center justify-center flex-shrink-0 gap-0.5">
+                <span className="text-[11px] font-black text-amber-400 italic leading-none tracking-tight">oss</span>
+                <div className="flex gap-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="w-1 h-1 rounded-full bg-amber-500 opacity-70" />
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="min-w-0">
-              <p className="font-black text-white text-base leading-none tracking-tight italic">Osss</p>
+              <p className="font-black text-white text-base leading-none tracking-tight italic truncate">
+                {gymName || 'Osss'}
+              </p>
               <p className="text-[10px] text-white/35 mt-0.5 tracking-wider uppercase">
                 {isTrainer ? 'Trainer' : 'Gym Software'}
               </p>
