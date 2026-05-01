@@ -36,11 +36,17 @@ export default function NewMemberPage() {
   useEffect(() => {
     async function loadMembers() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, plan_member_limit').single()
       if (!gym) return
       const gymId = gym.id
       const { data: membersData } = await supabase.from('members').select('id, first_name, last_name').eq('gym_id', gymId).eq('is_active', true).order('first_name')
       if (membersData) setAllMembers(membersData)
+      // Check plan limit
+      const limit = (gym as any)?.plan_member_limit ?? 30
+      const { count: activeCount } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gymId).eq('is_active', true)
+      if ((activeCount ?? 0) >= limit) {
+        setError(`Du hast das Limit deines Plans erreicht (${limit} aktive Mitglieder). Bitte upgraden.`)
+      }
     }
     loadMembers()
   }, [])
@@ -158,7 +164,16 @@ export default function NewMemberPage() {
         </div>
 
         {error && (
-          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
+          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm space-y-2">
+            <p className="font-medium">{error}</p>
+            <a
+              href="/pricing"
+              target="_blank"
+              className="inline-block px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
+            >
+              Pläne ansehen →
+            </a>
+          </div>
         )}
 
         <div className="flex gap-3">

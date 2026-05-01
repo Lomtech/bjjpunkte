@@ -33,6 +33,8 @@ export default function SettingsPage() {
   const [staffInviting, setStaffInviting]   = useState(false)
   const [staffInviteUrl, setStaffInviteUrl] = useState<string | null>(null)
   const [copiedStaff, setCopiedStaff]       = useState(false)
+  // Gym ID (for public schedule link)
+  const [gymId, setGymId]                           = useState<string | null>(null)
   // Signup
   const [signupEnabled, setSignupEnabled]           = useState(false)
   const [signupToken, setSignupToken]               = useState<string | null>(null)
@@ -54,6 +56,10 @@ export default function SettingsPage() {
   const [bankName, setBankName]                 = useState('')
   const [invoiceSaving, setInvoiceSaving]       = useState(false)
   const [invoiceSaved, setInvoiceSaved]         = useState(false)
+  // Plan
+  const [gymPlan, setGymPlan]       = useState<string>('free')
+  const [memberCount, setMemberCount] = useState(0)
+  const [planLimit, setPlanLimit]   = useState(30)
 
   const webhookUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/stripe/webhook`
@@ -68,8 +74,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.from('gyms').select('*').single().then(({ data }) => {
+    supabase.from('gyms').select('*').single().then(async ({ data }) => {
       if (data) {
+        setGymId(data.id ?? null)
         setName(data.name ?? '')
         setAddress(data.address ?? '')
         setPhone(data.phone ?? '')
@@ -91,6 +98,13 @@ export default function SettingsPage() {
         setBankName(((data as unknown) as { bank_name: string | null }).bank_name ?? '')
         const rawClassTypes = (data as any)?.class_types
         if (Array.isArray(rawClassTypes)) setClassTypesInput(rawClassTypes.join(', '))
+        // Plan
+        const gymPlanData = data as any
+        setGymPlan(gymPlanData?.plan ?? 'free')
+        setPlanLimit(gymPlanData?.plan_member_limit ?? 30)
+        // Active member count
+        const { count } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', data.id).eq('is_active', true)
+        setMemberCount(count ?? 0)
       }
     })
     fetch('/api/stripe/status').then(r => r.json()).then(d => {
@@ -239,6 +253,48 @@ export default function SettingsPage() {
       <div className="mb-5">
         <h1 className="text-xl font-bold text-slate-900">Einstellungen</h1>
         <p className="text-slate-400 text-xs mt-0.5">Gym-Profil und Zahlungseinstellungen</p>
+      </div>
+
+      {/* Plan Status Banner */}
+      <div className={`rounded-2xl p-5 border flex items-center justify-between mb-5 ${
+        gymPlan === 'pro' ? 'bg-slate-900 border-slate-700' :
+        gymPlan === 'grow' ? 'bg-amber-50 border-amber-200' :
+        gymPlan === 'starter' ? 'bg-blue-50 border-blue-200' :
+        'bg-white border-slate-200'
+      }`}>
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+              gymPlan === 'pro' ? 'bg-amber-500 text-white' :
+              gymPlan === 'grow' ? 'bg-amber-500 text-white' :
+              gymPlan === 'starter' ? 'bg-blue-600 text-white' :
+              'bg-slate-200 text-slate-600'
+            }`}>
+              {gymPlan.toUpperCase()}
+            </span>
+            <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-slate-900'}`}>
+              Aktueller Plan
+            </span>
+          </div>
+          <p className={`text-sm ${gymPlan === 'pro' ? 'text-slate-300' : 'text-slate-500'}`}>
+            {memberCount} / {gymPlan === 'pro' ? '∞' : planLimit} aktive Mitglieder
+          </p>
+          {gymPlan !== 'pro' && memberCount >= planLimit * 0.9 && (
+            <p className="text-amber-600 text-xs mt-1 font-medium">
+              ⚠️ Fast am Limit — upgrade für mehr Mitglieder
+            </p>
+          )}
+        </div>
+        <a
+          href="/pricing"
+          target="_blank"
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex-shrink-0 ${
+            gymPlan === 'pro' ? 'bg-amber-500 text-white hover:bg-amber-400' :
+            'bg-slate-900 text-white hover:bg-slate-800'
+          }`}
+        >
+          {gymPlan === 'free' ? 'Upgraden →' : gymPlan === 'pro' ? 'Pro aktiv ✓' : 'Plan ändern →'}
+        </a>
       </div>
 
       {stripeConnected && (
@@ -422,6 +478,47 @@ export default function SettingsPage() {
             <Save size={14} />
             {signupSaved ? 'Gespeichert ✓' : signupSaving ? 'Wird gespeichert…' : 'Anmeldung speichern'}
           </button>
+
+          {gymId && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Öffentlicher Stundenplan
+              </p>
+              <p className="text-slate-500 text-sm mb-3">
+                Bette deinen Stundenplan auf deiner Website ein — kein Login nötig.
+              </p>
+              <div className="space-y-2">
+                {/* Direct link */}
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}`}
+                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 font-mono"
+                  />
+                  <button
+                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/schedule/${gymId}`)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Kopieren
+                  </button>
+                </div>
+                {/* iFrame embed code */}
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`}
+                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 font-mono"
+                  />
+                  <button
+                    onClick={() => navigator.clipboard.writeText(`<iframe src="${window.location.origin}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Kopieren
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

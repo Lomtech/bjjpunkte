@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
-import { Calendar, CreditCard, Dumbbell, TrendingUp, Clock, CheckCircle, LogOut, BookOpen, Flame, Trophy } from 'lucide-react'
+import { Calendar, CreditCard, Dumbbell, TrendingUp, Clock, CheckCircle, LogOut, BookOpen, Flame, Trophy, QrCode } from 'lucide-react'
 
 interface UpcomingBooking {
   class_id: string
@@ -353,6 +353,29 @@ export default function MemberPortalPage() {
         {member.contract_end_date && (
           <ContractBanner contractEndDate={member.contract_end_date} />
         )}
+
+        {/* QR-Code Card */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+            <QrCode size={15} className="text-slate-400" />
+            Mein Check-in Code
+          </h2>
+          <p className="text-slate-400 text-xs mb-4">Am Eingang scannen lassen für schnelles Einchecken</p>
+          <div className="flex flex-col items-center">
+            <div className="bg-white border-2 border-slate-100 rounded-2xl p-3 shadow-sm">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://bjjpunkte.vercel.app'}/portal/${token}`)}&color=0f172a&bgcolor=ffffff&margin=10`}
+                alt="QR Code"
+                width={200}
+                height={200}
+                className="rounded-lg"
+              />
+            </div>
+            <p className="text-slate-400 text-xs mt-3 text-center">
+              Zeige diesen Code am Eingang oder Kiosk
+            </p>
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">

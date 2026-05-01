@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 import Link from 'next/link'
-import { ArrowLeft, Search, CheckCircle2, X } from 'lucide-react'
+import { ArrowLeft, Search, CheckCircle2, X, QrCode } from 'lucide-react'
 
 interface Member { id: string; first_name: string; last_name: string; belt: string; stripes: number }
 
@@ -35,7 +35,11 @@ export default function KioskPage() {
   const [checkedIn, setCheckedIn] = useState<Map<string, CheckedInEntry>>(new Map())
   const [flash, setFlash]         = useState<{ name: string; belt: string; stripes: number } | null>(null)
   const [checkingId, setCheckingId] = useState<string | null>(null)
+  const [scanMode, setScanMode]   = useState(false)
+  const [scanError, setScanError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -86,6 +90,98 @@ export default function KioskPage() {
     return `${m.first_name} ${m.last_name}`.toLowerCase().includes(q)
   })
 
+  async function startScanner() {
+    setScanMode(true)
+    setScanError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+
+      if ('BarcodeDetector' in window) {
+        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
+        const scan = async () => {
+          if (!videoRef.current || !streamRef.current) return
+          try {
+            const barcodes = await detector.detect(videoRef.current)
+            if (barcodes.length > 0) {
+              const url = barcodes[0].rawValue
+              await handleQRResult(url)
+              return
+            }
+          } catch {}
+          if (streamRef.current) requestAnimationFrame(scan)
+        }
+        requestAnimationFrame(scan)
+      }
+    } catch {
+      setScanError('Kamera konnte nicht geöffnet werden. Bitte Kamerazugriff erlauben.')
+      setScanMode(false)
+    }
+  }
+
+  function stopScanner() {
+    setScanMode(false)
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+  }
+
+  async function handleQRResult(url: string) {
+    const match = url.match(/\/portal\/([a-zA-Z0-9_-]+)/)
+    if (!match) {
+      setScanError('Ungültiger QR-Code. Bitte Osss-QR-Code verwenden.')
+      return
+    }
+    const portalToken = match[1]
+    stopScanner()
+
+    const supabase = createClient()
+    const { data: member } = await (supabase.from('members') as any)
+      .select('id, first_name, last_name, belt, stripes')
+      .eq('portal_token', portalToken)
+      .single()
+
+    if (!member) {
+      setScanError('Mitglied nicht gefunden.')
+      return
+    }
+
+    await (supabase.from('attendance') as any).insert({
+      member_id: member.id,
+      gym_id: gymId,
+      class_type: classType,
+    })
+
+    setFlash({ name: `${member.first_name} ${member.last_name}`, belt: member.belt, stripes: member.stripes })
+    setTimeout(() => setFlash(null), 3000)
+
+    const today = new Date().toISOString().split('T')[0]
+    const { data: todayData } = await supabase.from('attendance')
+      .select('member_id, checked_in_at, class_type')
+      .eq('gym_id', gymId)
+      .gte('checked_in_at', today)
+    const memberMap = new Map(members.map(m => [m.id, m]))
+    const newMap = new Map(checkedIn)
+    for (const a of (todayData ?? []) as any[]) {
+      const m = memberMap.get(a.member_id)
+      if (m && !newMap.has(a.member_id)) {
+        newMap.set(a.member_id, {
+          member_id: a.member_id,
+          name: `${m.first_name} ${m.last_name}`,
+          belt: m.belt,
+          stripes: m.stripes,
+          time: new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        })
+      }
+    }
+    setCheckedIn(newMap)
+  }
+
   async function checkIn(member: Member) {
     if (checkedIn.has(member.id) || checkingId === member.id) return
     setCheckingId(member.id)
@@ -126,9 +222,20 @@ export default function KioskPage() {
             {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-amber-400 font-bold text-2xl">{checkedIn.size}</p>
-          <p className="text-slate-400 text-xs">Heute</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={scanMode ? stopScanner : startScanner}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+              scanMode ? 'bg-amber-500 text-white' : 'bg-white/10 border border-white/20 text-slate-300 hover:bg-white/20'
+            }`}
+          >
+            <QrCode size={15} />
+            {scanMode ? 'Scan läuft…' : 'QR-Scan'}
+          </button>
+          <div className="text-right">
+            <p className="text-amber-400 font-bold text-2xl">{checkedIn.size}</p>
+            <p className="text-slate-400 text-xs">Heute</p>
+          </div>
         </div>
       </div>
 
@@ -179,6 +286,46 @@ export default function KioskPage() {
               </button>
             )}
           </div>
+
+          {/* QR-Scan Mode */}
+          {scanMode && (
+            <div className="relative mb-4">
+              <video
+                ref={videoRef}
+                className="w-full rounded-2xl"
+                style={{ maxHeight: '300px', objectFit: 'cover' }}
+                playsInline
+                muted
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-48 h-48 border-4 border-amber-400 rounded-2xl opacity-80" />
+              </div>
+              {scanError && (
+                <div className="mt-2 p-3 bg-red-50 rounded-xl text-red-700 text-sm text-center">{scanError}</div>
+              )}
+              <button
+                onClick={stopScanner}
+                className="mt-3 w-full py-2 rounded-xl bg-white/10 text-slate-300 text-sm font-medium hover:bg-white/20 transition-colors"
+              >
+                Abbrechen
+              </button>
+              <div className="mt-3">
+                <p className="text-xs text-slate-400 text-center mb-2">QR-Scan nicht verfügbar?</p>
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  const input = (e.target as HTMLFormElement).querySelector('input') as HTMLInputElement
+                  await handleQRResult(`/portal/${input.value}`)
+                  input.value = ''
+                }} className="flex gap-2">
+                  <input
+                    placeholder="Portal-Token eingeben"
+                    className="flex-1 px-3 py-2 rounded-xl border border-white/20 bg-white/10 text-white placeholder-slate-400 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                  <button type="submit" className="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-400 transition-colors">OK</button>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Member grid */}
           <div className="flex-1 overflow-auto">
