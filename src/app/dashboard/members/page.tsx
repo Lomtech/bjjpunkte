@@ -172,7 +172,7 @@ export default function MembersPage() {
           </button>
           <button onClick={() => setShowWaModal(true)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors"
-            title="WhatsApp Rundnachricht">
+            title="WhatsApp Nachrichten vorbereiten">
             <MessageCircle size={14} /> WhatsApp
           </button>
           <button onClick={downloadCSV}
@@ -545,7 +545,7 @@ function WhatsAppBulkModal({ members, onClose }: {
           <div className="flex items-center gap-2">
             <MessageCircle size={18} />
             <div>
-              <p className="font-bold text-sm">WhatsApp Rundnachricht</p>
+              <p className="font-bold text-sm">WhatsApp Nachrichten vorbereiten</p>
               <p className="text-white/70 text-xs">{members.length} Mitglieder mit Nummer</p>
             </div>
           </div>

@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const now = new Date()
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
   // Get all gyms

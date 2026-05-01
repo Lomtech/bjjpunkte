@@ -3,8 +3,8 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 
-// Platform fee: 4% of each transaction goes to Osss
-const PLATFORM_FEE_PERCENT = 0.04
+// Platform fee: 2% of each transaction goes to Osss
+const PLATFORM_FEE_PERCENT = 0.02
 
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       metadata: { memberId, gymId },
     }
 
-    // Connect: platform takes 4%, rest goes to gym's Stripe account
+    // Connect: platform takes 2%, rest goes to gym's Stripe account
     if (connectedAccountId) {
       const platformFeeCents = Math.max(50, Math.round(amountCents * PLATFORM_FEE_PERCENT))
       sessionParams.payment_intent_data = {

@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const today = new Date()
+  const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
   const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
   // Find members whose birthday is today (any year)
