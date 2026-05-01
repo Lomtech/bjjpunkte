@@ -51,20 +51,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   if (!gym) return new Response('Gym nicht gefunden', { status: 404 })
   if (!member) return new Response('Mitglied nicht gefunden', { status: 404 })
 
-  // Generate invoice number if not yet set
+  // Generate invoice number if not yet set — uses atomic DB function to prevent duplicates
   let invoiceNumber = pmt.invoice_number
   try {
     if (!invoiceNumber && pmt.status === 'paid') {
       const year = new Date(pmt.paid_at || pmt.created_at).getFullYear()
-      // Atomically increment counter
-      const { data: updated } = await supabaseAdmin
-        .from('gyms')
-        .update({ invoice_counter: (gym.invoice_counter ?? 0) + 1 })
-        .eq('id', pmt.gym_id)
-        .select('invoice_counter')
-        .single()
-      const counter = updated?.invoice_counter ?? 1
-      invoiceNumber = `${gym.invoice_prefix ?? 'RE'}-${year}-${String(counter).padStart(4, '0')}`
+      // Atomic increment via SQL function (no race condition)
+      const { data: counter } = await supabaseAdmin.rpc('increment_invoice_counter', { p_gym_id: pmt.gym_id })
+      invoiceNumber = `${gym.invoice_prefix ?? 'RE'}-${year}-${String(counter ?? 1).padStart(4, '0')}`
       await supabaseAdmin.from('payments').update({ invoice_number: invoiceNumber }).eq('id', paymentId)
     }
   } catch {

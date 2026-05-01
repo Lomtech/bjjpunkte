@@ -50,14 +50,22 @@ export async function POST(req: Request) {
   // Must handle: paid_at may be NULL (webhook didn't fire), fallback to created_at
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const [{ data: paidWithDate }, { data: paidNullDate }] = await Promise.all([
+  const [{ data: paidWithDate }, { data: paidNullDate }, { data: pendingThisMonth }] = await Promise.all([
     supabase.from('payments').select('member_id').eq('gym_id', gymId).eq('status', 'paid').gte('paid_at', monthStart),
     supabase.from('payments').select('member_id').eq('gym_id', gymId).eq('status', 'paid').is('paid_at', null).gte('created_at', monthStart),
+    // Also fetch existing pending payments this month so we can reuse their links
+    supabase.from('payments').select('member_id, checkout_url, amount_cents').eq('gym_id', gymId).eq('status', 'pending').gte('created_at', monthStart),
   ])
   const paidMemberIds = new Set([
     ...(paidWithDate ?? []).map((p: { member_id: string }) => p.member_id),
     ...(paidNullDate ?? []).map((p: { member_id: string }) => p.member_id),
   ])
+  // Map: memberId → existing pending checkout_url
+  const pendingMap = new Map<string, { checkout_url: string | null; amount_cents: number }>(
+    (pendingThisMonth ?? []).map((p: { member_id: string; checkout_url: string | null; amount_cents: number }) =>
+      [p.member_id, { checkout_url: p.checkout_url, amount_cents: p.amount_cents }]
+    )
+  )
 
   const appUrl = getAppUrl()
   let created = 0
@@ -69,6 +77,20 @@ export async function POST(req: Request) {
       if (paidMemberIds.has(member.id)) continue
       // Skip members with active subscription (they're billed automatically)
       if ((member as { stripe_subscription_id?: string | null }).stripe_subscription_id) continue
+
+      // If member already has a pending payment link this month → reuse it, don't create duplicate
+      const existingPending = pendingMap.get(member.id)
+      if (existingPending) {
+        results.push({
+          memberId: member.id,
+          memberName: `${member.first_name} ${member.last_name}`,
+          memberEmail: member.email as string,
+          checkoutUrl: existingPending.checkout_url,
+          amountCents: existingPending.amount_cents,
+        })
+        created++
+        continue
+      }
 
       const fee = (member.monthly_fee_override_cents ?? amountCents ?? 0) as number
       if (fee < 50) continue
