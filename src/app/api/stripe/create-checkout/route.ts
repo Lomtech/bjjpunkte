@@ -87,12 +87,14 @@ export async function POST(req: Request) {
   const session = await stripe.checkout.sessions.create(sessionParams)
 
   // Record pending payment
-  await supabase.from('payments').insert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('payments') as any).insert({
     gym_id: gymId,
     member_id: memberId,
     stripe_payment_intent_id: session.payment_intent as string,
     amount_cents: amountCents,
     status: 'pending',
+    checkout_url: session.url,
   })
 
   return NextResponse.json({ url: session.url })

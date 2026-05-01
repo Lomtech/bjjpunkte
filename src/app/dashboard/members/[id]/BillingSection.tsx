@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, Send, ExternalLink, Trash2 } from 'lucide-react'
+import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
@@ -102,37 +102,53 @@ export function BillingSection({ memberId, gymId, memberEmail, memberName, subsc
       {checkoutUrl ? (
         <div className="p-4 bg-green-50 rounded-xl border border-green-200 mb-4">
           <p className="text-green-800 text-sm font-medium mb-2">Zahlungslink erstellt!</p>
-          <a
-            href={checkoutUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-500 text-sm font-medium"
-          >
-            <ExternalLink size={14} />
-            Link öffnen / kopieren
-          </a>
-          <button
-            onClick={() => { navigator.clipboard.writeText(checkoutUrl) }}
-            className="ml-4 text-slate-500 hover:text-slate-700 text-sm"
-          >
-            Kopieren
-          </button>
-          <button
-            onClick={() => setCheckoutUrl('')}
-            className="ml-4 text-slate-400 hover:text-slate-600 text-sm"
-          >
-            Neuer Link
-          </button>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <a
+              href={checkoutUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-500 text-sm font-medium"
+            >
+              <ExternalLink size={14} />
+              Link öffnen
+            </a>
+            <button
+              onClick={() => { navigator.clipboard.writeText(checkoutUrl) }}
+              className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-sm"
+            >
+              <Copy size={13} />
+              Kopieren
+            </button>
+            <button
+              onClick={() => {
+                const text = `Hallo, hier ist dein Zahlungslink: ${checkoutUrl}`
+                navigator.clipboard.writeText(text)
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white text-xs font-semibold transition-colors"
+              title="Nachricht + Link in Zwischenablage kopieren, dann per WhatsApp teilen"
+            >
+              <MessageCircle size={13} />
+              Per WhatsApp teilen
+            </button>
+            <button
+              onClick={() => setCheckoutUrl('')}
+              className="text-slate-400 hover:text-slate-600 text-sm"
+            >
+              Neuer Link
+            </button>
+          </div>
         </div>
       ) : (
-        <button
-          onClick={sendPaymentLink}
-          disabled={loading || !memberEmail}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold transition-colors shadow-sm disabled:opacity-50 mb-4"
-        >
-          <Send size={14} />
-          {loading ? 'Wird erstellt...' : 'Zahlungslink erstellen'}
-        </button>
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={sendPaymentLink}
+            disabled={loading || !memberEmail}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold transition-colors shadow-sm disabled:opacity-50"
+          >
+            <Send size={14} />
+            {loading ? 'Wird erstellt...' : 'Zahlungslink erstellen'}
+          </button>
+        </div>
       )}
 
       {!memberEmail && (

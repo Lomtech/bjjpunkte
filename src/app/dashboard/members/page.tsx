@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink } from 'lucide-react'
 
 function toWaPhone(raw: string): string {
   let p = raw.replace(/[\s\-().]/g, '')
@@ -62,6 +62,8 @@ export default function MembersPage() {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
   const [bulkLoading, setBulkLoading]       = useState(false)
   const [bulkResult, setBulkResult]         = useState<string | null>(null)
+  const [bulkMembers, setBulkMembers]       = useState<{ memberId: string; memberName: string; memberEmail: string; checkoutUrl: string | null; amountCents: number }[]>([])
+  const [showBulkResults, setShowBulkResults] = useState(false)
   const [search, setSearch]                 = useState('')
   const [activatingId, setActivatingId]     = useState<string | null>(null)
   const [showWaModal, setShowWaModal]       = useState(false)
@@ -110,7 +112,13 @@ export default function MembersPage() {
         body: JSON.stringify({ gymId, amountCents: monthlyFeeCents }),
       })
       const json = await res.json()
-      setBulkResult(res.ok ? `${json.count} Zahlungslinks erstellt.` : `Fehler: ${json.error}`)
+      if (res.ok) {
+        setBulkResult(`${json.count} Zahlungslinks erstellt.`)
+        setBulkMembers(json.members ?? [])
+        setShowBulkResults(true)
+      } else {
+        setBulkResult(`Fehler: ${json.error}`)
+      }
     } catch { setBulkResult('Fehler beim Erstellen der Zahlungslinks.') }
     finally { setBulkLoading(false); setShowBulkConfirm(false) }
   }
@@ -210,7 +218,7 @@ export default function MembersPage() {
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-lg max-w-sm w-full">
             <h2 className="font-bold text-slate-900 mb-2">Beiträge anfordern</h2>
             <p className="text-slate-600 text-sm mb-5">
-              Zahlungslink an <span className="font-semibold">{activeWithEmail.length} Mitglieder</span> mit E-Mail senden?
+              Zahlungslinks für <span className="font-semibold">{activeWithEmail.length} Mitglieder</span> erstellen? Die Links werden angezeigt, damit du sie per WhatsApp oder E-Mail versenden kannst.
             </p>
             <div className="flex gap-3">
               <button onClick={handleBulkCheckout} disabled={bulkLoading}
@@ -353,6 +361,75 @@ export default function MembersPage() {
           members={active.filter(m => m.phone)}
           onClose={() => setShowWaModal(false)}
         />
+      )}
+
+      {/* Bulk Checkout Results Modal */}
+      {showBulkResults && bulkMembers.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowBulkResults(false) }}>
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+              <div>
+                <p className="font-bold text-slate-900 text-sm">Zahlungslinks erstellt</p>
+                <p className="text-slate-400 text-xs">{bulkMembers.length} Links — per WhatsApp oder Kopieren versenden</p>
+              </div>
+              <button onClick={() => setShowBulkResults(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4 space-y-2">
+              {bulkMembers.map(m => {
+                const memberRecord = members.find(mem => mem.id === m.memberId)
+                const phone = memberRecord?.phone ?? null
+                const waText = `Hallo ${m.memberName}, hier ist dein Zahlungslink für diesen Monat: ${m.checkoutUrl}`
+                const waUrl = phone
+                  ? `https://wa.me/${toWaPhone(phone)}?text=${encodeURIComponent(waText)}`
+                  : null
+                return (
+                  <div key={m.memberId} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white">
+                    <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-amber-600">
+                        {m.memberName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{m.memberName}</p>
+                      <p className="text-xs text-slate-400 truncate">{m.memberEmail}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {m.checkoutUrl && (
+                        <>
+                          <a href={m.checkoutUrl} target="_blank" rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors" title="Link öffnen">
+                            <ExternalLink size={14} />
+                          </a>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(m.checkoutUrl!) }}
+                            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors" title="Link kopieren">
+                            <Copy size={14} />
+                          </button>
+                        </>
+                      )}
+                      {waUrl ? (
+                        <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white text-xs font-semibold transition-colors">
+                          <MessageCircle size={12} />
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(waText) }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                          title="Nachricht + Link kopieren">
+                          <Copy size={12} />
+                          Kopieren
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

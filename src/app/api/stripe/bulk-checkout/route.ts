@@ -48,6 +48,7 @@ export async function POST(req: Request) {
 
   const appUrl = getAppUrl()
   let created = 0
+  const results: { memberId: string; memberName: string; memberEmail: string; checkoutUrl: string | null; amountCents: number }[] = []
 
   for (const member of members) {
     try {
@@ -94,19 +95,28 @@ export async function POST(req: Request) {
 
       const session = await stripe.checkout.sessions.create(sessionParams)
 
-      await supabase.from('payments').insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('payments') as any).insert({
         gym_id: gymId,
         member_id: member.id,
         stripe_payment_intent_id: session.payment_intent as string,
         amount_cents: fee,
         status: 'pending',
+        checkout_url: session.url,
       })
 
+      results.push({
+        memberId: member.id,
+        memberName,
+        memberEmail: member.email as string,
+        checkoutUrl: session.url,
+        amountCents: fee,
+      })
       created++
     } catch {
       // Skip member on error, continue with others
     }
   }
 
-  return NextResponse.json({ count: created })
+  return NextResponse.json({ count: created, members: results })
 }
