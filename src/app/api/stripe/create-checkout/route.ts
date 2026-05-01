@@ -44,58 +44,63 @@ export async function POST(req: Request) {
   const member = memberRaw as { stripe_customer_id: string | null } | null
   let customerId = member?.stripe_customer_id
 
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: memberEmail,
-      name: memberName,
-      metadata: { memberId, gymId },
-    })
-    customerId = customer.id
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('members') as any).update({ stripe_customer_id: customerId }).eq('id', memberId)
-  }
-
   const appUrl = getAppUrl()
 
-  // Build session params — route to connected account if available
-  const sessionParams: Stripe.Checkout.SessionCreateParams = {
-    customer: customerId,
-    payment_method_types: ['card', 'sepa_debit'],
-    line_items: [{
-      price_data: {
-        currency: 'eur',
-        product_data: { name: 'Monatlicher Mitgliedsbeitrag', description: `RollCall – ${memberName}` },
-        unit_amount: amountCents,
-      },
-      quantity: 1,
-    }],
-    mode: 'payment',
-    success_url: `${appUrl}/dashboard/members/${memberId}?payment=success`,
-    cancel_url: `${appUrl}/dashboard/members/${memberId}`,
-    metadata: { memberId, gymId },
-  }
-
-  // Connect: platform takes 2%, rest goes to gym's Stripe account
-  if (connectedAccountId) {
-    const platformFeeCents = Math.max(50, Math.round(amountCents * PLATFORM_FEE_PERCENT))
-    sessionParams.payment_intent_data = {
-      application_fee_amount: platformFeeCents,
-      transfer_data: { destination: connectedAccountId },
+  try {
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: memberEmail,
+        name: memberName,
+        metadata: { memberId, gymId },
+      })
+      customerId = customer.id
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('members') as any).update({ stripe_customer_id: customerId }).eq('id', memberId)
     }
+
+    // Build session params — route to connected account if available
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      customer: customerId,
+      payment_method_types: ['card', 'sepa_debit'],
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: { name: 'Monatlicher Mitgliedsbeitrag', description: `Osss – ${memberName}` },
+          unit_amount: amountCents,
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      success_url: `${appUrl}/dashboard/members/${memberId}?payment=success`,
+      cancel_url: `${appUrl}/dashboard/members/${memberId}`,
+      metadata: { memberId, gymId },
+    }
+
+    // Connect: platform takes 4%, rest goes to gym's Stripe account
+    if (connectedAccountId) {
+      const platformFeeCents = Math.max(50, Math.round(amountCents * PLATFORM_FEE_PERCENT))
+      sessionParams.payment_intent_data = {
+        application_fee_amount: platformFeeCents,
+        transfer_data: { destination: connectedAccountId },
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams)
+
+    // Record pending payment
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('payments') as any).insert({
+      gym_id: gymId,
+      member_id: memberId,
+      stripe_payment_intent_id: session.payment_intent as string,
+      amount_cents: amountCents,
+      status: 'pending',
+      checkout_url: session.url,
+    })
+
+    return NextResponse.json({ url: session.url })
+  } catch (err: any) {
+    console.error('Stripe create-checkout error:', err?.message)
+    return NextResponse.json({ error: err?.message ?? 'Stripe-Fehler beim Erstellen des Zahlungslinks' }, { status: 500 })
   }
-
-  const session = await stripe.checkout.sessions.create(sessionParams)
-
-  // Record pending payment
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('payments') as any).insert({
-    gym_id: gymId,
-    member_id: memberId,
-    stripe_payment_intent_id: session.payment_intent as string,
-    amount_cents: amountCents,
-    status: 'pending',
-    checkout_url: session.url,
-  })
-
-  return NextResponse.json({ url: session.url })
 }
