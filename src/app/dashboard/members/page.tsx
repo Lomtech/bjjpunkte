@@ -3,7 +3,22 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X } from 'lucide-react'
+
+function toWaPhone(raw: string): string {
+  let p = raw.replace(/[\s\-().]/g, '')
+  if (p.startsWith('00')) p = '+' + p.slice(2)
+  if (p.startsWith('0'))  p = '+49' + p.slice(1)
+  return p.replace(/^\+/, '')
+}
+
+const BULK_TEMPLATES = [
+  { id: 'info',    label: '📢 Allgemeine Info',        text: () => `Hallo! Kurze Nachricht von eurem Gym. 👋` },
+  { id: 'payment', label: '💰 Beitragserinnerung',     text: () => `Hallo! Euer monatlicher Mitgliedsbeitrag ist fällig. Bitte überweist ihn diese Woche. Danke! 🙏` },
+  { id: 'event',   label: '🥋 Trainings-Erinnerung',  text: () => `Hey! Heute Abend Training – wir sehen uns auf der Matte! Oss! 💪` },
+  { id: 'comp',    label: '🏆 Wettkampf-Ankündigung', text: () => `Hey Leute! Wir nehmen am nächsten Wettkampf teil. Wer Interesse hat – meldet euch! Details folgen. Oss! 🏆` },
+  { id: 'custom',  label: '✏️ Eigene Nachricht',       text: () => `` },
+]
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 
@@ -49,6 +64,7 @@ export default function MembersPage() {
   const [bulkResult, setBulkResult]         = useState<string | null>(null)
   const [search, setSearch]                 = useState('')
   const [activatingId, setActivatingId]     = useState<string | null>(null)
+  const [showWaModal, setShowWaModal]       = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -102,7 +118,7 @@ export default function MembersPage() {
   async function activateMember(id: string) {
     setActivatingId(id)
     const supabase = createClient()
-    await supabase.from('members').update({ is_active: true, onboarding_status: 'complete' }).eq('id', id)
+    await (supabase.from('members') as any).update({ is_active: true, onboarding_status: 'complete' }).eq('id', id)
     setMembers(prev => prev.map(m => m.id === id ? { ...m, is_active: true, onboarding_status: 'complete' } : m))
     setActivatingId(null)
   }
@@ -126,6 +142,11 @@ export default function MembersPage() {
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors"
             title={`E-Mail an ${activeWithEmail.length} Mitglieder`}>
             <Mail size={14} /> E-Mail
+          </button>
+          <button onClick={() => setShowWaModal(true)}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors"
+            title="WhatsApp Rundnachricht">
+            <MessageCircle size={14} /> WhatsApp
           </button>
           <button onClick={() => setShowBulkConfirm(true)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium text-sm transition-colors border border-amber-200">
@@ -254,7 +275,17 @@ export default function MembersPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <Link href={`/dashboard/members/${m.id}`} className="text-amber-600 hover:text-amber-500 text-sm font-medium">Details →</Link>
+                        <div className="flex items-center justify-end gap-3">
+                          {m.phone && (
+                            <a href={`https://wa.me/${toWaPhone(m.phone)}?text=${encodeURIComponent(`Hallo ${m.first_name}! 👋`)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              title="WhatsApp"
+                              className="text-[#25D366] hover:text-[#1ebe57] transition-colors">
+                              <MessageCircle size={15} />
+                            </a>
+                          )}
+                          <Link href={`/dashboard/members/${m.id}`} className="text-amber-600 hover:text-amber-500 text-sm font-medium">Details →</Link>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -315,6 +346,125 @@ export default function MembersPage() {
           )}
         </div>
       )}
+
+      {/* WhatsApp Bulk Modal */}
+      {showWaModal && (
+        <WhatsAppBulkModal
+          members={active.filter(m => m.phone)}
+          onClose={() => setShowWaModal(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function WhatsAppBulkModal({ members, onClose }: {
+  members: { id: string; first_name: string; last_name: string; phone: string | null }[]
+  onClose: () => void
+}) {
+  const [templateId, setTemplateId] = useState(BULK_TEMPLATES[0].id)
+  const [customMsg, setCustomMsg]   = useState('')
+  const [step, setStep]             = useState<'compose' | 'send'>('compose')
+  const [sentIdx, setSentIdx]       = useState<Set<string>>(new Set())
+
+  const tmpl    = BULK_TEMPLATES.find(t => t.id === templateId)!
+  const message = templateId === 'custom' ? customMsg : tmpl.text()
+
+  function markSent(id: string) { setSentIdx(prev => new Set([...prev, id])) }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 bg-[#128C7E] text-white flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <MessageCircle size={18} />
+            <div>
+              <p className="font-bold text-sm">WhatsApp Rundnachricht</p>
+              <p className="text-white/70 text-xs">{members.length} Mitglieder mit Nummer</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition-colors"><X size={18} /></button>
+        </div>
+
+        <div className="overflow-y-auto flex-1">
+          {step === 'compose' ? (
+            <div className="p-5 space-y-4">
+              {/* Template picker */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Vorlage wählen</p>
+                <div className="space-y-1.5">
+                  {BULK_TEMPLATES.map(t => (
+                    <button key={t.id} onClick={() => setTemplateId(t.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                        templateId === t.id
+                          ? 'bg-[#25D366]/10 text-[#128C7E] font-semibold border border-[#25D366]/30'
+                          : 'bg-gray-50 text-slate-700 hover:bg-gray-100'
+                      }`}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Message */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nachricht</p>
+                <textarea
+                  value={templateId === 'custom' ? customMsg : tmpl.text()}
+                  onChange={e => { setTemplateId('custom'); setCustomMsg(e.target.value) }}
+                  rows={4}
+                  className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-800 text-sm focus:outline-none focus:border-[#25D366] resize-none"
+                />
+              </div>
+              <button onClick={() => setStep('send')} disabled={!message.trim()}
+                className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] disabled:opacity-40 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                <MessageCircle size={16} /> Weiter → Nachrichten senden
+              </button>
+            </div>
+          ) : (
+            <div className="p-5">
+              <div className="mb-4 p-3 rounded-lg bg-[#25D366]/10 border border-[#25D366]/20">
+                <p className="text-xs font-semibold text-[#128C7E] mb-1">Deine Nachricht:</p>
+                <p className="text-sm text-slate-700">{message}</p>
+              </div>
+              <p className="text-xs text-slate-500 mb-3">Klicke pro Mitglied auf den Button — WhatsApp öffnet sich mit der Nachricht vorausgefüllt.</p>
+              <div className="space-y-2">
+                {members.map(m => {
+                  const done = sentIdx.has(m.id)
+                  const waUrl = `https://wa.me/${toWaPhone(m.phone!)}?text=${encodeURIComponent(message)}`
+                  return (
+                    <div key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                      done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                    }`}>
+                      <div className="w-8 h-8 rounded-full bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-[#128C7E]">{m.first_name[0]}{m.last_name[0]}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">{m.first_name} {m.last_name}</p>
+                        <p className="text-xs text-slate-400 truncate">{m.phone}</p>
+                      </div>
+                      <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                        onClick={() => markSent(m.id)}
+                        className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          done
+                            ? 'bg-green-100 text-green-700 border border-green-200'
+                            : 'bg-[#25D366] hover:bg-[#1ebe57] text-white'
+                        }`}>
+                        <MessageCircle size={12} />
+                        {done ? '✓ Gesendet' : 'Senden'}
+                      </a>
+                    </div>
+                  )
+                })}
+              </div>
+              {sentIdx.size > 0 && (
+                <p className="mt-4 text-center text-xs text-slate-400">{sentIdx.size} von {members.length} gesendet</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

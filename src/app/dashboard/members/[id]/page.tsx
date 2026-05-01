@@ -10,7 +10,23 @@ import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
-import { ExternalLink, Copy, Check, Undo2 } from 'lucide-react'
+import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle } from 'lucide-react'
+
+/** Normalize German phone to wa.me format (no +, no spaces) */
+function toWaPhone(raw: string): string {
+  let p = raw.replace(/[\s\-().]/g, '')
+  if (p.startsWith('00')) p = '+' + p.slice(2)
+  if (p.startsWith('0'))  p = '+49' + p.slice(1)
+  return p.replace(/^\+/, '')
+}
+
+const WA_TEMPLATES = [
+  { id: 'greeting', label: 'Allgemeine Begrüßung',       text: (n: string) => `Hallo ${n}! 👋 Kurze Nachricht von uns aus dem Gym.` },
+  { id: 'payment',  label: 'Beitragserinnerung',         text: (n: string) => `Hallo ${n}, dein monatlicher Mitgliedsbeitrag ist fällig. Kannst du ihn diese Woche überweisen? Danke! 🙏` },
+  { id: 'promo',    label: 'Gratulation Gürtelpromotion', text: (n: string) => `Herzlichen Glückwunsch ${n}! 🥋🎉 Du hast dich heute eine Stufe hochgekämpft – verdient! Oss!` },
+  { id: 'miss',     label: 'Vermisst – komm zurück',     text: (n: string) => `Hey ${n}, wir vermissen dich auf der Matte! 💪 Alles gut bei dir? Wir freuen uns wenn du wieder vorbeikommst. Oss!` },
+  { id: 'event',    label: 'Training-Erinnerung',        text: (n: string) => `Hi ${n}! Erinnerung: Heute Abend Training – wir sehen uns auf der Matte! Oss 🥋` },
+]
 
 interface Member {
   id: string
@@ -202,10 +218,20 @@ export default function MemberDetailPage() {
         </div>
       </div>
 
+      {/* Contact action bar */}
+      {(member.phone || member.email) && (
+        <ContactBar
+          firstName={member.first_name}
+          phone={member.phone}
+          email={member.email}
+        />
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
         <InfoCard label="Mitglied seit" value={new Date(member.join_date).toLocaleDateString('de-DE')} />
         <InfoCard label="Trainings gesamt" value={String(totalSessions)} />
-        <InfoCard label="Kontakt" value={member.email ?? member.phone ?? '—'} />
+        {member.phone && <InfoCard label="Telefon" value={member.phone} />}
+        {!member.phone && member.email && <InfoCard label="E-Mail" value={member.email} />}
       </div>
 
       <ContractSection
@@ -315,6 +341,89 @@ function InfoCard({ label, value }: { label: string; value: string }) {
     <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm min-w-0 overflow-hidden">
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 truncate">{label}</p>
       <p className="text-slate-900 font-semibold text-sm truncate">{value}</p>
+    </div>
+  )
+}
+
+function ContactBar({ firstName, phone, email }: { firstName: string; phone: string | null; email: string | null }) {
+  const [showWa, setShowWa] = useState(false)
+  return (
+    <>
+      <div className="flex gap-2 mb-5 flex-wrap">
+        {phone && (
+          <>
+            <a href={`tel:${phone}`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
+              <Phone size={14} /> Anrufen
+            </a>
+            <button onClick={() => setShowWa(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors">
+              <MessageCircle size={14} /> WhatsApp
+            </button>
+          </>
+        )}
+        {email && (
+          <a href={`mailto:${email}`}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
+            <Mail size={14} /> E-Mail
+          </a>
+        )}
+      </div>
+      {showWa && phone && (
+        <WhatsAppCompose firstName={firstName} phone={phone} onClose={() => setShowWa(false)} />
+      )}
+    </>
+  )
+}
+
+function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; phone: string; onClose: () => void }) {
+  const [selected, setSelected] = useState(WA_TEMPLATES[0].id)
+  const [customText, setCustomText] = useState('')
+  const template = WA_TEMPLATES.find(t => t.id === selected)!
+  const message  = customText || template.text(firstName)
+  const waPhone  = toWaPhone(phone)
+  const waUrl    = `https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-[#25D366]">
+          <div className="flex items-center gap-2 text-white">
+            <MessageCircle size={18} />
+            <span className="font-bold">WhatsApp an {firstName}</span>
+          </div>
+          <button onClick={onClose} className="text-white/80 hover:text-white text-lg leading-none">✕</button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Vorlage</p>
+            <div className="grid grid-cols-1 gap-1.5">
+              {WA_TEMPLATES.map(t => (
+                <button key={t.id} onClick={() => { setSelected(t.id); setCustomText('') }}
+                  className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    selected === t.id ? 'bg-[#25D366]/10 text-[#128C7E] font-semibold border border-[#25D366]/30' : 'bg-gray-50 text-slate-700 hover:bg-gray-100'
+                  }`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nachricht bearbeiten</p>
+            <textarea
+              value={customText || template.text(firstName)}
+              onChange={e => setCustomText(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-800 text-sm focus:outline-none focus:border-[#25D366] focus:ring-2 focus:ring-[#25D366]/20 resize-none"
+            />
+          </div>
+          <a href={waUrl} target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] text-white font-bold text-sm transition-colors">
+            <MessageCircle size={16} /> In WhatsApp öffnen
+          </a>
+        </div>
+      </div>
     </div>
   )
 }
