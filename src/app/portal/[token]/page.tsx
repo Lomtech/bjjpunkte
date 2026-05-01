@@ -161,6 +161,12 @@ function canCheckin(startsAt: string, endsAt: string): boolean {
   return now >= start - 60 * 60 * 1000 && now <= end
 }
 
+function isCheckoutExpired(payment: { created_at: string; status: string }): boolean {
+  if (payment.status !== 'pending') return false
+  const hoursOld = (Date.now() - new Date(payment.created_at).getTime()) / (1000 * 60 * 60)
+  return hoursOld > 23
+}
+
 export default function MemberPortalPage() {
   const params = useParams()
   const token = params.token as string
@@ -551,10 +557,16 @@ export default function MemberPortalPage() {
                       {new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}
                     </span>
                     {p.status === 'pending' && p.checkout_url && (
-                      <a href={p.checkout_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors">
-                        Jetzt bezahlen
-                      </a>
+                      isCheckoutExpired(p) ? (
+                        <span className="text-slate-400 text-xs opacity-60">
+                          Link abgelaufen – bitte Gym kontaktieren
+                        </span>
+                      ) : (
+                        <a href={p.checkout_url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors">
+                          Jetzt bezahlen
+                        </a>
+                      )
                     )}
                   </div>
                 </div>

@@ -37,6 +37,7 @@ export default function KioskPage() {
   const [checkingId, setCheckingId] = useState<string | null>(null)
   const [scanMode, setScanMode]   = useState(false)
   const [scanError, setScanError] = useState('')
+  const [scanResult, setScanResult] = useState<{ type: 'already'; name: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -151,6 +152,22 @@ export default function KioskPage() {
       return
     }
 
+    // Duplikat-Check: bereits heute eingecheckt?
+    const today = new Date().toISOString().split('T')[0]
+    const { data: existingToday } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('member_id', member.id)
+      .eq('gym_id', gymId)
+      .gte('checked_in_at', today)
+      .limit(1)
+
+    if (existingToday && existingToday.length > 0) {
+      setScanResult({ type: 'already', name: `${member.first_name} ${member.last_name}` })
+      setTimeout(() => setScanResult(null), 3000)
+      return
+    }
+
     await (supabase.from('attendance') as any).insert({
       member_id: member.id,
       gym_id: gymId,
@@ -160,7 +177,6 @@ export default function KioskPage() {
     setFlash({ name: `${member.first_name} ${member.last_name}`, belt: member.belt, stripes: member.stripes })
     setTimeout(() => setFlash(null), 3000)
 
-    const today = new Date().toISOString().split('T')[0]
     const { data: todayData } = await supabase.from('attendance')
       .select('member_id, checked_in_at, class_type')
       .eq('gym_id', gymId)
@@ -247,6 +263,17 @@ export default function KioskPage() {
             <p className="font-bold text-xl">{flash.name}</p>
             <BeltBadge belt={flash.belt as Belt} stripes={flash.stripes} />
             <p className="text-green-100 text-sm">Eingecheckt! 🥋</p>
+          </div>
+        </div>
+      )}
+
+      {/* Flash already checked in */}
+      {scanResult?.type === 'already' && (
+        <div className="absolute inset-x-0 top-20 flex justify-center z-50 pointer-events-none px-4">
+          <div className="bg-amber-500 text-white rounded-2xl px-8 py-5 shadow-2xl flex flex-col items-center gap-2">
+            <CheckCircle2 size={32} />
+            <p className="font-bold text-xl">{scanResult.name}</p>
+            <p className="text-amber-100 text-sm">Bereits heute eingecheckt ✓</p>
           </div>
         </div>
       )}
