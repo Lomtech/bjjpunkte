@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const [staffName, setStaffName]           = useState('')
   const [staffInviting, setStaffInviting]   = useState(false)
   const [staffInviteUrl, setStaffInviteUrl] = useState<string | null>(null)
+  const [staffEmailSent, setStaffEmailSent] = useState(false)
   const [copiedStaff, setCopiedStaff]       = useState(false)
   // Gym ID (for public schedule link)
   const [gymId, setGymId]                           = useState<string | null>(null)
@@ -255,6 +256,7 @@ export default function SettingsPage() {
       const appUrl = window.location.origin
       const url = `${appUrl}/staff/accept?token=${newStaff.invite_token}`
       setStaffInviteUrl(url)
+      setStaffEmailSent(newStaff.emailSent === true)
       setStaffEmail('')
       setStaffName('')
     }
@@ -875,7 +877,10 @@ export default function SettingsPage() {
                   {copiedStaff ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
                 </button>
               </div>
-              <p className="text-xs text-amber-700">Kein Resend konfiguriert — schicke diesen Link manuell an den Trainer.</p>
+              {staffEmailSent
+                ? <p className="text-xs text-green-700">✓ Einladungs-E-Mail wurde an den Trainer gesendet.</p>
+                : <p className="text-xs text-amber-700">Kein Resend konfiguriert — schicke diesen Link manuell an den Trainer.</p>
+              }
             </div>
           )}
 

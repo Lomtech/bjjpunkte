@@ -46,11 +46,11 @@ export async function POST(req: Request) {
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Send invite email via Resend if configured
+  let emailSent = false
   if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bjjpunkte.vercel.app'
     const inviteUrl = `${appUrl}/staff/accept?token=${staff.invite_token}`
-    await fetch('https://api.resend.com/emails', {
+    const emailRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -62,8 +62,9 @@ export async function POST(req: Request) {
         subject: `Einladung: ${gym.name} – Trainer-Zugang`,
         html: `<h2>Hallo ${name}!</h2><p>Du wurdest als Trainer bei <strong>${gym.name}</strong> eingeladen.</p><p><a href="${inviteUrl}" style="background:#f59e0b;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Zugang aktivieren →</a></p><p style="color:#666;font-size:12px;">Link: ${inviteUrl}</p>`,
       }),
-    }).catch(() => {})
+    }).catch(() => null)
+    emailSent = emailRes?.ok === true
   }
 
-  return NextResponse.json(staff)
+  return NextResponse.json({ ...staff, emailSent })
 }
