@@ -89,23 +89,42 @@ export default function Home() {
             <span className="text-amber-400 text-xs font-semibold">Made in Germany · DSGVO-konform</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-5">
-            Die Gym-Software<br />für <span className="text-amber-400">Kampfsport</span>
+            Schluss mit Excel.<br />Dein Gym läuft in <span className="text-amber-400">10 Minuten.</span>
           </h1>
-          <p className="text-slate-300 text-lg max-w-xl mx-auto mb-8">
-            Mitglieder verwalten, Beiträge einziehen, Stundenpläne organisieren — alles in einer Software. Auf Deutsch. Für kleine Gyms gemacht.
+          <p className="text-slate-300 text-lg max-w-xl mx-auto mb-6">
+            Mitglieder, Beiträge, Stundenplan — alles in einer Software. Auf Deutsch. Für Kampfsport-Gyms gemacht.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+
+          {/* Stats */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-8">
+            {[
+              { val: '€0',    label: 'Startkosten' },
+              { val: '10 Min', label: 'Setup' },
+              { val: '2%',    label: 'Plattformgebühr' },
+              { val: '100%',  label: 'DSGVO-konform' },
+            ].map(s => (
+              <div key={s.label} className="flex items-baseline gap-1.5">
+                <span className="text-amber-400 font-black text-lg">{s.val}</span>
+                <span className="text-slate-400 text-sm">{s.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="inline-block bg-amber-500/10 border border-amber-500/20 rounded-xl px-5 py-2.5 mb-6">
+            <p className="text-amber-300 text-sm font-semibold">Kostenlos für Gyms bis 30 Mitglieder — für immer.</p>
+          </div>
+
+          <div className="flex flex-col items-center gap-3">
             <Link href="/register"
               className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-colors flex items-center justify-center gap-2">
               <Zap size={16} />
-              Kostenlos starten — 30 Mitglieder gratis
+              Jetzt kostenlos starten
             </Link>
-            <Link href="/pricing"
-              className="w-full sm:w-auto border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white font-semibold px-8 py-3.5 rounded-xl text-base transition-colors">
-              Preise ansehen
+            <Link href="/pricing" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">
+              Alle Pläne ansehen →
             </Link>
           </div>
-          <p className="text-slate-500 text-xs mt-4">Keine Kreditkarte. Kein Risiko. Jederzeit kündbar.</p>
+          <p className="text-slate-600 text-xs mt-4">Keine Kreditkarte. Kein Risiko. Jederzeit kündbar.</p>
         </div>
       </section>
 
