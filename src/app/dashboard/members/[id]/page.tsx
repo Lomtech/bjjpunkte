@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
+import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
@@ -88,15 +89,17 @@ export default function MemberDetailPage() {
   const [deletingMember, setDeletingMember]   = useState(false)
   const [parentInfo, setParentInfo] = useState<{ id: string; first_name: string; last_name: string } | null>(null)
   const [children, setChildren] = useState<{ id: string; first_name: string; last_name: string }[]>([])
+  const [beltSystem, setBeltSystem] = useState<BeltSystem | undefined>(undefined)
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id, monthly_fee_cents').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system').single()
       if (!gym) { setLoading(false); return }
 
       setGymId(gym.id)
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
+      setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
 
       const { data: memberData } = await supabase
         .from('members').select('*').eq('id', id).eq('gym_id', gym.id).single()
@@ -234,7 +237,7 @@ export default function MemberDetailPage() {
               </Link>
             </div>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <BeltBadge belt={member.belt as Belt} stripes={member.stripes} />
+              <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
                 member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-400 border-slate-200'
               }`}>
@@ -343,13 +346,13 @@ export default function MemberDetailPage() {
           <DemoteButton
             memberId={member.id} gymId={gymId}
             currentBelt={member.belt as Belt} currentStripes={member.stripes}
-            onDemoted={handleDemoted}
+            onDemoted={handleDemoted} beltSystem={beltSystem}
           />
         </div>
         <PromoteButton
           memberId={member.id} gymId={gymId}
           currentBelt={member.belt as Belt} currentStripes={member.stripes}
-          onPromoted={handlePromoted}
+          onPromoted={handlePromoted} beltSystem={beltSystem}
         />
       </div>
 
@@ -382,9 +385,9 @@ export default function MemberDetailPage() {
               return (
                 <div key={p.id} className="group flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
                   <div className="flex items-center gap-3">
-                    <BeltBadge belt={p.previous_belt as Belt} stripes={p.previous_stripes} />
+                    <BeltBadge belt={p.previous_belt as Belt} stripes={p.previous_stripes} beltSystem={beltSystem} />
                     <span className="text-slate-400">→</span>
-                    <BeltBadge belt={p.new_belt as Belt} stripes={p.new_stripes} />
+                    <BeltBadge belt={p.new_belt as Belt} stripes={p.new_stripes} beltSystem={beltSystem} />
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-slate-400 text-sm">{new Date(p.promoted_at).toLocaleDateString('de-DE')}</span>

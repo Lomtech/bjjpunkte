@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { BeltBadge } from '@/components/BeltBadge'
+import { resolveBeltSystem } from '@/lib/belt-system'
 import type { Belt } from '@/types/database'
 import { Calendar, CreditCard, Dumbbell, TrendingUp, Clock, CheckCircle, BookOpen, Flame, Trophy, QrCode } from 'lucide-react'
 
@@ -293,9 +294,8 @@ export default function MemberPortalPage() {
   const { member, gym, attendance, totalSessions, payments, totalPaidCents } = data
   const { sessionsThisMonth, streak } = calcStats(attendance ?? [])
 
-  const beltColor: Record<string, string> = {
-    white: '#e2e8f0', blue: '#3b82f6', purple: '#a855f7', brown: '#92400e', black: '#1e293b',
-  }
+  const beltSystem = resolveBeltSystem((gym as any)?.belt_system)
+  const beltSlot = beltSystem.find(s => s.key === member.belt) ?? beltSystem[0]
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -325,14 +325,14 @@ export default function MemberPortalPage() {
           <div className="flex items-center gap-4">
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-sm flex-shrink-0"
-              style={{ backgroundColor: beltColor[member.belt] ?? '#64748b' }}
+              style={{ backgroundColor: beltSlot.bg }}
             >
               {member.first_name[0]}{member.last_name[0]}
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900">{member.first_name} {member.last_name}</h1>
               <div className="mt-1">
-                <BeltBadge belt={member.belt as Belt} stripes={member.stripes} />
+                <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />
               </div>
             </div>
           </div>

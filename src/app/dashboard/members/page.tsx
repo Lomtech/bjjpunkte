@@ -21,6 +21,7 @@ const BULK_TEMPLATES = [
 ]
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
+import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 
 const SUB_COLORS: Record<string, string> = {
   active:    'bg-green-50 text-green-700 border border-green-200',
@@ -59,6 +60,7 @@ export default function MembersPage() {
   const [members, setMembers]               = useState<Member[]>([])
   const [gymId, setGymId]                   = useState('')
   const [monthlyFeeCents, setMonthlyFeeCents] = useState(0)
+  const [beltSystem, setBeltSystem]         = useState<BeltSystem | undefined>(undefined)
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
   const [bulkLoading, setBulkLoading]       = useState(false)
   const [bulkResult, setBulkResult]         = useState<string | null>(null)
@@ -72,10 +74,11 @@ export default function MembersPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id, monthly_fee_cents').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system').single()
       if (!gym) { setLoading(false); return }
       setGymId(gym.id)
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
+      setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
       const { data } = await supabase
         .from('members')
         .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token')
@@ -288,7 +291,7 @@ export default function MembersPage() {
                         </div>
                         {m.email && <div className="text-xs text-slate-400 truncate max-w-full">{m.email}</div>}
                       </td>
-                      <td className="px-4 py-3.5"><BeltBadge belt={m.belt as Belt} stripes={m.stripes} /></td>
+                      <td className="px-4 py-3.5"><BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} /></td>
                       <td className="px-4 py-3.5 text-slate-500 text-sm">{new Date(m.join_date).toLocaleDateString('de-DE')}</td>
                       <td className="px-4 py-3.5">
                         {feeCents > 0 ? (
@@ -345,7 +348,7 @@ export default function MembersPage() {
                       {cs === 'expiring' && <AlertTriangle size={12} className="text-amber-500 flex-shrink-0" />}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <BeltBadge belt={m.belt as Belt} stripes={m.stripes} />
+                      <BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} />
                       {feeCents > 0 && subStatus !== 'none' && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SUB_COLORS[subStatus]}`}>
                           {SUB_LABELS[subStatus]}

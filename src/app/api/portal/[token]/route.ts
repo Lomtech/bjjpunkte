@@ -37,7 +37,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     { count: totalSessions },
     { data: payments },
   ] = await Promise.all([
-    supabase.from('gyms').select('name').eq('id', gymId).single(),
+    (supabase.from('gyms') as any).select('name, belt_system').eq('id', gymId).single(),
     supabase.from('attendance').select('id, checked_in_at, class_type').eq('member_id', memberId).order('checked_in_at', { ascending: false }).limit(50),
     supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('member_id', memberId),
     supabase.from('payments').select('id, amount_cents, status, paid_at, created_at, checkout_url').eq('member_id', memberId).order('created_at', { ascending: false }).limit(24),

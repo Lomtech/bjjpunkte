@@ -5,18 +5,19 @@ import { createClient } from '@/lib/supabase/client'
 import { BeltBadge } from '@/components/BeltBadge'
 import { ArrowLeft, ChevronDown } from 'lucide-react'
 import type { Belt } from '@/types/database'
+import type { BeltSystem } from '@/lib/belt-system'
+import { DEFAULT_BELT_SYSTEM, getBeltSlot } from '@/lib/belt-system'
 
-const BELTS: Belt[] = ['white', 'blue', 'purple', 'brown', 'black']
-const BELT_LABELS: Record<Belt, string> = {
-  white: 'Weiss', blue: 'Blau', purple: 'Lila', brown: 'Braun', black: 'Schwarz',
-}
+const BELT_KEYS: Belt[] = ['white', 'blue', 'purple', 'brown', 'black']
 
 export function DemoteButton({
-  memberId, gymId, currentBelt, currentStripes, onDemoted,
+  memberId, gymId, currentBelt, currentStripes, onDemoted, beltSystem,
 }: {
   memberId: string; gymId: string; currentBelt: Belt; currentStripes: number
   onDemoted?: (belt: Belt, stripes: number) => void
+  beltSystem?: BeltSystem
 }) {
+  const system = beltSystem ?? DEFAULT_BELT_SYSTEM
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -24,8 +25,8 @@ export function DemoteButton({
   function prevPromotion(): { belt: Belt; stripes: number } | null {
     if (currentBelt === 'white' && currentStripes === 0) return null
     if (currentStripes > 0) return { belt: currentBelt, stripes: currentStripes - 1 }
-    const prevIdx = BELTS.indexOf(currentBelt) - 1
-    return { belt: BELTS[prevIdx], stripes: 4 }
+    const prevIdx = BELT_KEYS.indexOf(currentBelt) - 1
+    return { belt: BELT_KEYS[prevIdx], stripes: 4 }
   }
 
   const prev = prevPromotion()
@@ -70,14 +71,14 @@ export function DemoteButton({
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 mb-4">
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Aktuell</p>
-              <BeltBadge belt={currentBelt} stripes={currentStripes} />
+              <BeltBadge belt={currentBelt} stripes={currentStripes} beltSystem={system} />
             </div>
             <ArrowLeft size={16} className="text-slate-300 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                 {isBeltChange ? 'Zurück zu' : 'Neue Stufe'}
               </p>
-              <BeltBadge belt={prev.belt} stripes={prev.stripes} />
+              <BeltBadge belt={prev.belt} stripes={prev.stripes} beltSystem={system} />
             </div>
           </div>
 
@@ -99,7 +100,7 @@ export function DemoteButton({
             >
               <ChevronDown size={14} />
               {success ? 'Gespeichert' : loading ? 'Speichert…' :
-                isBeltChange ? `Zu ${BELT_LABELS[prev.belt]} Belt` : 'Stripe entfernen'}
+                isBeltChange ? `Zu ${getBeltSlot(system, prev.belt).label} Belt` : 'Stripe entfernen'}
             </button>
           </div>
         </div>

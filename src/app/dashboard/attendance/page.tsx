@@ -7,6 +7,7 @@ import { BeltBadge } from '@/components/BeltBadge'
 import { Trash2, Tablet } from 'lucide-react'
 import Link from 'next/link'
 import type { Belt } from '@/types/database'
+import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 
 interface AttendanceEntry { id: string; checked_in_at: string; class_type: string; member_id: string }
 interface Member         { id: string; first_name: string; last_name: string; belt: string; stripes: number }
@@ -17,6 +18,7 @@ export default function AttendancePage() {
   const [members, setMembers]       = useState<Member[]>([])
   const [todayLog, setTodayLog]     = useState<AttendanceEntry[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [beltSystem, setBeltSystem] = useState<BeltSystem | undefined>(undefined)
   const [classTypes, setClassTypes] = useState<{ value: string; label: string }[]>([
     { value: 'gi', label: 'Gi' },
     { value: 'no-gi', label: 'No-Gi' },
@@ -28,9 +30,10 @@ export default function AttendancePage() {
   const loadData = useCallback(async () => {
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: gym } = await (supabase.from('gyms') as any).select('id, class_types').single()
+    const { data: gym } = await (supabase.from('gyms') as any).select('id, class_types, belt_system').single()
     if (!gym) { setLoading(false); return }
     setGymId(gym.id)
+    setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
     const rawTypes = (gym as any)?.class_types
     if (Array.isArray(rawTypes) && rawTypes.length > 0) {
       setClassTypes(rawTypes.map((v: string) => ({
@@ -107,7 +110,7 @@ export default function AttendancePage() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-slate-800 text-sm font-medium truncate">{m?.first_name} {m?.last_name}</p>
-                        {m && <BeltBadge belt={m.belt as Belt} stripes={m.stripes} />}
+                        {m && <BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} />}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">

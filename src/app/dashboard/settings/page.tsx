@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2, Users, ReceiptEuro, Tag } from 'lucide-react'
+import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2, Users, ReceiptEuro, Tag, Award } from 'lucide-react'
+import { DEFAULT_BELT_SYSTEM, resolveBeltSystem, type BeltSystem } from '@/lib/belt-system'
 
 export default function SettingsPage() {
   const searchParams = useSearchParams()
@@ -47,6 +48,10 @@ export default function SettingsPage() {
   const [classTypesInput, setClassTypesInput]   = useState('gi, no-gi, open mat, kids, competition')
   const [classTypesSaving, setClassTypesSaving] = useState(false)
   const [classTypesSaved, setClassTypesSaved]   = useState(false)
+  // Belt System
+  const [beltSlots, setBeltSlots]       = useState<BeltSystem>(DEFAULT_BELT_SYSTEM)
+  const [beltSaving, setBeltSaving]     = useState(false)
+  const [beltSaved, setBeltSaved]       = useState(false)
   // Invoice & Tax
   const [taxNumber, setTaxNumber]               = useState('')
   const [ustid, setUstid]                       = useState('')
@@ -110,6 +115,7 @@ export default function SettingsPage() {
         setBankName(((data as unknown) as { bank_name: string | null }).bank_name ?? '')
         const rawClassTypes = (data as any)?.class_types
         if (Array.isArray(rawClassTypes)) setClassTypesInput(rawClassTypes.join(', '))
+        setBeltSlots(resolveBeltSystem((data as any)?.belt_system))
         // Plan
         const gymPlanData = data as any
         setGymPlan(gymPlanData?.plan ?? 'free')
@@ -238,6 +244,14 @@ export default function SettingsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     await (supabase.from('gyms') as any).update({ class_types: types }).eq('owner_id', user?.id ?? '')
     setClassTypesSaving(false); setClassTypesSaved(true); setTimeout(() => setClassTypesSaved(false), 2000)
+  }
+
+  async function handleBeltSave() {
+    setBeltSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await (supabase.from('gyms') as any).update({ belt_system: beltSlots }).eq('owner_id', user?.id ?? '')
+    setBeltSaving(false); setBeltSaved(true); setTimeout(() => setBeltSaved(false), 2000)
   }
 
   async function handleStaffInvite(e: React.FormEvent) {
@@ -735,6 +749,69 @@ export default function SettingsPage() {
           className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
           {classTypesSaved ? 'Gespeichert ✓' : classTypesSaving ? 'Wird gespeichert…' : 'Speichern'}
         </button>
+      </div>
+
+      {/* Belt System */}
+      <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <Award size={12} /> Gürtelsystem
+          </p>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          <p className="text-xs text-slate-500">
+            Passe Gürtelbezeichnungen und Farben an deine Kampfsportart an. Die Reihenfolge (Weiß → Schwarz) bleibt fest.
+          </p>
+          <div className="space-y-2">
+            {beltSlots.map((slot, i) => (
+              <div key={slot.key} className="flex items-center gap-3">
+                <span className="text-xs text-slate-400 w-4 text-right">{i + 1}.</span>
+                <input
+                  type="text"
+                  value={slot.label}
+                  maxLength={20}
+                  onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, label: e.target.value } : s))}
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  placeholder="z.B. Gelb"
+                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={slot.bg}
+                    onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, bg: e.target.value } : s))}
+                    className="w-8 h-8 rounded cursor-pointer border border-gray-200"
+                    title="Hintergrundfarbe"
+                  />
+                  <input
+                    type="color"
+                    value={slot.text}
+                    onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, text: e.target.value } : s))}
+                    className="w-8 h-8 rounded cursor-pointer border border-gray-200"
+                    title="Textfarbe"
+                  />
+                </div>
+                <span
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold w-20 text-center"
+                  style={{ backgroundColor: slot.bg, color: slot.text }}
+                >
+                  {slot.label || '…'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => setBeltSlots(DEFAULT_BELT_SYSTEM)}
+            className="text-xs text-slate-400 hover:text-slate-600 underline"
+          >
+            Auf BJJ-Standard zurücksetzen
+          </button>
+        </div>
+        <div className="px-5 pb-4">
+          <button onClick={handleBeltSave} disabled={beltSaving}
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
+            {beltSaved ? 'Gespeichert ✓' : beltSaving ? 'Wird gespeichert…' : 'Speichern'}
+          </button>
+        </div>
       </div>
 
       {/* Production Checklist */}
