@@ -71,12 +71,11 @@ export async function POST(req: Request) {
   }
 
   if (connectedAccountId) {
-    const platformFeeCents = Math.max(50, Math.round(amountCents * PLATFORM_FEE_PERCENT))
-    sessionParams.subscription_data!.application_fee_percent = PLATFORM_FEE_PERCENT * 100
-    sessionParams.payment_intent_data = undefined
-    // For subscriptions, use transfer_data on subscription_data
-    ;(sessionParams.subscription_data as any).transfer_data = { destination: connectedAccountId }
-    ;(sessionParams.subscription_data as any).application_fee_percent = Math.round(platformFeeCents / amountCents * 100 * 100) / 100
+    sessionParams.subscription_data = {
+      ...sessionParams.subscription_data,
+      application_fee_percent: PLATFORM_FEE_PERCENT * 100,
+      transfer_data: { destination: connectedAccountId },
+    }
   }
 
   const session = await stripe.checkout.sessions.create(sessionParams)

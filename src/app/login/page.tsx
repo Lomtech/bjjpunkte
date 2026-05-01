@@ -64,6 +64,9 @@ export default function LoginPage() {
               className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
               placeholder="••••••••"
             />
+            <div className="mt-1 text-right">
+              <Link href="/auth/reset" className="text-xs text-slate-400 hover:text-slate-600">Passwort vergessen?</Link>
+            </div>
           </div>
 
           {error && (

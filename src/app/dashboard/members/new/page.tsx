@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Belt } from '@/types/database'
@@ -16,14 +16,18 @@ const BELT_CLASSES: Record<Belt, string> = {
   black:  'bg-slate-900 text-amber-400',
 }
 
-export default function NewMemberPage() {
+function NewMemberForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [parentMemberId, setParentMemberId] = useState('')
   const [allMembers, setAllMembers] = useState<{ id: string; first_name: string; last_name: string }[]>([])
   const [form, setForm] = useState({
-    first_name: '', last_name: '', email: '', phone: '',
+    first_name: searchParams.get('firstName') ?? '',
+    last_name: searchParams.get('lastName') ?? '',
+    email: searchParams.get('email') ?? '',
+    phone: '',
     date_of_birth: '', join_date: new Date().toISOString().split('T')[0],
     belt: 'white' as Belt, stripes: 0, notes: '',
     contract_end_date: '',
@@ -56,28 +60,19 @@ export default function NewMemberPage() {
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { data: gym } = await supabase.from('gyms').select('id').single()
-    if (!gym) { setError('Kein Gym gefunden'); setLoading(false); return }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('members') as any).insert({
-      gym_id: gym.id,
-      first_name: form.first_name,
-      last_name: form.last_name,
-      email: form.email || null,
-      phone: form.phone || null,
-      date_of_birth: form.date_of_birth || null,
-      join_date: form.join_date,
-      belt: form.belt,
-      stripes: form.stripes,
-      notes: form.notes || null,
-      contract_end_date: form.contract_end_date || null,
-      is_active: true,
-      parent_member_id: parentMemberId || null,
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/members', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ ...form, parent_member_id: parentMemberId || null }),
     })
-    if (error) { setError(error.message); setLoading(false); return }
-    router.push('/dashboard/members')
-    router.refresh()
+    if (!res.ok) {
+      const err = await res.json()
+      if (err.error === 'PLAN_LIMIT_REACHED') setError(`Limit erreicht (${err.limit} Mitglieder). Bitte Plan upgraden.`)
+      else setError(err.error ?? 'Fehler')
+      setLoading(false); return
+    }
+    router.push('/dashboard/members'); router.refresh()
   }
 
   return (
@@ -193,6 +188,14 @@ export default function NewMemberPage() {
         </div>
       </form>
     </div>
+  )
+}
+
+export default function NewMemberPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-400">Lädt…</div>}>
+      <NewMemberForm />
+    </Suspense>
   )
 }
 
