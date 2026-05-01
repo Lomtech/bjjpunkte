@@ -11,12 +11,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Logo */}
           <div className="px-4 py-5 border-b border-white/10">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-md bg-amber-500 flex items-center justify-center flex-shrink-0">
-                <span className="text-[10px] font-black text-white italic tracking-tight">oss</span>
+              {/* Logo icon */}
+              <div className="w-9 h-9 rounded-xl bg-[#0f172a] border border-amber-500/30 flex flex-col items-center justify-center flex-shrink-0 gap-0.5">
+                <span className="text-[11px] font-black text-amber-400 italic leading-none tracking-tight">oss</span>
+                <div className="flex gap-0.5">
+                  {[0,1,2].map(i => <div key={i} className="w-1 h-1 rounded-full bg-amber-500 opacity-70" />)}
+                </div>
               </div>
               <div className="min-w-0">
-                <p className="font-bold text-white text-sm leading-none tracking-wide">Osss</p>
-                <p className="text-xs text-white/35 mt-0.5">Gym-Software für BJJ</p>
+                <p className="font-black text-white text-base leading-none tracking-tight italic">Osss</p>
+                <p className="text-[10px] text-white/35 mt-0.5 tracking-wider uppercase">Gym Software</p>
               </div>
             </div>
           </div>

@@ -31,11 +31,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-slate-50">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500 mb-4 shadow-lg">
-            <span className="text-xl font-black text-white italic tracking-tight">oss</span>
+          {/* Logo icon */}
+          <div className="inline-flex flex-col items-center justify-center w-20 h-20 rounded-3xl bg-[#0f172a] shadow-xl mb-4 gap-1.5">
+            <span className="text-3xl font-black text-amber-400 italic tracking-tight leading-none">oss</span>
+            <div className="flex gap-1.5">
+              {[0,1,2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-amber-500 opacity-75" />)}
+            </div>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-wide">Osss</h1>
-          <p className="text-slate-500 mt-1 text-sm">Gym-Software für BJJ</p>
+          <h1 className="text-3xl font-black text-slate-900 italic tracking-tight">Osss</h1>
+          <p className="text-slate-500 mt-1 text-sm tracking-wide">Gym-Software für BJJ</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
