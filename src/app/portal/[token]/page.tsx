@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
-import { Calendar, CreditCard, Dumbbell, TrendingUp, Clock, CheckCircle, LogOut, BookOpen, Flame, Trophy, QrCode } from 'lucide-react'
+import { Calendar, CreditCard, Dumbbell, TrendingUp, Clock, CheckCircle, BookOpen, Flame, Trophy, QrCode } from 'lucide-react'
 
 interface UpcomingBooking {
   class_id: string
@@ -183,7 +183,6 @@ export default function MemberPortalPage() {
   // Attendance states keyed by class_id
   const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceState>>({})
   const [checkinLoading, setCheckinLoading] = useState<string | null>(null)
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
 
   // Training log
   const [logs, setLogs] = useState<TrainingLog[]>([])
@@ -271,19 +270,6 @@ export default function MemberPortalPage() {
     setCheckinLoading(null)
   }
 
-  async function handleCheckout(classId: string, attendanceId: string) {
-    setCheckoutLoading(classId)
-    await fetch(`/api/portal/${token}/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ attendanceId }),
-    })
-    setAttendanceMap(prev => ({
-      ...prev,
-      [classId]: { ...prev[classId], checkedOut: true },
-    }))
-    setCheckoutLoading(null)
-  }
 
   if (loading) {
     return (
@@ -500,30 +486,11 @@ export default function MemberPortalPage() {
                       </div>
                     )}
 
-                    {attendanceState && !attendanceState.checkedOut && (
+                    {attendanceState && (
                       <div className="mt-3 pt-3 border-t border-slate-200">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
-                            <CheckCircle size={14} />
-                            Eingecheckt
-                          </span>
-                          <button
-                            onClick={() => handleCheckout(cls.id, attendanceState.attendanceId)}
-                            disabled={checkoutLoading === cls.id}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition-colors disabled:opacity-50 flex items-center gap-1"
-                          >
-                            <LogOut size={11} />
-                            {checkoutLoading === cls.id ? '…' : 'Auschecken'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {attendanceState?.checkedOut && (
-                      <div className="mt-3 pt-3 border-t border-slate-200">
-                        <span className="text-sm text-slate-400 flex items-center gap-1.5">
+                        <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
                           <CheckCircle size={14} />
-                          Ausgecheckt
+                          Eingecheckt
                         </span>
                       </div>
                     )}
