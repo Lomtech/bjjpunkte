@@ -180,7 +180,7 @@ export default function PricingPage() {
             Alle Pläne beinhalten: DSGVO-konformes Datenschutz-Management, Stripe-Integration, kostenlose Updates.
           </p>
           <p className="text-slate-400 text-sm mt-2">
-            Fragen? <a href="mailto:support@osss.app" className="text-amber-600 hover:underline">support@osss.app</a>
+            Fragen? <a href="mailto:support@osss.pro" className="text-amber-600 hover:underline">support@osss.pro</a>
           </p>
         </div>
       </div>

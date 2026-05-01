@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
   const events = (classes ?? []).map((c: any) => [
     'BEGIN:VEVENT',
-    `UID:${c.id}@osss.app`,
+    `UID:${c.id}@osss.pro`,
     `DTSTAMP:${toIcalDate(new Date().toISOString())}`,
     `DTSTART:${toIcalDate(c.starts_at)}`,
     `DTEND:${toIcalDate(c.ends_at)}`,

@@ -295,7 +295,7 @@ export default function Home() {
           <div className="flex gap-5">
             <Link href="/pricing" className="hover:text-slate-700 transition-colors">Preise</Link>
             <Link href="/login" className="hover:text-slate-700 transition-colors">Login</Link>
-            <a href="mailto:support@osss.app" className="hover:text-slate-700 transition-colors">support@osss.app</a>
+            <a href="mailto:support@osss.pro" className="hover:text-slate-700 transition-colors">support@osss.pro</a>
           </div>
         </div>
       </footer>
