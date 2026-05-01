@@ -171,13 +171,13 @@ export default function MembersPage() {
                   const subStatus = m.subscription_status ?? 'none'
                   return (
                     <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-slate-900 text-sm">{m.first_name} {m.last_name}</span>
-                          {cs === 'expired' && <span title="Vertrag abgelaufen"><AlertTriangle size={12} className="text-red-500" /></span>}
-                          {cs === 'expiring' && <span title="Vertrag läuft ab"><AlertTriangle size={12} className="text-amber-500" /></span>}
+                      <td className="px-4 py-3.5 max-w-[180px]">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-medium text-slate-900 text-sm truncate">{m.first_name} {m.last_name}</span>
+                          {cs === 'expired' && <span title="Vertrag abgelaufen" className="flex-shrink-0"><AlertTriangle size={12} className="text-red-500" /></span>}
+                          {cs === 'expiring' && <span title="Vertrag läuft ab" className="flex-shrink-0"><AlertTriangle size={12} className="text-amber-500" /></span>}
                         </div>
-                        {m.email && <div className="text-xs text-slate-400">{m.email}</div>}
+                        {m.email && <div className="text-xs text-slate-400 truncate max-w-full">{m.email}</div>}
                       </td>
                       <td className="px-4 py-3.5"><BeltBadge belt={m.belt as Belt} stripes={m.stripes} /></td>
                       <td className="px-4 py-3.5 text-slate-500 text-sm">{new Date(m.join_date).toLocaleDateString('de-DE')}</td>

@@ -290,9 +290,9 @@ export default function MemberDetailPage() {
           <h2 className="font-semibold text-slate-900 mb-4">Letzte Trainings</h2>
           <div className="space-y-2">
             {attendance.map(a => (
-              <div key={a.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                <span className="text-slate-700 text-sm capitalize font-medium">{a.class_type}</span>
-                <span className="text-slate-400 text-sm">
+              <div key={a.id} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
+                <span className="text-slate-700 text-sm capitalize font-medium flex-1 min-w-0 truncate">{a.class_type}</span>
+                <span className="text-slate-400 text-xs flex-shrink-0 whitespace-nowrap">
                   {new Date(a.checked_in_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}
                   {' · '}
                   {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
@@ -308,9 +308,9 @@ export default function MemberDetailPage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-slate-900 font-semibold text-sm">{value}</p>
+    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm min-w-0 overflow-hidden">
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 truncate">{label}</p>
+      <p className="text-slate-900 font-semibold text-sm truncate">{value}</p>
     </div>
   )
 }

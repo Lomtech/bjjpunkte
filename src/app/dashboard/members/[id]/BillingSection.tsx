@@ -148,30 +148,26 @@ export function BillingSection({ memberId, gymId, memberEmail, memberName, subsc
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Zahlungshistorie</p>
           <div className="space-y-2">
             {payments.map(p => (
-              <div key={p.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${STATUS_COLORS[p.status] ?? STATUS_COLORS.pending}`}>
-                    {STATUS_LABELS[p.status] ?? p.status}
-                  </span>
-                  <span className="text-slate-700 text-sm font-medium">
-                    {(p.amount_cents / 100).toFixed(2).replace('.', ',')} €
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-slate-400 text-xs">
-                    {new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}
-                  </span>
-                  {p.status !== 'paid' && (
-                    <button
-                      onClick={() => deletePayment(p.id)}
-                      disabled={deletingId === p.id}
-                      title="Zahlung löschen"
-                      className="text-slate-300 hover:text-red-400 transition-colors disabled:opacity-40"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
+              <div key={p.id} className="flex items-center gap-2 py-2 border-b border-slate-100 last:border-0">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${STATUS_COLORS[p.status] ?? STATUS_COLORS.pending}`}>
+                  {STATUS_LABELS[p.status] ?? p.status}
+                </span>
+                <span className="text-slate-700 text-sm font-semibold flex-shrink-0">
+                  {(p.amount_cents / 100).toFixed(2).replace('.', ',')} €
+                </span>
+                <span className="text-slate-400 text-xs flex-1 min-w-0 text-right truncate">
+                  {new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}
+                </span>
+                {p.status !== 'paid' && (
+                  <button
+                    onClick={() => deletePayment(p.id)}
+                    disabled={deletingId === p.id}
+                    title="Zahlung löschen"
+                    className="text-slate-300 hover:text-red-400 transition-colors disabled:opacity-40 flex-shrink-0"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
             ))}
           </div>

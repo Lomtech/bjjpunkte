@@ -89,9 +89,9 @@ export default function AttendancePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="text-right">
-                        <p className="text-slate-500 text-xs">{new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</p>
-                        <p className="text-slate-400 text-xs capitalize">{a.class_type}</p>
+                      <div className="text-right max-w-[90px]">
+                        <p className="text-slate-500 text-xs whitespace-nowrap">{new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-slate-400 text-xs capitalize truncate">{a.class_type}</p>
                       </div>
                       <button onClick={() => deleteAttendance(a.id)} disabled={deletingId === a.id}
                         className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-400 transition-all disabled:opacity-40 touch-manipulation"
