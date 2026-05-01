@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
-// Uses anon key + SECURITY DEFINER RPC function to bypass RLS
-// Stripe signature is validated before any DB call — this is safe
-function anonClient() {
+// Uses service role key — Stripe signature is validated before any DB call
+function adminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
 
@@ -30,7 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Webhook-Signatur ungültig' }, { status: 400 })
   }
 
-  const supabase = anonClient()
+  const supabase = adminClient()
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
@@ -96,18 +95,10 @@ export async function POST(req: Request) {
 
   if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as Stripe.PaymentIntent
-
-    const { data: payment } = await supabase
+    await supabase
       .from('payments')
-      .select('member_id')
+      .update({ status: 'failed' })
       .eq('stripe_payment_intent_id', pi.id)
-      .single()
-
-    await supabase.rpc('handle_stripe_payment', {
-      p_payment_intent_id: pi.id,
-      p_status: 'failed',
-      p_member_id: (payment as { member_id: string } | null)?.member_id ?? null,
-    })
   }
 
   // ── Subscription events ────────────────────────────────────────────────────

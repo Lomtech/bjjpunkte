@@ -91,13 +91,33 @@ export default function ImportPage() {
     setImporting(true)
     setError('')
     const supabase = createClient()
-    const { data: gym } = await supabase.from('gyms').select('id').single()
+    const { data: gym } = await (supabase.from('gyms') as any).select('id, plan_member_limit').single()
     if (!gym) { setError('Kein Gym gefunden'); setImporting(false); return }
+
+    const limit: number = (gym as any).plan_member_limit ?? 30
+    const { count: activeCount } = await supabase
+      .from('members')
+      .select('*', { count: 'exact', head: true })
+      .eq('gym_id', gym.id)
+      .eq('is_active', true)
+
+    const available = limit - (activeCount ?? 0)
+    if (available <= 0) {
+      setError(`Plan-Limit erreicht (${limit} Mitglieder). Upgrade nötig.`)
+      setImporting(false)
+      return
+    }
+
+    const rowsToImport = validRows.slice(0, available)
+    const skipped = validRows.length - rowsToImport.length
+    if (skipped > 0) {
+      setError(`Nur ${available} von ${validRows.length} Mitgliedern importiert — Plan-Limit (${limit}) erreicht.`)
+    }
 
     let success = 0
     let failed = 0
 
-    for (const row of validRows) {
+    for (const row of rowsToImport) {
       const { error: insertError } = await supabase.from('members').insert({
         gym_id: gym.id,
         first_name: row.first_name,

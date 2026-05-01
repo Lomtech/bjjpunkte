@@ -84,7 +84,7 @@ export default function DashboardPage() {
         supabase.from('attendance').select('id, checked_in_at, class_type, member_id').eq('gym_id', gym.id).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),
         supabase.from('belt_promotions').select('id, new_belt, new_stripes, promoted_at, member_id').eq('gym_id', gym.id).order('promoted_at', { ascending: false }).limit(5),
         supabase.from('members').select('belt').eq('gym_id', gym.id).eq('is_active', true),
-        supabase.from('members').select('id, first_name, last_name').eq('gym_id', gym.id),
+        supabase.from('members').select('id, first_name, last_name').eq('gym_id', gym.id).eq('is_active', true),
         supabase.from('members').select('id, first_name, last_name, date_of_birth').eq('gym_id', gym.id).eq('is_active', true).not('date_of_birth', 'is', null),
         supabase.from('members').select('id, contract_end_date').eq('gym_id', gym.id).eq('is_active', true).not('contract_end_date', 'is', null).lte('contract_end_date', in30),
         supabase.from('payments').select('amount_cents').eq('gym_id', gym.id).eq('status', 'paid').gte('paid_at', startOfMonth),
