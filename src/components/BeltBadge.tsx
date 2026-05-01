@@ -1,11 +1,10 @@
-import type { Belt } from '@/types/database'
 import type { BeltSystem } from '@/lib/belt-system'
 import { DEFAULT_BELT_SYSTEM, getBeltSlot } from '@/lib/belt-system'
 
 export function BeltBadge({
   belt, stripes, beltSystem,
 }: {
-  belt: Belt
+  belt: string
   stripes: number
   beltSystem?: BeltSystem
 }) {

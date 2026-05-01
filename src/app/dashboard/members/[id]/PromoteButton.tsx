@@ -4,43 +4,42 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BeltBadge } from '@/components/BeltBadge'
 import { ArrowRight, Award } from 'lucide-react'
-import type { Belt } from '@/types/database'
 import type { BeltSystem } from '@/lib/belt-system'
 import { DEFAULT_BELT_SYSTEM, getBeltSlot } from '@/lib/belt-system'
-
-const BELT_KEYS: Belt[] = ['white', 'blue', 'purple', 'brown', 'black']
 
 export function PromoteButton({
   memberId, gymId, currentBelt, currentStripes, onPromoted, beltSystem,
 }: {
-  memberId: string; gymId: string; currentBelt: Belt; currentStripes: number
-  onPromoted?: (belt: Belt, stripes: number) => void
+  memberId: string; gymId: string; currentBelt: string; currentStripes: number
+  onPromoted?: (belt: string, stripes: number) => void
   beltSystem?: BeltSystem
 }) {
   const system = beltSystem ?? DEFAULT_BELT_SYSTEM
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  function nextPromotion(): { belt: Belt; stripes: number } {
+  const currentIdx = system.findIndex(s => s.key === currentBelt)
+  const isMax = currentIdx === system.length - 1 && currentStripes === 4
+
+  function nextPromotion(): { belt: string; stripes: number } {
     if (currentStripes < 4) return { belt: currentBelt, stripes: currentStripes + 1 }
-    const nextIdx = BELT_KEYS.indexOf(currentBelt) + 1
-    if (nextIdx >= BELT_KEYS.length) return { belt: currentBelt, stripes: currentStripes }
-    return { belt: BELT_KEYS[nextIdx], stripes: 0 }
+    const nextIdx = currentIdx + 1
+    if (nextIdx >= system.length) return { belt: currentBelt, stripes: currentStripes }
+    return { belt: system[nextIdx].key, stripes: 0 }
   }
 
   const next = nextPromotion()
-  const isMax = currentBelt === 'black' && currentStripes === 4
   const isBeltChange = next.belt !== currentBelt
 
   async function promote() {
     setLoading(true)
     const supabase = createClient()
-    await supabase.from('belt_promotions').insert({
+    await (supabase.from('belt_promotions') as any).insert({
       member_id: memberId, gym_id: gymId,
       previous_belt: currentBelt, previous_stripes: currentStripes,
       new_belt: next.belt, new_stripes: next.stripes,
     })
-    await supabase.from('members').update({ belt: next.belt, stripes: next.stripes }).eq('id', memberId)
+    await (supabase.from('members') as any).update({ belt: next.belt, stripes: next.stripes }).eq('id', memberId)
     setSuccess(true)
     setLoading(false)
     setTimeout(() => {
@@ -50,7 +49,7 @@ export function PromoteButton({
   }
 
   if (isMax) {
-    return <p className="text-slate-400 text-sm">{getBeltSlot(system, 'black').label} Belt, 4 Stripes – maximales Level erreicht.</p>
+    return <p className="text-slate-400 text-sm">{getBeltSlot(system, currentBelt).label} Belt, 4 Stripes – maximales Level erreicht.</p>
   }
 
   return (

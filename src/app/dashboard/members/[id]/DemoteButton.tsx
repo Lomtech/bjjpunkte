@@ -4,17 +4,14 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BeltBadge } from '@/components/BeltBadge'
 import { ArrowLeft, ChevronDown } from 'lucide-react'
-import type { Belt } from '@/types/database'
 import type { BeltSystem } from '@/lib/belt-system'
 import { DEFAULT_BELT_SYSTEM, getBeltSlot } from '@/lib/belt-system'
-
-const BELT_KEYS: Belt[] = ['white', 'blue', 'purple', 'brown', 'black']
 
 export function DemoteButton({
   memberId, gymId, currentBelt, currentStripes, onDemoted, beltSystem,
 }: {
-  memberId: string; gymId: string; currentBelt: Belt; currentStripes: number
-  onDemoted?: (belt: Belt, stripes: number) => void
+  memberId: string; gymId: string; currentBelt: string; currentStripes: number
+  onDemoted?: (belt: string, stripes: number) => void
   beltSystem?: BeltSystem
 }) {
   const system = beltSystem ?? DEFAULT_BELT_SYSTEM
@@ -22,11 +19,14 @@ export function DemoteButton({
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  function prevPromotion(): { belt: Belt; stripes: number } | null {
-    if (currentBelt === 'white' && currentStripes === 0) return null
+  const currentIdx = system.findIndex(s => s.key === currentBelt)
+
+  function prevPromotion(): { belt: string; stripes: number } | null {
+    if (currentIdx === 0 && currentStripes === 0) return null
     if (currentStripes > 0) return { belt: currentBelt, stripes: currentStripes - 1 }
-    const prevIdx = BELT_KEYS.indexOf(currentBelt) - 1
-    return { belt: BELT_KEYS[prevIdx], stripes: 4 }
+    const prevIdx = currentIdx - 1
+    if (prevIdx < 0) return null
+    return { belt: system[prevIdx].key, stripes: 4 }
   }
 
   const prev = prevPromotion()
@@ -37,12 +37,12 @@ export function DemoteButton({
     if (!prev) return
     setLoading(true)
     const supabase = createClient()
-    await supabase.from('belt_promotions').insert({
+    await (supabase.from('belt_promotions') as any).insert({
       member_id: memberId, gym_id: gymId,
       previous_belt: currentBelt, previous_stripes: currentStripes,
       new_belt: prev.belt, new_stripes: prev.stripes,
     })
-    await supabase.from('members').update({ belt: prev.belt, stripes: prev.stripes }).eq('id', memberId)
+    await (supabase.from('members') as any).update({ belt: prev.belt, stripes: prev.stripes }).eq('id', memberId)
     setSuccess(true)
     setLoading(false)
     setOpen(false)

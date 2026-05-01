@@ -182,7 +182,7 @@ export default function MemberDetailPage() {
     setDeletingPromoId(null)
   }
 
-  function handlePromoted(belt: Belt, stripes: number) {
+  function handlePromoted(belt: string, stripes: number) {
     setMember(m => m ? { ...m, belt: belt as string, stripes } : m)
   }
 
@@ -197,7 +197,7 @@ export default function MemberDetailPage() {
     else { const d = await res.json(); alert(d.error); setDeletingMember(false) }
   }
 
-  function handleDemoted(belt: Belt, stripes: number) {
+  function handleDemoted(belt: string, stripes: number) {
     setMember(m => m ? { ...m, belt: belt as string, stripes } : m)
     // Reload promotions to show new demotion entry
     const supabase = createClient()
