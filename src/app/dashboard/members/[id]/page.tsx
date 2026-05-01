@@ -89,17 +89,19 @@ export default function MemberDetailPage() {
   const [deletingMember, setDeletingMember]   = useState(false)
   const [parentInfo, setParentInfo] = useState<{ id: string; first_name: string; last_name: string } | null>(null)
   const [children, setChildren] = useState<{ id: string; first_name: string; last_name: string }[]>([])
-  const [beltSystem, setBeltSystem] = useState<BeltSystem | undefined>(undefined)
+  const [beltSystem, setBeltSystem]   = useState<BeltSystem | undefined>(undefined)
+  const [beltEnabled, setBeltEnabled] = useState(true)
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system, belt_system_enabled').single()
       if (!gym) { setLoading(false); return }
 
       setGymId(gym.id)
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
+      setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
 
       const { data: memberData } = await supabase
         .from('members').select('*').eq('id', id).eq('gym_id', gym.id).single()
@@ -237,7 +239,7 @@ export default function MemberDetailPage() {
               </Link>
             </div>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />
+              {beltEnabled && <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />}
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
                 member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-400 border-slate-200'
               }`}>
@@ -339,22 +341,24 @@ export default function MemberDetailPage() {
         </div>
       )}
 
-      {/* Belt Promotion */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-slate-900">Belt-Promotion</h2>
-          <DemoteButton
+      {/* Belt Promotion — hidden when belt system disabled */}
+      {beltEnabled && (
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-slate-900">Belt-Promotion</h2>
+            <DemoteButton
+              memberId={member.id} gymId={gymId}
+              currentBelt={member.belt as Belt} currentStripes={member.stripes}
+              onDemoted={handleDemoted} beltSystem={beltSystem}
+            />
+          </div>
+          <PromoteButton
             memberId={member.id} gymId={gymId}
             currentBelt={member.belt as Belt} currentStripes={member.stripes}
-            onDemoted={handleDemoted} beltSystem={beltSystem}
+            onPromoted={handlePromoted} beltSystem={beltSystem}
           />
         </div>
-        <PromoteButton
-          memberId={member.id} gymId={gymId}
-          currentBelt={member.belt as Belt} currentStripes={member.stripes}
-          onPromoted={handlePromoted} beltSystem={beltSystem}
-        />
-      </div>
+      )}
 
       {/* Billing */}
       <BillingSection

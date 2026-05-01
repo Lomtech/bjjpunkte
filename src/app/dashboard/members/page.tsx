@@ -61,6 +61,7 @@ export default function MembersPage() {
   const [gymId, setGymId]                   = useState('')
   const [monthlyFeeCents, setMonthlyFeeCents] = useState(0)
   const [beltSystem, setBeltSystem]         = useState<BeltSystem | undefined>(undefined)
+  const [beltEnabled, setBeltEnabled]       = useState(true)
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
   const [bulkLoading, setBulkLoading]       = useState(false)
   const [bulkResult, setBulkResult]         = useState<string | null>(null)
@@ -74,11 +75,12 @@ export default function MembersPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system, belt_system_enabled').single()
       if (!gym) { setLoading(false); return }
       setGymId(gym.id)
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
+      setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
       const { data } = await supabase
         .from('members')
         .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token')
@@ -269,7 +271,7 @@ export default function MembersPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Gürtel</th>
+                  {beltEnabled && <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Gürtel</th>}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Seit</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Beitrag</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
@@ -291,7 +293,7 @@ export default function MembersPage() {
                         </div>
                         {m.email && <div className="text-xs text-slate-400 truncate max-w-full">{m.email}</div>}
                       </td>
-                      <td className="px-4 py-3.5"><BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} /></td>
+                      {beltEnabled && <td className="px-4 py-3.5"><BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} /></td>}
                       <td className="px-4 py-3.5 text-slate-500 text-sm">{new Date(m.join_date).toLocaleDateString('de-DE')}</td>
                       <td className="px-4 py-3.5">
                         {feeCents > 0 ? (
@@ -348,7 +350,7 @@ export default function MembersPage() {
                       {cs === 'expiring' && <AlertTriangle size={12} className="text-amber-500 flex-shrink-0" />}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} />
+                      {beltEnabled && <BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} />}
                       {feeCents > 0 && subStatus !== 'none' && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SUB_COLORS[subStatus]}`}>
                           {SUB_LABELS[subStatus]}

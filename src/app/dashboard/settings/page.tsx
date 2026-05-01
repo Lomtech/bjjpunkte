@@ -9,7 +9,7 @@ import {
   Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
   Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
 } from 'lucide-react'
-import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, type BeltSystem, type SportType } from '@/lib/belt-system'
+import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 
 type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge'
 
@@ -81,10 +81,11 @@ export default function SettingsPage() {
   const [classTypesSaved, setClassTypesSaved]   = useState(false)
 
   // Belt System
-  const [beltSlots, setBeltSlots]     = useState<BeltSystem>(DEFAULT_BELT_SYSTEM)
-  const [beltSaving, setBeltSaving]   = useState(false)
-  const [beltSaved, setBeltSaved]     = useState(false)
-  const [sportType, setSportType]     = useState<SportType>('bjj')
+  const [beltSlots, setBeltSlots]         = useState<BeltSystem>(DEFAULT_BELT_SYSTEM)
+  const [beltSaving, setBeltSaving]       = useState(false)
+  const [beltSaved, setBeltSaved]         = useState(false)
+  const [sportType, setSportType]         = useState<SportType>('bjj')
+  const [beltEnabled, setBeltEnabled]     = useState(true)
 
   // Invoice & Tax
   const [taxNumber, setTaxNumber]                   = useState('')
@@ -153,6 +154,7 @@ export default function SettingsPage() {
         if (Array.isArray(rawClassTypes)) setClassTypesInput(rawClassTypes.join(', '))
         const savedSport = (data as any)?.sport_type as SportType | undefined
         if (savedSport) setSportType(savedSport)
+        setBeltEnabled((data as any)?.belt_system_enabled ?? true)
         setBeltSlots(resolveBeltSystem((data as any)?.belt_system))
         setGymPlan((data as any)?.plan ?? 'free')
         setPlanLimit((data as any)?.plan_member_limit ?? 30)
@@ -289,7 +291,7 @@ export default function SettingsPage() {
     setBeltSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({ belt_system: beltSlots, sport_type: sportType }).eq('owner_id', user?.id ?? '')
+    await (supabase.from('gyms') as any).update({ belt_system: beltSlots, sport_type: sportType, belt_system_enabled: beltEnabled }).eq('owner_id', user?.id ?? '')
     setBeltSaving(false); setBeltSaved(true); setTimeout(() => setBeltSaved(false), 2000)
   }
 
@@ -790,20 +792,30 @@ export default function SettingsPage() {
               {/* Sport type selector */}
               <div>
                 <p className="text-xs font-medium text-slate-600 mb-2">Sportart</p>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-4 gap-1.5 mb-1.5">
                   {([
-                    { id: 'bjj',    label: 'BJJ' },
-                    { id: 'judo',   label: 'Judo' },
-                    { id: 'karate', label: 'Karate' },
-                    { id: 'custom', label: 'Eigene' },
-                  ] as { id: SportType; label: string }[]).map(sport => (
+                    { id: 'bjj',       label: 'BJJ',       belt: true  },
+                    { id: 'judo',      label: 'Judo',      belt: true  },
+                    { id: 'karate',    label: 'Karate',    belt: true  },
+                    { id: 'taekwondo', label: 'Taekwondo', belt: true  },
+                    { id: 'mma',       label: 'MMA',       belt: false },
+                    { id: 'muaythai',  label: 'Muay Thai', belt: false },
+                    { id: 'boxing',    label: 'Boxen',     belt: false },
+                    { id: 'wrestling', label: 'Ringen',    belt: false },
+                    { id: 'custom',    label: 'Eigene',    belt: null  },
+                  ] as { id: SportType; label: string; belt: boolean | null }[]).map(sport => (
                     <button
                       key={sport.id}
                       type="button"
                       onClick={() => {
                         setSportType(sport.id)
-                        if (sport.id !== 'custom') {
-                          setBeltSlots(SPORT_PRESETS[sport.id])
+                        if (sport.belt === false) {
+                          setBeltEnabled(false)
+                        } else if (sport.belt === true) {
+                          setBeltEnabled(true)
+                          if (sport.id !== 'custom' && sport.id in SPORT_PRESETS) {
+                            setBeltSlots(SPORT_PRESETS[sport.id as keyof typeof SPORT_PRESETS])
+                          }
                         }
                       }}
                       className={`py-2 rounded-lg text-xs font-semibold transition-all border ${
@@ -816,15 +828,36 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-slate-400 mt-2">
-                  {sportType === 'custom'
-                    ? 'Eigene Stufen frei definierbar — füge Stufen hinzu oder entferne sie.'
-                    : 'Vorkonfigurierts System — du kannst Bezeichnungen und Farben noch anpassen.'}
+                <p className="text-xs text-slate-400 mt-1">
+                  {isBeltFreeSport(sportType)
+                    ? 'Ohne Gürtelsystem — Belt-Tracking im Dashboard deaktiviert.'
+                    : sportType === 'custom'
+                      ? 'Eigene Stufen frei definierbar — füge Stufen hinzu oder entferne sie.'
+                      : 'Vorkonfiguriertes System — Bezeichnungen und Farben noch anpassbar.'}
                 </p>
               </div>
 
-              {/* Belt slot rows */}
-              <div className="space-y-2">
+              {/* Belt enabled toggle */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Gürtelsystem aktiv</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {beltEnabled ? 'Gürtel & Promotions werden im Dashboard angezeigt.' : 'Belt-Tracking deaktiviert — nur Mitglieder & Anwesenheit.'}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setBeltEnabled(v => !v)}
+                  className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${beltEnabled ? 'bg-amber-500' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${beltEnabled ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+
+              {/* Belt slot rows — only when enabled */}
+              {!beltEnabled && (
+                <div className="text-center py-6 text-slate-400 text-sm">
+                  Gürtelsystem deaktiviert. Schalte es oben ein um Stufen zu konfigurieren.
+                </div>
+              )}
+              <div className={`space-y-2 ${!beltEnabled ? 'opacity-30 pointer-events-none' : ''}`}>
                 {beltSlots.map((slot, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <span className="text-xs text-slate-400 w-4 text-right flex-shrink-0">{i + 1}.</span>
