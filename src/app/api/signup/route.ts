@@ -3,10 +3,10 @@ import { createClient } from '@supabase/supabase-js'
 
 // Uses service role to bypass RLS — safe because we validate the signup_token
 function serviceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error('Server nicht konfiguriert (Umgebungsvariablen fehlen)')
+  return createClient(url, key)
 }
 
 export async function GET(req: Request) {
@@ -14,7 +14,11 @@ export async function GET(req: Request) {
   const token = searchParams.get('token')
   if (!token) return NextResponse.json({ error: 'Token fehlt' }, { status: 400 })
 
-  const supabase = serviceClient()
+  let supabase
+  try { supabase = serviceClient() }
+  catch (e: unknown) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 503 })
+  }
   const { data: gym, error } = await supabase
     .from('gyms')
     .select('id, name, contract_template, signup_enabled')
@@ -45,7 +49,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Pflichtfelder fehlen' }, { status: 400 })
   }
 
-  const supabase = serviceClient()
+  let supabase
+  try { supabase = serviceClient() }
+  catch (e: unknown) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 503 })
+  }
 
   // Validate token still matches this gym and signup is enabled
   const { data: gym } = await supabase

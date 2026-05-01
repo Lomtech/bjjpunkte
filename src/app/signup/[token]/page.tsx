@@ -134,12 +134,17 @@ export default function SignupPage() {
   // Load gym info
   useEffect(() => {
     fetch(`/api/signup?token=${encodeURIComponent(token)}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.error) setLoadErr(data.error)
-        else setGymInfo(data)
+      .then(async r => {
+        const text = await r.text()
+        try {
+          const data = JSON.parse(text)
+          if (data.error) setLoadErr(data.error)
+          else setGymInfo(data)
+        } catch {
+          setLoadErr(`Serverfehler (${r.status}) – bitte kontaktiere das Gym direkt.`)
+        }
       })
-      .catch(() => setLoadErr('Verbindungsfehler'))
+      .catch(() => setLoadErr('Verbindungsfehler – bitte Internetverbindung prüfen.'))
       .finally(() => setLoading(false))
   }, [token])
 
@@ -199,7 +204,9 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <div className="text-center max-w-sm">
         <AlertCircle size={40} className="text-red-400 mx-auto mb-3" />
-        <h2 className="font-bold text-slate-900 text-lg mb-2">Link ungültig</h2>
+        <h2 className="font-bold text-slate-900 text-lg mb-2">
+          {loadErr.includes('deaktiviert') ? 'Anmeldung deaktiviert' : 'Link ungültig'}
+        </h2>
         <p className="text-slate-500 text-sm">{loadErr}</p>
       </div>
     </div>
