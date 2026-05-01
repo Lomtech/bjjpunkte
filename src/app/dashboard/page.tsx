@@ -14,6 +14,7 @@ interface AttendanceRow   { id: string; checked_in_at: string; class_type: strin
 interface PromotionRow    { id: string; new_belt: string; new_stripes: number; promoted_at: string; member_id: string }
 interface MemberBirthday  { id: string; first_name: string; last_name: string; date_of_birth: string }
 interface PaymentRow      { id: string; member_id: string; amount_cents: number; paid_at: string | null; status: string }
+interface ChurnMember     { id: string; first_name: string; last_name: string; last_seen: string; days_ago: number }
 
 function formatCents(c: number) {
   return (c / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
@@ -50,6 +51,7 @@ export default function DashboardPage() {
   const [recentPayments, setRecentPayments] = useState<PaymentRow[]>([])
   const [topAttenders, setTopAttenders]     = useState<{ member_id: string; count: number }[]>([])
   const [memberPayStatus, setMemberPayStatus] = useState<Map<string, 'paid' | 'pending' | 'never'>>(new Map())
+  const [churnRisk, setChurnRisk]           = useState<ChurnMember[]>([])
 
   useEffect(() => {
     async function load() {
@@ -61,6 +63,7 @@ export default function DashboardPage() {
       const in30         = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
 
       const [
         { count: total },
@@ -74,6 +77,7 @@ export default function DashboardPage() {
         { data: monthPayments },
         { data: allPayments },
         { data: monthAttendance },
+        { data: allAttendance },
       ] = await Promise.all([
         supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id),
         supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id).eq('is_active', true),
@@ -86,6 +90,9 @@ export default function DashboardPage() {
         supabase.from('payments').select('amount_cents').eq('gym_id', gym.id).eq('status', 'paid').gte('paid_at', startOfMonth),
         supabase.from('payments').select('id, member_id, amount_cents, paid_at, status').eq('gym_id', gym.id).order('paid_at', { ascending: false }).limit(20),
         supabase.from('attendance').select('member_id').eq('gym_id', gym.id).gte('checked_in_at', startOfMonth),
+        // Last attendance per active member (for churn detection)
+        supabase.from('attendance').select('member_id, checked_in_at').eq('gym_id', gym.id)
+          .order('checked_in_at', { ascending: false }).limit(500),
       ])
 
       setTotalMembers(total ?? 0)
@@ -129,6 +136,24 @@ export default function DashboardPage() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5)
       setTopAttenders(sorted)
+
+      // Churn risk: active members who haven't trained in 14+ days
+      // Build last-seen map from recent attendance
+      const lastSeenMap = new Map<string, string>()
+      for (const row of (allAttendance ?? []) as { member_id: string; checked_in_at: string }[]) {
+        if (!lastSeenMap.has(row.member_id)) lastSeenMap.set(row.member_id, row.checked_in_at)
+      }
+      const churnList: ChurnMember[] = []
+      for (const m of (membersList ?? []) as { id: string; first_name: string; last_name: string }[]) {
+        const lastSeen = lastSeenMap.get(m.id)
+        if (!lastSeen || lastSeen < fourteenDaysAgo) {
+          const daysAgo = lastSeen
+            ? Math.floor((Date.now() - new Date(lastSeen).getTime()) / 86400000)
+            : 999
+          churnList.push({ id: m.id, first_name: m.first_name, last_name: m.last_name, last_seen: lastSeen ?? '', days_ago: daysAgo })
+        }
+      }
+      setChurnRisk(churnList.sort((a, b) => b.days_ago - a.days_ago).slice(0, 8))
 
       setLoading(false)
     }
@@ -344,6 +369,39 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Churn Risk */}
+      {churnRisk.length > 0 && (
+        <div className="bg-white rounded-xl p-5 border border-amber-100 shadow-sm mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <AlertCircle size={13} className="text-amber-500" /> Abwesenheits-Warnung
+            </h2>
+            <span className="text-xs text-slate-400">{churnRisk.length} Mitglieder · 14+ Tage weg</span>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {churnRisk.map(m => (
+              <Link key={m.id} href={`/dashboard/members/${m.id}`}
+                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-amber-50 hover:border-amber-200 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-amber-600">{m.first_name[0]}{m.last_name[0]}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">{m.first_name} {m.last_name}</p>
+                  <p className="text-xs text-slate-400">
+                    {m.days_ago >= 999 ? 'Noch nie eingecheckt' : `${m.days_ago} Tage nicht da`}
+                  </p>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                  m.days_ago >= 30 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'
+                }`}>
+                  {m.days_ago >= 999 ? 'Neu' : `${m.days_ago}d`}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Birthdays */}
       {birthdayMembers.length > 0 && (

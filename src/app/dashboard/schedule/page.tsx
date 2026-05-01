@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw, UserCheck, Search } from 'lucide-react'
 import { NewClassModal } from './NewClassModal'
@@ -75,36 +75,62 @@ export default function SchedulePage() {
   const [checkingIn, setCheckingIn]       = useState<string | null>(null)
   const [checkedIn, setCheckedIn]         = useState<Set<string>>(new Set())
 
-  const loadClasses = useCallback(async (token: string, from: Date) => {
+  // Refs so loadClasses can access gymId without stale closure
+  const gymIdRef       = useRef('')
+  const initializedRef = useRef(false)
+
+  const loadClasses = useCallback(async (from: Date) => {
+    const gId = gymIdRef.current
+    if (!gId) return
     setLoading(true)
-    const res = await fetch(`/api/classes?from=${encodeURIComponent(from.toISOString())}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any).rpc('get_classes_for_gym', {
+      p_gym_id: gId,
+      p_from: from.toISOString(),
     })
-    if (res.ok) setClasses(await res.json())
+    setClasses(data ?? [])
     setLoading(false)
   }, [])
 
+  // Initial load: session + gym + classes + members all in parallel
   useEffect(() => {
-    createClient().auth.getSession().then(async ({ data: { session } }) => {
+    async function init() {
+      const supabase = createClient()
+      // Batch 1: session and gym in parallel
+      const [{ data: { session } }, { data: gym }] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.from('gyms').select('id').single(),
+      ])
       const tok = session?.access_token ?? ''
       setAccessToken(tok)
-      loadClasses(tok, startOfWeek(new Date()))
+      if (!gym) { setLoading(false); return }
+      const gId = (gym as { id: string }).id
+      gymIdRef.current = gId
+      setGymId(gId)
+      // Batch 2: classes and members in parallel
+      const [classesRes, membersRes] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).rpc('get_classes_for_gym', {
+          p_gym_id: gId,
+          p_from: startOfWeek(new Date()).toISOString(),
+        }),
+        supabase.from('members')
+          .select('id, first_name, last_name')
+          .eq('gym_id', gId).eq('is_active', true).order('last_name'),
+      ])
+      setClasses(classesRes.data ?? [])
+      setGymMembers((membersRes.data as GymMember[]) ?? [])
+      setLoading(false)
+      initializedRef.current = true
+    }
+    init()
+  }, []) // run once
 
-      // Load gym + members for check-in
-      const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id').single()
-      if (gym) {
-        setGymId(gym.id)
-        const { data: members } = await supabase
-          .from('members').select('id, first_name, last_name')
-          .eq('gym_id', gym.id).eq('is_active', true).order('last_name')
-        setGymMembers((members as GymMember[]) ?? [])
-      }
-    })
-  }, [loadClasses])
-
+  // Reload when week changes (skip first run — init already loaded)
   useEffect(() => {
-    if (accessToken) loadClasses(accessToken, weekStart)
+    if (!initializedRef.current) return
+    loadClasses(weekStart)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekStart])
 
@@ -121,7 +147,7 @@ export default function SchedulePage() {
       method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` },
     })
     setCancellingId(null); setExpandedId(null)
-    loadClasses(accessToken, weekStart)
+    loadClasses(weekStart)
   }
 
   async function loadRoster(classId: string) {
@@ -314,13 +340,13 @@ export default function SchedulePage() {
       {showModal && (
         <NewClassModal defaultDate={modalDate} accessToken={accessToken}
           onClose={() => setShowModal(false)}
-          onCreated={() => { setShowModal(false); loadClasses(accessToken, weekStart) }}
+          onCreated={() => { setShowModal(false); loadClasses(weekStart) }}
         />
       )}
       {editingClass && (
         <EditClassModal cls={editingClass} accessToken={accessToken}
           onClose={() => setEditingClass(null)}
-          onSaved={() => { setEditingClass(null); loadClasses(accessToken, weekStart) }}
+          onSaved={() => { setEditingClass(null); loadClasses(weekStart) }}
         />
       )}
     </div>

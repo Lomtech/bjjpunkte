@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail } from 'lucide-react'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 
@@ -75,6 +75,11 @@ export default function MembersPage() {
   const inactive = members.filter(m => !m.is_active)
   const activeWithEmail = active.filter(m => m.email)
 
+  function handleEmailAll() {
+    const emails = activeWithEmail.map(m => m.email).join(',')
+    window.open(`mailto:${emails}?subject=Information%20von%20eurem%20Gym`, '_blank')
+  }
+
   async function handleBulkCheckout() {
     setBulkLoading(true); setBulkResult(null)
     try {
@@ -105,6 +110,11 @@ export default function MembersPage() {
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
             <Upload size={14} /> CSV
           </Link>
+          <button onClick={handleEmailAll}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors"
+            title={`E-Mail an ${activeWithEmail.length} Mitglieder`}>
+            <Mail size={14} /> E-Mail
+          </button>
           <button onClick={() => setShowBulkConfirm(true)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium text-sm transition-colors border border-amber-200">
             Alle anfordern

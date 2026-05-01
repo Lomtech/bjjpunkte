@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CheckInForm } from './CheckInForm'
 import { BeltBadge } from '@/components/BeltBadge'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Tablet } from 'lucide-react'
+import Link from 'next/link'
 import type { Belt } from '@/types/database'
 
 interface AttendanceEntry { id: string; checked_in_at: string; class_type: string; member_id: string }
@@ -55,11 +56,17 @@ export default function AttendancePage() {
 
   return (
     <div className="p-4 md:p-6">
-      <div className="mb-5">
-        <h1 className="text-xl font-bold text-slate-900">Anwesenheit</h1>
-        <p className="text-slate-400 text-xs mt-0.5">
-          {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })} · {todayLog.length} heute
-        </p>
+      <div className="flex items-start justify-between mb-5 gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-slate-900">Anwesenheit</h1>
+          <p className="text-slate-400 text-xs mt-0.5">
+            {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })} · {todayLog.length} heute
+          </p>
+        </div>
+        <Link href="/dashboard/attendance/kiosk"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold flex-shrink-0 transition-colors">
+          <Tablet size={14} /> Kiosk
+        </Link>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">

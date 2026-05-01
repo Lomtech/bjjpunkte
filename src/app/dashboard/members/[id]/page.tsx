@@ -194,7 +194,11 @@ export default function MemberDetailPage() {
               )}
             </div>
           </div>
-          <ToggleActiveButton memberId={member.id} isActive={member.is_active} />
+          <ToggleActiveButton
+            memberId={member.id}
+            isActive={member.is_active}
+            onToggled={active => setMember(m => m ? { ...m, is_active: active } : m)}
+          />
         </div>
       </div>
 
