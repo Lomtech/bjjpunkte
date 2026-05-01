@@ -18,6 +18,17 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee {
+  display: flex;
+  animation: marquee 20s linear infinite;
+  width: max-content;
+}
+.animate-marquee:hover { animation-play-state: paused; }
+
 .belt-white   { background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; }
 .belt-blue    { background: #1d4ed8; color: #ffffff; }
 .belt-purple  { background: #7c3aed; color: #ffffff; }
