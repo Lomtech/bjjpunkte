@@ -61,7 +61,7 @@ export default function MembersPage() {
         .from('members')
         .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status')
         .eq('gym_id', gym.id).order('last_name')
-      setMembers((data as Member[]) ?? [])
+      setMembers((data as unknown as Member[]) ?? [])
       setLoading(false)
     }
     load()
