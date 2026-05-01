@@ -3,8 +3,8 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 
-// Platform fee: 2% of each transaction goes to RollCall
-const PLATFORM_FEE_PERCENT = 0.02
+// Platform fee: 4% of each transaction goes to Osss
+const PLATFORM_FEE_PERCENT = 0.04
 
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
