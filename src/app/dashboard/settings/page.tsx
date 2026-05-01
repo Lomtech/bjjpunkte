@@ -15,6 +15,7 @@ export default function SettingsPage() {
   const [loading, setLoading]       = useState(false)
   const [saved, setSaved]           = useState(false)
   const [stripeConfigured, setStripeConfigured] = useState(false)
+  const [webhookActive, setWebhookActive]       = useState(false)
   const [stripeAccountId, setStripeAccountId]   = useState<string | null>(null)
   const [connectLoading, setConnectLoading]     = useState(false)
   const [copied, setCopied]                     = useState(false)
@@ -52,7 +53,10 @@ export default function SettingsPage() {
         setContractTemplate(((data as unknown) as { contract_template: string | null }).contract_template ?? '')
       }
     })
-    fetch('/api/stripe/status').then(r => r.json()).then(d => setStripeConfigured(d.configured))
+    fetch('/api/stripe/status').then(r => r.json()).then(d => {
+      setStripeConfigured(d.configured)
+      setWebhookActive(d.webhookActive)
+    })
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -328,20 +332,28 @@ export default function SettingsPage() {
 
           {/* Webhook */}
           <div className="px-5 py-3 flex items-start gap-3">
-            <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />
+            <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${webhookActive ? 'bg-green-100' : 'bg-amber-100'}`}>
+              {webhookActive
+                ? <Check size={10} className="text-green-600" />
+                : <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-800">Stripe Webhook</p>
-              <p className="text-xs text-slate-400 mt-0.5 mb-2">
-                Im <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> diese URL als Endpunkt eintragen (Events: <code className="font-mono bg-gray-100 px-1 rounded text-xs">checkout.session.completed</code>, <code className="font-mono bg-gray-100 px-1 rounded text-xs">payment_intent.payment_failed</code>):
-              </p>
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                <code className="text-xs font-mono text-slate-600 flex-1 truncate">{webhookUrl}</code>
-                <button onClick={copyWebhookUrl} className="flex-shrink-0 text-slate-400 hover:text-amber-600 transition-colors">
-                  {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
-                </button>
-              </div>
+              {webhookActive ? (
+                <p className="text-xs text-slate-400 mt-0.5">Webhook aktiv – Zahlungsbestätigungen werden empfangen.</p>
+              ) : (
+                <p className="text-xs text-slate-400 mt-0.5 mb-2">
+                  Im <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> diese URL eintragen (Events: <code className="font-mono bg-gray-100 px-1 rounded text-xs">checkout.session.completed</code>, <code className="font-mono bg-gray-100 px-1 rounded text-xs">payment_intent.payment_failed</code>):
+                </p>
+              )}
+              {!webhookActive && (
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                  <code className="text-xs font-mono text-slate-600 flex-1 truncate">{webhookUrl}</code>
+                  <button onClick={copyWebhookUrl} className="flex-shrink-0 text-slate-400 hover:text-amber-600 transition-colors">
+                    {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

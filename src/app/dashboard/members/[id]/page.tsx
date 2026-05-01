@@ -10,7 +10,7 @@ import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
-import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle } from 'lucide-react'
+import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil } from 'lucide-react'
 
 /** Normalize German phone to wa.me format (no +, no spaces) */
 function toWaPhone(raw: string): string {
@@ -190,8 +190,14 @@ export default function MemberDetailPage() {
       <div className="mb-8">
         <Link href="/dashboard/members" className="text-slate-400 hover:text-slate-600 text-sm">← Mitglieder</Link>
         <div className="flex items-start justify-between mt-3">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">{member.first_name} {member.last_name}</h1>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-slate-900">{member.first_name} {member.last_name}</h1>
+              <Link href={`/dashboard/members/${member.id}/edit`}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-600 text-xs font-medium transition-colors flex-shrink-0">
+                <Pencil size={12} /> Bearbeiten
+              </Link>
+            </div>
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <BeltBadge belt={member.belt as Belt} stripes={member.stripes} />
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
