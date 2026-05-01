@@ -3,55 +3,33 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import {
+  Users, CreditCard, Smartphone, Calendar, Target, Award,
+  FileSpreadsheet, Globe, FileEdit, FileText, Shield, Headphones,
+  CheckCircle, ArrowRight, Zap,
+} from 'lucide-react'
 
-const SPORTS = [
-  { emoji: '🥋', name: 'BJJ' },
-  { emoji: '🥊', name: 'MMA' },
-  { emoji: '🦵', name: 'Kickboxen' },
-  { emoji: '🥋', name: 'Judo' },
-  { emoji: '🤼', name: 'Ringen' },
-  { emoji: '🥋', name: 'Karate' },
-  { emoji: '🥷', name: 'Muay Thai' },
-  { emoji: '🥋', name: 'Taekwondo' },
-]
+const SPORTS = ['BJJ', 'MMA', 'Kickboxen', 'Judo', 'Ringen', 'Karate', 'Muay Thai', 'Taekwondo']
 
 const FEATURES = [
-  {
-    icon: '👥',
-    title: 'Mitgliederverwaltung',
-    desc: 'Alle Mitglieder auf einen Blick. Gürtel-Tracking, Familienmitglieder, Notizen — alles an einem Ort.',
-  },
-  {
-    icon: '💳',
-    title: 'Zahlungen & Rechnungen',
-    desc: 'Beiträge per Stripe einziehen. Automatische Rechnungen — DSGVO-konform, Kleinunternehmer-ready.',
-  },
-  {
-    icon: '📱',
-    title: 'Member-Portal',
-    desc: 'Deine Mitglieder checken per QR-Code ein, buchen Kurse und sehen ihre Trainingshistorie — ohne App.',
-  },
-  {
-    icon: '📅',
-    title: 'Stundenplan',
-    desc: 'Kursplan verwalten und direkt auf deiner Website einbetten. Inklusive iCal-Export für Google Calendar.',
-  },
-  {
-    icon: '🎯',
-    title: 'Lead-Pipeline',
-    desc: 'Interessenten verfolgen von der ersten Anfrage bis zur Mitgliedschaft. Nie wieder einen Lead verlieren.',
-  },
-  {
-    icon: '🏆',
-    title: 'Gürtel-Tracking',
-    desc: 'Promotions dokumentieren mit Datum und Belt-Verlauf. Für BJJ, Judo, Karate und alle Gürtelsysteme.',
-  },
+  { icon: Users,       title: 'Mitgliederverwaltung',  desc: 'Alle Mitglieder auf einen Blick. Gürtel-Tracking, Familienmitglieder, Notizen — alles an einem Ort.' },
+  { icon: CreditCard,  title: 'Zahlungen & Rechnungen', desc: 'Beiträge per Stripe einziehen. Automatische Rechnungen — DSGVO-konform, Kleinunternehmer-ready.' },
+  { icon: Smartphone,  title: 'Member-Portal',          desc: 'Deine Mitglieder checken per QR-Code ein, buchen Kurse und sehen ihre Trainingshistorie — ohne App.' },
+  { icon: Calendar,    title: 'Stundenplan',             desc: 'Kursplan verwalten und direkt auf deiner Website einbetten. Inklusive iCal-Export für Google Calendar.' },
+  { icon: Target,      title: 'Lead-Pipeline',           desc: 'Interessenten verfolgen von der ersten Anfrage bis zur Mitgliedschaft. Nie wieder einen Lead verlieren.' },
+  { icon: Award,       title: 'Gürtel-Tracking',         desc: 'Promotions dokumentieren mit Datum und Belt-Verlauf. Für BJJ, Judo, Karate und alle Gürtelsysteme.' },
 ]
 
-const TESTIMONIALS = [
-  { name: 'Marco R.', gym: 'Fight Club München', text: 'Endlich eine Software die auf Deutsch ist und unsere Kleinunternehmer-Rechnungen automatisch erstellt. Spart mir 3 Stunden im Monat.' },
-  { name: 'Jana K.', gym: 'BJJ Berlin', text: 'Der QR-Check-in am Kiosk ist ein Game-Changer. Kein Papierbuch mehr, keine manuellen Listen.' },
-  { name: 'Ali M.', gym: 'Kickbox Academy Hamburg', text: 'Günstigste Lösung die ich gefunden habe — und die einzige die wirklich für kleine Gyms gemacht ist.' },
+const PAIN_POINTS = [
+  { icon: FileSpreadsheet, title: 'Excel & WhatsApp',   desc: 'Mitgliederlisten in Tabellen, Zahlungserinnerungen per Chat. Fehleranfällig, zeitaufwändig, unprofessionell.' },
+  { icon: Globe,           title: 'US-Tools für €200+', desc: 'Mindbody, Glofox & Co. — auf Englisch, ohne deutsches Rechnungswesen und DSGVO-Compliance.' },
+  { icon: FileEdit,        title: 'Rechnungen manuell', desc: 'Jeden Monat Rechnungen per Hand — besonders als Kleinunternehmer ein bürokratischer Albtraum.' },
+]
+
+const GERMAN_FEATURES = [
+  { icon: FileText,   title: 'Kleinunternehmer-Rechnungen', desc: 'Automatische §19 UStG Rechnungen — du trägst einmal deine Daten ein, den Rest erledigt Osss.' },
+  { icon: Shield,     title: 'DSGVO von Anfang an',         desc: 'Daten auf europäischen Servern. Einwilligungs-Tracking beim Mitglieds-Signup inklusive.' },
+  { icon: Headphones, title: 'Support auf Deutsch',         desc: 'Kein englisches Support-Ticket. Direkt, schnell, verständlich.' },
 ]
 
 export default function Home() {
@@ -107,7 +85,8 @@ export default function Home() {
       <section className="bg-slate-900 text-white px-5 pt-20 pb-24 text-center">
         <div className="max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/30 rounded-full px-4 py-1.5 mb-6">
-            <span className="text-amber-400 text-xs font-semibold">🇩🇪 Made in Germany · DSGVO-konform</span>
+            <Shield size={12} className="text-amber-400" />
+            <span className="text-amber-400 text-xs font-semibold">Made in Germany · DSGVO-konform</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-5">
             Die Gym-Software<br />für <span className="text-amber-400">Kampfsport</span>
@@ -117,7 +96,8 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/register"
-              className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-colors">
+              className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-colors flex items-center justify-center gap-2">
+              <Zap size={16} />
               Kostenlos starten — 30 Mitglieder gratis
             </Link>
             <Link href="/pricing"
@@ -130,11 +110,11 @@ export default function Home() {
       </section>
 
       {/* SPORTS BANNER */}
-      <section className="bg-amber-500 py-4">
-        <div className="flex gap-6 items-center justify-center flex-wrap px-5">
+      <section className="bg-amber-500 py-3">
+        <div className="flex gap-2 items-center justify-center flex-wrap px-5">
           {SPORTS.map(s => (
-            <span key={s.name} className="flex items-center gap-1.5 text-white font-bold text-sm whitespace-nowrap">
-              <span>{s.emoji}</span> {s.name}
+            <span key={s} className="text-white/90 font-bold text-xs px-3 py-1 rounded-full border border-white/20 whitespace-nowrap">
+              {s}
             </span>
           ))}
         </div>
@@ -146,13 +126,11 @@ export default function Home() {
           <h2 className="text-2xl font-black text-slate-900 mb-3">Kennst du das?</h2>
           <p className="text-slate-500 mb-10 max-w-xl mx-auto">Die meisten Gym-Software-Lösungen sind zu teuer, zu komplex oder nicht auf Deutschland ausgelegt.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { icon: '😤', title: 'Excel & WhatsApp', desc: 'Mitgliederlisten in Excel, Zahlungserinnerungen per WhatsApp. Fehleranfällig, zeitaufwändig, unprofessionell.' },
-              { icon: '💸', title: 'Mindbody & Co.', desc: 'US-Tools für €200+/Monat, auf Englisch, ohne deutsches Rechnungswesen und DSGVO-Compliance.' },
-              { icon: '🧾', title: 'Rechnungen manuell', desc: 'Jeden Monat Rechnungen per Hand erstellen — besonders als Kleinunternehmer ein bürokratischer Alptraum.' },
-            ].map(p => (
+            {PAIN_POINTS.map(p => (
               <div key={p.title} className="bg-white rounded-2xl p-6 border border-slate-200 text-left">
-                <div className="text-3xl mb-3">{p.icon}</div>
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center mb-4">
+                  <p.icon size={20} className="text-red-400" />
+                </div>
                 <p className="font-bold text-slate-900 mb-1">{p.title}</p>
                 <p className="text-sm text-slate-500">{p.desc}</p>
               </div>
@@ -170,8 +148,10 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map(f => (
-              <div key={f.title} className="rounded-2xl border border-slate-200 p-6 hover:border-amber-300 hover:shadow-sm transition-all">
-                <div className="text-3xl mb-3">{f.icon}</div>
+              <div key={f.title} className="rounded-2xl border border-slate-200 p-6 hover:border-amber-300 hover:shadow-sm transition-all group">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center mb-4 transition-colors">
+                  <f.icon size={20} className="text-amber-600" />
+                </div>
                 <p className="font-bold text-slate-900 mb-1.5">{f.title}</p>
                 <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
               </div>
@@ -188,13 +168,11 @@ export default function Home() {
               <div className="text-amber-400 font-bold text-sm mb-2 uppercase tracking-wider">Nur bei Osss</div>
               <h2 className="text-3xl font-black mb-5">Gemacht für deutsche Gyms</h2>
               <div className="space-y-5">
-                {[
-                  { icon: '🧾', title: 'Kleinunternehmer-Rechnungen', desc: 'Automatische §19 UStG Rechnungen — du trägst einmal deine Daten ein, den Rest erledigt Osss.' },
-                  { icon: '🔒', title: 'DSGVO von Anfang an', desc: 'Daten auf europäischen Servern. Einwilligungs-Tracking beim Mitglieds-Signup inklusive.' },
-                  { icon: '💬', title: 'Support auf Deutsch', desc: 'Kein englisches Support-Ticket. Direkt, schnell, verständlich.' },
-                ].map(i => (
-                  <div key={i.title} className="flex gap-3">
-                    <span className="text-2xl flex-shrink-0">{i.icon}</span>
+                {GERMAN_FEATURES.map(i => (
+                  <div key={i.title} className="flex gap-4">
+                    <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0">
+                      <i.icon size={16} className="text-amber-400" />
+                    </div>
                     <div>
                       <p className="font-bold">{i.title}</p>
                       <p className="text-slate-400 text-sm">{i.desc}</p>
@@ -204,7 +182,10 @@ export default function Home() {
               </div>
             </div>
             <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-              <p className="text-slate-400 text-sm mb-4 font-medium">Automatische Rechnung</p>
+              <div className="flex items-center gap-2 mb-4">
+                <FileText size={14} className="text-slate-400" />
+                <p className="text-slate-400 text-sm font-medium">Automatische Rechnung</p>
+              </div>
               <div className="space-y-2.5">
                 {[
                   ['Rechnungsnummer', 'OSS-2026-047'],
@@ -219,8 +200,9 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 text-green-400 text-xs font-medium text-center">
-                ✓ Automatisch erstellt & archiviert
+              <div className="mt-4 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 flex items-center justify-center gap-2 text-green-400 text-xs font-medium">
+                <CheckCircle size={12} />
+                Automatisch erstellt & archiviert
               </div>
             </div>
           </div>
@@ -234,10 +216,10 @@ export default function Home() {
           <p className="text-slate-600 mb-8">Starte kostenlos mit bis zu 30 Mitgliedern. Zahle erst wenn du wächst.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
-              { name: 'Free', price: '€0', members: '30 Mitgl.' },
+              { name: 'Free',    price: '€0',  members: '30 Mitgl.' },
               { name: 'Starter', price: '€29', members: '50 Mitgl.' },
-              { name: 'Grow', price: '€59', members: '150 Mitgl.', highlight: true },
-              { name: 'Pro', price: '€99', members: 'Unbegrenzt' },
+              { name: 'Grow',    price: '€59', members: '150 Mitgl.', highlight: true },
+              { name: 'Pro',     price: '€99', members: 'Unbegrenzt' },
             ].map(p => (
               <div key={p.name} className={`rounded-xl p-4 border-2 text-center ${p.highlight ? 'border-amber-400 bg-amber-500 text-white' : 'border-slate-200 bg-white'}`}>
                 <p className={`text-xs font-bold mb-1 ${p.highlight ? 'text-amber-100' : 'text-slate-500'}`}>{p.name}</p>
@@ -246,27 +228,9 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <Link href="/pricing" className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 font-semibold text-sm transition-colors">
-            Alle Features vergleichen →
+          <Link href="/pricing" className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-700 font-semibold text-sm transition-colors">
+            Alle Features vergleichen <ArrowRight size={14} />
           </Link>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section className="py-16 px-5">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-black text-slate-900 text-center mb-10">Was Gym-Betreiber sagen</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map(t => (
-              <div key={t.name} className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-                <p className="text-slate-600 text-sm leading-relaxed mb-4">"{t.text}"</p>
-                <div>
-                  <p className="font-bold text-slate-900 text-sm">{t.name}</p>
-                  <p className="text-slate-400 text-xs">{t.gym}</p>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -276,8 +240,9 @@ export default function Home() {
           <h2 className="text-4xl font-black mb-4">Bereit loszulegen?</h2>
           <p className="text-slate-300 text-lg mb-8">Kostenlos starten, keine Kreditkarte nötig. Dein Gym läuft in 10 Minuten.</p>
           <Link href="/register"
-            className="inline-block bg-amber-500 hover:bg-amber-400 text-white font-bold px-10 py-4 rounded-xl text-lg transition-colors">
-            Jetzt kostenlos starten →
+            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-bold px-10 py-4 rounded-xl text-lg transition-colors">
+            <Zap size={18} />
+            Jetzt kostenlos starten
           </Link>
         </div>
       </section>
