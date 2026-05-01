@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield, UserPlus, Link2 } from 'lucide-react'
+import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText } from 'lucide-react'
 
 export default function SettingsPage() {
   const searchParams = useSearchParams()
@@ -19,6 +19,12 @@ export default function SettingsPage() {
   const [stripeAccountId, setStripeAccountId]   = useState<string | null>(null)
   const [connectLoading, setConnectLoading]     = useState(false)
   const [copied, setCopied]                     = useState(false)
+  // Legal
+  const [legalName, setLegalName]       = useState('')
+  const [legalAddress, setLegalAddress] = useState('')
+  const [legalEmail, setLegalEmail]     = useState('')
+  const [legalSaving, setLegalSaving]   = useState(false)
+  const [legalSaved, setLegalSaved]     = useState(false)
   // Signup
   const [signupEnabled, setSignupEnabled]           = useState(false)
   const [signupToken, setSignupToken]               = useState<string | null>(null)
@@ -51,6 +57,9 @@ export default function SettingsPage() {
         setSignupEnabled(((data as unknown) as { signup_enabled: boolean }).signup_enabled ?? false)
         setSignupToken(((data as unknown) as { signup_token: string | null }).signup_token ?? null)
         setContractTemplate(((data as unknown) as { contract_template: string | null }).contract_template ?? '')
+        setLegalName(((data as unknown) as { legal_name: string | null }).legal_name ?? '')
+        setLegalAddress(((data as unknown) as { legal_address: string | null }).legal_address ?? '')
+        setLegalEmail(((data as unknown) as { legal_email: string | null }).legal_email ?? '')
       }
     })
     fetch('/api/stripe/status').then(r => r.json()).then(d => {
@@ -102,6 +111,16 @@ export default function SettingsPage() {
       .update({ signup_enabled: signupEnabled, contract_template: contractTemplate })
       .eq('owner_id', user?.id ?? '')
     setSignupSaving(false); setSignupSaved(true); setTimeout(() => setSignupSaved(false), 2000)
+  }
+
+  async function handleLegalSave() {
+    setLegalSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await (supabase.from('gyms') as any)
+      .update({ legal_name: legalName || null, legal_address: legalAddress || null, legal_email: legalEmail || null })
+      .eq('owner_id', user?.id ?? '')
+    setLegalSaving(false); setLegalSaved(true); setTimeout(() => setLegalSaved(false), 2000)
   }
 
   async function copySignupUrl() {
@@ -298,6 +317,42 @@ export default function SettingsPage() {
             className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
             <Save size={14} />
             {signupSaved ? 'Gespeichert ✓' : signupSaving ? 'Wird gespeichert…' : 'Anmeldung speichern'}
+          </button>
+        </div>
+      </div>
+
+      {/* Datenschutz / Impressum */}
+      <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <FileText size={12} /> Datenschutz / Impressum
+          </p>
+          <a href="/datenschutz" target="_blank" rel="noopener noreferrer"
+            className="text-xs text-amber-600 hover:text-amber-500 flex items-center gap-1">
+            Vorschau <ExternalLink size={11} />
+          </a>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-slate-500">Diese Angaben erscheinen in der Datenschutzerklärung als Verantwortlicher.</p>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Name / Firma *</label>
+            <input value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="Max Mustermann / BJJ Gym GmbH"
+              className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Adresse</label>
+            <input value={legalAddress} onChange={e => setLegalAddress(e.target.value)} placeholder="Musterstraße 1, 80331 München"
+              className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">E-Mail (Datenschutzanfragen)</label>
+            <input type="email" value={legalEmail} onChange={e => setLegalEmail(e.target.value)} placeholder="datenschutz@gym.de"
+              className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400" />
+          </div>
+          <button type="button" onClick={handleLegalSave} disabled={legalSaving}
+            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+            <Save size={14} />
+            {legalSaved ? 'Gespeichert ✓' : legalSaving ? 'Wird gespeichert…' : 'Datenschutz speichern'}
           </button>
         </div>
       </div>

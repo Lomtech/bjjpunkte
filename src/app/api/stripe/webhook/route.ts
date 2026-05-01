@@ -72,7 +72,6 @@ export async function POST(req: Request) {
   if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as Stripe.PaymentIntent
 
-    // Find member_id from payments table first
     const { data: payment } = await supabase
       .from('payments')
       .select('member_id')
@@ -84,6 +83,59 @@ export async function POST(req: Request) {
       p_status: 'failed',
       p_member_id: (payment as { member_id: string } | null)?.member_id ?? null,
     })
+  }
+
+  // ── Subscription events ────────────────────────────────────────────────────
+
+  if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
+    const sub = event.data.object as Stripe.Subscription
+    const memberId = sub.metadata?.memberId
+    if (memberId) {
+      const status = sub.status === 'active' ? 'active'
+        : sub.status === 'past_due' ? 'past_due'
+        : sub.status === 'canceled' ? 'cancelled'
+        : sub.status
+      await (supabase.from('members') as any)
+        .update({ stripe_subscription_id: sub.id, subscription_status: status })
+        .eq('id', memberId)
+    }
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object as Stripe.Subscription
+    const memberId = sub.metadata?.memberId
+    if (memberId) {
+      await (supabase.from('members') as any)
+        .update({ stripe_subscription_id: null, subscription_status: 'cancelled' })
+        .eq('id', memberId)
+    }
+  }
+
+  if (event.type === 'invoice.paid') {
+    const inv = event.data.object as Stripe.Invoice
+    const memberId   = (inv as any).subscription_details?.metadata?.memberId ?? inv.metadata?.memberId
+    const gymId      = (inv as any).subscription_details?.metadata?.gymId    ?? inv.metadata?.gymId
+    const amountCents = inv.amount_paid
+    if (memberId && amountCents > 0) {
+      await supabase.from('payments').insert({
+        gym_id:    gymId ?? null,
+        member_id: memberId,
+        amount_cents: amountCents,
+        status:    'paid',
+        paid_at:   new Date().toISOString(),
+        stripe_payment_intent_id: typeof (inv as any).payment_intent === 'string' ? (inv as any).payment_intent : null,
+      })
+    }
+  }
+
+  if (event.type === 'invoice.payment_failed') {
+    const inv = event.data.object as Stripe.Invoice
+    const memberId = (inv as any).subscription_details?.metadata?.memberId ?? inv.metadata?.memberId
+    if (memberId) {
+      await (supabase.from('members') as any)
+        .update({ subscription_status: 'past_due' })
+        .eq('id', memberId)
+    }
   }
 
   return NextResponse.json({ received: true })

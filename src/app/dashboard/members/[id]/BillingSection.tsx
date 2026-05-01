@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle } from 'lucide-react'
+import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
@@ -16,12 +16,13 @@ const STATUS_LABELS: Record<string, string> = {
   paid: 'Bezahlt', pending: 'Ausstehend', failed: 'Fehlgeschlagen', refunded: 'Erstattet',
 }
 
-export function BillingSection({ memberId, gymId, memberEmail, memberName, subscriptionStatus, stripeCustomerId, monthlyFeeCents, payments: initialPayments }: {
+export function BillingSection({ memberId, gymId, memberEmail, memberName, subscriptionStatus, stripeCustomerId, monthlyFeeCents, payments: initialPayments, stripeSubscriptionId }: {
   memberId: string; gymId: string; memberEmail: string | null; memberName: string
   subscriptionStatus: string; stripeCustomerId: string | null; monthlyFeeCents: number
-  payments: Payment[]
+  payments: Payment[]; stripeSubscriptionId?: string | null
 }) {
   const [loading, setLoading] = useState(false)
+  const [subLoading, setSubLoading] = useState(false)
   const [error, setError] = useState('')
   const [checkoutUrl, setCheckoutUrl] = useState('')
   const [payments, setPayments] = useState<Payment[]>(initialPayments)
@@ -52,6 +53,38 @@ export function BillingSection({ memberId, gymId, memberEmail, memberName, subsc
       setError(e instanceof Error ? e.message : 'Unbekannter Fehler')
     }
     setLoading(false)
+  }
+
+  async function setupSubscription() {
+    if (!memberEmail) { setError('Mitglied hat keine E-Mail-Adresse.'); return }
+    setSubLoading(true); setError('')
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      const res = await fetch('/api/stripe/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ memberId, gymId, memberEmail, memberName, amountCents: monthlyFeeCents }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      window.open(data.url, '_blank')
+    } catch (e) { setError(e instanceof Error ? e.message : 'Fehler') }
+    setSubLoading(false)
+  }
+
+  async function cancelSubscription() {
+    if (!confirm('Abonnement wirklich kündigen? Die nächste Abbuchung wird nicht mehr stattfinden.')) return
+    setSubLoading(true); setError('')
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      const res = await fetch('/api/stripe/subscribe', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ memberId }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Fehler') }
+    setSubLoading(false)
   }
 
   async function deletePayment(paymentId: string) {
@@ -139,14 +172,32 @@ export function BillingSection({ memberId, gymId, memberEmail, memberName, subsc
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2 mb-4">
-          <button
-            onClick={sendPaymentLink}
-            disabled={loading || !memberEmail}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold transition-colors shadow-sm disabled:opacity-50"
-          >
+        <div className="space-y-2 mb-4">
+          {/* Subscription status */}
+          {stripeSubscriptionId ? (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-green-50 border border-green-200">
+              <div className="flex items-center gap-2">
+                <RefreshCw size={14} className="text-green-600" />
+                <span className="text-green-800 text-sm font-semibold">Automatische Abbuchung aktiv</span>
+              </div>
+              <button onClick={cancelSubscription} disabled={subLoading}
+                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition-colors disabled:opacity-50">
+                <X size={12} /> Kündigen
+              </button>
+            </div>
+          ) : (
+            <button onClick={setupSubscription} disabled={subLoading || !memberEmail}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition-colors disabled:opacity-50">
+              <RefreshCw size={14} />
+              {subLoading ? 'Öffnet Stripe…' : 'Automatische Abbuchung einrichten'}
+            </button>
+          )}
+
+          {/* One-time link */}
+          <button onClick={sendPaymentLink} disabled={loading || !memberEmail}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-slate-700 text-sm font-semibold transition-colors disabled:opacity-50">
             <Send size={14} />
-            {loading ? 'Wird erstellt...' : 'Zahlungslink erstellen'}
+            {loading ? 'Wird erstellt…' : 'Einmaligen Zahlungslink erstellen'}
           </button>
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check } from 'lucide-react'
 
 function toWaPhone(raw: string): string {
   let p = raw.replace(/[\s\-().]/g, '')
@@ -39,7 +39,7 @@ interface Member {
   belt: string; stripes: number; join_date: string
   is_active: boolean; subscription_status: string | null
   contract_end_date: string | null; monthly_fee_override_cents: number | null
-  onboarding_status: string | null
+  onboarding_status: string | null; portal_token: string | null
 }
 
 function contractStatus(endDate: string | null): 'ok' | 'expiring' | 'expired' {
@@ -66,6 +66,7 @@ export default function MembersPage() {
   const [showBulkResults, setShowBulkResults] = useState(false)
   const [search, setSearch]                 = useState('')
   const [activatingId, setActivatingId]     = useState<string | null>(null)
+  const [activatedMember, setActivatedMember] = useState<Member | null>(null)
   const [showWaModal, setShowWaModal]       = useState(false)
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export default function MembersPage() {
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       const { data } = await supabase
         .from('members')
-        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status')
+        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token')
         .eq('gym_id', gym.id).order('last_name')
       setMembers((data as unknown as Member[]) ?? [])
       setLoading(false)
@@ -128,6 +129,8 @@ export default function MembersPage() {
     const supabase = createClient()
     await (supabase.from('members') as any).update({ is_active: true, onboarding_status: 'complete' }).eq('id', id)
     setMembers(prev => prev.map(m => m.id === id ? { ...m, is_active: true, onboarding_status: 'complete' } : m))
+    const member = members.find(m => m.id === id)
+    if (member) setActivatedMember({ ...member, is_active: true, onboarding_status: 'complete' })
     setActivatingId(null)
   }
 
@@ -355,6 +358,11 @@ export default function MembersPage() {
         </div>
       )}
 
+      {/* Activation notification modal */}
+      {activatedMember && (
+        <ActivationModal member={activatedMember} onClose={() => setActivatedMember(null)} />
+      )}
+
       {/* WhatsApp Bulk Modal */}
       {showWaModal && (
         <WhatsAppBulkModal
@@ -431,6 +439,64 @@ export default function MembersPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function ActivationModal({ member, onClose }: { member: Member; onClose: () => void }) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const portalUrl = member.portal_token ? `${origin}/portal/${member.portal_token}` : null
+  const waText = `Hallo ${member.first_name}! 🥋 Willkommen im Gym – dein Profil ist jetzt aktiv.\n\nHier findest du deine Trainings, Zahlungen und Statistiken:\n${portalUrl ?? origin}`
+  const mailtoUrl = member.email
+    ? `mailto:${member.email}?subject=${encodeURIComponent('Willkommen im Gym – dein Profil ist aktiv!')}&body=${encodeURIComponent(`Hallo ${member.first_name}!\n\nDein Mitgliedsprofil ist jetzt aktiv.\n\nHier ist dein persönlicher Bereich:\n${portalUrl ?? origin}\n\nOss! 🥋`)}`
+    : null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-green-50">
+          <p className="font-bold text-green-800 text-sm">✓ {member.first_name} {member.last_name} aktiviert!</p>
+          <p className="text-green-600 text-xs mt-0.5">Jetzt benachrichtigen:</p>
+        </div>
+        <div className="p-5 space-y-3">
+          {member.phone && (
+            <a href={`https://wa.me/${toWaPhone(member.phone)}?text=${encodeURIComponent(waText)}`}
+              target="_blank" rel="noopener noreferrer"
+              onClick={onClose}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors">
+              <MessageCircle size={18} />
+              <div className="text-left">
+                <p>Per WhatsApp senden</p>
+                <p className="text-white/70 text-xs font-normal">{member.phone}</p>
+              </div>
+            </a>
+          )}
+          {mailtoUrl && (
+            <a href={mailtoUrl} onClick={onClose}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-colors">
+              <Mail size={18} />
+              <div className="text-left">
+                <p>Per E-Mail senden</p>
+                <p className="text-slate-400 text-xs font-normal">{member.email}</p>
+              </div>
+            </a>
+          )}
+          {portalUrl && (
+            <button onClick={() => { navigator.clipboard.writeText(portalUrl); onClose() }}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 text-slate-700 font-semibold text-sm transition-colors">
+              <Copy size={18} />
+              <div className="text-left">
+                <p>Profillink kopieren</p>
+                <p className="text-slate-400 text-xs font-normal truncate max-w-[200px]">{portalUrl}</p>
+              </div>
+            </button>
+          )}
+          <button onClick={onClose} className="w-full py-2 text-slate-400 text-sm hover:text-slate-600">
+            Später senden
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

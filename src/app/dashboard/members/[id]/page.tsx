@@ -278,6 +278,7 @@ export default function MemberDetailPage() {
         memberName={`${member.first_name} ${member.last_name}`}
         subscriptionStatus={member.subscription_status ?? 'none'}
         stripeCustomerId={member.stripe_customer_id}
+        stripeSubscriptionId={(member as any).stripe_subscription_id ?? null}
         monthlyFeeCents={monthlyFeeCents}
         payments={payments}
       />
