@@ -8,16 +8,18 @@ import {
   Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle,
   Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
   Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
+  Package, Megaphone, Pin, Edit2,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 
-type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge'
+type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge' | 'vertraege'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'allgemein',  label: 'Allgemein',  icon: <Building2 size={14} /> },
   { id: 'zahlungen',  label: 'Zahlungen',  icon: <CreditCard size={14} /> },
   { id: 'training',   label: 'Training',   icon: <Award size={14} /> },
   { id: 'zugaenge',   label: 'Zugänge',    icon: <Globe size={14} /> },
+  { id: 'vertraege',  label: 'Verträge',   icon: <Package size={14} /> },
 ]
 
 export default function SettingsPage() {
@@ -86,6 +88,21 @@ export default function SettingsPage() {
   const [beltSaved, setBeltSaved]         = useState(false)
   const [sportType, setSportType]         = useState<SportType>('bjj')
   const [beltEnabled, setBeltEnabled]     = useState(true)
+
+  // Membership plans
+  type Plan = { id: string; name: string; description: string | null; price_cents: number; billing_interval: string; contract_months: number; is_active: boolean; sort_order: number }
+  const [plans, setPlans]               = useState<Plan[]>([])
+  const [planForm, setPlanForm]         = useState({ name: '', description: '', price: '', billingInterval: 'monthly', contractMonths: '0' })
+  const [planFormOpen, setPlanFormOpen] = useState(false)
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
+  const [planSaving, setPlanSaving]     = useState(false)
+
+  // Announcements
+  type Announcement = { id: string; title: string; body: string | null; is_pinned: boolean; expires_at: string | null; created_at: string }
+  const [announcements, setAnnouncements]         = useState<Announcement[]>([])
+  const [annoForm, setAnnoForm]                   = useState({ title: '', body: '', isPinned: false, expiresAt: '' })
+  const [annoFormOpen, setAnnoFormOpen]           = useState(false)
+  const [annoSaving, setAnnoSaving]               = useState(false)
 
   // Invoice & Tax
   const [taxNumber, setTaxNumber]                   = useState('')
@@ -160,6 +177,13 @@ export default function SettingsPage() {
         setPlanLimit((data as any)?.plan_member_limit ?? 30)
         const { count } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', data.id).eq('is_active', true)
         setMemberCount(count ?? 0)
+        // Load plans + announcements
+        const [{ data: plansData }, { data: annoData }] = await Promise.all([
+          (supabase.from('membership_plans') as any).select('*').eq('gym_id', data.id).order('sort_order'),
+          (supabase.from('gym_announcements') as any).select('*').eq('gym_id', data.id).order('created_at', { ascending: false }),
+        ])
+        if (plansData) setPlans(plansData)
+        if (annoData)  setAnnouncements(annoData)
       }
     })
     fetch('/api/stripe/status').then(r => r.json()).then(d => {
@@ -321,6 +345,66 @@ export default function SettingsPage() {
     const { data: { session } } = await createClient().auth.getSession()
     await fetch(`/api/staff/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
     setStaffList(prev => prev.filter(s => s.id !== id))
+  }
+
+  async function handlePlanSave() {
+    if (!planForm.name || !planForm.price) return
+    setPlanSaving(true)
+    const supabase = createClient()
+    const priceCents = Math.round(parseFloat(planForm.price.replace(',', '.')) * 100)
+    const payload = {
+      gym_id: gymId, name: planForm.name, description: planForm.description || null,
+      price_cents: priceCents, billing_interval: planForm.billingInterval,
+      contract_months: parseInt(planForm.contractMonths) || 0,
+      sort_order: editingPlanId ? plans.find(p => p.id === editingPlanId)?.sort_order ?? plans.length : plans.length,
+    }
+    if (editingPlanId) {
+      const { data } = await (supabase.from('membership_plans') as any).update(payload).eq('id', editingPlanId).select().single()
+      if (data) setPlans(prev => prev.map(p => p.id === editingPlanId ? data : p))
+    } else {
+      const { data } = await (supabase.from('membership_plans') as any).insert(payload).select().single()
+      if (data) setPlans(prev => [...prev, data])
+    }
+    setPlanForm({ name: '', description: '', price: '', billingInterval: 'monthly', contractMonths: '0' })
+    setPlanFormOpen(false); setEditingPlanId(null); setPlanSaving(false)
+  }
+
+  async function handlePlanDelete(id: string) {
+    if (!confirm('Tarif wirklich löschen?')) return
+    const supabase = createClient()
+    await (supabase.from('membership_plans') as any).delete().eq('id', id)
+    setPlans(prev => prev.filter(p => p.id !== id))
+  }
+
+  function handlePlanEdit(plan: Plan) {
+    setPlanForm({
+      name: plan.name, description: plan.description ?? '',
+      price: (plan.price_cents / 100).toFixed(2).replace('.', ','),
+      billingInterval: plan.billing_interval,
+      contractMonths: String(plan.contract_months),
+    })
+    setEditingPlanId(plan.id); setPlanFormOpen(true)
+  }
+
+  async function handleAnnoSave() {
+    if (!annoForm.title) return
+    setAnnoSaving(true)
+    const supabase = createClient()
+    const payload = {
+      gym_id: gymId, title: annoForm.title, body: annoForm.body || null,
+      is_pinned: annoForm.isPinned,
+      expires_at: annoForm.expiresAt ? new Date(annoForm.expiresAt).toISOString() : null,
+    }
+    const { data } = await (supabase.from('gym_announcements') as any).insert(payload).select().single()
+    if (data) setAnnouncements(prev => [data, ...prev])
+    setAnnoForm({ title: '', body: '', isPinned: false, expiresAt: '' })
+    setAnnoFormOpen(false); setAnnoSaving(false)
+  }
+
+  async function handleAnnoDelete(id: string) {
+    const supabase = createClient()
+    await (supabase.from('gym_announcements') as any).delete().eq('id', id)
+    setAnnouncements(prev => prev.filter(a => a.id !== id))
   }
 
   function copyWithFeedback(text: string, setter: (v: boolean) => void) {
@@ -1042,6 +1126,223 @@ export default function SettingsPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: VERTRÄGE ─────────────────────────────────────────────────── */}
+      {activeTab === 'vertraege' && (
+        <div className="space-y-4">
+
+          {/* Membership plans */}
+          <div className={sectionCls}>
+            <div className={`${sectionHeaderCls} flex items-center justify-between`}>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <Package size={12} /> Mitgliedschafts-Tarife
+              </p>
+              {!planFormOpen && (
+                <button type="button" onClick={() => { setPlanFormOpen(true); setEditingPlanId(null); setPlanForm({ name: '', description: '', price: '', billingInterval: 'monthly', contractMonths: '0' }) }}
+                  className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-500 font-medium">
+                  <Plus size={12} /> Tarif hinzufügen
+                </button>
+              )}
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-slate-500">
+                Definiere Tarife mit Preis, Laufzeit und Abrechnungsintervall. Mitglieder können über ihr Portal einen Wechsel anfordern.
+              </p>
+
+              {/* Plan form */}
+              {planFormOpen && (
+                <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 space-y-3">
+                  <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">
+                    {editingPlanId ? 'Tarif bearbeiten' : 'Neuer Tarif'}
+                  </p>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Name *</label>
+                    <input value={planForm.name} onChange={e => setPlanForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="z.B. Jahresvertrag" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Beschreibung</label>
+                    <input value={planForm.description} onChange={e => setPlanForm(p => ({ ...p, description: e.target.value }))}
+                      placeholder="z.B. Günstigster Preis, volle Flexibilität" className={inputCls} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Preis (€) *</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
+                        <input value={planForm.price} onChange={e => setPlanForm(p => ({ ...p, price: e.target.value }))}
+                          placeholder="89,00" className="w-full pl-7 pr-3 py-2.5 rounded-lg bg-white border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Abrechnungsintervall</label>
+                      <select value={planForm.billingInterval} onChange={e => setPlanForm(p => ({ ...p, billingInterval: e.target.value }))} className={inputCls}>
+                        <option value="monthly">Monatlich</option>
+                        <option value="biannual">Halbjährlich</option>
+                        <option value="annual">Jährlich</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Mindestlaufzeit</label>
+                    <select value={planForm.contractMonths} onChange={e => setPlanForm(p => ({ ...p, contractMonths: e.target.value }))} className={inputCls}>
+                      <option value="0">Jederzeit kündbar</option>
+                      <option value="3">3 Monate</option>
+                      <option value="6">6 Monate</option>
+                      <option value="12">12 Monate</option>
+                      <option value="24">24 Monate</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" onClick={() => { setPlanFormOpen(false); setEditingPlanId(null) }}
+                      className="flex-1 py-2.5 rounded-lg border border-gray-200 text-slate-600 text-sm font-medium hover:bg-white transition-colors">
+                      Abbrechen
+                    </button>
+                    <button type="button" onClick={handlePlanSave} disabled={planSaving || !planForm.name || !planForm.price}
+                      className="flex-1 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors">
+                      {planSaving ? 'Wird gespeichert…' : editingPlanId ? 'Speichern' : 'Tarif anlegen'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Plans list */}
+              {plans.length === 0 && !planFormOpen ? (
+                <div className="text-center py-6 text-slate-400 text-sm">
+                  Noch keine Tarife angelegt. Klicke auf „Tarif hinzufügen".
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {plans.map(plan => {
+                    const months = plan.billing_interval === 'annual' ? 12 : plan.billing_interval === 'biannual' ? 6 : 1
+                    const perMonth = months > 1 ? ` (≈ €${(plan.price_cents / 100 / months).toFixed(2).replace('.', ',')}/Mo)` : ''
+                    return (
+                      <div key={plan.id} className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-slate-800">{plan.name}</p>
+                            {!plan.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-500">Inaktiv</span>}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            €{(plan.price_cents / 100).toFixed(2).replace('.', ',')}
+                            {plan.billing_interval === 'monthly' ? '/Monat' : plan.billing_interval === 'biannual' ? '/6 Monate' : '/Jahr'}
+                            {perMonth}
+                            {' · '}
+                            {plan.contract_months === 0 ? 'Jederzeit kündbar' : `${plan.contract_months} Mo. Laufzeit`}
+                          </p>
+                          {plan.description && <p className="text-xs text-slate-400 mt-0.5">{plan.description}</p>}
+                        </div>
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <button type="button" onClick={() => handlePlanEdit(plan)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                            <Edit2 size={13} />
+                          </button>
+                          <button type="button" onClick={() => handlePlanDelete(plan.id)}
+                            className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Announcements */}
+          <div className={sectionCls}>
+            <div className={`${sectionHeaderCls} flex items-center justify-between`}>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <Megaphone size={12} /> Ankündigungen
+              </p>
+              {!annoFormOpen && (
+                <button type="button" onClick={() => setAnnoFormOpen(true)}
+                  className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-500 font-medium">
+                  <Plus size={12} /> Neue Ankündigung
+                </button>
+              )}
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-slate-500">
+                Ankündigungen werden im Mitglieder-Portal angezeigt. Gepinnte Beiträge erscheinen immer oben.
+              </p>
+
+              {annoFormOpen && (
+                <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 space-y-3">
+                  <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Neue Ankündigung</p>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Titel *</label>
+                    <input value={annoForm.title} onChange={e => setAnnoForm(a => ({ ...a, title: e.target.value }))}
+                      placeholder="z.B. Neue Öffnungszeiten ab März" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Text</label>
+                    <textarea value={annoForm.body} onChange={e => setAnnoForm(a => ({ ...a, body: e.target.value }))}
+                      rows={3} placeholder="Detailliertere Informationen…"
+                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Läuft ab am</label>
+                      <input type="date" value={annoForm.expiresAt} onChange={e => setAnnoForm(a => ({ ...a, expiresAt: e.target.value }))}
+                        className={inputCls} />
+                    </div>
+                    <div className="flex items-center justify-between pt-5">
+                      <div>
+                        <p className="text-xs font-medium text-slate-600">Gepinnt</p>
+                        <p className="text-[10px] text-slate-400">Immer oben anzeigen</p>
+                      </div>
+                      <button type="button" onClick={() => setAnnoForm(a => ({ ...a, isPinned: !a.isPinned }))}
+                        className={`relative w-9 h-5 rounded-full transition-colors ${annoForm.isPinned ? 'bg-amber-500' : 'bg-gray-200'}`}>
+                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${annoForm.isPinned ? 'translate-x-4' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" onClick={() => setAnnoFormOpen(false)}
+                      className="flex-1 py-2.5 rounded-lg border border-gray-200 text-slate-600 text-sm font-medium hover:bg-white transition-colors">
+                      Abbrechen
+                    </button>
+                    <button type="button" onClick={handleAnnoSave} disabled={annoSaving || !annoForm.title}
+                      className="flex-1 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors">
+                      {annoSaving ? 'Wird gespeichert…' : 'Veröffentlichen'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {announcements.length === 0 && !annoFormOpen ? (
+                <div className="text-center py-6 text-slate-400 text-sm">
+                  Noch keine Ankündigungen. Klicke auf „Neue Ankündigung".
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {announcements.map(a => (
+                    <div key={a.id} className={`flex items-start gap-3 p-3 rounded-xl border ${a.is_pinned ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <div className="flex-shrink-0 mt-0.5">
+                        {a.is_pinned ? <Pin size={12} className="text-amber-500" /> : <Megaphone size={12} className="text-slate-400" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800">{a.title}</p>
+                        {a.body && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{a.body}</p>}
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          {new Date(a.created_at).toLocaleDateString('de-DE')}
+                          {a.expires_at && ` · läuft ab ${new Date(a.expires_at).toLocaleDateString('de-DE')}`}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => handleAnnoDelete(a.id)}
+                        className="flex-shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
