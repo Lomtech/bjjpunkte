@@ -433,17 +433,25 @@ export default function SettingsPage() {
 
           {/* DSGVO */}
           <div className="px-5 py-3 flex items-start gap-3">
-            <div className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />
+            <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${legalName ? 'bg-green-100' : 'bg-amber-100'}`}>
+              {legalName
+                ? <Check size={10} className="text-green-600" />
+                : <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />}
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-slate-800">Datenschutz</p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">
-                  Datenschutzerklärung <ExternalLink size={10} />
-                </a>
-                {' '}— passe Namen und Kontakt an.
-              </p>
+              {legalName ? (
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Verantwortlicher: <strong className="text-slate-600">{legalName}</strong> ·{' '}
+                  <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">
+                    Vorschau <ExternalLink size={10} />
+                  </a>
+                </p>
+              ) : (
+                <p className="text-xs text-amber-600 mt-0.5">
+                  Trage deinen Namen als Verantwortlichen im Abschnitt „Datenschutz / Impressum" oben ein.
+                </p>
+              )}
             </div>
           </div>
 

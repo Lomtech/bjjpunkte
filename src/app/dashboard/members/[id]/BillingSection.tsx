@@ -16,8 +16,15 @@ const STATUS_LABELS: Record<string, string> = {
   paid: 'Bezahlt', pending: 'Ausstehend', failed: 'Fehlgeschlagen', refunded: 'Erstattet',
 }
 
-export function BillingSection({ memberId, gymId, memberEmail, memberName, subscriptionStatus, stripeCustomerId, monthlyFeeCents, payments: initialPayments, stripeSubscriptionId }: {
-  memberId: string; gymId: string; memberEmail: string | null; memberName: string
+function toWaPhone(raw: string): string {
+  let p = raw.replace(/[\s\-().]/g, '')
+  if (p.startsWith('00')) p = '+' + p.slice(2)
+  if (p.startsWith('0'))  p = '+49' + p.slice(1)
+  return p.replace(/^\+/, '')
+}
+
+export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memberName, subscriptionStatus, stripeCustomerId, monthlyFeeCents, payments: initialPayments, stripeSubscriptionId }: {
+  memberId: string; gymId: string; memberEmail: string | null; memberPhone?: string | null; memberName: string
   subscriptionStatus: string; stripeCustomerId: string | null; monthlyFeeCents: number
   payments: Payment[]; stripeSubscriptionId?: string | null
 }) {
@@ -134,41 +141,35 @@ export function BillingSection({ memberId, gymId, memberEmail, memberName, subsc
 
       {checkoutUrl ? (
         <div className="p-4 bg-green-50 rounded-xl border border-green-200 mb-4">
-          <p className="text-green-800 text-sm font-medium mb-2">Zahlungslink erstellt!</p>
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <a
-              href={checkoutUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-500 text-sm font-medium"
-            >
-              <ExternalLink size={14} />
-              Link öffnen
-            </a>
-            <button
-              onClick={() => { navigator.clipboard.writeText(checkoutUrl) }}
-              className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-700 text-sm"
-            >
-              <Copy size={13} />
-              Kopieren
-            </button>
-            <button
-              onClick={() => {
-                const text = `Hallo, hier ist dein Zahlungslink: ${checkoutUrl}`
-                navigator.clipboard.writeText(text)
-              }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white text-xs font-semibold transition-colors"
-              title="Nachricht + Link in Zwischenablage kopieren, dann per WhatsApp teilen"
-            >
-              <MessageCircle size={13} />
-              Per WhatsApp teilen
-            </button>
-            <button
-              onClick={() => setCheckoutUrl('')}
-              className="text-slate-400 hover:text-slate-600 text-sm"
-            >
-              Neuer Link
-            </button>
+          <p className="text-green-800 text-sm font-medium mb-3">Zahlungslink erstellt!</p>
+          <div className="flex flex-col gap-2">
+            {memberPhone && (
+              <a href={`https://wa.me/${toWaPhone(memberPhone)}?text=${encodeURIComponent(`Hallo ${memberName.split(' ')[0]}! Hier ist dein Zahlungslink für den Monatsbeitrag:\n${checkoutUrl}`)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white text-sm font-semibold transition-colors">
+                <MessageCircle size={14} /> Per WhatsApp senden
+              </a>
+            )}
+            {memberEmail && (
+              <a href={`mailto:${memberEmail}?subject=${encodeURIComponent('Dein Zahlungslink')}&body=${encodeURIComponent(`Hallo ${memberName.split(' ')[0]}!\n\nHier ist dein Zahlungslink:\n${checkoutUrl}`)}`}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 text-sm font-semibold transition-colors">
+                Link per E-Mail senden
+              </a>
+            )}
+            <div className="flex gap-2">
+              <a href={checkoutUrl} target="_blank" rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-slate-600 text-xs font-medium transition-colors">
+                <ExternalLink size={12} /> Öffnen
+              </a>
+              <button onClick={() => navigator.clipboard.writeText(checkoutUrl)}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-slate-600 text-xs font-medium transition-colors">
+                <Copy size={12} /> Kopieren
+              </button>
+              <button onClick={() => setCheckoutUrl('')}
+                className="flex-1 flex items-center justify-center px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-slate-400 text-xs transition-colors">
+                Neuer Link
+              </button>
+            </div>
           </div>
         </div>
       ) : (

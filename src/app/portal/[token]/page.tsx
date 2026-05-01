@@ -38,7 +38,7 @@ interface MemberData {
   gym: { name: string } | null
   attendance: { id: string; checked_in_at: string; class_type: string }[]
   totalSessions: number
-  payments: { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }[]
+  payments: { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string; checkout_url: string | null }[]
   totalPaidCents: number
   upcoming_bookings: UpcomingBooking[] | null
 }
@@ -399,18 +399,26 @@ export default function MemberPortalPage() {
           {payments && payments.length > 0 ? (
             <div className="space-y-2">
               {payments.map(p => (
-                <div key={p.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${STATUS_COLORS[p.status] ?? STATUS_COLORS.pending}`}>
+                <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${STATUS_COLORS[p.status] ?? STATUS_COLORS.pending}`}>
                       {STATUS_LABELS[p.status] ?? p.status}
                     </span>
-                    <span className="text-slate-700 text-sm font-medium">
+                    <span className="text-slate-700 text-sm font-medium flex-shrink-0">
                       {(p.amount_cents / 100).toFixed(2).replace('.', ',')} €
                     </span>
                   </div>
-                  <span className="text-slate-400 text-xs">
-                    {new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}
-                  </span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-slate-400 text-xs">
+                      {new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}
+                    </span>
+                    {p.status === 'pending' && p.checkout_url && (
+                      <a href={p.checkout_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors">
+                        Jetzt bezahlen
+                      </a>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

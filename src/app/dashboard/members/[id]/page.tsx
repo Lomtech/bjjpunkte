@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
@@ -10,7 +10,7 @@ import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
-import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil } from 'lucide-react'
+import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2 } from 'lucide-react'
 
 /** Normalize German phone to wa.me format (no +, no spaces) */
 function toWaPhone(raw: string): string {
@@ -71,6 +71,7 @@ interface Payment {
 
 export default function MemberDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const id = params.id as string
 
   const [loading, setLoading] = useState(true)
@@ -83,6 +84,7 @@ export default function MemberDetailPage() {
   const [totalSessions, setTotalSessions] = useState(0)
   const [payments, setPayments] = useState<Payment[]>([])
   const [deletingPromoId, setDeletingPromoId] = useState<string | null>(null)
+  const [deletingMember, setDeletingMember]   = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -157,6 +159,17 @@ export default function MemberDetailPage() {
 
   function handlePromoted(belt: Belt, stripes: number) {
     setMember(m => m ? { ...m, belt: belt as string, stripes } : m)
+  }
+
+  async function handleDeleteMember() {
+    if (!confirm(`${member?.first_name} ${member?.last_name} wirklich löschen? Alle Daten (Anwesenheit, Zahlungen, Promotions) werden dauerhaft gelöscht.`)) return
+    setDeletingMember(true)
+    const { data: { session } } = await createClient().auth.getSession()
+    const res = await fetch(`/api/members/${id}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+    })
+    if (res.ok) { router.push('/dashboard/members') }
+    else { const d = await res.json(); alert(d.error); setDeletingMember(false) }
   }
 
   function handleDemoted(belt: Belt, stripes: number) {
@@ -275,6 +288,7 @@ export default function MemberDetailPage() {
         memberId={member.id}
         gymId={gymId}
         memberEmail={member.email}
+        memberPhone={member.phone}
         memberName={`${member.first_name} ${member.last_name}`}
         subscriptionStatus={member.subscription_status ?? 'none'}
         stripeCustomerId={member.stripe_customer_id}
@@ -337,6 +351,18 @@ export default function MemberDetailPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Delete — only for inactive members */}
+      {!member.is_active && (
+        <div className="mt-6 pt-5 border-t border-red-100">
+          <button onClick={handleDeleteMember} disabled={deletingMember}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-semibold transition-colors disabled:opacity-50">
+            <Trash2 size={14} />
+            {deletingMember ? 'Wird gelöscht…' : 'Mitglied dauerhaft löschen'}
+          </button>
+          <p className="text-xs text-slate-400 mt-2">Nur für inaktive Mitglieder. Alle Daten werden unwiderruflich gelöscht.</p>
         </div>
       )}
     </div>
