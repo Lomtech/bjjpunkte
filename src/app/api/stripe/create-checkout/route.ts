@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     // Build session params — route to connected account if available
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      payment_method_types: ['card', 'sepa_debit'],
+      payment_method_types: ['card'],
       line_items: [{
         price_data: {
           currency: 'eur',
