@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield } from 'lucide-react'
+import { Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle, Unlink, Zap, Copy, Check, Shield, UserPlus, Link2 } from 'lucide-react'
 
 export default function SettingsPage() {
   const searchParams = useSearchParams()
@@ -18,9 +18,21 @@ export default function SettingsPage() {
   const [stripeAccountId, setStripeAccountId]   = useState<string | null>(null)
   const [connectLoading, setConnectLoading]     = useState(false)
   const [copied, setCopied]                     = useState(false)
+  // Signup
+  const [signupEnabled, setSignupEnabled]           = useState(false)
+  const [signupToken, setSignupToken]               = useState<string | null>(null)
+  const [contractTemplate, setContractTemplate]     = useState('')
+  const [signupSaving, setSignupSaving]             = useState(false)
+  const [signupSaved, setSignupSaved]               = useState(false)
+  const [copiedSignup, setCopiedSignup]             = useState(false)
+
   const webhookUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/stripe/webhook`
     : '/api/stripe/webhook'
+
+  const signupUrl = typeof window !== 'undefined' && signupToken
+    ? `${window.location.origin}/signup/${signupToken}`
+    : null
 
   const stripeConnected = searchParams.get('stripe_connected') === '1'
   const stripeError     = searchParams.get('stripe_error')
@@ -35,6 +47,9 @@ export default function SettingsPage() {
         setEmail(data.email ?? '')
         setMonthlyFee(data.monthly_fee_cents ? ((data.monthly_fee_cents as number) / 100).toFixed(2) : '')
         setStripeAccountId((data as { stripe_account_id: string | null }).stripe_account_id)
+        setSignupEnabled((data as { signup_enabled: boolean }).signup_enabled ?? false)
+        setSignupToken((data as { signup_token: string | null }).signup_token ?? null)
+        setContractTemplate((data as { contract_template: string | null }).contract_template ?? '')
       }
     })
     fetch('/api/stripe/status').then(r => r.json()).then(d => setStripeConfigured(d.configured))
@@ -73,6 +88,23 @@ export default function SettingsPage() {
     const { data: { session } } = await createClient().auth.getSession()
     await fetch('/api/stripe/connect', { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
     setStripeAccountId(null)
+  }
+
+  async function handleSignupSave() {
+    setSignupSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('gyms')
+      .update({ signup_enabled: signupEnabled, contract_template: contractTemplate })
+      .eq('owner_id', user?.id ?? '')
+    setSignupSaving(false); setSignupSaved(true); setTimeout(() => setSignupSaved(false), 2000)
+  }
+
+  async function copySignupUrl() {
+    if (!signupUrl) return
+    await navigator.clipboard.writeText(signupUrl)
+    setCopiedSignup(true)
+    setTimeout(() => setCopiedSignup(false), 2000)
   }
 
   return (
@@ -202,6 +234,69 @@ export default function SettingsPage() {
           {saved ? 'Gespeichert' : loading ? 'Wird gespeichert…' : 'Einstellungen speichern'}
         </button>
       </form>
+
+      {/* Mitglieder-Anmeldung */}
+      <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <UserPlus size={12} /> Mitglieder-Anmeldung
+          </p>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <span className="text-xs text-slate-500">{signupEnabled ? 'Aktiv' : 'Inaktiv'}</span>
+            <button type="button" onClick={() => setSignupEnabled(v => !v)}
+              className={`relative w-9 h-5 rounded-full transition-colors ${signupEnabled ? 'bg-amber-500' : 'bg-gray-200'}`}>
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${signupEnabled ? 'translate-x-4' : ''}`} />
+            </button>
+          </label>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Signup link */}
+          {signupToken && (
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1.5">
+                <Link2 size={11} /> Anmelde-Link
+              </p>
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                <code className="text-xs font-mono text-slate-600 flex-1 truncate min-w-0">{signupUrl}</code>
+                <button type="button" onClick={copySignupUrl} className="flex-shrink-0 text-slate-400 hover:text-amber-600 transition-colors">
+                  {copiedSignup ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                </button>
+                {signupUrl && (
+                  <a href={signupUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex-shrink-0 text-slate-400 hover:text-amber-600 transition-colors">
+                    <ExternalLink size={13} />
+                  </a>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                {signupEnabled
+                  ? 'Dieser Link ist aktiv — teile ihn mit neuen Mitgliedern.'
+                  : 'Aktiviere die Anmeldung oben, damit der Link funktioniert.'}
+              </p>
+            </div>
+          )}
+
+          {/* Contract template */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1.5">Vertragsvorlage</label>
+            <textarea
+              value={contractTemplate}
+              onChange={e => setContractTemplate(e.target.value)}
+              rows={10}
+              placeholder="Mitgliedschaftsvertrag…"
+              className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm font-mono placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
+            />
+            <p className="text-xs text-slate-400 mt-1">Dieser Text wird dem Mitglied beim Anmelden zum Unterschreiben angezeigt.</p>
+          </div>
+
+          <button type="button" onClick={handleSignupSave} disabled={signupSaving}
+            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+            <Save size={14} />
+            {signupSaved ? 'Gespeichert ✓' : signupSaving ? 'Wird gespeichert…' : 'Anmeldung speichern'}
+          </button>
+        </div>
+      </div>
 
       {/* Production Checklist */}
       <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

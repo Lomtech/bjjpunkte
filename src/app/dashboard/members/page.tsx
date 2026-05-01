@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock } from 'lucide-react'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 
@@ -24,6 +24,7 @@ interface Member {
   belt: string; stripes: number; join_date: string
   is_active: boolean; subscription_status: string | null
   contract_end_date: string | null; monthly_fee_override_cents: number | null
+  onboarding_status: string | null
 }
 
 function contractStatus(endDate: string | null): 'ok' | 'expiring' | 'expired' {
@@ -47,6 +48,7 @@ export default function MembersPage() {
   const [bulkLoading, setBulkLoading]       = useState(false)
   const [bulkResult, setBulkResult]         = useState<string | null>(null)
   const [search, setSearch]                 = useState('')
+  const [activatingId, setActivatingId]     = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -57,7 +59,7 @@ export default function MembersPage() {
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       const { data } = await supabase
         .from('members')
-        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents')
+        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status')
         .eq('gym_id', gym.id).order('last_name')
       setMembers((data as Member[]) ?? [])
       setLoading(false)
@@ -65,14 +67,16 @@ export default function MembersPage() {
     load()
   }, [])
 
-  const filtered = members.filter(m => {
+  const pending  = members.filter(m => m.onboarding_status === 'pending')
+  const nonPending = members.filter(m => m.onboarding_status !== 'pending')
+  const filtered = nonPending.filter(m => {
     if (!search) return true
     const q = search.toLowerCase()
     return `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
       (m.email ?? '').toLowerCase().includes(q)
   })
-  const active   = members.filter(m => m.is_active)
-  const inactive = members.filter(m => !m.is_active)
+  const active   = nonPending.filter(m => m.is_active)
+  const inactive = nonPending.filter(m => !m.is_active)
   const activeWithEmail = active.filter(m => m.email)
 
   function handleEmailAll() {
@@ -93,6 +97,14 @@ export default function MembersPage() {
       setBulkResult(res.ok ? `${json.count} Zahlungslinks erstellt.` : `Fehler: ${json.error}`)
     } catch { setBulkResult('Fehler beim Erstellen der Zahlungslinks.') }
     finally { setBulkLoading(false); setShowBulkConfirm(false) }
+  }
+
+  async function activateMember(id: string) {
+    setActivatingId(id)
+    const supabase = createClient()
+    await supabase.from('members').update({ is_active: true, onboarding_status: 'complete' }).eq('id', id)
+    setMembers(prev => prev.map(m => m.id === id ? { ...m, is_active: true, onboarding_status: 'complete' } : m))
+    setActivatingId(null)
   }
 
   if (loading) return <div className="flex items-center justify-center h-full text-slate-400 text-sm">Lädt…</div>
@@ -135,6 +147,40 @@ export default function MembersPage() {
 
       {bulkResult && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm font-medium">{bulkResult}</div>
+      )}
+
+      {/* Pending sign-ups */}
+      {pending.length > 0 && (
+        <div className="mb-4 bg-amber-50 rounded-xl border border-amber-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
+            <Clock size={13} className="text-amber-600" />
+            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Ausstehende Anmeldungen</span>
+            <span className="ml-auto text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">{pending.length}</span>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {pending.map(m => (
+              <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-amber-700">{m.first_name[0]}{m.last_name[0]}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{m.first_name} {m.last_name}</p>
+                  {m.email && <p className="text-xs text-slate-500 truncate">{m.email}</p>}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Link href={`/dashboard/members/${m.id}`}
+                    className="text-xs text-amber-700 hover:text-amber-600 font-medium">Details</Link>
+                  <button
+                    onClick={() => activateMember(m.id)}
+                    disabled={activatingId === m.id}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                    {activatingId === m.id ? '…' : 'Aktivieren'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Bulk confirm */}
