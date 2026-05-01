@@ -32,6 +32,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
   const [subLoading, setSubLoading] = useState(false)
   const [error, setError] = useState('')
   const [checkoutUrl, setCheckoutUrl] = useState('')
+  const [linkType, setLinkType] = useState<'onetime' | 'subscription'>('onetime')
   const [payments, setPayments] = useState<Payment[]>(initialPayments)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -52,6 +53,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler beim Erstellen des Zahlungslinks')
       setCheckoutUrl(data.url)
+      setLinkType('onetime')
       // Refresh payments list
       const supabase = createClient()
       const { data: updated } = await supabase.from('payments').select('*').eq('member_id', memberId).order('created_at', { ascending: false }).limit(10)
@@ -74,7 +76,8 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      window.open(data.url, '_blank')
+      setCheckoutUrl(data.url)
+      setLinkType('subscription')
     } catch (e) { setError(e instanceof Error ? e.message : 'Fehler') }
     setSubLoading(false)
   }
@@ -141,17 +144,34 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
 
       {checkoutUrl ? (
         <div className="p-4 bg-green-50 rounded-xl border border-green-200 mb-4">
-          <p className="text-green-800 text-sm font-medium mb-3">Zahlungslink erstellt!</p>
+          <p className="text-green-800 text-sm font-medium mb-0.5">
+            {linkType === 'subscription' ? '🔄 Abo-Link erstellt!' : 'Zahlungslink erstellt!'}
+          </p>
+          <p className="text-green-700 text-xs mb-3">
+            {linkType === 'subscription'
+              ? 'Mitglied öffnet Link, gibt Karte einmalig ein → danach automatische Abbuchung jeden Monat.'
+              : 'Einmalige Zahlung — Mitglied öffnet Link und zahlt.'}
+          </p>
           <div className="flex flex-col gap-2">
             {memberPhone && (
-              <a href={`https://wa.me/${toWaPhone(memberPhone)}?text=${encodeURIComponent(`Hallo ${memberName.split(' ')[0]}! Hier ist dein Zahlungslink für den Monatsbeitrag:\n${checkoutUrl}`)}`}
+              <a href={`https://wa.me/${toWaPhone(memberPhone)}?text=${encodeURIComponent(
+                linkType === 'subscription'
+                  ? `Hallo ${memberName.split(' ')[0]}! 🥋 Bitte richte hier einmalig die automatische Beitragszahlung ein:\n${checkoutUrl}\n\nNach der Einrichtung läuft die Abbuchung jeden Monat automatisch.`
+                  : `Hallo ${memberName.split(' ')[0]}! Hier ist dein Zahlungslink für den Monatsbeitrag:\n${checkoutUrl}`
+              )}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white text-sm font-semibold transition-colors">
                 <MessageCircle size={14} /> Per WhatsApp senden
               </a>
             )}
             {memberEmail && (
-              <a href={`mailto:${memberEmail}?subject=${encodeURIComponent('Dein Zahlungslink')}&body=${encodeURIComponent(`Hallo ${memberName.split(' ')[0]}!\n\nHier ist dein Zahlungslink:\n${checkoutUrl}`)}`}
+              <a href={`mailto:${memberEmail}?subject=${encodeURIComponent(
+                linkType === 'subscription' ? 'Automatische Beitragszahlung einrichten' : 'Dein Zahlungslink'
+              )}&body=${encodeURIComponent(
+                linkType === 'subscription'
+                  ? `Hallo ${memberName.split(' ')[0]}!\n\nBitte richte hier einmalig die automatische Beitragszahlung ein:\n${checkoutUrl}\n\nNach der Einrichtung läuft die Abbuchung monatlich automatisch.`
+                  : `Hallo ${memberName.split(' ')[0]}!\n\nHier ist dein Zahlungslink:\n${checkoutUrl}`
+              )}`}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 text-sm font-semibold transition-colors">
                 Link per E-Mail senden
               </a>
@@ -165,7 +185,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-slate-600 text-xs font-medium transition-colors">
                 <Copy size={12} /> Kopieren
               </button>
-              <button onClick={() => setCheckoutUrl('')}
+              <button onClick={() => { setCheckoutUrl(''); setLinkType('onetime') }}
                 className="flex-1 flex items-center justify-center px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-slate-400 text-xs transition-colors">
                 Neuer Link
               </button>
