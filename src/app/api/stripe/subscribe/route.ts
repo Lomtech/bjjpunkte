@@ -47,40 +47,44 @@ export async function POST(req: Request) {
     await (supabase.from('members') as any).update({ stripe_customer_id: customerId }).eq('id', memberId)
   }
 
-  // Create a recurring Price for this amount (€/month)
-  const price = await stripe.prices.create({
-    currency: 'eur',
-    unit_amount: amountCents,
-    recurring: { interval: 'month' },
-    product_data: { name: 'Monatlicher Mitgliedsbeitrag' },
-  })
-
   const appUrl = getAppUrl()
 
-  const sessionParams: Stripe.Checkout.SessionCreateParams = {
-    customer: customerId,
-    payment_method_types: ['card', 'sepa_debit'],
-    line_items: [{ price: price.id, quantity: 1 }],
-    mode: 'subscription',
-    success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
-    cancel_url:  `${appUrl}/dashboard/members/${memberId}`,
-    metadata: { memberId, gymId },
-    subscription_data: {
+  try {
+    // Create a recurring Price for this amount (€/month)
+    const price = await stripe.prices.create({
+      currency: 'eur',
+      unit_amount: amountCents,
+      recurring: { interval: 'month' },
+      product_data: { name: 'Monatlicher Mitgliedsbeitrag' },
+    })
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      customer: customerId,
+      payment_method_types: ['card', 'sepa_debit'],
+      line_items: [{ price: price.id, quantity: 1 }],
+      mode: 'subscription',
+      success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
+      cancel_url:  `${appUrl}/dashboard/members/${memberId}`,
       metadata: { memberId, gymId },
-    },
-  }
-
-  if (connectedAccountId) {
-    sessionParams.subscription_data = {
-      ...sessionParams.subscription_data,
-      application_fee_percent: PLATFORM_FEE_PERCENT * 100,
-      transfer_data: { destination: connectedAccountId },
+      subscription_data: {
+        metadata: { memberId, gymId },
+      },
     }
+
+    if (connectedAccountId) {
+      sessionParams.subscription_data = {
+        ...sessionParams.subscription_data,
+        application_fee_percent: PLATFORM_FEE_PERCENT * 100,
+        transfer_data: { destination: connectedAccountId },
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams)
+    return NextResponse.json({ url: session.url })
+  } catch (err: any) {
+    console.error('Stripe subscribe error:', err?.message)
+    return NextResponse.json({ error: err?.message ?? 'Stripe-Fehler beim Erstellen des Abonnements' }, { status: 500 })
   }
-
-  const session = await stripe.checkout.sessions.create(sessionParams)
-
-  return NextResponse.json({ url: session.url })
 }
 
 // Cancel subscription
