@@ -357,14 +357,14 @@ export default function Home() {
             src="/tournament-podium.jpg"
             alt="Athleten auf dem Siegerpodest"
             fill
-            className="object-cover object-top"
+            className="object-cover"
+            style={{ objectPosition: 'center 15%' }}
             priority
           />
         </motion.div>
 
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-zinc-950/20" />
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/40 via-transparent to-transparent" />
+        {/* Subtle gradient — only enough for text contrast at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-transparent to-zinc-950/20" />
 
         {/* Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-end text-center pb-20 px-5">
