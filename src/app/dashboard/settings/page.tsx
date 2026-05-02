@@ -233,10 +233,10 @@ export default function SettingsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLogoUploading(false); return }
     const ext = file.name.split('.').pop() ?? 'png'
-    const path = `${user.id}/logo.${ext}`
+    const path = `${user.id}/logo-${Date.now()}.${ext}`
     const { error: uploadErr } = await supabase.storage
       .from('gym-logos')
-      .upload(path, file, { upsert: true, contentType: file.type })
+      .upload(path, file, { contentType: file.type })
     if (uploadErr) { alert('Upload fehlgeschlagen: ' + uploadErr.message); setLogoUploading(false); return }
     const { data: { publicUrl } } = supabase.storage.from('gym-logos').getPublicUrl(path)
     await supabase.from('gyms').update({ logo_url: publicUrl }).eq('owner_id', user.id)
