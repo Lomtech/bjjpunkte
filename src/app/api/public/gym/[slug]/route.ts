@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const now = new Date().toISOString()
   const end = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [{ data: classes }, { data: plans }] = await Promise.all([
+  const [{ data: classes }, { data: plans }, { data: posts }] = await Promise.all([
     supabase
       .from('classes')
       .select('id, title, class_type, instructor, starts_at, ends_at, max_capacity')
@@ -47,6 +47,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       .eq('gym_id', gym.id)
       .eq('is_active', true)
       .order('sort_order' as never),
+    supabase
+      .from('posts' as never)
+      .select('id, title, cover_url, blocks, published_at, created_at')
+      .eq('gym_id', gym.id)
+      .not('published_at', 'is', null)
+      .lte('published_at', new Date().toISOString())
+      .order('published_at', { ascending: false } as never)
+      .limit(10),
   ])
 
   const g = gym as typeof gym & Record<string, unknown>
@@ -77,5 +85,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     },
     classes: classes ?? [],
     plans:   plans   ?? [],
+    posts:   posts   ?? [],
   })
 }

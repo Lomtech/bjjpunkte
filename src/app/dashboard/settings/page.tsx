@@ -82,6 +82,11 @@ export default function SettingsPage() {
   const [signupSaved, setSignupSaved]           = useState(false)
   const [copiedSignup, setCopiedSignup]         = useState(false)
 
+  // WhatsApp notifications (CallMeBot)
+  const [callmebotKey, setCallmebotKey]         = useState('')
+  const [callmebotSaving, setCallmebotSaving]   = useState(false)
+  const [callmebotSaved, setCallmebotSaved]     = useState(false)
+
   // Class Types
   const [classTypesInput, setClassTypesInput]   = useState('gi, no-gi, open mat, kids, competition')
   const [classTypesSaving, setClassTypesSaving] = useState(false)
@@ -169,6 +174,7 @@ export default function SettingsPage() {
         setSignupEnabled((data as any).signup_enabled ?? false)
         setSignupToken((data as any).signup_token ?? null)
         setContractTemplate((data as any).contract_template ?? '')
+        setCallmebotKey((data as any).callmebot_api_key ?? '')
         setLegalName((data as any).legal_name ?? '')
         setLegalAddress((data as any).legal_address ?? '')
         setLegalEmail((data as any).legal_email ?? '')
@@ -313,6 +319,14 @@ export default function SettingsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     await (supabase.from('gyms') as any).update({ signup_enabled: signupEnabled, contract_template: contractTemplate }).eq('owner_id', user?.id ?? '')
     setSignupSaving(false); setSignupSaved(true); setTimeout(() => setSignupSaved(false), 2000)
+  }
+
+  async function handleCallmebotSave() {
+    setCallmebotSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await (supabase.from('gyms') as any).update({ callmebot_api_key: callmebotKey.trim() || null }).eq('owner_id', user?.id ?? '')
+    setCallmebotSaving(false); setCallmebotSaved(true); setTimeout(() => setCallmebotSaved(false), 2000)
   }
 
   async function handleLegalSave() {
@@ -1123,6 +1137,38 @@ export default function SettingsPage() {
               <button type="button" onClick={handleSignupSave} disabled={signupSaving} className={saveBtnCls}>
                 <Save size={14} />
                 {signupSaved ? 'Gespeichert ✓' : signupSaving ? 'Wird gespeichert…' : 'Anmeldung speichern'}
+              </button>
+            </div>
+          </div>
+
+          {/* WhatsApp Benachrichtigungen */}
+          <div className={sectionCls}>
+            <SectionHeader icon={<Megaphone size={12} />} title="Benachrichtigungen" />
+            <div className="p-5 space-y-4">
+              <p className="text-zinc-500 text-sm leading-relaxed">
+                Erhalte eine <strong>E-Mail</strong> (automatisch an deine Gym-E-Mail) und eine <strong>WhatsApp-Nachricht</strong>, sobald sich jemand über den Anmeldelink oder deine Gym-Seite anmeldet.
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 leading-relaxed space-y-1">
+                <p className="font-semibold">WhatsApp einrichten (einmalig, kostenlos):</p>
+                <p>1. Sende auf WhatsApp an <strong>+34 644 59 98 05</strong> die Nachricht:<br /><code className="bg-amber-100 px-1 rounded">I allow callmebot to send me messages</code></p>
+                <p>2. Du bekommst direkt deinen persönlichen API-Key zurück.</p>
+                <p>3. Trage den Key hier ein — fertig.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">CallMeBot API-Key</label>
+                <input
+                  value={callmebotKey}
+                  onChange={e => setCallmebotKey(e.target.value)}
+                  placeholder="z.B. 1234567"
+                  className={inputCls}
+                />
+                <p className="text-xs text-zinc-400 mt-1">
+                  Deine WhatsApp-Nummer hinterlegst du unter <em>Allgemein → Telefon</em>.
+                </p>
+              </div>
+              <button type="button" onClick={handleCallmebotSave} disabled={callmebotSaving} className={saveBtnCls}>
+                <Save size={14} />
+                {callmebotSaved ? 'Gespeichert ✓' : callmebotSaving ? 'Wird gespeichert…' : 'Benachrichtigungen speichern'}
               </button>
             </div>
           </div>

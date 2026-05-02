@@ -21,6 +21,11 @@ interface Plan {
   id: string; name: string; description: string | null
   price_cents: number; billing_interval: string; contract_months: number
 }
+interface PostBlock { id: string; type: 'heading' | 'paragraph' | 'image'; text?: string; url?: string; caption?: string }
+interface GymPost {
+  id: string; title: string; cover_url: string | null
+  blocks: PostBlock[]; published_at: string; created_at: string
+}
 type DayKey = 'mo' | 'di' | 'mi' | 'do' | 'fr' | 'sa' | 'so'
 interface DayHours { closed: boolean; open: string; close: string }
 interface GymInfo {
@@ -92,6 +97,7 @@ function Nav({ gym }: { gym: GymInfo }) {
   }, [])
   const links = [
     { href: '#about', label: 'Über uns' },
+    { href: '#news', label: 'News' },
     { href: '#schedule', label: 'Stundenplan' },
     { href: '#plans', label: 'Preise' },
     { href: '#contact', label: 'Kontakt' },
@@ -188,18 +194,45 @@ function ContactForm({ slug }: { slug: string }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+// ── Scroll-reveal hook ────────────────────────────────────────────────────────
+
+function useScrollReveal() {
+  useEffect(() => {
+    const els = document.querySelectorAll('[data-reveal]')
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          (e.target as HTMLElement).style.opacity = '1';
+          (e.target as HTMLElement).style.transform = 'translateY(0)';
+          io.unobserve(e.target)
+        }
+      })
+    }, { threshold: 0.1 })
+    els.forEach(el => {
+      (el as HTMLElement).style.opacity = '0';
+      (el as HTMLElement).style.transform = 'translateY(32px)';
+      (el as HTMLElement).style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+      io.observe(el)
+    })
+    return () => io.disconnect()
+  }, [])
+}
+
 export default function PublicGymPage() {
   const { slug }               = useParams<{ slug: string }>()
   const [gym, setGym]          = useState<GymInfo | null>(null)
   const [classes, setClasses]  = useState<GymClass[]>([])
   const [plans, setPlans]      = useState<Plan[]>([])
+  const [posts, setPosts]      = useState<GymPost[]>([])
   const [loading, setLoading]  = useState(true)
   const [showImpressum, setShowImpressum] = useState(false)
+
+  useScrollReveal()
 
   useEffect(() => {
     fetch(`/api/public/gym/${slug}`)
       .then(r => r.json())
-      .then(d => { setGym(d.gym); setClasses(d.classes ?? []); setPlans(d.plans ?? []) })
+      .then(d => { setGym(d.gym); setClasses(d.classes ?? []); setPlans(d.plans ?? []); setPosts(d.posts ?? []) })
       .finally(() => setLoading(false))
   }, [slug])
 
@@ -216,6 +249,70 @@ export default function PublicGymPage() {
 
   const days    = groupByDay(classes)
   const videoId = gym.video_url ? ytId(gym.video_url) : null
+
+  function PostsSection() {
+    if (posts.length === 0) return null
+    return (
+      <section id="news" className="bg-white py-24">
+        <div className="max-w-6xl mx-auto px-5">
+          <div data-reveal className="flex items-center gap-2 mb-3">
+            <span className="w-6 h-px bg-amber-400" />
+            <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">News & Ankündigungen</p>
+          </div>
+          <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12">Aktuelles</h2>
+          <div className="space-y-12">
+            {posts.map((post, idx) => (
+              <article key={post.id} data-reveal
+                style={{ transitionDelay: `${idx * 80}ms` }}
+                className="group">
+                <div className="grid md:grid-cols-[1fr_2fr] gap-8 items-start">
+                  {/* Cover or date column */}
+                  <div>
+                    {post.cover_url ? (
+                      <div className="rounded-2xl overflow-hidden aspect-[4/3]">
+                        <img src={post.cover_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl bg-zinc-50 border border-zinc-100 aspect-[4/3] flex items-center justify-center">
+                        <span className="text-zinc-200 font-black text-6xl select-none">
+                          {new Date(post.published_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-xs text-zinc-400 mt-3 font-medium">
+                      {new Date(post.published_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                  {/* Content */}
+                  <div className="space-y-4">
+                    <h3 className="text-2xl font-black text-zinc-900 leading-tight">{post.title}</h3>
+                    {post.blocks.map((block) => {
+                      if (block.type === 'heading') return (
+                        <h4 key={block.id} className="text-lg font-bold text-zinc-800 mt-6 first:mt-0">{block.text}</h4>
+                      )
+                      if (block.type === 'paragraph') return (
+                        <p key={block.id} className="text-zinc-600 leading-[1.85] text-[15px] whitespace-pre-wrap">{block.text}</p>
+                      )
+                      if (block.type === 'image' && block.url) return (
+                        <figure key={block.id} className="my-4">
+                          <div className="rounded-2xl overflow-hidden">
+                            <img src={block.url} alt={block.caption ?? ''} className="w-full object-cover max-h-96 group-hover:scale-102 transition-transform duration-500" />
+                          </div>
+                          {block.caption && <figcaption className="text-xs text-zinc-400 text-center mt-2">{block.caption}</figcaption>}
+                        </figure>
+                      )
+                      return null
+                    })}
+                  </div>
+                </div>
+                {idx < posts.length - 1 && <div className="mt-12 h-px bg-zinc-100" />}
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased">
@@ -299,7 +396,7 @@ export default function PublicGymPage() {
         <section id="about" className="bg-white py-24">
           <div className="max-w-6xl mx-auto px-5">
             <div className="grid md:grid-cols-[1fr_2fr] gap-16 items-start">
-              <div>
+              <div data-reveal>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-6 h-px bg-amber-400" />
                   <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">Über uns</p>
@@ -322,7 +419,7 @@ export default function PublicGymPage() {
                   </div>
                 )}
               </div>
-              <div>
+              <div data-reveal style={{ transitionDelay: '120ms' }}>
                 <p className="text-zinc-600 leading-[1.9] text-[15px] whitespace-pre-wrap">{gym.about}</p>
               </div>
             </div>
@@ -353,15 +450,18 @@ export default function PublicGymPage() {
         </section>
       )}
 
+      {/* ── NEWS / POSTS ── */}
+      <PostsSection />
+
       {/* ── SCHEDULE ── */}
       {days.length > 0 && (
         <section id="schedule" className="bg-white py-24">
           <div className="max-w-6xl mx-auto px-5">
-            <div className="flex items-center gap-2 mb-3">
+            <div data-reveal className="flex items-center gap-2 mb-3">
               <span className="w-6 h-px bg-amber-400" />
               <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">Stundenplan</p>
             </div>
-            <h2 className="text-3xl font-black text-zinc-900 mb-12">Kommende Trainings</h2>
+            <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12" style={{ transitionDelay: '60ms' }}>Kommende Trainings</h2>
             <div className="space-y-8">
               {days.map(([day, dc]) => (
                 <div key={day}>
@@ -405,11 +505,11 @@ export default function PublicGymPage() {
       {plans.length > 0 && (
         <section id="plans" className="bg-zinc-50 py-24">
           <div className="max-w-6xl mx-auto px-5">
-            <div className="flex items-center gap-2 mb-3">
+            <div data-reveal className="flex items-center gap-2 mb-3">
               <span className="w-6 h-px bg-amber-400" />
               <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">Mitgliedschaft</p>
             </div>
-            <h2 className="text-3xl font-black text-zinc-900 mb-12">Unsere Preise</h2>
+            <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12" style={{ transitionDelay: '60ms' }}>Unsere Preise</h2>
             <div className={`grid gap-4 ${plans.length === 1 ? 'max-w-xs' : plans.length === 2 ? 'sm:grid-cols-2 max-w-xl' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
               {plans.map((p, i) => {
                 const featured = plans.length > 1 && i === Math.floor(plans.length / 2)

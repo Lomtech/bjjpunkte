@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { notifyGym } from '@/lib/notify'
 
 // Uses service role to bypass RLS — safe because we validate the signup_token
 function serviceClient() {
@@ -144,6 +145,26 @@ export async function POST(req: Request) {
     },
     { onConflict: 'gym_id,email', ignoreDuplicates: true }
   )
+
+  // Notify gym owner via email + WhatsApp
+  const fullName = `${firstName.trim()} ${lastName.trim()}`
+  await notifyGym({
+    gymId,
+    subject: `Neue Mitglieder-Anmeldung: ${fullName}`,
+    html: `
+      <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0f172a">Neue Anmeldung! 🎉</p>
+      <p style="margin:0 0 20px;font-size:15px;color:#64748b;line-height:1.6">
+        <strong>${fullName}</strong> hat sich gerade über deinen Mitglieder-Anmeldelink registriert.
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;color:#374151">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Name</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-weight:600">${fullName}</td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">E-Mail</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${email.toLowerCase().trim()}</td></tr>
+        ${phone ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Telefon</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${phone.trim()}</td></tr>` : ''}
+      </table>
+      <p style="margin:20px 0 0;font-size:14px;color:#64748b">Der Interessent wurde automatisch in deinem Dashboard unter <strong>Interessenten</strong> angelegt.</p>
+    `,
+    whatsappText: `🎉 Neue Anmeldung!\n${fullName}\n${email.toLowerCase().trim()}${phone ? '\n' + phone.trim() : ''}\n\nosss.pro Dashboard`,
+  })
 
   return NextResponse.json({ success: true, memberId: member.id })
 }
