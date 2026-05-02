@@ -125,42 +125,57 @@ function ImageUpload({
 }: { label: string; url: string | null; onUploaded: (url: string) => void; hint?: string }) {
   const ref = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
-  const [urlInput, setUrlInput]   = useState(url ?? '')
+  const [preview, setPreview]     = useState(url ?? '')
+
+  // Sync when parent loads data asynchronously
+  useEffect(() => { setPreview(url ?? '') }, [url])
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    // Show local blob preview immediately
+    const localUrl = URL.createObjectURL(file)
+    setPreview(localUrl)
     setUploading(true)
     const fd = new FormData()
     fd.append('file', file)
     const res = await fetch('/api/gym/media', { method: 'POST', body: fd })
     if (res.ok) {
       const { url: uploaded } = await res.json()
-      setUrlInput(uploaded)
+      setPreview(uploaded)
       onUploaded(uploaded)
+    } else {
+      setPreview(url ?? '') // revert on error
     }
     setUploading(false)
+    if (ref.current) ref.current.value = ''
   }
 
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-zinc-600">{label}</p>
-      {url && (
-        <div className="relative w-full h-36 rounded-xl overflow-hidden border border-zinc-200">
-          <Image src={url} alt={label} fill className="object-cover" />
+      {preview && (
+        <div className="relative w-full h-40 rounded-xl overflow-hidden border border-zinc-200 bg-zinc-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt={label} className="w-full h-full object-cover" />
+          {uploading && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <Loader2 size={20} className="text-white animate-spin" />
+            </div>
+          )}
         </div>
       )}
       <div className="flex gap-2">
         <input
-          value={urlInput}
-          onChange={e => { setUrlInput(e.target.value); onUploaded(e.target.value) }}
-          placeholder="https://… oder Datei hochladen"
+          value={preview}
+          onChange={e => { setPreview(e.target.value); onUploaded(e.target.value) }}
+          placeholder="https://… oder Datei hochladen →"
           className={INPUT + ' flex-1'}
         />
         <button type="button" onClick={() => ref.current?.click()} disabled={uploading}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-xs font-medium transition-colors flex-shrink-0 disabled:opacity-50">
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors flex-shrink-0 disabled:opacity-50">
           {uploading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-          {uploading ? 'Lädt…' : 'Upload'}
+          {uploading ? 'Lädt…' : 'Hochladen'}
         </button>
         <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
