@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { SidebarNav, BottomNav } from './NavLinks'
 import Image from 'next/image'
@@ -12,6 +13,8 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false)
   const [gymName, setGymName] = useState<string>('')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     const supabase = createClient()
@@ -28,16 +31,21 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
       // Check owner first
       const { data: gym } = await supabase
         .from('gyms')
-        .select('id, name, logo_url')
+        .select('id, name, logo_url, onboarding_completed_at')
         .eq('owner_id', userId)
         .maybeSingle()
 
       if (gym) {
+        const g = gym as any
         setRole('owner')
-        setGymName(gym.name ?? '')
-        setLogoUrl(gym.logo_url ?? null)
+        setGymName(g.name ?? '')
+        setLogoUrl(g.logo_url ?? null)
         localStorage.setItem('userRole', 'owner')
         setReady(true)
+        // Redirect to onboarding if not yet completed
+        if (!g.onboarding_completed_at && pathname !== '/dashboard/onboarding') {
+          router.push('/dashboard/onboarding')
+        }
         return
       }
 

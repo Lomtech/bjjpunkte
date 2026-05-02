@@ -350,30 +350,50 @@ export default function SettingsPage() {
   async function handlePlanSave() {
     if (!planForm.name || !planForm.price) return
     setPlanSaving(true)
-    const supabase = createClient()
     const priceCents = Math.round(parseFloat(planForm.price.replace(',', '.')) * 100)
-    const payload = {
-      gym_id: gymId, name: planForm.name, description: planForm.description || null,
-      price_cents: priceCents, billing_interval: planForm.billingInterval,
-      contract_months: parseInt(planForm.contractMonths) || 0,
-      sort_order: editingPlanId ? plans.find(p => p.id === editingPlanId)?.sort_order ?? plans.length : plans.length,
-    }
+    const { data: { session } } = await createClient().auth.getSession()
+    const token = session?.access_token ?? ''
+
     if (editingPlanId) {
+      // For edits, just update DB directly (Stripe price can't be changed, would need new price)
+      const payload = {
+        name: planForm.name, description: planForm.description || null,
+        price_cents: priceCents, billing_interval: planForm.billingInterval,
+        contract_months: parseInt(planForm.contractMonths) || 0,
+      }
+      const supabase = createClient()
       const { data } = await (supabase.from('membership_plans') as any).update(payload).eq('id', editingPlanId).select().single()
-      if (data) setPlans(prev => prev.map(p => p.id === editingPlanId ? data : p))
+      if (data) setPlans(ps => ps.map(p => p.id === editingPlanId ? { ...p, ...payload } : p))
+      setEditingPlanId(null)
     } else {
-      const { data } = await (supabase.from('membership_plans') as any).insert(payload).select().single()
-      if (data) setPlans(prev => [...prev, data])
+      // New plan — call API to also create Stripe product+price
+      const res = await fetch('/api/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: planForm.name,
+          description: planForm.description || null,
+          price_cents: priceCents,
+          billing_interval: planForm.billingInterval,
+          contract_months: parseInt(planForm.contractMonths) || 0,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok && json.plan) setPlans(ps => [...ps, json.plan])
     }
+    setPlanFormOpen(false)
     setPlanForm({ name: '', description: '', price: '', billingInterval: 'monthly', contractMonths: '0' })
-    setPlanFormOpen(false); setEditingPlanId(null); setPlanSaving(false)
+    setPlanSaving(false)
   }
 
-  async function handlePlanDelete(id: string) {
+  async function handlePlanDelete(planId: string) {
     if (!confirm('Tarif wirklich löschen?')) return
-    const supabase = createClient()
-    await (supabase.from('membership_plans') as any).delete().eq('id', id)
-    setPlans(prev => prev.filter(p => p.id !== id))
+    const { data: { session } } = await createClient().auth.getSession()
+    const res = await fetch(`/api/plans/${planId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+    })
+    if (res.ok) setPlans(ps => ps.filter(p => p.id !== planId))
   }
 
   function handlePlanEdit(plan: Plan) {

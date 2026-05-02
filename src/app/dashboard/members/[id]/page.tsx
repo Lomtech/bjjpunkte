@@ -212,22 +212,31 @@ export default function MemberDetailPage() {
   }
 
   async function handleClearCancellation() {
-    if (!confirm('Kündigung als erledigt markieren und zurücksetzen?')) return
+    if (!confirm('Kündigung bestätigen und Mitglied deaktivieren?')) return
     const supabase = createClient()
     await (supabase.from('members') as any).update({
       cancellation_requested_at: null,
       cancellation_note: null,
+      is_active: false,
     }).eq('id', id)
-    setMember(m => m ? { ...m, cancellation_requested_at: null, cancellation_note: null } : m)
+    setMember(m => m ? { ...m, cancellation_requested_at: null, cancellation_note: null, is_active: false } : m)
   }
 
   async function handleClearPlanRequest() {
-    if (!confirm('Plan-Anfrage als erledigt markieren und zurücksetzen?')) return
+    if (!confirm('Plan-Anfrage bestätigen und Tarif zuweisen?')) return
     const supabase = createClient()
-    await (supabase.from('members') as any).update({
-      requested_plan_id: null,
-    }).eq('id', id)
-    setMember(m => m ? { ...m, requested_plan_id: null } : m)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`/api/members/${id}/confirm-plan`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+    })
+    const json = await res.json()
+    if (res.ok) {
+      setMember(m => m ? { ...m, requested_plan_id: null } : m)
+      if (json.checkout_url) {
+        alert(`Tarif zugewiesen! Stripe-Zahlungslink für das Mitglied: ${json.checkout_url}\n\nDu kannst diesen Link per WhatsApp oder E-Mail versenden.`)
+      }
+    }
   }
 
   if (loading) {
