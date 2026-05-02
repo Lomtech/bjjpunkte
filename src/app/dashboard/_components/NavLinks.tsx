@@ -86,12 +86,12 @@ export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-zinc-100"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="flex items-start">
+      <div className="h-14 flex items-stretch">
         {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
           return (
             <Link key={href} href={href}
-              className={`flex-1 flex flex-col items-center h-14 pt-2.5 gap-0.5 transition-colors ${
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
                 active ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
               }`}
             >
