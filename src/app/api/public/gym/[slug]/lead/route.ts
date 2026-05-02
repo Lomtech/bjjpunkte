@@ -85,9 +85,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     whatsappText: `🥋 Probetraining-Anfrage!\n${fullName}\n${email.trim().toLowerCase()}${phone ? '\n' + phone.trim() : ''}${bookedClass ? '\nSlot: ' + bookedClass.title : ''}\nosss.pro Dashboard`,
   })
 
-  // Send portal link to the lead if Resend is configured and lead has email + token
+  // Send portal link to the lead
   const resendKey  = process.env.RESEND_API_KEY
   const resendFrom = process.env.RESEND_FROM_EMAIL
+
+  console.log('[lead] token:', lead.lead_token, '| portalUrl:', portalUrl)
+  console.log('[lead] resendKey set:', !!resendKey, '| resendFrom set:', !!resendFrom)
+
   if (portalUrl && email && resendKey && resendFrom) {
     const slotLine = bookedClass
       ? `<p style="margin:0 0 12px;font-size:14px;color:#374151">
@@ -96,7 +100,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         </p>`
       : ''
 
-    await fetch('https://api.resend.com/emails', {
+    const resendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -126,8 +130,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
           </div>
         `,
       }),
-    }).catch(() => {})
+    })
+    const resendBody = await resendRes.json().catch(() => ({}))
+    console.log('[lead] resend status:', resendRes.status, '| body:', JSON.stringify(resendBody))
+  } else {
+    console.log('[lead] email skipped — missing:', {
+      portalUrl: !portalUrl,
+      email: !email,
+      resendKey: !resendKey,
+      resendFrom: !resendFrom,
+    })
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, portalUrl })
 }
