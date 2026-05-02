@@ -69,7 +69,6 @@ export default function LeadsPage() {
   const [loading, setLoading]       = useState(true)
   const [showForm, setShowForm]     = useState(false)
   const [saving, setSaving]         = useState(false)
-  const [token, setToken]           = useState<string | null>(null)
 
   // inline edit state
   const [editNotes, setEditNotes]   = useState<Record<string, string>>({})
@@ -83,14 +82,13 @@ export default function LeadsPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setLoading(false); return }
-      setToken(session.access_token)
-      const res = await fetch('/api/leads', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
+      const { data: gym } = await supabase.from('gyms').select('id').single()
+      if (!gym) { setLoading(false); return }
+      // leads table not in generated types yet
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any).from('leads')
+        .select('*').eq('gym_id', gym.id).order('created_at', { ascending: false })
+      if (data) {
         setLeads(data)
         const notes: Record<string, string> = {}
         for (const l of data) notes[l.id] = l.notes ?? ''
@@ -103,19 +101,17 @@ export default function LeadsPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
-    if (!token) return
     setSaving(true)
-    const body: Record<string, string> = {}
+    const supabase = createClient()
+    const { data: gym } = await supabase.from('gyms').select('id').single()
+    if (!gym) { setSaving(false); return }
+    const body: Record<string, unknown> = { gym_id: gym.id }
     for (const [k, v] of Object.entries(form)) {
       if (v) body[k] = v
     }
-    const res = await fetch('/api/leads', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(body),
-    })
-    if (res.ok) {
-      const lead = await res.json()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: lead } = await (supabase as any).from('leads').insert(body).select().single()
+    if (lead) {
       setLeads(prev => [lead, ...prev])
       setEditNotes(prev => ({ ...prev, [lead.id]: lead.notes ?? '' }))
       setForm({ first_name: '', last_name: '', email: '', phone: '', source: 'walk-in', trial_date: '', referred_by: '', notes: '' })
@@ -125,43 +121,28 @@ export default function LeadsPage() {
   }
 
   async function updateStatus(lead: Lead, status: LeadStatus) {
-    if (!token) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = createClient() as any
     const extra: Record<string, string> = {}
     if (status === 'contacted' && !lead.contacted_at) extra.contacted_at = new Date().toISOString()
     if (status === 'converted' && !lead.converted_at) extra.converted_at = new Date().toISOString()
-    const res = await fetch(`/api/leads/${lead.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ status, ...extra }),
-    })
-    if (res.ok) {
-      const updated = await res.json()
-      setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
-    }
+    const { data: updated } = await sb.from('leads').update({ status, ...extra }).eq('id', lead.id).select().single()
+    if (updated) setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
   }
 
   async function saveNotes(lead: Lead) {
-    if (!token) return
     const notes = editNotes[lead.id] ?? ''
     if (notes === (lead.notes ?? '')) return
-    const res = await fetch(`/api/leads/${lead.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ notes }),
-    })
-    if (res.ok) {
-      const updated = await res.json()
-      setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = createClient() as any
+    const { data: updated } = await sb.from('leads').update({ notes }).eq('id', lead.id).select().single()
+    if (updated) setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
   }
 
   async function deleteLead(id: string) {
-    if (!token) return
     if (!confirm('Interessent wirklich löschen?')) return
-    await fetch(`/api/leads/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (createClient() as any).from('leads').delete().eq('id', id)
     setLeads(prev => prev.filter(l => l.id !== id))
   }
 
