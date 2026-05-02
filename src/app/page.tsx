@@ -113,6 +113,7 @@ export default function Home() {
   const mobileImgOpacity = useTransform(scrollY, [0, 280], [1, 0])
   const mobileImgY       = useTransform(scrollY, [0, 400], [0, -55])
   const mobileImgScale   = useTransform(scrollY, [0, 400], [1, 1.08])
+  const podiumParallaxY  = useTransform(scrollY, [0, 1200], [0, 120])
 
   const features = SPORT_FEATURES[activeSport]
   const hasBelt  = SPORTS.find(s => s.id === activeSport)?.belt ?? false
@@ -341,28 +342,119 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ── PODIUM SECTION ── Erstes Bild beim Scrollen */}
+      <section className="relative h-[70vh] min-h-[480px] overflow-hidden">
+        {/* Parallax image */}
+        <motion.div
+          className="absolute inset-0 scale-110"
+          style={{ y: podiumParallaxY }}
+        >
+          <Image
+            src="/tournament-podium.jpg"
+            alt="Athleten auf dem Siegerpodest"
+            fill
+            className="object-cover object-center"
+            priority
+          />
+        </motion.div>
+
+        {/* Gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-zinc-950/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/40 via-transparent to-transparent" />
+
+        {/* Content */}
+        <div className="absolute inset-0 flex flex-col items-center justify-end text-center pb-16 px-5">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-4">Echtes Training. Echter Wettkampf.</p>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none mb-5">
+              Für Gyms,<br />die gewinnen wollen.
+            </h2>
+            <p className="text-zinc-300 text-base max-w-md mx-auto leading-relaxed">
+              Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Bottom label */}
+        <div className="absolute bottom-5 right-5">
+          <span className="text-white/70 text-xs font-semibold bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            Wettkampf · Submission Grappling
+          </span>
+        </div>
+      </section>
+
+      {/* ── DASHBOARD SHOWCASE ── Dynamisch einfließend */}
+      <section className="bg-zinc-950 py-20 px-5 overflow-hidden">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="text-center mb-12"
+          >
+            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">Dein Gym. Dein Dashboard.</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Alles auf einen Blick.
+            </h2>
+            <p className="text-zinc-400 mt-3 text-sm max-w-sm mx-auto leading-relaxed">
+              Mitglieder, Einnahmen, Belt-Verteilung — live und in Echtzeit.
+            </p>
+          </motion.div>
+
+          {/* Dashboard screenshot — fliegt von unten rein */}
+          <motion.div
+            initial={{ opacity: 0, y: 80, rotateX: 8 }}
+            whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            style={{ transformPerspective: 1200 }}
+            className="relative rounded-2xl overflow-hidden border border-zinc-800 shadow-[0_40px_100px_rgba(0,0,0,0.6)]"
+          >
+            {/* Browser chrome */}
+            <div className="bg-zinc-900 border-b border-zinc-800 px-4 py-2.5 flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+              </div>
+              <div className="flex-1 mx-3 bg-zinc-800 rounded px-3 py-1 text-[10px] text-zinc-500 font-mono">
+                app.osss.pro/dashboard
+              </div>
+            </div>
+            <Image
+              src="/screenshot_betrieb.png"
+              alt="Osss Dashboard"
+              width={1796}
+              height={876}
+              className="w-full"
+            />
+            {/* Amber glow at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+              style={{ background: 'linear-gradient(to top, rgba(251,191,36,0.06) 0%, transparent 100%)' }} />
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── PHOTO SECTION ── */}
-      <section className="relative h-[55vh] min-h-[380px] overflow-hidden">
+      <section className="relative h-[50vh] min-h-[340px] overflow-hidden">
         <video
           autoPlay muted loop playsInline
           className="absolute inset-0 w-full h-full object-cover object-center"
         >
           <source src="/competition-mat.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-zinc-950/55" />
+        <div className="absolute inset-0 bg-zinc-950/60" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-5">
-          <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.25em] mb-4">Echtes Training. Echter Wettkampf.</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight max-w-xl">
-            Für Gyms, die gewinnen wollen.
+          <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">Kein Papierkram. Mehr Training.</p>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight max-w-lg">
+            Osss läuft im Hintergrund.<br />Du trainierst im Vordergrund.
           </h2>
-          <p className="text-zinc-300 text-sm mt-5 max-w-sm leading-relaxed">
-            Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
-          </p>
-        </div>
-        <div className="absolute bottom-5 right-5">
-          <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            Wettkampf · Submission Grappling
-          </span>
         </div>
       </section>
 

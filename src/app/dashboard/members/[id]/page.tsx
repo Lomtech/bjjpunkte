@@ -11,7 +11,7 @@ import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
-import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users } from 'lucide-react'
+import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2 } from 'lucide-react'
 
 /** Normalize German phone to wa.me format (no +, no spaces) */
 function toWaPhone(raw: string): string {
@@ -250,7 +250,9 @@ export default function MemberDetailPage() {
   if (notFound || !member) {
     return (
       <div className="p-8">
-        <Link href="/dashboard/members" className="text-zinc-400 hover:text-zinc-600 text-sm">← Mitglieder</Link>
+        <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">
+          ← Mitglieder
+        </Link>
         <p className="mt-6 text-zinc-500">Mitglied nicht gefunden.</p>
       </div>
     )
@@ -260,9 +262,11 @@ export default function MemberDetailPage() {
     <div className="p-4 md:p-6 max-w-3xl">
       {/* Header */}
       <div className="mb-6">
-        <Link href="/dashboard/members" className="text-zinc-400 hover:text-zinc-600 text-sm">← Mitglieder</Link>
+        <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">
+          ← Mitglieder
+        </Link>
 
-        <h1 className="text-2xl font-bold text-zinc-900 mt-3 mb-2">
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight mt-3 mb-2">
           {member.first_name} {member.last_name}
         </h1>
 
@@ -308,7 +312,7 @@ export default function MemberDetailPage() {
         <div className="flex items-center gap-2 mt-4">
           <Link
             href={`/dashboard/members/${member.id}/edit`}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-sm font-medium transition-colors shadow-sm"
           >
             <Pencil size={13} /> Bearbeiten
           </Link>
@@ -407,17 +411,27 @@ export default function MemberDetailPage() {
       />
 
       {member.notes && (
-        <div className="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm mb-5">
-          <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Notizen</p>
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <StickyNote size={13} className="text-amber-600" />
+            </span>
+            <p className="text-sm font-semibold text-zinc-800">Notizen</p>
+          </div>
           <p className="text-zinc-600 text-sm">{member.notes}</p>
         </div>
       )}
 
       {/* Belt Promotion — hidden when belt system disabled */}
       {beltEnabled && (
-        <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm mb-5">
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-zinc-900">Belt-Promotion</h2>
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <Award size={13} className="text-amber-600" />
+              </span>
+              <h2 className="text-sm font-semibold text-zinc-800">Belt-Promotion</h2>
+            </div>
             <DemoteButton
               memberId={member.id} gymId={gymId}
               currentBelt={member.belt as Belt} currentStripes={member.stripes}
@@ -453,8 +467,13 @@ export default function MemberDetailPage() {
 
       {/* Promotion history */}
       {promotions.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm mb-5">
-          <h2 className="font-semibold text-zinc-900 mb-4">Promotion-Verlauf</h2>
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <History size={13} className="text-amber-600" />
+            </span>
+            <h2 className="text-sm font-semibold text-zinc-800">Promotion-Verlauf</h2>
+          </div>
           <div className="space-y-0">
             {promotions.map((p, i) => {
               const isLatest = i === 0
@@ -486,8 +505,13 @@ export default function MemberDetailPage() {
 
       {/* Recent attendance */}
       {attendance.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm">
-          <h2 className="font-semibold text-zinc-900 mb-4">Letzte Trainings</h2>
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <CalendarDays size={13} className="text-amber-600" />
+            </span>
+            <h2 className="text-sm font-semibold text-zinc-800">Letzte Trainings</h2>
+          </div>
           <div className="space-y-2">
             {attendance.map(a => (
               <div key={a.id} className="flex items-center gap-3 py-2 border-b border-zinc-100 last:border-0">
@@ -520,9 +544,9 @@ export default function MemberDetailPage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0 overflow-hidden">
-      <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1 truncate">{label}</p>
-      <p className="text-zinc-900 font-semibold text-sm truncate">{value}</p>
+    <div className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm min-w-0 overflow-hidden">
+      <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-1 truncate">{label}</p>
+      <p className="text-zinc-950 font-black text-base tracking-tight truncate">{value}</p>
     </div>
   )
 }
@@ -535,18 +559,18 @@ function ContactBar({ firstName, phone, email }: { firstName: string; phone: str
         {phone && (
           <>
             <a href={`tel:${phone}`}
-              className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors">
+              className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors shadow-sm">
               <Phone size={14} /> Anrufen
             </a>
             <button onClick={() => setShowWa(true)}
-              className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors">
+              className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors shadow-sm">
               <MessageCircle size={14} /> WhatsApp
             </button>
           </>
         )}
         {email && (
           <a href={`mailto:${email}`}
-            className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors">
+            className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors shadow-sm">
             <Mail size={14} /> E-Mail
           </a>
         )}
@@ -622,9 +646,14 @@ function PortalLinkSection({ token }: { token: string }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm mb-5">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Mitgliederbereich</p>
+    <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <Link2 size={13} className="text-amber-600" />
+          </span>
+          <p className="text-sm font-semibold text-zinc-800">Mitgliederbereich</p>
+        </div>
         <a
           href={portalUrl}
           target="_blank"
@@ -687,9 +716,14 @@ function ContractSection({
   const isExpiring = diffDays !== null && diffDays >= 0 && diffDays <= 30
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm mb-5">
+    <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Vertragsende</p>
+        <div className="flex items-center gap-2">
+          <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <CalendarDays size={13} className="text-amber-600" />
+          </span>
+          <p className="text-sm font-semibold text-zinc-800">Vertragsende</p>
+        </div>
         <button
           onClick={() => { setEditing(e => !e); setValue(contractEndDate ?? '') }}
           className="text-xs text-amber-600 hover:text-amber-500 font-medium"
