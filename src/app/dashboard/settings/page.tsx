@@ -1179,12 +1179,16 @@ export default function SettingsPage() {
                   copied={copiedScheduleLink}
                   onCopy={() => copyWithFeedback(`${window.location.origin}/schedule/${gymId}`, setCopiedScheduleLink)}
                 />
-                <CopyRow
-                  label="iFrame Embed-Code"
-                  value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`}
-                  copied={copiedEmbedCode}
-                  onCopy={() => copyWithFeedback(`<iframe src="${window.location.origin}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`, setCopiedEmbedCode)}
-                />
+                {(gymPlan === 'grow' || gymPlan === 'pro') ? (
+                  <CopyRow
+                    label="iFrame Embed-Code"
+                    value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`}
+                    copied={copiedEmbedCode}
+                    onCopy={() => copyWithFeedback(`<iframe src="${window.location.origin}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`, setCopiedEmbedCode)}
+                  />
+                ) : (
+                  <UpgradeGate plan="grow" onUpgrade={handleUpgrade} feature="Website-Embed" />
+                )}
               </div>
             </div>
           )}
@@ -1390,7 +1394,7 @@ export default function SettingsPage() {
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
                 <Megaphone size={12} /> Ankündigungen
               </p>
-              {!annoFormOpen && (
+              {!annoFormOpen && (gymPlan === 'grow' || gymPlan === 'pro') && (
                 <button type="button" onClick={() => setAnnoFormOpen(true)}
                   className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-500 font-medium">
                   <Plus size={12} /> Neue Ankündigung
@@ -1402,7 +1406,9 @@ export default function SettingsPage() {
                 Ankündigungen werden im Mitglieder-Portal angezeigt. Gepinnte Beiträge erscheinen immer oben.
               </p>
 
-              {annoFormOpen && (
+              {(gymPlan !== 'grow' && gymPlan !== 'pro') ? (
+                <UpgradeGate plan="grow" onUpgrade={handleUpgrade} feature="Ankündigungen & Pinnwand" />
+              ) : annoFormOpen && (
                 <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 space-y-3">
                   <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Neue Ankündigung</p>
                   <div>
@@ -1477,6 +1483,32 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ─── UpgradeGate ────────────────────────────────────────────────────────── */
+function UpgradeGate({ plan, feature, onUpgrade }: {
+  plan: string
+  feature: string
+  onUpgrade: (plan: string) => void
+}) {
+  return (
+    <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/60 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+        <Zap size={16} className="text-amber-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-zinc-900">{feature} — {plan.charAt(0).toUpperCase() + plan.slice(1)} oder höher</p>
+        <p className="text-xs text-zinc-500 mt-0.5">Upgrade um diese Funktion freizuschalten.</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onUpgrade(plan)}
+        className="flex-shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
+      >
+        <Zap size={12} /> Upgrade auf {plan.charAt(0).toUpperCase() + plan.slice(1)}
+      </button>
     </div>
   )
 }

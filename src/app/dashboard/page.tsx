@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Users, TrendingUp, Calendar, Award, Cake, FileWarning,
   Euro, CheckCircle2, Clock, AlertCircle, ChevronRight, Zap,
+  Link2, Copy, Check, ExternalLink,
 } from 'lucide-react'
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
@@ -52,12 +53,22 @@ export default function DashboardPage() {
   const [topAttenders, setTopAttenders]     = useState<{ member_id: string; count: number }[]>([])
   const [memberPayStatus, setMemberPayStatus] = useState<Map<string, 'paid' | 'pending' | 'never'>>(new Map())
   const [churnRisk, setChurnRisk]           = useState<ChurnMember[]>([])
+  const [signupToken, setSignupToken]       = useState<string | null>(null)
+  const [gymSlug, setGymSlug]               = useState<string | null>(null)
+  const [copiedSignup, setCopiedSignup]     = useState(false)
+  const [copiedSlug, setCopiedSlug]         = useState(false)
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id').single()
-      if (!gym) { setLoading(false); return }
+      const { data: gymBase } = await supabase.from('gyms').select('id').single()
+      if (!gymBase) { setLoading(false); return }
+      const gym = gymBase
+      // Fetch access links separately (slug/signup_token not in generated types)
+      const { data: gymLinks } = await (supabase.from('gyms') as any)
+        .select('signup_token, slug').eq('id', gymBase.id).single()
+      setSignupToken(gymLinks?.signup_token ?? null)
+      setGymSlug(gymLinks?.slug ?? null)
 
       const today        = new Date().toISOString().split('T')[0]
       const in30         = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -191,6 +202,57 @@ export default function DashboardPage() {
         <StatCard icon={<Euro size={18} />}        label={new Date().toLocaleDateString('de-DE', { month: 'long' })} valueCents={monthRevenue} primary />
         <StatCard icon={<FileWarning size={18} />} label="Verträge laufen ab" value={expiringContracts} warn={expiringContracts > 0} />
       </div>
+
+      {/* Zugänge & Links */}
+      {(signupToken || gymSlug) && (
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center">
+                <Link2 size={12} className="text-zinc-500" />
+              </span>
+              Zugänge & Links
+            </h2>
+            <Link href="/dashboard/settings?tab=zugaenge" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">
+              Verwalten →
+            </Link>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {signupToken && (
+              <AccessLinkRow
+                label="Anmeldelink"
+                description="Für neue Mitglieder"
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/signup/${signupToken}`}
+                copied={copiedSignup}
+                onCopy={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/signup/${signupToken}`)
+                  setCopiedSignup(true)
+                  setTimeout(() => setCopiedSignup(false), 2000)
+                }}
+              />
+            )}
+            {gymSlug && (
+              <AccessLinkRow
+                label="Öffentliche Gym-Seite"
+                description="Für Interessenten"
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/gym/${gymSlug}`}
+                copied={copiedSlug}
+                onCopy={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/gym/${gymSlug}`)
+                  setCopiedSlug(true)
+                  setTimeout(() => setCopiedSlug(false), 2000)
+                }}
+              />
+            )}
+          </div>
+          {!gymSlug && (
+            <Link href="/dashboard/settings?tab=zugaenge"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-amber-600 transition-colors">
+              <ExternalLink size={11} /> Öffentliche Gym-Seite einrichten →
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Payment health bar */}
       {activeMembers > 0 && (
@@ -512,6 +574,38 @@ function StatCard({ icon, label, value, valueCents, primary = false, warn = fals
           : value ?? 0}
       </div>
       <div className="text-zinc-400 text-xs mt-1.5 truncate font-medium">{label}</div>
+    </div>
+  )
+}
+
+/* ─── AccessLinkRow ─────────────────────────────────────────────────── */
+function AccessLinkRow({ label, description, value, copied, onCopy }: {
+  label: string
+  description: string
+  value: string
+  copied: boolean
+  onCopy: () => void
+}) {
+  const display = value.replace(/^https?:\/\/[^/]+/, '')
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50 hover:bg-zinc-100 transition-colors group">
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-zinc-700">{label}</p>
+        <p className="text-[11px] text-zinc-400 truncate">{description}</p>
+        <p className="text-[11px] text-zinc-500 font-mono truncate mt-0.5">{display}</p>
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <a href={value} target="_blank" rel="noopener noreferrer"
+          className="p-1.5 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+          title="Öffnen">
+          <ExternalLink size={13} />
+        </a>
+        <button onClick={onCopy}
+          className="p-1.5 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+          title="Link kopieren">
+          {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+        </button>
+      </div>
     </div>
   )
 }
