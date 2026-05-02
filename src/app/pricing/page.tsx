@@ -116,6 +116,7 @@ export default function PricingPage() {
   const router = useRouter()
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [annual, setAnnual] = useState(false)
 
   async function handleUpgrade(plan: string) {
     setLoadingPlan(plan)
@@ -172,9 +173,29 @@ export default function PricingPage() {
           <h1 className="text-4xl sm:text-5xl font-black tracking-tighter mb-4">
             Einfache, faire Preise
           </h1>
-          <p className="text-zinc-400 text-lg leading-relaxed">
+          <p className="text-zinc-400 text-lg leading-relaxed mb-8">
             Starte kostenlos mit bis zu 30 Mitgliedern.<br />Zahle erst wenn dein Gym wächst.
           </p>
+
+          {/* Monthly / Annual toggle */}
+          <div className="flex items-center justify-center gap-3">
+            <span className={`text-sm font-semibold transition-colors ${!annual ? 'text-white' : 'text-zinc-500'}`}>Monatlich</span>
+            <button
+              onClick={() => setAnnual(a => !a)}
+              className={`relative w-12 h-6 rounded-full transition-colors ${annual ? 'bg-amber-400' : 'bg-zinc-700'}`}
+              aria-label="Jährliche Abrechnung"
+            >
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${annual ? 'left-6' : 'left-0.5'}`} />
+            </button>
+            <span className={`text-sm font-semibold transition-colors ${annual ? 'text-white' : 'text-zinc-500'}`}>
+              Jährlich
+            </span>
+            {annual && (
+              <span className="bg-amber-400 text-zinc-950 text-[10px] font-black px-2.5 py-1 rounded-full tracking-wide">
+                2 MONATE GRATIS
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -198,10 +219,27 @@ export default function PricingPage() {
 
               <div className="mb-6">
                 <p className="font-bold text-zinc-500 text-xs uppercase tracking-widest mb-2">{plan.name}</p>
-                <div className="flex items-end gap-0.5 mb-1">
-                  <span className="text-4xl font-black text-zinc-900 tracking-tight">€{plan.price}</span>
-                  <span className="text-zinc-400 text-sm pb-1.5">{plan.period}</span>
-                </div>
+                {plan.price === '0' ? (
+                  <div className="flex items-end gap-0.5 mb-1">
+                    <span className="text-4xl font-black text-zinc-900 tracking-tight">€0</span>
+                    <span className="text-zinc-400 text-sm pb-1.5"></span>
+                  </div>
+                ) : annual ? (
+                  <div className="mb-1">
+                    <div className="flex items-end gap-0.5">
+                      <span className="text-4xl font-black text-zinc-900 tracking-tight">
+                        €{Math.round(parseInt(plan.price) * 10)}
+                      </span>
+                      <span className="text-zinc-400 text-sm pb-1.5">/Jahr</span>
+                    </div>
+                    <p className="text-zinc-400 text-xs">€{plan.price}/Monat · 2 Monate gratis</p>
+                  </div>
+                ) : (
+                  <div className="flex items-end gap-0.5 mb-1">
+                    <span className="text-4xl font-black text-zinc-900 tracking-tight">€{plan.price}</span>
+                    <span className="text-zinc-400 text-sm pb-1.5">{plan.period}</span>
+                  </div>
+                )}
                 <p className="text-zinc-400 text-xs">{plan.members}</p>
               </div>
 

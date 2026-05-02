@@ -9,7 +9,7 @@ import { OsssLogo, LogoMark } from '@/components/Logo'
 import {
   Users, CreditCard, Smartphone, Calendar, Target, Award,
   FileSpreadsheet, Globe, FileEdit, FileText, Shield, Headphones,
-  CheckCircle, ArrowRight, Zap, Check,
+  CheckCircle, ArrowRight, Zap, Check, Menu, X,
 } from 'lucide-react'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -99,6 +99,7 @@ export default function Home() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [checked, setChecked]   = useState(false)
   const [activeSport, setActiveSport] = useState<SportId>('bjj')
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -135,11 +136,44 @@ export default function Home() {
               ? <Link href="/dashboard" className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors">Dashboard</Link>
               : <>
                   <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">Anmelden</Link>
-                  <Link href="/register" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">Kostenlos starten</Link>
+                  <Link href="/register" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors hidden sm:block">Kostenlos starten</Link>
                 </>
             )}
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              className="sm:hidden flex items-center justify-center w-9 h-9 rounded-lg hover:bg-zinc-100 transition-colors"
+              aria-label="Menü"
+            >
+              {menuOpen ? <X size={20} className="text-zinc-700" /> : <Menu size={20} className="text-zinc-700" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="sm:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1"
+            >
+              <Link href="/pricing" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Preise</Link>
+              <a href="mailto:oss@osss.pro" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Kontakt</a>
+              {checked && !loggedIn && (
+                <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Anmelden</Link>
+              )}
+              <div className="pt-1">
+                {checked && (loggedIn
+                  ? <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl transition-colors">Dashboard</Link>
+                  : <Link href="/register" onClick={() => setMenuOpen(false)} className="block text-center bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-bold px-4 py-3 rounded-xl transition-colors">Kostenlos starten</Link>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.nav>
 
       {/* ── HERO ── */}
@@ -215,28 +249,40 @@ export default function Home() {
             </motion.div>
           </div>
 
-          {/* Right — photo */}
+          {/* Right — Dashboard Screenshot */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="relative hidden lg:block"
+            className="relative hidden lg:flex items-center justify-center bg-zinc-50 overflow-hidden"
           >
-            <Image
-              src="/tournament-podium.jpg"
-              alt="Wettkampf Siegerehrung"
-              fill
-              className="object-cover object-top"
-              priority
-            />
-            {/* Left fade to white */}
+            {/* Subtle grid background */}
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ backgroundImage: 'radial-gradient(circle, rgba(251,191,36,0.08) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
             <div className="absolute inset-0"
-              style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.15) 0%, transparent 20%)' }} />
-            {/* Bottom caption */}
-            <div className="absolute bottom-8 left-8">
-              <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                Spring Nationals · Podium
-              </span>
+              style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.6) 0%, transparent 15%, transparent 85%, rgba(255,255,255,0.3) 100%)' }} />
+
+            {/* Browser frame */}
+            <div className="relative w-[92%] mt-10 mb-0 rounded-t-xl overflow-hidden shadow-2xl shadow-zinc-300/60 border border-zinc-200/80 ring-1 ring-zinc-200/50">
+              {/* Browser chrome bar */}
+              <div className="bg-zinc-100 border-b border-zinc-200 px-4 py-2.5 flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                </div>
+                <div className="flex-1 mx-3 bg-white rounded-md px-3 py-1 text-[10px] text-zinc-400 font-mono border border-zinc-200">
+                  app.osss.pro/dashboard
+                </div>
+              </div>
+              <Image
+                src="/screenshot_betrieb.png"
+                alt="Osss Dashboard — Mitgliederverwaltung, Zahlungen, Belt-Verteilung"
+                width={1796}
+                height={876}
+                className="w-full"
+                priority
+              />
             </div>
           </motion.div>
 
