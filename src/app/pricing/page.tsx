@@ -20,6 +20,8 @@ const PLANS = [
       'Belt-Tracking & Promotions',
       'Anwesenheit & Kiosk-Modus',
       'Stundenplan & iCal-Export',
+      'Öffentliche Gym-Seite (gym.osss.pro/…)',
+      'Digitaler Mitglieder-Anmeldelink',
       'Member-Portal (tokenbasiert)',
       'Lead-Management & Pipeline',
       'Rechnungsgenerierung & CSV-Export',

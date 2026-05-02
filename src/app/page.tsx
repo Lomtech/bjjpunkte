@@ -48,7 +48,7 @@ const FEATURES = [
   { icon: Users,      title: 'Mitgliederverwaltung',   desc: 'Alle Mitglieder auf einen Blick. Gürtel-Tracking, Familienmitglieder, Notizen — alles an einem Ort.' },
   { icon: CreditCard, title: 'Zahlungen & Rechnungen', desc: 'Beiträge per Stripe einziehen. Automatische Rechnungen — DSGVO-konform, Kleinunternehmer-ready.' },
   { icon: Smartphone, title: 'Member-Portal',          desc: 'Deine Mitglieder checken per QR-Code ein, buchen Kurse und sehen ihre Trainingshistorie — ohne App.' },
-  { icon: Calendar,   title: 'Stundenplan',             desc: 'Kursplan verwalten und direkt auf deiner Website einbetten. Inklusive iCal-Export für Google Calendar.' },
+  { icon: Calendar,   title: 'Stundenplan & Gym-Seite', desc: 'Kursplan verwalten und als öffentliche Gym-Seite teilen. Interessenten sehen direkt alles — inkl. iCal-Export.' },
   { icon: Target,     title: 'Lead-Pipeline',           desc: 'Interessenten verfolgen von der ersten Anfrage bis zur Mitgliedschaft. Nie wieder einen Lead verlieren.' },
   { icon: Award,      title: 'Gürtel-Tracking',         desc: 'Promotions dokumentieren mit Datum und Verlauf — für alle Gürtelsysteme konfigurierbar.' },
 ]

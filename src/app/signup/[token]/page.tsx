@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { CheckCircle2, ChevronRight, ChevronLeft, Pen, RotateCcw, AlertCircle } from 'lucide-react'
+import { LogoMark } from '@/components/Logo'
 
 interface Plan {
   id: string
@@ -21,17 +22,19 @@ interface GymInfo {
 }
 
 const BELTS = [
-  { value: 'white',  label: 'Weiß',   color: '#f1f5f9' },
-  { value: 'blue',   label: 'Blau',   color: '#3b82f6' },
-  { value: 'purple', label: 'Lila',   color: '#a855f7' },
-  { value: 'brown',  label: 'Braun',  color: '#92400e' },
+  { value: 'white',  label: 'Weiß',    color: '#f1f5f9' },
+  { value: 'blue',   label: 'Blau',    color: '#3b82f6' },
+  { value: 'purple', label: 'Lila',    color: '#a855f7' },
+  { value: 'brown',  label: 'Braun',   color: '#92400e' },
   { value: 'black',  label: 'Schwarz', color: '#0f172a' },
 ]
 
-/* ── Canvas signature pad ─────────────────────────────────────── */
+const INPUT = 'w-full px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors'
+
+/* ── Canvas signature pad ──────────────────────────────────────────── */
 function SignaturePad({ onChange }: { onChange: (data: string | null) => void }) {
-  const canvasRef  = useRef<HTMLCanvasElement>(null)
-  const drawing    = useRef(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const drawing   = useRef(false)
   const [hasData, setHasData] = useState(false)
 
   function getPos(e: React.MouseEvent | React.TouchEvent, rect: DOMRect) {
@@ -44,10 +47,10 @@ function SignaturePad({ onChange }: { onChange: (data: string | null) => void })
   function start(e: React.MouseEvent | React.TouchEvent) {
     e.preventDefault()
     const canvas = canvasRef.current; if (!canvas) return
-    const ctx = canvas.getContext('2d')!
+    const ctx  = canvas.getContext('2d')!
     const rect = canvas.getBoundingClientRect()
     const pos  = getPos(e, rect)
-    const scaleX = canvas.width  / rect.width
+    const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
     ctx.beginPath()
     ctx.moveTo(pos.x * scaleX, pos.y * scaleY)
@@ -61,7 +64,7 @@ function SignaturePad({ onChange }: { onChange: (data: string | null) => void })
     const ctx  = canvas.getContext('2d')!
     const rect = canvas.getBoundingClientRect()
     const pos  = getPos(e, rect)
-    const scaleX = canvas.width  / rect.width
+    const scaleX = canvas.width / rect.width
     const scaleY = canvas.height / rect.height
     ctx.lineWidth   = 2.5
     ctx.lineCap     = 'round'
@@ -84,7 +87,7 @@ function SignaturePad({ onChange }: { onChange: (data: string | null) => void })
 
   return (
     <div className="space-y-2">
-      <div className="relative rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 overflow-hidden">
+      <div className="relative rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 overflow-hidden">
         <canvas
           ref={canvasRef}
           width={600}
@@ -96,8 +99,8 @@ function SignaturePad({ onChange }: { onChange: (data: string | null) => void })
         />
         {!hasData && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <Pen size={20} className="text-gray-300 mb-1" />
-            <p className="text-gray-400 text-sm">Hier unterschreiben</p>
+            <Pen size={20} className="text-zinc-300 mb-1" />
+            <p className="text-zinc-400 text-sm">Hier unterschreiben</p>
           </div>
         )}
       </div>
@@ -111,7 +114,7 @@ function SignaturePad({ onChange }: { onChange: (data: string | null) => void })
   )
 }
 
-/* ── Main signup page ─────────────────────────────────────────── */
+/* ── Main signup page ──────────────────────────────────────────────── */
 export default function SignupPage() {
   const params = useParams()
   const token  = params.token as string
@@ -124,26 +127,24 @@ export default function SignupPage() {
   const [done, setDone]       = useState(false)
   const [error, setError]     = useState('')
 
-  // Form fields
-  const [firstName,    setFirstName]    = useState('')
-  const [lastName,     setLastName]     = useState('')
-  const [email,        setEmail]        = useState('')
-  const [phone,        setPhone]        = useState('')
-  const [dob,          setDob]          = useState('')
-  const [street,       setStreet]       = useState('')
-  const [zip,          setZip]          = useState('')
-  const [city,         setCity]         = useState('')
-  const [ecName,       setEcName]       = useState('')
-  const [ecPhone,      setEcPhone]      = useState('')
-  const [belt,         setBelt]         = useState('white')
+  const [firstName,      setFirstName]      = useState('')
+  const [lastName,       setLastName]       = useState('')
+  const [email,          setEmail]          = useState('')
+  const [phone,          setPhone]          = useState('')
+  const [dob,            setDob]            = useState('')
+  const [street,         setStreet]         = useState('')
+  const [zip,            setZip]            = useState('')
+  const [city,           setCity]           = useState('')
+  const [ecName,         setEcName]         = useState('')
+  const [ecPhone,        setEcPhone]        = useState('')
+  const [belt,           setBelt]           = useState('white')
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
-  const [agbAccepted, setAgbAccepted] = useState(false)
-  const [contractRead, setContractRead] = useState(false)
-  const [gdprAccepted, setGdprAccepted] = useState(false)
+  const [agbAccepted,      setAgbAccepted]      = useState(false)
+  const [contractRead,     setContractRead]     = useState(false)
+  const [gdprAccepted,     setGdprAccepted]     = useState(false)
   const [contractAccepted, setContractAccepted] = useState(false)
-  const [signatureData, setSignatureData] = useState<string | null>(null)
+  const [signatureData,    setSignatureData]    = useState<string | null>(null)
 
-  // Load gym info
   useEffect(() => {
     fetch(`/api/signup?token=${encodeURIComponent(token)}`)
       .then(async r => {
@@ -160,24 +161,17 @@ export default function SignupPage() {
       .finally(() => setLoading(false))
   }, [token])
 
-  // Step 1 validation
-  const plans = gymInfo?.plans ?? []
+  const plans     = gymInfo?.plans ?? []
   const step1Valid = firstName.trim() && lastName.trim() && email.trim().includes('@') && dob
     && (plans.length === 0 || selectedPlanId !== null)
-
-  // Step 3 validation (signature)
   const step3Valid = signatureData !== null
-
-  // Step 4 validation
   const step4Valid = gdprAccepted && contractAccepted && contractRead
 
   const contractRef = useRef<HTMLDivElement>(null)
-
   const handleScroll = useCallback(() => {
     const el = contractRef.current
     if (!el) return
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20
-    if (atBottom) setContractRead(true)
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) setContractRead(true)
   }, [])
 
   async function submit() {
@@ -208,37 +202,37 @@ export default function SignupPage() {
     setSubmitting(false)
   }
 
-  /* ── Loading / error states ─────────────────────────────────── */
+  /* ── Loading / error states ─────────────────────────────────────── */
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <p className="text-slate-400 text-sm">Lädt…</p>
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="w-7 h-7 border-2 border-zinc-200 border-t-zinc-900 rounded-full animate-spin" />
     </div>
   )
 
   if (loadErr) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
       <div className="text-center max-w-sm">
         <AlertCircle size={40} className="text-red-400 mx-auto mb-3" />
-        <h2 className="font-bold text-slate-900 text-lg mb-2">
+        <h2 className="font-bold text-zinc-900 text-lg mb-2">
           {loadErr.includes('deaktiviert') ? 'Anmeldung deaktiviert' : 'Link ungültig'}
         </h2>
-        <p className="text-slate-500 text-sm">{loadErr}</p>
+        <p className="text-zinc-500 text-sm">{loadErr}</p>
       </div>
     </div>
   )
 
   if (done) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
       <div className="text-center max-w-sm">
-        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 size={40} className="text-green-500" />
+        <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 size={40} className="text-amber-500" />
         </div>
-        <h2 className="font-bold text-slate-900 text-2xl mb-2">Anmeldung erfolgreich! 🥋</h2>
-        <p className="text-slate-500 text-sm leading-relaxed mb-4">
+        <h2 className="font-bold text-zinc-900 text-2xl mb-2">Anmeldung erfolgreich!</h2>
+        <p className="text-zinc-500 text-sm leading-relaxed mb-4">
           Deine Anmeldung bei <strong>{gymInfo?.gymName}</strong> wurde übermittelt.
           Das Gym wird dich in Kürze kontaktieren und freischalten.
         </p>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-zinc-400">
           Vertrag und Datenschutz digital unterzeichnet am {new Date().toLocaleDateString('de-DE')}.
         </p>
       </div>
@@ -253,31 +247,37 @@ export default function SignupPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-50 safe-area-top">
+    <div className="min-h-screen bg-zinc-50 safe-area-top">
+
       {/* Header */}
-      <div className="bg-[#0f172a] px-4 py-5 text-center">
-        <p className="text-amber-400 font-black text-2xl italic tracking-tight">Osss</p>
-        <p className="text-white font-semibold text-sm mt-1">{gymInfo?.gymName}</p>
-        <p className="text-slate-400 text-xs mt-0.5">Mitglieder-Anmeldung</p>
+      <div className="bg-zinc-950 px-4 py-5 text-center">
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center">
+            <LogoMark className="w-3.5 h-3 text-zinc-950" />
+          </div>
+          <p className="text-amber-400 font-black text-xl italic tracking-tight">Osss</p>
+        </div>
+        <p className="text-white font-semibold text-sm">{gymInfo?.gymName}</p>
+        <p className="text-zinc-500 text-xs mt-0.5">Mitglieder-Anmeldung</p>
       </div>
 
       {/* Step indicator */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
+      <div className="bg-white border-b border-zinc-100 px-4 py-3">
         <div className="flex items-center justify-center gap-2 max-w-sm mx-auto">
           {steps.map((s, i) => (
             <div key={s.n} className="flex items-center gap-2">
               <div className={`flex flex-col items-center ${step >= s.n ? 'opacity-100' : 'opacity-40'}`}>
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                  step > s.n  ? 'bg-green-500 border-green-500 text-white' :
+                  step > s.n   ? 'bg-zinc-900 border-zinc-900 text-white' :
                   step === s.n ? 'bg-amber-500 border-amber-500 text-white' :
-                                 'bg-white border-gray-300 text-gray-400'
+                                 'bg-white border-zinc-300 text-zinc-400'
                 }`}>
                   {step > s.n ? '✓' : s.n}
                 </div>
-                <span className="text-[10px] text-slate-500 mt-0.5 hidden sm:block">{s.label}</span>
+                <span className="text-[10px] text-zinc-400 mt-0.5 hidden sm:block">{s.label}</span>
               </div>
               {i < steps.length - 1 && (
-                <div className={`flex-1 h-0.5 w-6 rounded-full transition-colors ${step > s.n ? 'bg-green-400' : 'bg-gray-200'}`} />
+                <div className={`flex-1 h-0.5 w-6 rounded-full transition-colors ${step > s.n ? 'bg-zinc-900' : 'bg-zinc-200'}`} />
               )}
             </div>
           ))}
@@ -290,8 +290,8 @@ export default function SignupPage() {
         {step === 1 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 mb-1">Persönliche Daten</h2>
-              <p className="text-slate-500 text-sm">Bitte fülle alle Pflichtfelder aus.</p>
+              <h2 className="text-lg font-bold text-zinc-900 mb-1">Persönliche Daten</h2>
+              <p className="text-zinc-500 text-sm">Bitte fülle alle Pflichtfelder aus.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -303,7 +303,7 @@ export default function SignupPage() {
             <Field label="Geburtsdatum *" type="date" value={dob} onChange={setDob} />
 
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Adresse</p>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Adresse</p>
               <div className="space-y-3">
                 <Field label="Straße & Hausnummer" value={street} onChange={setStreet} placeholder="Musterstraße 1" />
                 <div className="grid grid-cols-2 gap-3">
@@ -314,7 +314,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Notfallkontakt</p>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Notfallkontakt</p>
               <div className="space-y-3">
                 <Field label="Name" value={ecName} onChange={setEcName} placeholder="Maria Mustermann" />
                 <Field label="Telefon" type="tel" value={ecPhone} onChange={setEcPhone} placeholder="+49 …" />
@@ -323,7 +323,7 @@ export default function SignupPage() {
 
             {plans.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Mitgliedschaft wählen *</p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Mitgliedschaft wählen *</p>
                 <div className="space-y-2">
                   {plans.map(plan => {
                     const intervalLabel = plan.billing_interval === 'monthly' ? 'mtl.' : plan.billing_interval === 'biannual' ? 'halbjährl.' : 'jährl.'
@@ -333,17 +333,17 @@ export default function SignupPage() {
                     return (
                       <button key={plan.id} type="button" onClick={() => setSelectedPlanId(plan.id)}
                         className={`w-full text-left p-3.5 rounded-xl border-2 transition-all ${
-                          isSelected ? 'border-amber-500 bg-amber-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                          isSelected ? 'border-amber-500 bg-amber-50' : 'border-zinc-200 bg-white hover:border-zinc-300'
                         }`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="font-semibold text-slate-900 text-sm">{plan.name}</p>
-                            {plan.description && <p className="text-xs text-slate-500 mt-0.5 truncate">{plan.description}</p>}
-                            <p className="text-xs text-slate-400 mt-1">{contractLabel}</p>
+                            <p className="font-semibold text-zinc-900 text-sm">{plan.name}</p>
+                            {plan.description && <p className="text-xs text-zinc-500 mt-0.5 truncate">{plan.description}</p>}
+                            <p className="text-xs text-zinc-400 mt-1">{contractLabel}</p>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className="font-bold text-slate-900 text-sm">{price}</p>
-                            <p className="text-xs text-slate-400">{intervalLabel}</p>
+                            <p className="font-bold text-zinc-900 text-sm">{price}</p>
+                            <p className="text-xs text-zinc-400">{intervalLabel}</p>
                           </div>
                         </div>
                       </button>
@@ -354,12 +354,12 @@ export default function SignupPage() {
             )}
 
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Aktueller Gürtelgrad</p>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Aktueller Gürtelgrad</p>
               <div className="flex flex-wrap gap-2">
                 {BELTS.map(b => (
                   <button key={b.value} type="button" onClick={() => setBelt(b.value)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm font-medium transition-all ${
-                      belt === b.value ? 'border-amber-500 bg-amber-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                      belt === b.value ? 'border-amber-500 bg-amber-50' : 'border-zinc-200 bg-white hover:border-zinc-300'
                     }`}>
                     <span className="w-4 h-4 rounded-full border border-black/10 flex-shrink-0"
                       style={{ background: b.color }} />
@@ -376,18 +376,18 @@ export default function SignupPage() {
           </div>
         )}
 
-        {/* ── STEP 2: Vertrag ────────────────────────────────────── */}
+        {/* ── STEP 2: Vertrag ─────────────────────────────────────── */}
         {step === 2 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 mb-1">Mitgliedsvertrag</h2>
-              <p className="text-slate-500 text-sm">Bitte lies den Vertrag vollständig durch (bis zum Ende scrollen).</p>
+              <h2 className="text-lg font-bold text-zinc-900 mb-1">Mitgliedsvertrag</h2>
+              <p className="text-zinc-500 text-sm">Bitte lies den Vertrag vollständig durch (bis zum Ende scrollen).</p>
             </div>
 
             <div
               ref={contractRef}
               onScroll={handleScroll}
-              className="bg-white rounded-2xl border border-gray-200 p-5 max-h-[55vh] overflow-y-auto shadow-sm text-sm text-slate-700 leading-relaxed whitespace-pre-wrap"
+              className="bg-white rounded-2xl border border-zinc-200 p-5 max-h-[55vh] overflow-y-auto shadow-sm text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap"
             >
               {gymInfo?.contractTemplate || 'Kein Vertrag hinterlegt.'}
             </div>
@@ -398,14 +398,14 @@ export default function SignupPage() {
               </p>
             )}
             {contractRead && (
-              <p className="text-xs text-green-600 flex items-center gap-1.5">
+              <p className="text-xs text-emerald-600 flex items-center gap-1.5">
                 <CheckCircle2 size={13} /> Du hast den Vertrag vollständig gelesen.
               </p>
             )}
 
             <div className="flex gap-3">
               <button onClick={() => setStep(1)}
-                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 text-slate-700 font-medium transition-colors">
+                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
                 <ChevronLeft size={16} /> Zurück
               </button>
               <button disabled={!contractRead} onClick={() => setStep(3)}
@@ -416,24 +416,24 @@ export default function SignupPage() {
           </div>
         )}
 
-        {/* ── STEP 3: Unterschrift ───────────────────────────────── */}
+        {/* ── STEP 3: Unterschrift ────────────────────────────────── */}
         {step === 3 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 mb-1">Digitale Unterschrift</h2>
-              <p className="text-slate-500 text-sm">
+              <h2 className="text-lg font-bold text-zinc-900 mb-1">Digitale Unterschrift</h2>
+              <p className="text-zinc-500 text-sm">
                 Unterschreibe mit dem Finger (Handy) oder der Maus (PC) im Feld unten.
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-              <p className="text-xs text-slate-400 mb-3">
+            <div className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-sm">
+              <p className="text-xs text-zinc-400 mb-3">
                 {firstName} {lastName} — {new Date().toLocaleDateString('de-DE')}
               </p>
               <SignaturePad onChange={setSignatureData} />
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-zinc-400 leading-relaxed">
               Mit deiner Unterschrift bestätigst du, dass du den Mitgliedsvertrag von{' '}
               <strong>{gymInfo?.gymName}</strong> gelesen hast und damit einverstanden bist.
               Die digitale Unterschrift ist rechtlich bindend gemäß eIDAS-Verordnung.
@@ -441,7 +441,7 @@ export default function SignupPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setStep(2)}
-                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 text-slate-700 font-medium transition-colors">
+                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
                 <ChevronLeft size={16} /> Zurück
               </button>
               <button disabled={!step3Valid} onClick={() => setStep(4)}
@@ -452,32 +452,30 @@ export default function SignupPage() {
           </div>
         )}
 
-        {/* ── STEP 4: Einwilligung & Absenden ────────────────────── */}
+        {/* ── STEP 4: Einwilligung & Absenden ─────────────────────── */}
         {step === 4 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 mb-1">Einwilligung & Anmeldung</h2>
-              <p className="text-slate-500 text-sm">Bitte bestätige die folgenden Punkte.</p>
+              <h2 className="text-lg font-bold text-zinc-900 mb-1">Einwilligung & Anmeldung</h2>
+              <p className="text-zinc-500 text-sm">Bitte bestätige die folgenden Punkte.</p>
             </div>
 
-            {/* Summary card */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm space-y-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Zusammenfassung</p>
+            <div className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-sm space-y-2">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Zusammenfassung</p>
               <SummaryRow label="Name"         value={`${firstName} ${lastName}`} />
               <SummaryRow label="E-Mail"        value={email} />
-              {phone && <SummaryRow label="Telefon"      value={phone} />}
-              {dob   && <SummaryRow label="Geburtsdatum" value={new Date(dob).toLocaleDateString('de-DE')} />}
+              {phone && <SummaryRow label="Telefon"       value={phone} />}
+              {dob   && <SummaryRow label="Geburtsdatum"  value={new Date(dob).toLocaleDateString('de-DE')} />}
               {(street || city) && <SummaryRow label="Adresse" value={[street, `${zip} ${city}`.trim()].filter(Boolean).join(', ')} />}
               {ecName && <SummaryRow label="Notfallkontakt" value={`${ecName}${ecPhone ? ` · ${ecPhone}` : ''}`} />}
-              <SummaryRow label="Gürtelgrad" value={BELTS.find(b => b.value === belt)?.label ?? 'Weiß'} />
+              <SummaryRow label="Gürtelgrad"   value={BELTS.find(b => b.value === belt)?.label ?? 'Weiß'} />
             </div>
 
-            {/* Consent checkboxes */}
             <div className="space-y-3">
-              <label className="flex items-start gap-3 cursor-pointer group">
+              <label className="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" checked={contractAccepted} onChange={e => setContractAccepted(e.target.checked)}
-                  className="mt-0.5 w-5 h-5 rounded border-gray-300 text-amber-500 focus:ring-amber-400 flex-shrink-0 cursor-pointer" />
-                <span className="text-sm text-slate-700 leading-relaxed">
+                  className="mt-0.5 w-5 h-5 rounded border-zinc-300 text-amber-500 focus:ring-amber-400 flex-shrink-0 cursor-pointer" />
+                <span className="text-sm text-zinc-700 leading-relaxed">
                   Ich habe den Mitgliedsvertrag von <strong>{gymInfo?.gymName}</strong> vollständig gelesen,
                   verstanden und erkläre mich damit einverstanden. Meine digitale Unterschrift ist rechtsverbindlich.
                 </span>
@@ -485,29 +483,26 @@ export default function SignupPage() {
 
               <label className="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" checked={gdprAccepted} onChange={e => setGdprAccepted(e.target.checked)}
-                  className="mt-0.5 w-5 h-5 rounded border-gray-300 text-amber-500 focus:ring-amber-400 flex-shrink-0 cursor-pointer" />
-                <span className="text-sm text-slate-700 leading-relaxed">
+                  className="mt-0.5 w-5 h-5 rounded border-zinc-300 text-amber-500 focus:ring-amber-400 flex-shrink-0 cursor-pointer" />
+                <span className="text-sm text-zinc-700 leading-relaxed">
                   Ich stimme der Verarbeitung meiner personenbezogenen Daten zur Mitgliedschaftsverwaltung gemäß
                   der{' '}
                   <a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline font-medium">
                     Datenschutzerklärung
                   </a>
-                  {' '}zu. Die Daten werden nicht ohne meine Einwilligung an Dritte weitergegeben.
+                  {' '}zu.
                 </span>
               </label>
 
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agbAccepted}
-                  onChange={e => setAgbAccepted(e.target.checked)}
-                  className="mt-1 w-4 h-4 rounded border-gray-300 text-amber-500 flex-shrink-0"
-                  required
-                />
-                <span className="text-sm text-slate-600">
+                <input type="checkbox" checked={agbAccepted} onChange={e => setAgbAccepted(e.target.checked)}
+                  className="mt-0.5 w-5 h-5 rounded border-zinc-300 text-amber-500 focus:ring-amber-400 flex-shrink-0 cursor-pointer" />
+                <span className="text-sm text-zinc-700 leading-relaxed">
                   Ich habe die{' '}
-                  <a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline">Datenschutzerklärung</a>
-                  {' '}und die AGB gelesen und stimme zu. Ich bin mir bewusst, dass meine digitale Unterschrift rechtlich bindend ist.
+                  <a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline font-medium">Datenschutzerklärung</a>
+                  {' '}und die{' '}
+                  <a href="/agb" target="_blank" className="text-amber-600 hover:underline font-medium">AGB</a>
+                  {' '}gelesen und stimme zu.
                 </span>
               </label>
             </div>
@@ -520,16 +515,16 @@ export default function SignupPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setStep(3)}
-                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 text-slate-700 font-medium transition-colors">
+                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
                 <ChevronLeft size={16} /> Zurück
               </button>
               <button disabled={!step4Valid || !agbAccepted || submitting} onClick={submit}
-                className="flex-1 py-3.5 rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-base transition-colors flex items-center justify-center gap-2">
+                className="flex-1 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-base transition-colors flex items-center justify-center gap-2">
                 {submitting ? 'Wird gesendet…' : '🥋 Jetzt anmelden'}
               </button>
             </div>
 
-            <p className="text-xs text-slate-400 text-center">
+            <p className="text-xs text-zinc-400 text-center">
               Datum & Uhrzeit: {new Date().toLocaleString('de-DE')}
             </p>
           </div>
@@ -539,7 +534,7 @@ export default function SignupPage() {
   )
 }
 
-/* ── Helper components ──────────────────────────────────────────── */
+/* ── Helper components ──────────────────────────────────────────────── */
 function Field({
   label, value, onChange, placeholder = '', type = 'text',
 }: {
@@ -548,13 +543,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</label>
+      <label className="block text-xs font-semibold text-zinc-600 mb-1.5">{label}</label>
       <input
-        type={type}
-        value={value}
+        type={type} value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors"
+        className="w-full px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors"
       />
     </div>
   )
@@ -562,9 +556,9 @@ function Field({
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-1 border-b border-gray-50 last:border-0">
-      <span className="text-xs text-slate-400 flex-shrink-0">{label}</span>
-      <span className="text-xs font-medium text-slate-800 text-right truncate">{value}</span>
+    <div className="flex items-start justify-between gap-3 py-1 border-b border-zinc-50 last:border-0">
+      <span className="text-xs text-zinc-400 flex-shrink-0">{label}</span>
+      <span className="text-xs font-medium text-zinc-800 text-right truncate">{value}</span>
     </div>
   )
 }

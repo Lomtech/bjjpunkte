@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, Calendar,
-  TrendingUp, Settings, LogOut, UserPlus, UserCheck,
+  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2,
 } from 'lucide-react'
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { href: '/dashboard/schedule',    label: 'Stundenplan',   icon: Calendar,        ownerOnly: false },
   { href: '/dashboard/attendance',  label: 'Anwesenheit',   icon: UserCheck,       ownerOnly: false },
   { href: '/dashboard/revenue',     label: 'Einnahmen',     icon: TrendingUp,      ownerOnly: true  },
+  { href: '/dashboard/links',       label: 'Zugänge',       icon: Link2,           ownerOnly: true  },
   { href: '/dashboard/settings',    label: 'Einstellungen', icon: Settings,        ownerOnly: true  },
 ]
 
@@ -23,11 +24,11 @@ const TRAINER_NAV = [
 ]
 
 const BOTTOM_NAV = [
-  { href: '/dashboard',             label: 'Übersicht',     icon: LayoutDashboard, ownerOnly: false },
-  { href: '/dashboard/members',     label: 'Mitglieder',    icon: Users,           ownerOnly: false },
-  { href: '/dashboard/schedule',    label: 'Stundenplan',   icon: Calendar,        ownerOnly: false },
-  { href: '/dashboard/attendance',  label: 'Anwesenheit',   icon: UserCheck,       ownerOnly: false },
-  { href: '/dashboard/settings',    label: 'Einstellungen', icon: Settings,        ownerOnly: true  },
+  { href: '/dashboard',             label: 'Übersicht',   icon: LayoutDashboard, ownerOnly: false },
+  { href: '/dashboard/members',     label: 'Mitglieder',  icon: Users,           ownerOnly: false },
+  { href: '/dashboard/schedule',    label: 'Stundenplan', icon: Calendar,        ownerOnly: false },
+  { href: '/dashboard/links',       label: 'Zugänge',     icon: Link2,           ownerOnly: true  },
+  { href: '/dashboard/settings',    label: 'Einstellungen', icon: Settings,      ownerOnly: true  },
 ]
 
 const TRAINER_BOTTOM_NAV = [
