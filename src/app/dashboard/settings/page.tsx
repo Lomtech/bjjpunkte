@@ -158,6 +158,9 @@ export default function SettingsPage() {
         setLogoUrl(data.logo_url ?? null)
         setMonthlyFee(data.monthly_fee_cents ? ((data.monthly_fee_cents as number) / 100).toFixed(2) : '')
         setStripeAccountId((data as any).stripe_account_id)
+        if ((data as any).stripe_account_id && (data as any).stripe_charges_enabled !== undefined) {
+          setStripeChargesEnabled((data as any).stripe_charges_enabled ?? null)
+        }
         setSignupEnabled((data as any).signup_enabled ?? false)
         setSignupToken((data as any).signup_token ?? null)
         setContractTemplate((data as any).contract_template ?? '')
