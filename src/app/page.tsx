@@ -347,48 +347,53 @@ export default function Home() {
       </div>
 
       {/* ── PODIUM SECTION ── Erstes Bild beim Scrollen */}
-      <section className="relative h-[90vh] min-h-[560px] overflow-hidden">
+      <section className="relative h-[92vh] min-h-[580px] overflow-hidden">
         {/* Parallax image */}
         <motion.div
-          className="absolute inset-0 scale-110"
+          className="absolute inset-0 scale-105"
           style={{ y: podiumParallaxY }}
         >
           <Image
             src="/tournament-podium.jpg"
             alt="Athleten auf dem Siegerpodest"
             fill
+            sizes="100vw"
             className="object-cover"
             style={{ objectPosition: 'center 15%' }}
             priority
           />
         </motion.div>
 
-        {/* Subtle gradient — only enough for text contrast at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-transparent to-zinc-950/20" />
+        {/* White vignette — flows in from top and bottom, light tones */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'linear-gradient(to bottom, white 0%, transparent 20%, transparent 78%, white 100%)'
+        }} />
 
-        {/* Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-end text-center pb-20 px-5">
+        {/* Content — centered on the visible image */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-5">
           <motion.div style={{ y: podiumTextY }}>
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-4">Echtes Training. Echter Wettkampf.</p>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none mb-5">
-              Für Gyms,<br />die gewinnen wollen.
-            </h2>
-            <p className="text-zinc-300 text-base max-w-md mx-auto leading-relaxed">
-              Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
-            </p>
-          </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-4 drop-shadow-sm">Echtes Training. Echter Wettkampf.</p>
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none mb-5"
+                style={{ textShadow: '0 2px 24px rgba(0,0,0,0.45)' }}>
+                Für Gyms,<br />die gewinnen wollen.
+              </h2>
+              <p className="text-white/80 text-base max-w-md mx-auto leading-relaxed"
+                style={{ textShadow: '0 1px 12px rgba(0,0,0,0.5)' }}>
+                Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
+              </p>
+            </motion.div>
           </motion.div>
         </div>
 
-        {/* Bottom label */}
-        <div className="absolute bottom-5 right-5">
-          <span className="text-white/70 text-xs font-semibold bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full">
+        {/* Bottom label — sits above the white fade */}
+        <div className="absolute bottom-16 right-5">
+          <span className="text-white/80 text-xs font-semibold bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
             Wettkampf · Submission Grappling
           </span>
         </div>
