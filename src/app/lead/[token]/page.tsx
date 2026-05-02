@@ -141,6 +141,17 @@ export default function LeadPortalPage() {
     load()
   }
 
+  async function handleCancel(classId: string) {
+    setActionLoading(classId + ':cancel')
+    await fetch(`/api/public/lead/${token}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ class_id: classId }),
+    })
+    setActionLoading(null)
+    load()
+  }
+
   // ── Loading / Error ──────────────────────────────────────────────────────────
 
   if (loading) {
@@ -246,8 +257,9 @@ export default function LeadPortalPage() {
                 const isBooked    = booking?.status === 'booked'
                 const isCheckedIn = booking?.status === 'checked_in'
                 const showCheckin = isBooked && isWithin2h(cls.starts_at)
-                const isBooking   = actionLoading === cls.id + ':book'
+                const isBooking    = actionLoading === cls.id + ':book'
                 const isCheckingIn = actionLoading === cls.id + ':checkin'
+                const isCancelling = actionLoading === cls.id + ':cancel'
                 const endTime = new Date(cls.ends_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
                 const { date, time } = formatDateTime(cls.starts_at)
                 const typeColor = TYPE_COLORS[cls.class_type] ?? 'bg-zinc-100 text-zinc-700'
@@ -284,10 +296,19 @@ export default function LeadPortalPage() {
                             Eingecheckt ✓
                           </span>
                         ) : isBooked ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-3 py-2 rounded-xl border border-green-100">
-                            <CheckCircle size={12} />
-                            Zugesagt ✓
-                          </span>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-3 py-2 rounded-xl border border-green-100">
+                              <CheckCircle size={12} />
+                              Zugesagt ✓
+                            </span>
+                            <button
+                              onClick={() => handleCancel(cls.id)}
+                              disabled={!!isCancelling}
+                              className="text-[11px] text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                            >
+                              {isCancelling ? '…' : 'Abmelden'}
+                            </button>
+                          </div>
                         ) : (
                           <button
                             onClick={() => handleBook(cls.id)}
