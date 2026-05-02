@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, Calendar,
-  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2,
+  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2, Globe,
 } from 'lucide-react'
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { href: '/dashboard/schedule',    label: 'Stundenplan',   icon: Calendar,        ownerOnly: false },
   { href: '/dashboard/attendance',  label: 'Anwesenheit',   icon: UserCheck,       ownerOnly: false },
   { href: '/dashboard/revenue',     label: 'Einnahmen',     icon: TrendingUp,      ownerOnly: true  },
+  { href: '/dashboard/website',     label: 'Webseite',      icon: Globe,           ownerOnly: true  },
   { href: '/dashboard/links',       label: 'Zugänge',       icon: Link2,           ownerOnly: true  },
   { href: '/dashboard/settings',    label: 'Einstellungen', icon: Settings,        ownerOnly: true  },
 ]
