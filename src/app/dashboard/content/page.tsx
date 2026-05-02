@@ -3,22 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Plus, Trash2, Eye, EyeOff, ChevronUp, ChevronDown,
-  ImagePlus, Type, AlignLeft, Save, X, Edit2, Globe
+  Plus, Eye, EyeOff, Trash2,
+  ImagePlus, Save, X, Edit2, Globe, AlignLeft,
 } from 'lucide-react'
-import Image from 'next/image'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type BlockType = 'heading' | 'paragraph' | 'image'
-
-interface Block {
-  id:      string
-  type:    BlockType
-  text?:   string
-  url?:    string
-  caption?: string
-}
+import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
 
 interface Post {
   id:           string
@@ -32,14 +20,10 @@ interface Post {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function uid() { return Math.random().toString(36).slice(2) }
-
 async function getAuthHeaders(): Promise<HeadersInit> {
   const { data: { session } } = await createClient().auth.getSession()
   return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
 }
-
-// ─── Image upload ─────────────────────────────────────────────────────────────
 
 async function uploadImage(file: File): Promise<string | null> {
   const headers = await getAuthHeaders()
@@ -49,114 +33,6 @@ async function uploadImage(file: File): Promise<string | null> {
   if (!res.ok) return null
   const { url } = await res.json()
   return url ?? null
-}
-
-// ─── Block Editor ─────────────────────────────────────────────────────────────
-
-function BlockItem({
-  block, index, total,
-  onChange, onDelete, onMove, onImageUpload,
-}: {
-  block: Block
-  index: number
-  total: number
-  onChange: (b: Block) => void
-  onDelete: () => void
-  onMove: (dir: -1 | 1) => void
-  onImageUpload: (file: File) => Promise<void>
-}) {
-  const imgRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
-
-  async function handleFile(file: File) {
-    setUploading(true)
-    const url = await uploadImage(file)
-    if (url) onChange({ ...block, url })
-    setUploading(false)
-  }
-
-  return (
-    <div className="group relative bg-white border border-zinc-200 rounded-xl overflow-hidden">
-      {/* Controls */}
-      <div className="flex items-center gap-1 px-3 py-2 bg-zinc-50 border-b border-zinc-100">
-        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mr-auto">
-          {block.type === 'heading' ? 'Überschrift' : block.type === 'paragraph' ? 'Text' : 'Bild'}
-        </span>
-        <button type="button" onClick={() => onMove(-1)} disabled={index === 0}
-          className="p-1 rounded hover:bg-zinc-200 disabled:opacity-30 transition-colors">
-          <ChevronUp size={13} />
-        </button>
-        <button type="button" onClick={() => onMove(1)} disabled={index === total - 1}
-          className="p-1 rounded hover:bg-zinc-200 disabled:opacity-30 transition-colors">
-          <ChevronDown size={13} />
-        </button>
-        <button type="button" onClick={onDelete}
-          className="p-1 rounded hover:bg-red-50 hover:text-red-500 transition-colors ml-1">
-          <Trash2 size={13} />
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="p-3">
-        {block.type === 'heading' && (
-          <input
-            value={block.text ?? ''}
-            onChange={e => onChange({ ...block, text: e.target.value })}
-            placeholder="Überschrift eingeben…"
-            className="w-full text-lg font-black text-zinc-900 bg-transparent border-none outline-none placeholder-zinc-300"
-          />
-        )}
-
-        {block.type === 'paragraph' && (
-          <textarea
-            value={block.text ?? ''}
-            onChange={e => onChange({ ...block, text: e.target.value })}
-            placeholder="Text eingeben…"
-            rows={4}
-            className="w-full text-sm text-zinc-700 leading-relaxed bg-transparent border-none outline-none placeholder-zinc-300 resize-y"
-          />
-        )}
-
-        {block.type === 'image' && (
-          <div className="space-y-2">
-            <input
-              ref={imgRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }}
-            />
-            {block.url ? (
-              <div className="relative group/img rounded-lg overflow-hidden">
-                <img src={block.url} alt={block.caption ?? ''} className="w-full max-h-64 object-cover rounded-lg" />
-                <button
-                  type="button"
-                  onClick={() => imgRef.current?.click()}
-                  className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-semibold">
-                  Bild ersetzen
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => imgRef.current?.click()}
-                disabled={uploading}
-                className="w-full h-32 border-2 border-dashed border-zinc-200 rounded-lg flex flex-col items-center justify-center gap-2 text-zinc-400 hover:border-amber-300 hover:text-amber-500 transition-colors">
-                <ImagePlus size={22} />
-                <span className="text-xs">{uploading ? 'Wird hochgeladen…' : 'Bild hochladen'}</span>
-              </button>
-            )}
-            <input
-              value={block.caption ?? ''}
-              onChange={e => onChange({ ...block, caption: e.target.value })}
-              placeholder="Bildunterschrift (optional)"
-              className="w-full text-xs text-zinc-500 bg-transparent border-none outline-none placeholder-zinc-300"
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  )
 }
 
 // ─── Post Editor Modal ────────────────────────────────────────────────────────
@@ -177,28 +53,6 @@ function PostEditor({
   const [published, setPublished] = useState<boolean>(!!initial.published_at)
   const coverRef = useRef<HTMLInputElement>(null)
   const [coverUploading, setCoverUploading] = useState(false)
-
-  function addBlock(type: BlockType) {
-    setBlocks(bs => [...bs, { id: uid(), type }])
-  }
-
-  function updateBlock(index: number, block: Block) {
-    setBlocks(bs => bs.map((b, i) => i === index ? block : b))
-  }
-
-  function deleteBlock(index: number) {
-    setBlocks(bs => bs.filter((_, i) => i !== index))
-  }
-
-  function moveBlock(index: number, dir: -1 | 1) {
-    setBlocks(bs => {
-      const next = [...bs]
-      const swap = index + dir
-      if (swap < 0 || swap >= next.length) return bs
-      ;[next[index], next[swap]] = [next[swap], next[index]]
-      return next
-    })
-  }
 
   async function handleCoverFile(file: File) {
     setCoverUploading(true)
@@ -292,36 +146,7 @@ function PostEditor({
           {/* Blocks */}
           <div>
             <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Inhalt</label>
-            <div className="space-y-3">
-              {blocks.map((block, i) => (
-                <BlockItem
-                  key={block.id}
-                  block={block}
-                  index={i}
-                  total={blocks.length}
-                  onChange={b => updateBlock(i, b)}
-                  onDelete={() => deleteBlock(i)}
-                  onMove={dir => moveBlock(i, dir)}
-                  onImageUpload={async (f) => { const url = await uploadImage(f); if (url) updateBlock(i, { ...block, url }) }}
-                />
-              ))}
-
-              {/* Add block buttons */}
-              <div className="flex items-center gap-2 pt-1">
-                <button type="button" onClick={() => addBlock('heading')}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-500 hover:border-amber-300 hover:text-amber-600 transition-colors">
-                  <Type size={13} /> Überschrift
-                </button>
-                <button type="button" onClick={() => addBlock('paragraph')}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-500 hover:border-amber-300 hover:text-amber-600 transition-colors">
-                  <AlignLeft size={13} /> Text
-                </button>
-                <button type="button" onClick={() => addBlock('image')}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-500 hover:border-amber-300 hover:text-amber-600 transition-colors">
-                  <ImagePlus size={13} /> Bild
-                </button>
-              </div>
-            </div>
+            <BlockEditor blocks={blocks} onChange={setBlocks} />
           </div>
 
           {/* Publish toggle */}

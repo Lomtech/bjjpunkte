@@ -7,6 +7,7 @@ import {
   ImagePlus, Play, Share2, Phone, Mail, MapPin,
   Clock, FileText, Info, ChevronDown, ChevronUp, Loader2, Plus, X,
 } from 'lucide-react'
+import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
 import Image from 'next/image'
 
 async function getAuthHeaders(): Promise<HeadersInit> {
@@ -23,6 +24,7 @@ interface GymWebsite {
   sport_type: string | null
   tagline: string | null
   about: string | null
+  about_blocks: Block[]
   hero_image_url: string | null
   gallery_urls: string[]
   video_url: string | null
@@ -67,7 +69,7 @@ const TEXTAREA = INPUT + ' resize-none leading-relaxed'
 
 function completionScore(g: GymWebsite): number {
   const checks = [
-    !!g.tagline, !!g.about, !!g.hero_image_url,
+    !!g.tagline, !!(g.about || g.about_blocks?.length), !!g.hero_image_url,
     g.gallery_urls.length > 0, g.video_urls?.length > 0 || !!g.video_url,
     !!g.whatsapp_number || !!g.instagram_url,
     !!g.opening_hours, !!g.impressum_text,
@@ -269,6 +271,7 @@ export default function WebsitePage() {
   // Section states
   const [tagline,     setTagline]     = useState('')
   const [about,       setAbout]       = useState('')
+  const [aboutBlocks, setAboutBlocks] = useState<Block[]>([])
   const [foundedYear, setFoundedYear] = useState('')
   const [gymSlug,     setGymSlug]     = useState('')
   const [slugError,   setSlugError]   = useState('')
@@ -298,7 +301,7 @@ export default function WebsitePage() {
       const { data } = await (supabase as any)
         .from('gyms')
         .select(`id, slug, name, logo_url, sport_type,
-          tagline, about, hero_image_url, hero_image_position, gallery_urls, video_url, video_urls,
+          tagline, about, about_blocks, hero_image_url, hero_image_position, gallery_urls, video_url, video_urls,
           whatsapp_number, instagram_url, facebook_url, website_url,
           founded_year, opening_hours, impressum_text`)
         .single()
@@ -307,6 +310,7 @@ export default function WebsitePage() {
         setGymSlug(data.slug ?? '')
         setTagline(data.tagline ?? '')
         setAbout(data.about ?? '')
+        setAboutBlocks(Array.isArray(data.about_blocks) ? data.about_blocks : [])
         setFoundedYear(data.founded_year?.toString() ?? '')
         setHeroImageUrl(data.hero_image_url ?? '')
         setHeroPos(data.hero_image_position ?? 50)
@@ -364,7 +368,7 @@ export default function WebsitePage() {
 
   const score = gym ? completionScore({
     ...gym,
-    tagline, about, hero_image_url: heroImageUrl,
+    tagline, about, about_blocks: aboutBlocks, hero_image_url: heroImageUrl,
     gallery_urls: galleryUrls, video_url: videoUrls[0] ?? null, video_urls: videoUrls,
     whatsapp_number: whatsapp, instagram_url: instagram,
     opening_hours: hours, impressum_text: impressum,
@@ -486,20 +490,16 @@ export default function WebsitePage() {
 
         {/* 2 — Über uns */}
         <Section num="2" title="Über uns" icon={<FileText size={14} />}
-          subtitle="Beschreibe dein Gym — Geschichte, Philosophie, Team"
-          done={!!about}>
+          subtitle="Geschichte, Philosophie, Team — mit Texten und Bildern"
+          done={aboutBlocks.length > 0 || !!about}>
           <div className="space-y-4 pt-4">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">Beschreibungstext *</label>
-              <textarea value={about} onChange={e => setAbout(e.target.value)}
-                rows={6}
-                placeholder="Erzähle deine Geschichte: Wann wurde das Gym gegründet? Was ist eure Philosophie? Wer trainiert hier? Was macht euch besonders?"
-                className={TEXTAREA} />
-              <p className="text-xs text-zinc-400 mt-1">{about.length}/1000 Zeichen</p>
-            </div>
+            <BlockEditor blocks={aboutBlocks} onChange={setAboutBlocks} />
             <div className="flex justify-end">
               <SaveBtn
-                onClick={() => saveSection('about', { about: about || null })}
+                onClick={() => saveSection('about', {
+                  about_blocks: aboutBlocks,
+                  about: aboutBlocks.find(b => b.type === 'paragraph')?.text ?? about ?? null,
+                })}
                 saving={saving.about} saved={saved.about}
               />
             </div>

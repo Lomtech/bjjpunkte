@@ -32,7 +32,7 @@ interface GymInfo {
   id: string; name: string; logo_url: string | null
   address: string | null; phone: string | null; email: string | null
   sport_type: string | null; belt_system_enabled: boolean
-  tagline: string | null; about: string | null
+  tagline: string | null; about: string | null; about_blocks: PostBlock[]
   hero_image_url: string | null; hero_image_position: number
   gallery_urls: string[]
   video_url: string | null; video_urls: string[]; whatsapp_number: string | null
@@ -472,57 +472,79 @@ export default function PublicGymPage() {
       )}
 
       {/* ── ABOUT ── */}
-      {gym.about && (
+      {(gym.about_blocks?.length > 0 || gym.about) && (
         <section id="about" className="bg-white py-24">
           <div className="max-w-6xl mx-auto px-5">
-            <div className="grid md:grid-cols-[1fr_2fr] gap-16 items-start">
-              <div data-reveal>
+            {/* Section label + meta column */}
+            <div className="grid md:grid-cols-[200px_1fr] gap-12 items-start">
+              <div data-reveal className="md:sticky md:top-24">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-6 h-px bg-amber-400" />
                   <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">Über uns</p>
                 </div>
-                <h2 className="text-3xl font-black text-zinc-900 leading-tight">Was uns ausmacht</h2>
+                <h2 className="text-2xl font-black text-zinc-900 leading-tight">Was uns ausmacht</h2>
                 {(gym.founded_year || gym.sport_type) && (
-                  <div className="mt-8 space-y-3">
+                  <div className="mt-6 space-y-3">
                     {gym.founded_year && (
-                      <div className="border-l-2 border-amber-400 pl-4">
+                      <div className="border-l-2 border-amber-400 pl-3">
                         <p className="text-2xl font-black text-amber-500">{gym.founded_year}</p>
-                        <p className="text-xs text-zinc-500 mt-0.5">Gegründet</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">Gegründet</p>
                       </div>
                     )}
                     {gym.sport_type && (
-                      <div className="border-l-2 border-zinc-200 pl-4">
-                        <p className="text-lg font-black text-zinc-900">{gym.sport_type}</p>
+                      <div className="border-l-2 border-zinc-200 pl-3">
+                        <p className="text-base font-black text-zinc-800">{gym.sport_type}</p>
                         <p className="text-xs text-zinc-400 mt-0.5">Schwerpunkt</p>
                       </div>
                     )}
                   </div>
                 )}
               </div>
-              <div data-reveal style={{ transitionDelay: '120ms' }}>
-                <p className="text-zinc-600 leading-[1.9] text-[15px] whitespace-pre-wrap">{gym.about}</p>
+
+              {/* Content: blocks or plain text */}
+              <div data-reveal style={{ transitionDelay: '120ms' }} className="space-y-6">
+                {gym.about_blocks?.length > 0
+                  ? gym.about_blocks.map((block, i) => {
+                      if (block.type === 'heading') return (
+                        <h3 key={i} className="text-2xl font-black text-zinc-900 leading-tight">{block.text}</h3>
+                      )
+                      if (block.type === 'paragraph') return (
+                        <p key={i} className="text-zinc-600 leading-[1.9] text-[15px] whitespace-pre-wrap">{block.text}</p>
+                      )
+                      if (block.type === 'image' && block.url) return (
+                        <figure key={i}>
+                          <img src={block.url} alt={block.caption ?? ''}
+                            className="w-full rounded-2xl object-contain bg-zinc-50 max-h-[520px]" />
+                          {block.caption && (
+                            <figcaption className="text-xs text-zinc-400 text-center mt-2">{block.caption}</figcaption>
+                          )}
+                        </figure>
+                      )
+                      return null
+                    })
+                  : <p className="text-zinc-600 leading-[1.9] text-[15px] whitespace-pre-wrap">{gym.about}</p>
+                }
               </div>
             </div>
           </div>
         </section>
       )}
 
-      {/* ── GALLERY ── */}
+      {/* ── GALLERY ── photos fully visible, no crop ── */}
       {gym.gallery_urls.length > 0 && (
-        <section className="bg-zinc-50">
-          <div className="max-w-6xl mx-auto">
-            <div className={`grid gap-1 ${
-              gym.gallery_urls.length === 1 ? 'grid-cols-1' :
+        <section className="bg-zinc-900 py-6">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className={`grid gap-3 ${
+              gym.gallery_urls.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
               gym.gallery_urls.length === 2 ? 'grid-cols-2' :
               'grid-cols-2 md:grid-cols-3'
             }`}>
               {gym.gallery_urls.slice(0, 6).map((url, i) => (
-                <div key={i}
-                  className={`relative overflow-hidden group ${i === 0 && gym.gallery_urls.length >= 4 ? 'md:col-span-2 md:row-span-2' : ''}`}
-                  style={{ paddingBottom: i === 0 && gym.gallery_urls.length >= 4 ? undefined : '75%', aspectRatio: i === 0 && gym.gallery_urls.length >= 4 ? '16/9' : undefined }}>
+                <div key={i} data-reveal style={{ transitionDelay: `${i * 60}ms` }}
+                  className="overflow-hidden rounded-2xl bg-zinc-800 group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="w-full h-full absolute inset-0 object-cover group-hover:scale-105 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  <img src={url} alt=""
+                    className="w-full h-auto object-contain max-h-[420px] group-hover:scale-[1.02] transition-transform duration-500" />
                 </div>
               ))}
             </div>
