@@ -48,8 +48,8 @@ export default function ImpressumPage() {
               </p>
               <p>
                 Support:{' '}
-                <a href="mailto:support@osss.pro" className="text-amber-600 hover:underline">
-                  support@osss.pro
+                <a href="mailto:oss@osss.pro" className="text-amber-600 hover:underline">
+                  oss@osss.pro
                 </a>
               </p>
             </div>

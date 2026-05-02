@@ -287,8 +287,8 @@ export default function PricingPage() {
         <div className="mt-12 text-center">
           <p className="text-zinc-400 text-sm">
             Weitere Fragen?{' '}
-            <a href="mailto:support@osss.pro" className="text-amber-600 hover:text-amber-700 font-semibold transition-colors">
-              support@osss.pro
+            <a href="mailto:oss@osss.pro" className="text-amber-600 hover:text-amber-700 font-semibold transition-colors">
+              oss@osss.pro
             </a>
           </p>
         </div>
@@ -322,7 +322,7 @@ export default function PricingPage() {
           <div className="flex gap-5">
             <Link href="/datenschutz" className="hover:text-zinc-700 transition-colors">Datenschutz</Link>
             <Link href="/impressum" className="hover:text-zinc-700 transition-colors">Impressum</Link>
-            <a href="mailto:support@osss.pro" className="hover:text-zinc-700 transition-colors">Kontakt</a>
+            <a href="mailto:oss@osss.pro" className="hover:text-zinc-700 transition-colors">Kontakt</a>
           </div>
         </div>
       </footer>

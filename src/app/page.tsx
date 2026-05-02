@@ -56,7 +56,7 @@ const FEATURES = [
 const GERMAN_FEATURES = [
   { icon: FileText,   title: 'Kleinunternehmer-Rechnungen', desc: 'Automatische §19 UStG Rechnungen — du trägst einmal deine Daten ein, den Rest erledigt Osss.' },
   { icon: Shield,     title: 'DSGVO von Anfang an',         desc: 'Daten auf europäischen Servern (Supabase EU). Keine Weitergabe an Dritte. Datenschutzerklärung inklusive.' },
-  { icon: Headphones, title: 'Support auf Deutsch',         desc: 'Kein englisches Support-Ticket. Direkt, schnell, verständlich — support@osss.pro.' },
+  { icon: Headphones, title: 'Support auf Deutsch',         desc: 'Kein englisches Support-Ticket. Direkt, schnell, verständlich — oss@osss.pro.' },
 ]
 
 const STEPS = [
@@ -130,7 +130,7 @@ export default function Home() {
           <OsssLogo variant="light" />
           <div className="flex items-center gap-6">
             <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">Preise</Link>
-            <a href="mailto:support@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Kontakt</a>
+            <a href="mailto:oss@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Kontakt</a>
             {checked && (loggedIn
               ? <Link href="/dashboard" className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors">Dashboard</Link>
               : <>
@@ -584,7 +584,7 @@ export default function Home() {
             <div>
               <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">Rechtliches</p>
               <ul className="space-y-3">
-                {[{ label: 'Datenschutz', href: '/datenschutz' }, { label: 'Impressum', href: '/impressum' }, { label: 'Kontakt', href: 'mailto:support@osss.pro' }].map(l => (
+                {[{ label: 'Datenschutz', href: '/datenschutz' }, { label: 'Impressum', href: '/impressum' }, { label: 'Kontakt', href: 'mailto:oss@osss.pro' }].map(l => (
                   <li key={l.label}><Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">{l.label}</Link></li>
                 ))}
               </ul>
