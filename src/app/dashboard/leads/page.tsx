@@ -100,9 +100,7 @@ export default function LeadsPage() {
       const supabase = createClient()
       const { data: gym } = await supabase.from('gyms').select('id').single()
       if (!gym) { setLoading(false); return }
-      // leads table not in generated types yet
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any).from('leads')
+      const { data } = await supabase.from('leads')
         .select('*').eq('gym_id', gym.id).order('created_at', { ascending: false })
       if (data) {
         setLeads(data)
@@ -125,8 +123,7 @@ export default function LeadsPage() {
     for (const [k, v] of Object.entries(form)) {
       if (v) body[k] = v
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: lead } = await (supabase as any).from('leads').insert(body).select().single()
+    const { data: lead } = await supabase.from('leads').insert(body as never).select().single()
     if (lead) {
       setLeads(prev => [lead, ...prev])
       setEditNotes(prev => ({ ...prev, [lead.id]: lead.notes ?? '' }))
@@ -137,21 +134,19 @@ export default function LeadsPage() {
   }
 
   async function updateStatus(lead: Lead, status: LeadStatus) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = createClient() as any
+    const sb = createClient()
     const extra: Record<string, string> = {}
     if (status === 'contacted' && !lead.contacted_at) extra.contacted_at = new Date().toISOString()
     if (status === 'converted' && !lead.converted_at) extra.converted_at = new Date().toISOString()
-    const { data: updated } = await sb.from('leads').update({ status, ...extra }).eq('id', lead.id).select().single()
+    const { data: updated } = await sb.from('leads').update({ status, ...extra } as never).eq('id', lead.id).select().single()
     if (updated) setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
   }
 
   async function saveNotes(lead: Lead) {
     const notes = editNotes[lead.id] ?? ''
     if (notes === (lead.notes ?? '')) return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = createClient() as any
-    const { data: updated } = await sb.from('leads').update({ notes }).eq('id', lead.id).select().single()
+    const sb = createClient()
+    const { data: updated } = await sb.from('leads').update({ notes } as never).eq('id', lead.id).select().single()
     if (updated) setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
   }
 
@@ -173,12 +168,12 @@ export default function LeadsPage() {
     e.preventDefault()
     if (!editingLead) return
     setEditSaving(true)
-    const sb = createClient() as any // eslint-disable-line @typescript-eslint/no-explicit-any
+    const sb = createClient()
     const body: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(editForm)) body[k] = v || null
     body.first_name = editForm.first_name
     body.last_name  = editForm.last_name
-    const { data: updated } = await sb.from('leads').update(body).eq('id', editingLead.id).select().single()
+    const { data: updated } = await sb.from('leads').update(body as never).eq('id', editingLead.id).select().single()
     if (updated) {
       setLeads(prev => prev.map(l => l.id === editingLead.id ? updated : l))
       setEditNotes(prev => ({ ...prev, [updated.id]: updated.notes ?? '' }))
@@ -189,8 +184,7 @@ export default function LeadsPage() {
 
   async function deleteLead(id: string) {
     if (!confirm('Interessent wirklich löschen?')) return
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (createClient() as any).from('leads').delete().eq('id', id)
+    await createClient().from('leads').delete().eq('id', id)
     setLeads(prev => prev.filter(l => l.id !== id))
   }
 

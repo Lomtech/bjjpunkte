@@ -77,7 +77,7 @@ export default function MembersPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system, belt_system_enabled').single()
+      const { data: gym } = await supabase.from('gyms').select('id, monthly_fee_cents, belt_system, belt_system_enabled').single()
       if (!gym) { setLoading(false); return }
       setGymId(gym.id)
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
@@ -86,7 +86,7 @@ export default function MembersPage() {
       const { data } = await supabase
         .from('members')
         .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id')
-        .eq('gym_id', gym.id).order('last_name')
+        .eq('gym_id', gym.id).order('last_name').limit(1000)
       setMembers((data as unknown as Member[]) ?? [])
       setLoading(false)
     }

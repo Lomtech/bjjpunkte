@@ -2,6 +2,10 @@ export type Belt = 'white' | 'blue' | 'purple' | 'brown' | 'black'
 export type ClassType = 'gi' | 'no-gi' | 'open mat' | 'kids' | 'competition'
 export type SubscriptionStatus = 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'
 export type GymPlan = 'free' | 'starter' | 'grow' | 'pro'
+export type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
+export type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page'
+export type BookingStatus = 'confirmed' | 'waitlist' | 'cancelled'
+export type LeadBookingStatus = 'booked' | 'checked_in' | 'cancelled'
 
 type Rel = { foreignKeyName: string; columns: string[]; isOneToOne?: boolean; referencedRelation: string; referencedColumns: string[] }
 
@@ -20,10 +24,11 @@ export interface Database {
           logo_url: string | null
           monthly_fee_cents: number | null
           created_at: string
-          // Stripe Connect (gym receives member payments)
+          slug: string | null
+          // Stripe Connect
           stripe_account_id: string | null
           stripe_charges_enabled: boolean | null
-          // Osss platform subscription (gym pays Osss)
+          // Osss platform subscription
           osss_stripe_customer_id: string | null
           osss_stripe_subscription_id: string | null
           // Plan & limits
@@ -43,9 +48,30 @@ export interface Database {
           legal_email: string | null
           // Belt system config
           belt_system: string | null
+          belt_system_enabled: boolean | null
           class_types: string[] | null
           // Public page
-          slug: string | null
+          tagline: string | null
+          about: string | null
+          about_blocks: unknown[] | null
+          hero_image_url: string | null
+          hero_image_position: number | null
+          gallery_urls: string[] | null
+          video_url: string | null
+          video_urls: string[] | null
+          sport_type: string | null
+          founded_year: number | null
+          opening_hours: Record<string, unknown> | null
+          impressum_text: string | null
+          // Social
+          whatsapp_number: string | null
+          instagram_url: string | null
+          facebook_url: string | null
+          website_url: string | null
+          // Notifications
+          callmebot_api_key: string | null
+          // Signup
+          signup_token: string | null
         }
         Insert: {
           owner_id: string
@@ -55,6 +81,7 @@ export interface Database {
           email?: string | null
           logo_url?: string | null
           monthly_fee_cents?: number | null
+          slug?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           osss_stripe_customer_id?: string | null
@@ -73,8 +100,26 @@ export interface Database {
           legal_address?: string | null
           legal_email?: string | null
           belt_system?: string | null
+          belt_system_enabled?: boolean | null
           class_types?: string[] | null
-          slug?: string | null
+          tagline?: string | null
+          about?: string | null
+          about_blocks?: unknown[] | null
+          hero_image_url?: string | null
+          hero_image_position?: number | null
+          gallery_urls?: string[] | null
+          video_url?: string | null
+          video_urls?: string[] | null
+          sport_type?: string | null
+          founded_year?: number | null
+          opening_hours?: Record<string, unknown> | null
+          impressum_text?: string | null
+          whatsapp_number?: string | null
+          instagram_url?: string | null
+          facebook_url?: string | null
+          website_url?: string | null
+          callmebot_api_key?: string | null
+          signup_token?: string | null
         }
         Update: {
           name?: string
@@ -83,6 +128,7 @@ export interface Database {
           email?: string | null
           logo_url?: string | null
           monthly_fee_cents?: number | null
+          slug?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean | null
           osss_stripe_customer_id?: string | null
@@ -101,8 +147,26 @@ export interface Database {
           legal_address?: string | null
           legal_email?: string | null
           belt_system?: string | null
+          belt_system_enabled?: boolean | null
           class_types?: string[] | null
-          slug?: string | null
+          tagline?: string | null
+          about?: string | null
+          about_blocks?: unknown[] | null
+          hero_image_url?: string | null
+          hero_image_position?: number | null
+          gallery_urls?: string[] | null
+          video_url?: string | null
+          video_urls?: string[] | null
+          sport_type?: string | null
+          founded_year?: number | null
+          opening_hours?: Record<string, unknown> | null
+          impressum_text?: string | null
+          whatsapp_number?: string | null
+          instagram_url?: string | null
+          facebook_url?: string | null
+          website_url?: string | null
+          callmebot_api_key?: string | null
+          signup_token?: string | null
         }
         Relationships: Rel[]
       }
@@ -124,14 +188,13 @@ export interface Database {
           contract_end_date: string | null
           monthly_fee_override_cents: number | null
           created_at: string
-          // Stripe
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: SubscriptionStatus
-          // Plans
           plan_id: string | null
           requested_plan_id: string | null
           onboarding_status: string | null
+          cancellation_requested_at: string | null
         }
         Insert: {
           gym_id: string
@@ -154,6 +217,7 @@ export interface Database {
           plan_id?: string | null
           requested_plan_id?: string | null
           onboarding_status?: string | null
+          cancellation_requested_at?: string | null
         }
         Update: {
           first_name?: string
@@ -175,6 +239,7 @@ export interface Database {
           plan_id?: string | null
           requested_plan_id?: string | null
           onboarding_status?: string | null
+          cancellation_requested_at?: string | null
         }
         Relationships: Rel[]
       }
@@ -187,10 +252,8 @@ export interface Database {
           status: string
           paid_at: string | null
           created_at: string
-          // Stripe identifiers — session ID is the reliable match key
           stripe_checkout_session_id: string | null
           stripe_payment_intent_id: string | null
-          // Metadata
           checkout_url: string | null
           invoice_number: string | null
         }
@@ -234,15 +297,33 @@ export interface Database {
         Relationships: Rel[]
       }
       class_bookings: {
-        Row: { id: string; class_id: string; member_id: string; gym_id: string; status: 'confirmed' | 'waitlist' | 'cancelled'; created_at: string }
-        Insert: { class_id: string; member_id: string; gym_id: string; status?: 'confirmed' | 'waitlist' | 'cancelled' }
-        Update: { status?: 'confirmed' | 'waitlist' | 'cancelled' }
+        Row: { id: string; class_id: string; member_id: string; gym_id: string; status: BookingStatus; created_at: string }
+        Insert: { class_id: string; member_id: string; gym_id: string; status?: BookingStatus }
+        Update: { status?: BookingStatus }
         Relationships: Rel[]
       }
       membership_plans: {
-        Row: { id: string; gym_id: string; name: string; price_cents: number; billing_interval: string; stripe_price_id: string | null; created_at: string }
-        Insert: { gym_id: string; name: string; price_cents: number; billing_interval?: string; stripe_price_id?: string | null }
-        Update: { name?: string; price_cents?: number; billing_interval?: string; stripe_price_id?: string | null }
+        Row: { id: string; gym_id: string; name: string; description: string | null; price_cents: number; billing_interval: string; contract_months: number; sort_order: number; is_active: boolean; stripe_price_id: string | null; created_at: string }
+        Insert: { gym_id: string; name: string; description?: string | null; price_cents: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null }
+        Update: { name?: string; description?: string | null; price_cents?: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null }
+        Relationships: Rel[]
+      }
+      leads: {
+        Row: { id: string; gym_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; status: LeadStatus; source: LeadSource; notes: string | null; trial_date: string | null; referred_by: string | null; lead_token: string | null; created_at: string; contacted_at: string | null; converted_at: string | null }
+        Insert: { gym_id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; lead_token?: string | null }
+        Update: { first_name?: string; last_name?: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; contacted_at?: string | null; converted_at?: string | null }
+        Relationships: Rel[]
+      }
+      lead_bookings: {
+        Row: { id: string; lead_id: string; class_id: string; gym_id: string | null; status: LeadBookingStatus; booked_at: string; checked_in_at: string | null }
+        Insert: { lead_id: string; class_id: string; gym_id?: string | null; status?: LeadBookingStatus }
+        Update: { status?: LeadBookingStatus; checked_in_at?: string | null }
+        Relationships: Rel[]
+      }
+      posts: {
+        Row: { id: string; gym_id: string; title: string; cover_url: string | null; blocks: unknown[]; published_at: string | null; created_at: string; updated_at: string }
+        Insert: { gym_id: string; title: string; cover_url?: string | null; blocks?: unknown[]; published_at?: string | null }
+        Update: { title?: string; cover_url?: string | null; blocks?: unknown[]; published_at?: string | null }
         Relationships: Rel[]
       }
     }
@@ -251,6 +332,8 @@ export interface Database {
       save_stripe_account: { Args: { p_gym_id: string; p_stripe_account_id: string }; Returns: void }
       increment_invoice_counter: { Args: { p_gym_id: string }; Returns: number }
       get_classes_for_gym: { Args: { p_gym_id: string; p_from: string }; Returns: unknown[] }
+      book_class_by_token: { Args: { p_token: string; p_class_id: string }; Returns: unknown }
+      cancel_booking_by_token: { Args: { p_token: string; p_class_id: string }; Returns: unknown }
     }
   }
 }
