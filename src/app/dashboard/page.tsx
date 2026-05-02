@@ -183,10 +183,10 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatCard icon={<Users size={16} />}        label="Aktive Mitglieder"  value={activeMembers}                color="blue" />
-        <StatCard icon={<Calendar size={16} />}     label="Heute im Training"  value={todayAttendance.length}       color="green" />
-        <StatCard icon={<Euro size={16} />}         label={`${new Date().toLocaleDateString('de-DE', { month: 'long' })}`} valueCents={monthRevenue} color="amber" />
-        <StatCard icon={<FileWarning size={16} />}  label="Verträge laufen ab" value={expiringContracts}            color={expiringContracts > 0 ? 'red' : 'slate'} />
+        <StatCard icon={<Users size={16} />}       label="Aktive Mitglieder"  value={activeMembers} />
+        <StatCard icon={<Calendar size={16} />}    label="Heute im Training"  value={todayAttendance.length} />
+        <StatCard icon={<Euro size={16} />}        label={new Date().toLocaleDateString('de-DE', { month: 'long' })} valueCents={monthRevenue} primary />
+        <StatCard icon={<FileWarning size={16} />} label="Verträge laufen ab" value={expiringContracts} />
       </div>
 
       {/* Payment health bar */}
@@ -197,12 +197,12 @@ export default function DashboardPage() {
             <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-medium">Details →</Link>
           </div>
           <div className="flex rounded-full overflow-hidden h-2.5 bg-zinc-100 mb-2.5">
-            {paidCount    > 0 && <div className="bg-green-400 transition-all" style={{ width: `${(paidCount / activeMembers) * 100}%` }} />}
+            {paidCount    > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${(paidCount / activeMembers) * 100}%` }} />}
             {pendingCount > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${(pendingCount / activeMembers) * 100}%` }} />}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-400 flex-shrink-0" />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0" />
               Bezahlt <span className="font-semibold text-zinc-700">{paidCount}</span>
             </span>
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
@@ -235,8 +235,8 @@ export default function DashboardPage() {
                 return (
                   <Link key={p.id} href={`/dashboard/members/${p.member_id}`}
                     className="flex items-center gap-3 py-2.5 border-b border-zinc-100 last:border-0 hover:bg-zinc-50 -mx-2 px-2 rounded-lg transition-colors">
-                    <div className="w-7 h-7 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 size={13} className="text-green-500" />
+                    <div className="w-7 h-7 rounded-full bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 size={13} className="text-amber-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-zinc-900 truncate">
@@ -282,9 +282,9 @@ export default function DashboardPage() {
                       <p className="text-xs text-zinc-400 truncate capitalize">{a.class_type}</p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {payStatus === 'paid'    && <CheckCircle2 size={12} className="text-green-400" />}
+                      {payStatus === 'paid'    && <CheckCircle2 size={12} className="text-amber-400" />}
                       {payStatus === 'pending' && <Clock size={12} className="text-amber-400" />}
-                      {!payStatus             && <AlertCircle size={12} className="text-red-300" />}
+                      {!payStatus             && <AlertCircle size={12} className="text-zinc-300" />}
                       <span className="text-xs text-zinc-400">
                         {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -393,7 +393,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                  m.days_ago >= 30 ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'
+                  m.days_ago >= 30 ? 'bg-zinc-100 text-zinc-500' : 'bg-amber-50 text-amber-700'
                 }`}>
                   {m.days_ago >= 999 ? 'Neu' : `${m.days_ago}d`}
                 </span>
@@ -463,23 +463,18 @@ export default function DashboardPage() {
 }
 
 /* ─── StatCard ─────────────────────────────────────────────────────── */
-function StatCard({ icon, label, value, valueCents, color }: {
+function StatCard({ icon, label, value, valueCents, primary = false }: {
   icon: React.ReactNode
   label: string
   value?: number
   valueCents?: number
-  color: 'blue' | 'green' | 'amber' | 'slate' | 'red'
+  primary?: boolean
 }) {
-  const colors = {
-    blue:  'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    amber: 'bg-amber-50 text-amber-600',
-    slate: 'bg-zinc-100 text-zinc-500',
-    red:   'bg-red-50 text-red-500',
-  }
   return (
     <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
-      <div className={`inline-flex p-2 rounded-lg mb-2.5 ${colors[color]}`}>{icon}</div>
+      <div className={`inline-flex p-2 rounded-lg mb-2.5 ${primary ? 'bg-amber-50 text-amber-600' : 'bg-zinc-100 text-zinc-500'}`}>
+        {icon}
+      </div>
       <div className="text-2xl font-bold text-zinc-900 truncate">
         {valueCents !== undefined
           ? (valueCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })

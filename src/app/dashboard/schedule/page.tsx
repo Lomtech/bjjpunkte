@@ -23,15 +23,15 @@ interface GymMember {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  gi:          'bg-blue-50 text-blue-700 border-blue-200',
-  'no-gi':     'bg-zinc-100 text-zinc-600 border-zinc-200',
+  gi:          'bg-zinc-100 text-zinc-700 border-zinc-200',
+  'no-gi':     'bg-zinc-200 text-zinc-700 border-zinc-300',
   'open mat':  'bg-amber-50 text-amber-700 border-amber-200',
-  kids:        'bg-green-50 text-green-700 border-green-200',
-  competition: 'bg-red-50 text-red-700 border-red-200',
+  kids:        'bg-zinc-100 text-zinc-600 border-zinc-200',
+  competition: 'bg-zinc-900 text-white border-zinc-900',
 }
 const TYPE_DOT: Record<string, string> = {
-  gi: 'bg-blue-500', 'no-gi': 'bg-slate-400', 'open mat': 'bg-amber-500',
-  kids: 'bg-green-500', competition: 'bg-red-500',
+  gi: 'bg-zinc-400', 'no-gi': 'bg-zinc-500', 'open mat': 'bg-amber-500',
+  kids: 'bg-zinc-300', competition: 'bg-zinc-900',
 }
 const TYPE_LABELS: Record<string, string> = {
   gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat', kids: 'Kids', competition: 'Competition',
@@ -428,7 +428,7 @@ function ClassCard({
                     <div key={b.id} className="flex items-center justify-between">
                       <p className="text-xs text-zinc-700 truncate">{b.member_name}</p>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
-                        b.status === 'confirmed' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                        b.status === 'confirmed' ? 'bg-zinc-100 text-zinc-600' : 'bg-amber-50 text-amber-700'
                       }`}>
                         {b.status === 'confirmed' ? 'Bestätigt' : 'Warteliste'}
                       </span>
@@ -470,7 +470,7 @@ function ClassCard({
                             disabled={isIn || checkingIn === m.id}
                             className={`ml-2 flex-shrink-0 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
                               isIn
-                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                ? 'bg-zinc-100 text-zinc-600 border border-zinc-200'
                                 : 'bg-amber-600 hover:bg-amber-500 text-white'
                             }`}>
                             {checkingIn === m.id ? '…' : isIn ? 'Eingecheckt' : 'Check-in'}

@@ -270,7 +270,7 @@ export default function MemberDetailPage() {
         <div className="flex items-center gap-2 flex-wrap">
           {beltEnabled && <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />}
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
-            member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-zinc-100 text-zinc-400 border-zinc-200'
+            member.is_active ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-100 text-zinc-400 border-zinc-200'
           }`}>
             {member.is_active ? 'Aktiv' : 'Inaktiv'}
           </span>
@@ -283,7 +283,7 @@ export default function MemberDetailPage() {
               p.status === 'pending' && new Date(p.created_at) >= monthStart
             )
             if (paidThisMonth) return (
-              <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-green-50 text-green-700 border-green-200">
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-zinc-100 text-zinc-600 border-zinc-200">
                 Beitrag bezahlt
               </span>
             )
@@ -296,8 +296,8 @@ export default function MemberDetailPage() {
           })()}
           {(member as any).stripe_subscription_id && (
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
-              member.subscription_status === 'past_due' ? 'bg-red-50 text-red-700 border-red-200' :
-              'bg-blue-50 text-blue-700 border-blue-200'
+              member.subscription_status === 'past_due' ? 'bg-zinc-100 text-zinc-500 border-zinc-200' :
+              'bg-zinc-100 text-zinc-600 border-zinc-200'
             }`}>
               {member.subscription_status === 'past_due' ? 'Abo überfällig' : 'Abo aktiv'}
             </span>
@@ -331,20 +331,20 @@ export default function MemberDetailPage() {
 
       {/* Pending member requests */}
       {member.cancellation_requested_at && (
-        <div className="mb-4 bg-red-50 rounded-xl border border-red-200 p-4">
+        <div className="mb-4 bg-zinc-50 rounded-xl border border-zinc-200 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-red-800">Kündigung beantragt</p>
-              <p className="text-xs text-red-600 mt-0.5">
+              <p className="text-sm font-semibold text-zinc-800">Kündigung beantragt</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
                 {new Date(member.cancellation_requested_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
               </p>
               {member.cancellation_note && (
-                <p className="text-sm text-zinc-600 mt-2 bg-white rounded-lg px-3 py-2 border border-red-100">"{member.cancellation_note}"</p>
+                <p className="text-sm text-zinc-600 mt-2 bg-white rounded-lg px-3 py-2 border border-zinc-200">"{member.cancellation_note}"</p>
               )}
             </div>
             <button
               onClick={handleClearCancellation}
-              className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white border border-red-200 hover:bg-red-50 text-red-700 text-xs font-semibold transition-colors">
+              className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold transition-colors">
               Erledigt
             </button>
           </div>

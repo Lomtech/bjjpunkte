@@ -475,21 +475,21 @@ export default function SettingsPage() {
 
       {/* Banners */}
       {upgradedBanner && (
-        <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
-          <CheckCircle2 size={15} className="text-green-600 flex-shrink-0" />
-          <p className="text-green-800 text-sm font-medium">✓ Plan erfolgreich aktualisiert!</p>
+        <div className="mb-4 p-3 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center gap-2">
+          <CheckCircle2 size={15} className="text-zinc-500 flex-shrink-0" />
+          <p className="text-zinc-800 text-sm font-medium">✓ Plan erfolgreich aktualisiert!</p>
         </div>
       )}
       {stripeConnected && (
-        <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
-          <CheckCircle2 size={15} className="text-green-600 flex-shrink-0" />
-          <p className="text-green-800 text-sm font-medium">Stripe erfolgreich verbunden!</p>
+        <div className="mb-4 p-3 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center gap-2">
+          <CheckCircle2 size={15} className="text-zinc-500 flex-shrink-0" />
+          <p className="text-zinc-800 text-sm font-medium">Stripe erfolgreich verbunden!</p>
         </div>
       )}
       {stripeError && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
-          <AlertCircle size={15} className="text-red-500 flex-shrink-0" />
-          <p className="text-red-700 text-sm">Verbindung fehlgeschlagen: {stripeError}</p>
+        <div className="mb-4 p-3 rounded-lg bg-zinc-50 border border-zinc-200 flex items-center gap-2">
+          <AlertCircle size={15} className="text-zinc-500 flex-shrink-0" />
+          <p className="text-zinc-700 text-sm">Verbindung fehlgeschlagen: {stripeError}</p>
         </div>
       )}
 
@@ -518,7 +518,7 @@ export default function SettingsPage() {
           <div className={`rounded-2xl p-5 border ${
             gymPlan === 'pro' ? 'bg-zinc-900 border-slate-700' :
             gymPlan === 'grow' ? 'bg-amber-50 border-amber-200' :
-            gymPlan === 'starter' ? 'bg-blue-50 border-blue-200' : 'bg-white border-zinc-200'
+            gymPlan === 'starter' ? 'bg-zinc-50 border-zinc-200' : 'bg-white border-zinc-200'
           }`}>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -526,7 +526,7 @@ export default function SettingsPage() {
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                     gymPlan === 'pro' ? 'bg-amber-500 text-white' :
                     gymPlan === 'grow' ? 'bg-amber-500 text-white' :
-                    gymPlan === 'starter' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-zinc-600'
+                    gymPlan === 'starter' ? 'bg-zinc-700 text-white' : 'bg-zinc-200 text-zinc-600'
                   }`}>{gymPlan.toUpperCase()}</span>
                   <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-zinc-900'}`}>Aktueller Plan</span>
                 </div>
@@ -686,8 +686,8 @@ export default function SettingsPage() {
                 },
               ].map(item => (
                 <div key={item.title} className="px-5 py-3 flex items-start gap-3">
-                  <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${item.ok ? 'bg-green-100' : 'bg-amber-100'}`}>
-                    {item.ok ? <Check size={10} className="text-green-600" /> : <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />}
+                  <div className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${item.ok ? 'bg-zinc-200' : 'bg-amber-100'}`}>
+                    {item.ok ? <Check size={10} className="text-zinc-600" /> : <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-zinc-800">{item.title}</p>
@@ -708,8 +708,8 @@ export default function SettingsPage() {
           <div className={sectionCls}>
             <SectionHeader icon={<CreditCard size={12} />} title="Stripe" />
             <div className="p-5 space-y-4">
-              <div className={`rounded-lg p-3 ${stripeConfigured ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
-                <p className={`text-sm font-medium ${stripeConfigured ? 'text-green-800' : 'text-amber-800'}`}>
+              <div className={`rounded-lg p-3 ${stripeConfigured ? 'bg-zinc-100 border border-zinc-200' : 'bg-amber-50 border border-amber-200'}`}>
+                <p className={`text-sm font-medium ${stripeConfigured ? 'text-zinc-800' : 'text-amber-800'}`}>
                   {stripeConfigured ? '✓ Stripe API-Key aktiv' : 'Stripe API-Key fehlt'}
                 </p>
               </div>
@@ -718,7 +718,7 @@ export default function SettingsPage() {
               <div className="rounded-lg border border-zinc-200 overflow-hidden">
                 <div className="px-4 py-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
                   <p className="text-sm font-semibold text-zinc-800">Stripe Connect</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stripeAccountId ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stripeAccountId ? 'bg-zinc-200 text-zinc-700 border border-zinc-300' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
                     {stripeAccountId ? 'Verbunden' : 'Nicht verbunden'}
                   </span>
                 </div>
@@ -726,7 +726,7 @@ export default function SettingsPage() {
                   {stripeAccountId ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-zinc-600 text-sm">
-                        <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
+                        <CheckCircle2 size={14} className="text-zinc-400 flex-shrink-0" />
                         Beiträge gehen direkt auf dein Stripe-Konto.
                       </div>
                       <p className="font-mono text-xs bg-zinc-100 px-2 py-1 rounded text-zinc-500 truncate">{stripeAccountId}</p>
@@ -1121,7 +1121,7 @@ export default function SettingsPage() {
                   </p>
                   <CopyRow label="" value={staffInviteUrl} copied={copiedStaff} onCopy={() => copyWithFeedback(staffInviteUrl, setCopiedStaff)} />
                   {staffEmailSent
-                    ? <p className="text-xs text-green-700">✓ Einladungs-E-Mail wurde gesendet.</p>
+                    ? <p className="text-xs text-zinc-500">✓ Einladungs-E-Mail wurde gesendet.</p>
                     : <p className="text-xs text-amber-700">Kein Resend konfiguriert — Link manuell senden.</p>
                   }
                 </div>
@@ -1137,7 +1137,7 @@ export default function SettingsPage() {
                           <p className="text-sm font-medium text-zinc-800 truncate">{s.name}</p>
                           <p className="text-xs text-zinc-400 truncate">{s.email}</p>
                         </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.accepted_at ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.accepted_at ? 'bg-zinc-200 text-zinc-700 border border-zinc-300' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
                           {s.accepted_at ? 'Aktiv' : 'Eingeladen'}
                         </span>
                         <button type="button" onClick={() => handleStaffDelete(s.id)} className="text-zinc-300 hover:text-red-500 transition-colors flex-shrink-0">

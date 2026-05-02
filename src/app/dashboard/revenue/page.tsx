@@ -182,37 +182,25 @@ export default function RevenuePage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
-          <div className="inline-flex p-2 rounded-lg mb-2 bg-amber-50 text-amber-600"><Euro size={15} /></div>
-          <div className="text-xl font-bold text-zinc-900 truncate">{formatCents(allTimeCents)}</div>
-          <div className="text-zinc-500 text-xs mt-0.5 truncate">Gesamt</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
-          <div className="inline-flex p-2 rounded-lg mb-2 bg-green-50 text-green-600"><Calendar size={15} /></div>
-          <div className="text-xl font-bold text-zinc-900 truncate">{formatCents(monthCents)}</div>
-          <div className="text-zinc-500 text-xs mt-0.5 flex items-center gap-1 flex-wrap">
-            <span className="truncate">{new Date().toLocaleDateString('de-DE', { month: 'long' })}</span>
-            {monthDelta !== 0 && (
-              <span className={`font-medium flex-shrink-0 ${monthDelta > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {monthDelta > 0 ? '+' : ''}{formatCents(monthDelta)}
-              </span>
-            )}
+        {[
+          { icon: <Euro size={15} />, value: formatCents(allTimeCents), label: 'Gesamt', primary: true },
+          { icon: <Calendar size={15} />, value: formatCents(monthCents), label: new Date().toLocaleDateString('de-DE', { month: 'long' }), sub: monthDelta !== 0 ? `${monthDelta > 0 ? '+' : ''}${formatCents(monthDelta)}` : null, primary: false },
+          { icon: <Users size={15} />, value: formatCents(expectedMonthlyCents), label: 'Soll / Monat', primary: false },
+          { icon: <AlertCircle size={15} />, value: String(pendingCount + neverCount), label: 'Ausstehend', primary: false },
+        ].map((card, i) => (
+          <div key={i} className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
+            <div className={`inline-flex p-2 rounded-lg mb-2 ${card.primary ? 'bg-amber-50 text-amber-600' : 'bg-zinc-100 text-zinc-500'}`}>
+              {card.icon}
+            </div>
+            <div className="text-xl font-bold text-zinc-900 truncate">{card.value}</div>
+            <div className="text-zinc-500 text-xs mt-0.5 truncate flex items-center gap-1.5">
+              <span className="truncate">{card.label}</span>
+              {'sub' in card && card.sub && (
+                <span className={`font-medium flex-shrink-0 ${monthDelta > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>{card.sub}</span>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
-          <div className="inline-flex p-2 rounded-lg mb-2 bg-blue-50 text-blue-600"><Users size={15} /></div>
-          <div className="text-xl font-bold text-zinc-900">{formatCents(expectedMonthlyCents)}</div>
-          <div className="text-zinc-500 text-xs mt-0.5 truncate">Soll / Monat</div>
-        </div>
-        <div className={`bg-white rounded-xl p-4 border shadow-sm min-w-0 ${pendingCount + neverCount > 0 ? 'border-red-100' : 'border-zinc-200'}`}>
-          <div className={`inline-flex p-2 rounded-lg mb-2 ${pendingCount + neverCount > 0 ? 'bg-red-50 text-red-500' : 'bg-zinc-100 text-zinc-400'}`}>
-            <AlertCircle size={15} />
-          </div>
-          <div className={`text-xl font-bold ${pendingCount + neverCount > 0 ? 'text-red-600' : 'text-zinc-900'}`}>
-            {pendingCount + neverCount}
-          </div>
-          <div className="text-zinc-500 text-xs mt-0.5 truncate">Ausstehend</div>
-        </div>
+        ))}
       </div>
 
       {/* Tabs */}
@@ -235,20 +223,23 @@ export default function RevenuePage() {
           {/* Payment health */}
           <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
             <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Zahlungsstatus · Aktive Mitglieder</h2>
-            <div className="flex rounded-full overflow-hidden h-3 bg-zinc-100 mb-4">
-              {paidCount    > 0 && <div className="bg-green-400 transition-all" style={{ width: `${members.length ? (paidCount / members.length) * 100 : 0}%` }} />}
-              {pendingCount > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${members.length ? (pendingCount / members.length) * 100 : 0}%` }} />}
-              {neverCount   > 0 && <div className="bg-red-300 transition-all" style={{ width: `${members.length ? (neverCount / members.length) * 100 : 0}%` }} />}
+            <div className="flex rounded-full overflow-hidden h-2 bg-zinc-100 mb-4">
+              {paidCount    > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${members.length ? (paidCount / members.length) * 100 : 0}%` }} />}
+              {pendingCount > 0 && <div className="bg-zinc-300 transition-all" style={{ width: `${members.length ? (pendingCount / members.length) * 100 : 0}%` }} />}
+              {neverCount   > 0 && <div className="bg-zinc-200 transition-all" style={{ width: `${members.length ? (neverCount / members.length) * 100 : 0}%` }} />}
             </div>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Bezahlt', count: paidCount,    color: 'text-green-600 bg-green-50', dot: 'bg-green-400' },
-                { label: 'Ausstehend', count: pendingCount, color: 'text-amber-700 bg-amber-50', dot: 'bg-amber-400' },
-                { label: 'Nie bezahlt', count: neverCount, color: 'text-red-600 bg-red-50',  dot: 'bg-red-300' },
+                { label: 'Bezahlt',     count: paidCount,    dot: 'bg-amber-400' },
+                { label: 'Ausstehend',  count: pendingCount, dot: 'bg-zinc-300' },
+                { label: 'Nie bezahlt', count: neverCount,   dot: 'bg-zinc-200' },
               ].map(s => (
-                <div key={s.label} className={`rounded-xl p-3 ${s.color} text-center`}>
-                  <div className="text-2xl font-bold">{s.count}</div>
-                  <div className="text-xs font-medium mt-0.5 opacity-80 truncate">{s.label}</div>
+                <div key={s.label} className="rounded-xl p-3 bg-zinc-50 border border-zinc-100 text-center">
+                  <div className="text-2xl font-bold text-zinc-900">{s.count}</div>
+                  <div className="flex items-center justify-center gap-1.5 mt-1">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s.dot}`} />
+                    <span className="text-xs text-zinc-500 truncate">{s.label}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -322,9 +313,9 @@ export default function RevenuePage() {
                 className="flex items-center gap-3 px-4 py-3.5 hover:bg-zinc-50 transition-colors">
                 {/* Status icon */}
                 <div className="flex-shrink-0">
-                  {m.status === 'paid'    && <CheckCircle2 size={16} className="text-green-500" />}
-                  {m.status === 'pending' && <Clock        size={16} className="text-amber-500" />}
-                  {m.status === 'never'   && <AlertCircle  size={16} className="text-red-400" />}
+                  {m.status === 'paid'    && <CheckCircle2 size={16} className="text-amber-500" />}
+                  {m.status === 'pending' && <Clock        size={16} className="text-zinc-400" />}
+                  {m.status === 'never'   && <AlertCircle  size={16} className="text-zinc-300" />}
                 </div>
 
                 {/* Name + date */}
@@ -345,9 +336,8 @@ export default function RevenuePage() {
                 <div className="flex-shrink-0 text-right">
                   <p className="text-sm font-semibold text-zinc-700">{formatCents(m.monthly_fee_cents)}</p>
                   <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${
-                    m.status === 'paid'    ? 'bg-green-50 text-green-700' :
-                    m.status === 'pending' ? 'bg-amber-50 text-amber-700' :
-                                            'bg-red-50 text-red-600'
+                    m.status === 'paid'    ? 'bg-amber-50 text-amber-700' :
+                                            'bg-zinc-100 text-zinc-500'
                   }`}>
                     {m.status === 'paid' ? 'Aktuell' : m.status === 'pending' ? 'Ausstehend' : 'Nie bezahlt'}
                   </span>
@@ -373,8 +363,8 @@ export default function RevenuePage() {
             {allPayments.map(p => (
               <Link key={p.id} href={`/dashboard/members/${p.member_id}`}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
-                  <ArrowUpRight size={13} className="text-green-600" />
+                <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <ArrowUpRight size={13} className="text-amber-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-zinc-900 truncate">{p.member_name}</p>

@@ -214,13 +214,13 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
 
           {/* Reactivate cancelled class */}
           {cls.is_cancelled && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between">
-              <p className="text-sm text-red-700 font-medium">Diese Klasse ist abgesagt.</p>
+            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-center justify-between">
+              <p className="text-sm text-zinc-600 font-medium">Diese Klasse ist abgesagt.</p>
               <button
                 type="button"
                 onClick={handleReactivate}
                 disabled={reactivating}
-                className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-400 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
               >
                 {reactivating ? '…' : '✓ Reaktivieren'}
               </button>

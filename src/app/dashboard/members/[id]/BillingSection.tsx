@@ -7,10 +7,10 @@ import { createClient } from '@/lib/supabase/client'
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
 
 const STATUS_COLORS: Record<string, string> = {
-  paid:     'bg-green-50 text-green-700 border-green-200',
+  paid:     'bg-zinc-100 text-zinc-700 border-zinc-200',
   pending:  'bg-amber-50 text-amber-700 border-amber-200',
-  failed:   'bg-red-50 text-red-700 border-red-200',
-  refunded: 'bg-zinc-100 text-zinc-500 border-zinc-200',
+  failed:   'bg-zinc-100 text-zinc-500 border-zinc-200',
+  refunded: 'bg-zinc-100 text-zinc-400 border-zinc-200',
 }
 const STATUS_LABELS: Record<string, string> = {
   paid: 'Bezahlt', pending: 'Ausstehend', failed: 'Fehlgeschlagen', refunded: 'Erstattet',
@@ -143,11 +143,11 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
       </div>
 
       {checkoutUrl ? (
-        <div className="p-4 bg-green-50 rounded-xl border border-green-200 mb-4">
-          <p className="text-green-800 text-sm font-medium mb-0.5">
+        <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 mb-4">
+          <p className="text-zinc-800 text-sm font-medium mb-0.5">
             {linkType === 'subscription' ? '🔄 Abo-Link erstellt!' : 'Zahlungslink erstellt!'}
           </p>
-          <p className="text-green-700 text-xs mb-3">
+          <p className="text-zinc-600 text-xs mb-3">
             {linkType === 'subscription'
               ? 'Mitglied öffnet Link, gibt Karte einmalig ein → danach automatische Abbuchung jeden Monat.'
               : 'Einmalige Zahlung — Mitglied öffnet Link und zahlt.'}
@@ -195,15 +195,15 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
       ) : (
         <div className="space-y-2 mb-4">
           <p className="text-xs text-zinc-400 mb-3 flex items-center gap-1">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400"></span>
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
             Kartenzahlung wird akzeptiert
           </p>
           {/* Subscription status */}
           {stripeSubscriptionId ? (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-green-50 border border-green-200">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-200">
               <div className="flex items-center gap-2">
-                <RefreshCw size={14} className="text-green-600" />
-                <span className="text-green-800 text-sm font-semibold">Automatische Abbuchung aktiv</span>
+                <RefreshCw size={14} className="text-zinc-500" />
+                <span className="text-zinc-800 text-sm font-semibold">Automatische Abbuchung aktiv</span>
               </div>
               <button onClick={cancelSubscription} disabled={subLoading}
                 className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition-colors disabled:opacity-50">

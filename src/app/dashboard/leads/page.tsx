@@ -16,12 +16,12 @@ type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'conv
 type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other'
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
-  new:             'bg-blue-50 text-blue-700 border-blue-200',
-  contacted:       'bg-amber-50 text-amber-700 border-amber-200',
-  trial_scheduled: 'bg-purple-50 text-purple-700 border-purple-200',
-  trial_done:      'bg-indigo-50 text-indigo-700 border-indigo-200',
-  converted:       'bg-green-50 text-green-700 border-green-200',
-  lost:            'bg-zinc-100 text-zinc-500 border-zinc-200',
+  new:             'bg-zinc-100 text-zinc-600 border-zinc-200',
+  contacted:       'bg-zinc-200 text-zinc-700 border-zinc-300',
+  trial_scheduled: 'bg-amber-50 text-amber-700 border-amber-200',
+  trial_done:      'bg-amber-100 text-amber-800 border-amber-200',
+  converted:       'bg-zinc-900 text-white border-zinc-900',
+  lost:            'bg-zinc-100 text-zinc-400 border-zinc-200',
 }
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
@@ -408,14 +408,14 @@ export default function LeadsPage() {
                       href={`https://wa.me/${toWaPhone(lead.phone)}?text=${encodeURIComponent(`Hallo ${lead.first_name}! 👋`)}`}
                       target="_blank" rel="noopener noreferrer"
                       title="WhatsApp"
-                      className="p-1.5 rounded-lg text-[#25D366] hover:bg-green-50 transition-colors">
+                      className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-50 transition-colors">
                       <MessageCircle size={15} />
                     </a>
                   )}
                   {lead.status === 'converted' && (
                     <Link
                       href={`/dashboard/members/new?firstName=${encodeURIComponent(lead.first_name)}&lastName=${encodeURIComponent(lead.last_name)}&email=${encodeURIComponent(lead.email ?? '')}`}
-                      className="px-2 py-1 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 text-[11px] font-semibold border border-green-200 transition-colors whitespace-nowrap">
+                      className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-700 text-white text-[11px] font-semibold transition-colors whitespace-nowrap">
                       Als Mitglied anlegen
                     </Link>
                   )}

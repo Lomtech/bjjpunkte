@@ -24,9 +24,9 @@ import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 
 const SUB_COLORS: Record<string, string> = {
-  active:    'bg-green-50 text-green-700 border border-green-200',
-  trial:     'bg-blue-50 text-blue-700 border border-blue-200',
-  past_due:  'bg-red-50 text-red-700 border border-red-200',
+  active:    'bg-amber-50 text-amber-700 border border-amber-200',
+  trial:     'bg-zinc-100 text-zinc-600 border border-zinc-200',
+  past_due:  'bg-zinc-100 text-zinc-500 border border-zinc-200',
   cancelled: 'bg-zinc-100 text-zinc-500',
   none:      '',
 }
@@ -213,27 +213,27 @@ export default function MembersPage() {
       />
 
       {bulkResult && (
-        <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm font-medium">{bulkResult}</div>
+        <div className="mb-4 p-3 rounded-lg bg-zinc-100 border border-zinc-200 text-zinc-700 text-sm font-medium">{bulkResult}</div>
       )}
 
       {/* Pending member requests (cancellations / plan changes) */}
       {pendingRequests.length > 0 && (
-        <div className="mb-4 bg-red-50 rounded-xl border border-red-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-red-200 flex items-center gap-2">
-            <span className="text-xs font-semibold text-red-800 uppercase tracking-wider">Offene Mitglieder-Anfragen</span>
-            <span className="ml-auto text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full border border-red-200">{pendingRequests.length}</span>
+        <div className="mb-4 bg-zinc-50 rounded-xl border border-zinc-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-zinc-200 flex items-center gap-2">
+            <span className="text-xs font-semibold text-zinc-700 uppercase tracking-wider">Offene Mitglieder-Anfragen</span>
+            <span className="ml-auto text-xs font-semibold text-zinc-600 bg-zinc-200 px-2 py-0.5 rounded-full border border-zinc-300">{pendingRequests.length}</span>
           </div>
-          <div className="divide-y divide-red-100">
+          <div className="divide-y divide-zinc-100">
             {pendingRequests.map(m => (
               <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-red-700">{m.first_name[0]}{m.last_name[0]}</span>
+                <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-zinc-700">{m.first_name[0]}{m.last_name[0]}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
                   <div className="flex gap-2 mt-0.5">
                     {m.cancellation_requested_at && (
-                      <span className="text-xs text-red-600 font-medium">Kündigung beantragt</span>
+                      <span className="text-xs text-zinc-500 font-medium">Kündigung beantragt</span>
                     )}
                     {m.requested_plan_id && (
                       <span className="text-xs text-amber-600 font-medium">Plan-Änderung beantragt</span>
@@ -241,7 +241,7 @@ export default function MembersPage() {
                   </div>
                 </div>
                 <Link href={`/dashboard/members/${m.id}`}
-                  className="text-xs text-red-700 hover:text-red-600 font-medium flex-shrink-0">Details →</Link>
+                  className="text-xs text-zinc-600 hover:text-zinc-900 font-medium flex-shrink-0">Details →</Link>
               </div>
             ))}
           </div>
@@ -347,7 +347,7 @@ export default function MembersPage() {
                       </td>
                       <td className="px-4 py-3.5">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          m.is_active ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-zinc-100 text-zinc-400'
+                          m.is_active ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-zinc-100 text-zinc-400'
                         }`}>
                           {m.is_active ? 'Aktiv' : 'Inaktiv'}
                         </span>
@@ -522,9 +522,9 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-zinc-100 bg-green-50">
-          <p className="font-bold text-green-800 text-sm">✓ {member.first_name} {member.last_name} aktiviert!</p>
-          <p className="text-green-600 text-xs mt-0.5">Jetzt benachrichtigen:</p>
+        <div className="px-5 py-4 border-b border-zinc-100 bg-zinc-50">
+          <p className="font-bold text-zinc-900 text-sm">✓ {member.first_name} {member.last_name} aktiviert!</p>
+          <p className="text-zinc-500 text-xs mt-0.5">Jetzt benachrichtigen:</p>
         </div>
         <div className="p-5 space-y-3">
           {member.phone && (
@@ -645,7 +645,7 @@ function WhatsAppBulkModal({ members, onClose }: {
                   const waUrl = `https://wa.me/${toWaPhone(m.phone!)}?text=${encodeURIComponent(message)}`
                   return (
                     <div key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                      done ? 'bg-green-50 border-green-200' : 'bg-white border-zinc-200'
+                      done ? 'bg-zinc-50 border-zinc-200' : 'bg-white border-zinc-200'
                     }`}>
                       <div className="w-8 h-8 rounded-full bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-bold text-[#128C7E]">{m.first_name[0]}{m.last_name[0]}</span>
@@ -658,7 +658,7 @@ function WhatsAppBulkModal({ members, onClose }: {
                         onClick={() => markSent(m.id)}
                         className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                           done
-                            ? 'bg-green-100 text-green-700 border border-green-200'
+                            ? 'bg-zinc-200 text-zinc-700 border border-zinc-300'
                             : 'bg-[#25D366] hover:bg-[#1ebe57] text-white'
                         }`}>
                         <MessageCircle size={12} />
