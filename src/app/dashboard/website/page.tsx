@@ -126,23 +126,27 @@ function SaveBtn({ onClick, saving, saved }: { onClick: () => void; saving: bool
 // ── Image uploader ────────────────────────────────────────────────────────────
 
 function ImageUpload({
-  label, url, onUploaded, hint,
-}: { label: string; url: string | null; onUploaded: (url: string) => void; hint?: string }) {
-  const ref = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
-  const [preview, setPreview]     = useState(url ?? '')
+  label, url, onUploaded, hint, positionY, onPositionChange,
+}: {
+  label: string; url: string | null; onUploaded: (url: string) => void
+  hint?: string; positionY?: number; onPositionChange?: (y: number) => void
+}) {
+  const ref        = useRef<HTMLInputElement>(null)
+  const imgRef     = useRef<HTMLDivElement>(null)
+  const [uploading, setUploading]   = useState(false)
+  const [preview, setPreview]       = useState(url ?? '')
   const [uploadError, setUploadError] = useState('')
+  const dragging   = useRef(false)
+  const dragStartY = useRef(0)
+  const dragStartPos = useRef(positionY ?? 50)
 
-  // Sync when parent loads data asynchronously
   useEffect(() => { setPreview(url ?? '') }, [url])
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadError('')
-    // Show local blob preview immediately
-    const localUrl = URL.createObjectURL(file)
-    setPreview(localUrl)
+    setPreview(URL.createObjectURL(file))
     setUploading(true)
     const fd = new FormData()
     fd.append('file', file)
@@ -154,24 +158,84 @@ function ImageUpload({
     } else {
       const data = await res.json().catch(() => ({}))
       setUploadError(data.error ?? 'Upload fehlgeschlagen — bitte erneut versuchen.')
-      setPreview(url ?? '') // revert on error
+      setPreview(url ?? '')
     }
     setUploading(false)
     if (ref.current) ref.current.value = ''
   }
 
+  function startDrag(clientY: number) {
+    if (!onPositionChange) return
+    dragging.current = true
+    dragStartY.current = clientY
+    dragStartPos.current = positionY ?? 50
+  }
+  function moveDrag(clientY: number) {
+    if (!dragging.current || !onPositionChange || !imgRef.current) return
+    const h = imgRef.current.getBoundingClientRect().height
+    const delta = clientY - dragStartY.current
+    // drag down → show top of image (lower %) ; drag up → show bottom (higher %)
+    const newPos = Math.round(Math.max(0, Math.min(100, dragStartPos.current - (delta / h) * 100)))
+    onPositionChange(newPos)
+  }
+  function stopDrag() { dragging.current = false }
+
+  const canAdjustPos = !!onPositionChange && !!preview
+
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-zinc-600">{label}</p>
       {preview && (
-        <div className="relative w-full h-40 rounded-xl overflow-hidden border border-zinc-200 bg-zinc-100">
+        <div
+          ref={imgRef}
+          className={`relative w-full h-48 rounded-xl overflow-hidden border border-zinc-200 bg-zinc-100 ${canAdjustPos ? 'cursor-ns-resize select-none' : ''}`}
+          onMouseDown={canAdjustPos ? e => startDrag(e.clientY) : undefined}
+          onMouseMove={canAdjustPos ? e => moveDrag(e.clientY) : undefined}
+          onMouseUp={stopDrag}
+          onMouseLeave={stopDrag}
+          onTouchStart={canAdjustPos ? e => startDrag(e.touches[0].clientY) : undefined}
+          onTouchMove={canAdjustPos ? e => { e.preventDefault(); moveDrag(e.touches[0].clientY) } : undefined}
+          onTouchEnd={stopDrag}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={preview} alt={label} className="w-full h-full object-cover" />
+          <img
+            src={preview} alt={label}
+            className="w-full h-full object-cover pointer-events-none"
+            style={positionY !== undefined ? { objectPosition: `center ${positionY}%` } : undefined}
+            draggable={false}
+          />
+          {canAdjustPos && (
+            <div className="absolute inset-y-0 right-3 flex items-center">
+              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 py-1.5 flex flex-col items-center gap-0.5">
+                <span className="text-white text-[9px] font-medium leading-none">↑</span>
+                <span className="text-white/70 text-[8px] leading-none">Ziehen</span>
+                <span className="text-white text-[9px] font-medium leading-none">↓</span>
+              </div>
+            </div>
+          )}
           {uploading && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
               <Loader2 size={20} className="text-white animate-spin" />
             </div>
           )}
+        </div>
+      )}
+      {canAdjustPos && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-zinc-400">Bildausschnitt</span>
+            <span className="text-[11px] text-zinc-400 tabular-nums">
+              {(positionY ?? 50) <= 15 ? 'Oben' : (positionY ?? 50) >= 85 ? 'Unten' : `${positionY}%`}
+            </span>
+          </div>
+          <input
+            type="range" min={0} max={100} value={positionY ?? 50}
+            onChange={e => onPositionChange(parseInt(e.target.value))}
+            className="w-full accent-amber-500 h-1.5 rounded-full cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] text-zinc-300">
+            <span>Oben</span><span>Mitte</span><span>Unten</span>
+          </div>
         </div>
       )}
       <div className="flex gap-2">
@@ -207,6 +271,7 @@ export default function WebsitePage() {
   const [foundedYear, setFoundedYear] = useState('')
 
   const [heroImageUrl, setHeroImageUrl] = useState('')
+  const [heroPos,      setHeroPos]      = useState(50)
   const [galleryUrls,  setGalleryUrls]  = useState<string[]>([])
   const [videoUrl,     setVideoUrl]     = useState('')
 
@@ -240,6 +305,7 @@ export default function WebsitePage() {
         setAbout(data.about ?? '')
         setFoundedYear(data.founded_year?.toString() ?? '')
         setHeroImageUrl(data.hero_image_url ?? '')
+        setHeroPos(data.hero_image_position ?? 50)
         setGalleryUrls(data.gallery_urls ?? [])
         setVideoUrl(data.video_url ?? '')
         setWhatsapp(data.whatsapp_number ?? '')
@@ -399,7 +465,9 @@ export default function WebsitePage() {
               label="Hero-Bild (Hauptfoto)"
               url={heroImageUrl || null}
               onUploaded={setHeroImageUrl}
-              hint="Empfehlung: Querformat, min. 1920×600px. Wird groß hinter dem Gym-Namen angezeigt."
+              positionY={heroPos}
+              onPositionChange={setHeroPos}
+              hint="Empfehlung: Hochformat oder Querformat. Bild im Vorschaufenster nach oben/unten ziehen um den Ausschnitt einzustellen."
             />
 
             {/* Gallery */}
@@ -437,9 +505,10 @@ export default function WebsitePage() {
             <div className="flex justify-end">
               <SaveBtn
                 onClick={() => saveSection('medien', {
-                  hero_image_url: heroImageUrl || null,
-                  gallery_urls:   galleryUrls,
-                  video_url:      videoUrl || null,
+                  hero_image_url:      heroImageUrl || null,
+                  hero_image_position: heroPos,
+                  gallery_urls:        galleryUrls,
+                  video_url:           videoUrl || null,
                 })}
                 saving={saving.medien} saved={saved.medien}
               />

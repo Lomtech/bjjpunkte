@@ -28,7 +28,8 @@ interface GymInfo {
   address: string | null; phone: string | null; email: string | null
   sport_type: string | null; belt_system_enabled: boolean
   tagline: string | null; about: string | null
-  hero_image_url: string | null; gallery_urls: string[]
+  hero_image_url: string | null; hero_image_position: number
+  gallery_urls: string[]
   video_url: string | null; whatsapp_number: string | null
   instagram_url: string | null; facebook_url: string | null
   website_url: string | null; founded_year: number | null
@@ -226,7 +227,8 @@ export default function PublicGymPage() {
         {gym.hero_image_url && (
           <div className="absolute inset-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={gym.hero_image_url} alt={gym.name} className="w-full h-full object-cover object-center" />
+            <img src={gym.hero_image_url} alt={gym.name} className="w-full h-full object-cover"
+              style={{ objectPosition: `center ${gym.hero_image_position ?? 50}%` }} />
             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/60 to-zinc-950/30" />
           </div>
         )}
