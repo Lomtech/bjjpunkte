@@ -27,7 +27,7 @@ const SUB_COLORS: Record<string, string> = {
   active:    'bg-green-50 text-green-700 border border-green-200',
   trial:     'bg-blue-50 text-blue-700 border border-blue-200',
   past_due:  'bg-red-50 text-red-700 border border-red-200',
-  cancelled: 'bg-gray-100 text-slate-500',
+  cancelled: 'bg-zinc-100 text-zinc-500',
   none:      '',
 }
 const SUB_LABELS: Record<string, string> = {
@@ -164,23 +164,23 @@ export default function MembersPage() {
     setActivatingId(null)
   }
 
-  if (loading) return <div className="flex items-center justify-center h-full text-slate-400 text-sm">Lädt…</div>
+  if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
 
   return (
     <div className="p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-slate-900">Mitglieder</h1>
-          <p className="text-slate-400 text-xs mt-0.5">{active.length} aktiv · {inactive.length} inaktiv</p>
+          <h1 className="text-xl font-bold text-zinc-900">Mitglieder</h1>
+          <p className="text-zinc-400 text-xs mt-0.5">{active.length} aktiv · {inactive.length} inaktiv</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link href="/dashboard/members/import"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors">
             <Upload size={14} /> CSV
           </Link>
           <button onClick={handleEmailAll}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors"
             title={`E-Mail an ${activeWithEmail.length} Mitglieder`}>
             <Mail size={14} /> E-Mail
           </button>
@@ -190,7 +190,7 @@ export default function MembersPage() {
             <MessageCircle size={14} /> WhatsApp
           </button>
           <button onClick={downloadCSV}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-600 font-medium text-sm transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors"
             title="Mitgliederliste als CSV exportieren">
             <Download size={14} /> Export
           </button>
@@ -209,7 +209,7 @@ export default function MembersPage() {
       <input
         type="search" placeholder="Name oder E-Mail suchen…"
         value={search} onChange={e => setSearch(e.target.value)}
-        className="w-full mb-4 px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+        className="w-full mb-4 px-3 py-2.5 rounded-lg bg-white border border-zinc-200 text-sm text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
       />
 
       {bulkResult && (
@@ -230,7 +230,7 @@ export default function MembersPage() {
                   <span className="text-xs font-bold text-red-700">{m.first_name[0]}{m.last_name[0]}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{m.first_name} {m.last_name}</p>
+                  <p className="text-sm font-semibold text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
                   <div className="flex gap-2 mt-0.5">
                     {m.cancellation_requested_at && (
                       <span className="text-xs text-red-600 font-medium">Kündigung beantragt</span>
@@ -263,8 +263,8 @@ export default function MembersPage() {
                   <span className="text-xs font-bold text-amber-700">{m.first_name[0]}{m.last_name[0]}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{m.first_name} {m.last_name}</p>
-                  {m.email && <p className="text-xs text-slate-500 truncate">{m.email}</p>}
+                  <p className="text-sm font-semibold text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
+                  {m.email && <p className="text-xs text-zinc-500 truncate">{m.email}</p>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Link href={`/dashboard/members/${m.id}`}
@@ -285,9 +285,9 @@ export default function MembersPage() {
       {/* Bulk confirm */}
       {showBulkConfirm && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-lg max-w-sm w-full">
-            <h2 className="font-bold text-slate-900 mb-2">Beiträge anfordern</h2>
-            <p className="text-slate-600 text-sm mb-5">
+          <div className="bg-white rounded-xl p-6 border border-zinc-200 shadow-lg max-w-sm w-full">
+            <h2 className="font-bold text-zinc-900 mb-2">Beiträge anfordern</h2>
+            <p className="text-zinc-600 text-sm mb-5">
               Zahlungslinks für <span className="font-semibold">{activeWithEmail.length} Mitglieder</span> erstellen? Die Links werden angezeigt, damit du sie per WhatsApp oder E-Mail versenden kannst.
             </p>
             <div className="flex gap-3">
@@ -296,7 +296,7 @@ export default function MembersPage() {
                 {bulkLoading ? 'Wird gesendet…' : 'Bestätigen'}
               </button>
               <button onClick={() => setShowBulkConfirm(false)}
-                className="px-4 py-2.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 text-sm">
+                className="px-4 py-2.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm">
                 Abbrechen
               </button>
             </div>
@@ -307,15 +307,15 @@ export default function MembersPage() {
       {filtered.length > 0 ? (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="hidden md:block bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-                  {beltEnabled && <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Gürtel</th>}
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Seit</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Beitrag</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                <tr className="border-b border-zinc-100 bg-zinc-50">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Name</th>
+                  {beltEnabled && <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Gürtel</th>}
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Seit</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Beitrag</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -325,29 +325,29 @@ export default function MembersPage() {
                   const feeCents = m.monthly_fee_override_cents ?? monthlyFeeCents
                   const subStatus = m.subscription_status ?? 'none'
                   return (
-                    <tr key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                    <tr key={m.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50 transition-colors">
                       <td className="px-4 py-3.5 max-w-[180px]">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-medium text-slate-900 text-sm truncate">{m.first_name} {m.last_name}</span>
+                          <span className="font-medium text-zinc-900 text-sm truncate">{m.first_name} {m.last_name}</span>
                           {cs === 'expired' && <span title="Vertrag abgelaufen" className="flex-shrink-0"><AlertTriangle size={12} className="text-red-500" /></span>}
                           {cs === 'expiring' && <span title="Vertrag läuft ab" className="flex-shrink-0"><AlertTriangle size={12} className="text-amber-500" /></span>}
                         </div>
-                        {m.email && <div className="text-xs text-slate-400 truncate max-w-full">{m.email}</div>}
+                        {m.email && <div className="text-xs text-zinc-400 truncate max-w-full">{m.email}</div>}
                       </td>
                       {beltEnabled && <td className="px-4 py-3.5"><BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} /></td>}
-                      <td className="px-4 py-3.5 text-slate-500 text-sm">{new Date(m.join_date).toLocaleDateString('de-DE')}</td>
+                      <td className="px-4 py-3.5 text-zinc-500 text-sm">{new Date(m.join_date).toLocaleDateString('de-DE')}</td>
                       <td className="px-4 py-3.5">
                         {feeCents > 0 ? (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SUB_COLORS[subStatus] || 'text-slate-500'}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SUB_COLORS[subStatus] || 'text-zinc-500'}`}>
                             {subStatus !== 'none' ? SUB_LABELS[subStatus] : formatCents(feeCents)}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-xs text-zinc-400">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3.5">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          m.is_active ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-slate-400'
+                          m.is_active ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-zinc-100 text-zinc-400'
                         }`}>
                           {m.is_active ? 'Aktiv' : 'Inaktiv'}
                         </span>
@@ -380,13 +380,13 @@ export default function MembersPage() {
               const subStatus = m.subscription_status ?? 'none'
               return (
                 <Link key={m.id} href={`/dashboard/members/${m.id}`}
-                  className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-3.5 hover:bg-gray-50 transition-colors shadow-sm">
+                  className="flex items-center gap-3 bg-white rounded-xl border border-zinc-200 p-3.5 hover:bg-zinc-50 transition-colors shadow-sm">
                   <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
                     <span className="text-sm font-bold text-amber-600">{m.first_name[0]}{m.last_name[0]}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-slate-900 text-sm truncate">{m.first_name} {m.last_name}</span>
+                      <span className="font-semibold text-zinc-900 text-sm truncate">{m.first_name} {m.last_name}</span>
                       {cs === 'expired' && <AlertTriangle size={12} className="text-red-500 flex-shrink-0" />}
                       {cs === 'expiring' && <AlertTriangle size={12} className="text-amber-500 flex-shrink-0" />}
                     </div>
@@ -399,21 +399,21 @@ export default function MembersPage() {
                       )}
                     </div>
                   </div>
-                  <ChevronRight size={16} className="text-slate-300 flex-shrink-0" />
+                  <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
                 </Link>
               )
             })}
           </div>
         </>
       ) : (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="text-center py-16 bg-white rounded-xl border border-zinc-200 shadow-sm">
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
             <Users size={20} className="text-amber-500" />
           </div>
-          <p className="text-slate-900 font-semibold text-sm mb-1">
+          <p className="text-zinc-900 font-semibold text-sm mb-1">
             {search ? 'Keine Ergebnisse' : 'Noch keine Mitglieder'}
           </p>
-          <p className="text-slate-400 text-xs mb-4">
+          <p className="text-zinc-400 text-xs mb-4">
             {search ? `Keine Mitglieder für "${search}"` : 'Füge dein erstes Mitglied hinzu.'}
           </p>
           {!search && (
@@ -443,12 +443,12 @@ export default function MembersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
           onClick={e => { if (e.target === e.currentTarget) setShowBulkResults(false) }}>
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 flex-shrink-0">
               <div>
-                <p className="font-bold text-slate-900 text-sm">Zahlungslinks erstellt</p>
-                <p className="text-slate-400 text-xs">{bulkMembers.length} Links — per WhatsApp oder Kopieren versenden</p>
+                <p className="font-bold text-zinc-900 text-sm">Zahlungslinks erstellt</p>
+                <p className="text-zinc-400 text-xs">{bulkMembers.length} Links — per WhatsApp oder Kopieren versenden</p>
               </div>
-              <button onClick={() => setShowBulkResults(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
+              <button onClick={() => setShowBulkResults(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors"><X size={18} /></button>
             </div>
             <div className="overflow-y-auto flex-1 p-4 space-y-2">
               {bulkMembers.map(m => {
@@ -459,15 +459,15 @@ export default function MembersPage() {
                   ? `https://wa.me/${toWaPhone(phone)}?text=${encodeURIComponent(waText)}`
                   : null
                 return (
-                  <div key={m.memberId} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white">
+                  <div key={m.memberId} className="flex items-center gap-3 p-3 rounded-xl border border-zinc-200 bg-white">
                     <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
                       <span className="text-xs font-bold text-amber-600">
                         {m.memberName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{m.memberName}</p>
-                      <p className="text-xs text-slate-400 truncate">{m.memberEmail}</p>
+                      <p className="text-sm font-semibold text-zinc-900 truncate">{m.memberName}</p>
+                      <p className="text-xs text-zinc-400 truncate">{m.memberEmail}</p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {m.checkoutUrl && (
@@ -478,7 +478,7 @@ export default function MembersPage() {
                           </a>
                           <button
                             onClick={() => { navigator.clipboard.writeText(m.checkoutUrl!) }}
-                            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors" title="Link kopieren">
+                            className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 transition-colors" title="Link kopieren">
                             <Copy size={14} />
                           </button>
                         </>
@@ -492,7 +492,7 @@ export default function MembersPage() {
                       ) : (
                         <button
                           onClick={() => { navigator.clipboard.writeText(waText) }}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-slate-200 text-zinc-700 text-xs font-semibold transition-colors"
                           title="Nachricht + Link kopieren">
                           <Copy size={12} />
                           Kopieren
@@ -522,7 +522,7 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 bg-green-50">
+        <div className="px-5 py-4 border-b border-zinc-100 bg-green-50">
           <p className="font-bold text-green-800 text-sm">✓ {member.first_name} {member.last_name} aktiviert!</p>
           <p className="text-green-600 text-xs mt-0.5">Jetzt benachrichtigen:</p>
         </div>
@@ -541,25 +541,25 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
           )}
           {mailtoUrl && (
             <a href={mailtoUrl} onClick={onClose}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-colors">
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-zinc-100 hover:bg-slate-200 text-zinc-700 font-semibold text-sm transition-colors">
               <Mail size={18} />
               <div className="text-left">
                 <p>Per E-Mail senden</p>
-                <p className="text-slate-400 text-xs font-normal">{member.email}</p>
+                <p className="text-zinc-400 text-xs font-normal">{member.email}</p>
               </div>
             </a>
           )}
           {portalUrl && (
             <button onClick={() => { navigator.clipboard.writeText(portalUrl); onClose() }}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 text-slate-700 font-semibold text-sm transition-colors">
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-semibold text-sm transition-colors">
               <Copy size={18} />
               <div className="text-left">
                 <p>Profillink kopieren</p>
-                <p className="text-slate-400 text-xs font-normal truncate max-w-[200px]">{portalUrl}</p>
+                <p className="text-zinc-400 text-xs font-normal truncate max-w-[200px]">{portalUrl}</p>
               </div>
             </button>
           )}
-          <button onClick={onClose} className="w-full py-2 text-slate-400 text-sm hover:text-slate-600">
+          <button onClick={onClose} className="w-full py-2 text-zinc-400 text-sm hover:text-zinc-600">
             Später senden
           </button>
         </div>
@@ -603,14 +603,14 @@ function WhatsAppBulkModal({ members, onClose }: {
             <div className="p-5 space-y-4">
               {/* Template picker */}
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Vorlage wählen</p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Vorlage wählen</p>
                 <div className="space-y-1.5">
                   {BULK_TEMPLATES.map(t => (
                     <button key={t.id} onClick={() => setTemplateId(t.id)}
                       className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                         templateId === t.id
                           ? 'bg-[#25D366]/10 text-[#128C7E] font-semibold border border-[#25D366]/30'
-                          : 'bg-gray-50 text-slate-700 hover:bg-gray-100'
+                          : 'bg-zinc-50 text-zinc-700 hover:bg-zinc-100'
                       }`}>
                       {t.label}
                     </button>
@@ -619,12 +619,12 @@ function WhatsAppBulkModal({ members, onClose }: {
               </div>
               {/* Message */}
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nachricht</p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Nachricht</p>
                 <textarea
                   value={templateId === 'custom' ? customMsg : tmpl.text()}
                   onChange={e => { setTemplateId('custom'); setCustomMsg(e.target.value) }}
                   rows={4}
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-800 text-sm focus:outline-none focus:border-[#25D366] resize-none"
+                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm focus:outline-none focus:border-[#25D366] resize-none"
                 />
               </div>
               <button onClick={() => setStep('send')} disabled={!message.trim()}
@@ -636,23 +636,23 @@ function WhatsAppBulkModal({ members, onClose }: {
             <div className="p-5">
               <div className="mb-4 p-3 rounded-lg bg-[#25D366]/10 border border-[#25D366]/20">
                 <p className="text-xs font-semibold text-[#128C7E] mb-1">Deine Nachricht:</p>
-                <p className="text-sm text-slate-700">{message}</p>
+                <p className="text-sm text-zinc-700">{message}</p>
               </div>
-              <p className="text-xs text-slate-500 mb-3">Klicke pro Mitglied auf den Button — WhatsApp öffnet sich mit der Nachricht vorausgefüllt.</p>
+              <p className="text-xs text-zinc-500 mb-3">Klicke pro Mitglied auf den Button — WhatsApp öffnet sich mit der Nachricht vorausgefüllt.</p>
               <div className="space-y-2">
                 {members.map(m => {
                   const done = sentIdx.has(m.id)
                   const waUrl = `https://wa.me/${toWaPhone(m.phone!)}?text=${encodeURIComponent(message)}`
                   return (
                     <div key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                      done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                      done ? 'bg-green-50 border-green-200' : 'bg-white border-zinc-200'
                     }`}>
                       <div className="w-8 h-8 rounded-full bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-bold text-[#128C7E]">{m.first_name[0]}{m.last_name[0]}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900">{m.first_name} {m.last_name}</p>
-                        <p className="text-xs text-slate-400 truncate">{m.phone}</p>
+                        <p className="text-sm font-semibold text-zinc-900">{m.first_name} {m.last_name}</p>
+                        <p className="text-xs text-zinc-400 truncate">{m.phone}</p>
                       </div>
                       <a href={waUrl} target="_blank" rel="noopener noreferrer"
                         onClick={() => markSent(m.id)}
@@ -669,7 +669,7 @@ function WhatsAppBulkModal({ members, onClose }: {
                 })}
               </div>
               {sentIdx.size > 0 && (
-                <p className="mt-4 text-center text-xs text-slate-400">{sentIdx.size} von {members.length} gesendet</p>
+                <p className="mt-4 text-center text-xs text-zinc-400">{sentIdx.size} von {members.length} gesendet</p>
               )}
             </div>
           )}

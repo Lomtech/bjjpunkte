@@ -21,7 +21,7 @@ const STATUS_COLORS: Record<LeadStatus, string> = {
   trial_scheduled: 'bg-purple-50 text-purple-700 border-purple-200',
   trial_done:      'bg-indigo-50 text-indigo-700 border-indigo-200',
   converted:       'bg-green-50 text-green-700 border-green-200',
-  lost:            'bg-slate-100 text-slate-500 border-slate-200',
+  lost:            'bg-zinc-100 text-zinc-500 border-zinc-200',
 }
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
@@ -178,7 +178,7 @@ export default function LeadsPage() {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
 
-  if (loading) return <div className="flex items-center justify-center h-full text-slate-400 text-sm">Lädt…</div>
+  if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
 
   return (
     <div className="p-4 md:p-6">
@@ -187,9 +187,9 @@ export default function LeadsPage() {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <UserPlus size={20} className="text-amber-500 flex-shrink-0" />
-            <h1 className="text-xl font-bold text-slate-900">Interessenten</h1>
+            <h1 className="text-xl font-bold text-zinc-900">Interessenten</h1>
           </div>
-          <p className="text-slate-400 text-xs mt-0.5">{leads.length} gesamt · {counts.new} neu · {counts.converted} konvertiert</p>
+          <p className="text-zinc-400 text-xs mt-0.5">{leads.length} gesamt · {counts.new} neu · {counts.converted} konvertiert</p>
         </div>
         <button
           onClick={() => setShowForm(f => !f)}
@@ -211,58 +211,58 @@ export default function LeadsPage() {
 
       {/* New lead form */}
       {showForm && (
-        <div className="mb-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100">
-            <p className="font-semibold text-slate-900 text-sm">Neuer Interessent</p>
+        <div className="mb-4 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-zinc-100">
+            <p className="font-semibold text-zinc-900 text-sm">Neuer Interessent</p>
           </div>
           <form onSubmit={handleCreate} className="p-5 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Vorname *</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Vorname *</label>
                 <input
                   required value={form.first_name}
                   onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
                   placeholder="Max"
-                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Nachname *</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Nachname *</label>
                 <input
                   required value={form.last_name}
                   onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
                   placeholder="Mustermann"
-                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">E-Mail</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">E-Mail</label>
                 <input
                   type="email" value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   placeholder="max@example.com"
-                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Telefon</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Telefon</label>
                 <input
                   type="tel" value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="+49 151 234567"
-                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Quelle</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Quelle</label>
                 <select
                   value={form.source}
                   onChange={e => setForm(f => ({ ...f, source: e.target.value as LeadSource }))}
-                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
                   <option value="walk-in">Walk-in</option>
                   <option value="referral">Empfehlung</option>
                   <option value="instagram">Instagram</option>
@@ -271,31 +271,31 @@ export default function LeadsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Probetraining-Datum</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Probetraining-Datum</label>
                 <input
                   type="date" value={form.trial_date}
                   onChange={e => setForm(f => ({ ...f, trial_date: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Empfohlen von</label>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Empfohlen von</label>
               <input
                 value={form.referred_by}
                 onChange={e => setForm(f => ({ ...f, referred_by: e.target.value }))}
                 placeholder="Name des Mitglieds"
-                className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Notizen</label>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Notizen</label>
               <textarea
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2}
                 placeholder="Erste Eindrücke, Ziele, …"
-                className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-none"
+                className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-none"
               />
             </div>
             <div className="flex gap-2 pt-1">
@@ -304,7 +304,7 @@ export default function LeadsPage() {
                 {saving ? 'Speichern…' : 'Speichern'}
               </button>
               <button type="button" onClick={() => setShowForm(false)}
-                className="flex-1 sm:flex-none px-4 py-2.5 min-h-[44px] rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors">
+                className="flex-1 sm:flex-none px-4 py-2.5 min-h-[44px] rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors">
                 Abbrechen
               </button>
             </div>
@@ -314,12 +314,12 @@ export default function LeadsPage() {
 
       {/* Lead cards */}
       {sorted.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div className="text-center py-16 bg-white rounded-2xl border border-zinc-200 shadow-sm">
           <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
             <UserPlus size={20} className="text-amber-500" />
           </div>
-          <p className="text-slate-900 font-semibold text-sm mb-1">Noch keine Interessenten</p>
-          <p className="text-slate-400 text-xs mb-4">Füge deinen ersten Interessenten hinzu.</p>
+          <p className="text-zinc-900 font-semibold text-sm mb-1">Noch keine Interessenten</p>
+          <p className="text-zinc-400 text-xs mb-4">Füge deinen ersten Interessenten hinzu.</p>
           <button onClick={() => setShowForm(true)}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm">
             <UserPlus size={14} /> Neuer Interessent
@@ -328,7 +328,7 @@ export default function LeadsPage() {
       ) : (
         <div className="space-y-2">
           {sorted.map(lead => (
-            <div key={lead.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4">
+            <div key={lead.id} className="bg-white rounded-2xl border border-zinc-200 shadow-sm px-5 py-4">
               <div className="flex items-start gap-3">
                 {/* Avatar */}
                 <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -340,11 +340,11 @@ export default function LeadsPage() {
                 <div className="flex-1 min-w-0">
                   {/* Name row */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-slate-900 text-sm">{lead.first_name} {lead.last_name}</span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                    <span className="font-semibold text-zinc-900 text-sm">{lead.first_name} {lead.last_name}</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 text-zinc-500 border border-zinc-200">
                       {SOURCE_LABELS[lead.source] ?? lead.source}
                     </span>
-                    <span className="text-xs text-slate-400">vor {daysSince(lead.created_at)}d</span>
+                    <span className="text-xs text-zinc-400">vor {daysSince(lead.created_at)}d</span>
                   </div>
 
                   {/* Status + contacts row */}
@@ -362,13 +362,13 @@ export default function LeadsPage() {
 
                     {lead.phone && (
                       <a href={`tel:${lead.phone}`}
-                        className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors">
+                        className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 transition-colors">
                         <Phone size={11} />{lead.phone}
                       </a>
                     )}
                     {lead.email && (
                       <a href={`mailto:${lead.email}`}
-                        className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors">
+                        className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 transition-colors">
                         <Mail size={11} />{lead.email}
                       </a>
                     )}
@@ -378,12 +378,12 @@ export default function LeadsPage() {
                   {(lead.trial_date || lead.referred_by) && (
                     <div className="flex items-center gap-3 mt-1 flex-wrap">
                       {lead.trial_date && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-zinc-400">
                           Probetraining: {new Date(lead.trial_date).toLocaleDateString('de-DE')}
                         </span>
                       )}
                       {lead.referred_by && (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-zinc-400">
                           Empfohlen von: {lead.referred_by}
                         </span>
                       )}
@@ -397,7 +397,7 @@ export default function LeadsPage() {
                     onBlur={() => saveNotes(lead)}
                     rows={1}
                     placeholder="Notizen hinzufügen…"
-                    className="mt-2 w-full px-2.5 py-1.5 rounded-lg bg-[#F0F2F5] border border-slate-200 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-none"
+                    className="mt-2 w-full px-2.5 py-1.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-xs text-zinc-700 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-none"
                   />
                 </div>
 
@@ -422,7 +422,7 @@ export default function LeadsPage() {
                   <button
                     onClick={() => deleteLead(lead.id)}
                     title="Löschen"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                     <Trash2 size={14} />
                   </button>
                 </div>

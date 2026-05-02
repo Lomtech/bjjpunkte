@@ -39,11 +39,11 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
       <button
         onClick={() => setShowConfirm(true)}
         disabled={loading}
-        className={`px-3 py-2 rounded-xl border text-sm font-medium transition-all disabled:opacity-50 ${
+        className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors disabled:opacity-50 ${
           feedback
-            ? 'bg-green-50 border-green-300 text-green-700'
+            ? 'bg-green-50 border-green-200 text-green-700'
             : current
-            ? 'bg-white border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-slate-600'
+            ? 'bg-white border-zinc-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-zinc-700'
             : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
         }`}
       >
@@ -61,10 +61,10 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
             }`}>
               {current ? '⏸' : '▶'}
             </div>
-            <h3 className="font-bold text-slate-900 text-lg mb-2 text-center">
+            <h3 className="font-bold text-zinc-900 text-lg mb-2 text-center">
               {current ? 'Mitglied deaktivieren?' : 'Mitglied aktivieren?'}
             </h3>
-            <p className="text-slate-500 text-sm mb-6 text-center leading-relaxed">
+            <p className="text-zinc-500 text-sm mb-6 text-center leading-relaxed">
               {current
                 ? 'Das Mitglied wird als inaktiv markiert und taucht nicht mehr in der aktiven Liste auf.'
                 : 'Das Mitglied wird reaktiviert und erscheint wieder in der aktiven Mitgliederliste.'}
@@ -72,7 +72,7 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-slate-700 text-sm font-medium transition-colors"
+                className="flex-1 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-sm font-medium transition-colors"
               >
                 Abbrechen
               </button>

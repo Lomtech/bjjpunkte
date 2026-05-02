@@ -162,7 +162,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+      <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
         Lädt…
       </div>
     )
@@ -175,8 +175,8 @@ export default function DashboardPage() {
     <div className="p-4 md:p-6 max-w-5xl">
       {/* Header */}
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-400 text-sm mt-0.5">
+        <h1 className="text-xl font-bold text-zinc-900">Dashboard</h1>
+        <p className="text-zinc-400 text-sm mt-0.5">
           {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
       </div>
@@ -191,27 +191,27 @@ export default function DashboardPage() {
 
       {/* Payment health bar */}
       {activeMembers > 0 && (
-        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm mb-4">
+        <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Zahlungsstatus · Aktive Mitglieder</p>
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Zahlungsstatus · Aktive Mitglieder</p>
             <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-medium">Details →</Link>
           </div>
-          <div className="flex rounded-full overflow-hidden h-2.5 bg-gray-100 mb-2.5">
+          <div className="flex rounded-full overflow-hidden h-2.5 bg-zinc-100 mb-2.5">
             {paidCount    > 0 && <div className="bg-green-400 transition-all" style={{ width: `${(paidCount / activeMembers) * 100}%` }} />}
             {pendingCount > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${(pendingCount / activeMembers) * 100}%` }} />}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
-            <span className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5 text-xs text-zinc-500">
               <span className="w-2.5 h-2.5 rounded-full bg-green-400 flex-shrink-0" />
-              Bezahlt <span className="font-semibold text-slate-700">{paidCount}</span>
+              Bezahlt <span className="font-semibold text-zinc-700">{paidCount}</span>
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5 text-xs text-zinc-500">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0" />
-              Ausstehend <span className="font-semibold text-slate-700">{pendingCount}</span>
+              Ausstehend <span className="font-semibold text-zinc-700">{pendingCount}</span>
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-slate-500">
-              <span className="w-2.5 h-2.5 rounded-full bg-gray-200 flex-shrink-0" />
-              Nie bezahlt <span className="font-semibold text-slate-700">{activeMembers - paidCount - pendingCount}</span>
+            <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+              <span className="w-2.5 h-2.5 rounded-full bg-zinc-200 flex-shrink-0" />
+              Nie bezahlt <span className="font-semibold text-zinc-700">{activeMembers - paidCount - pendingCount}</span>
             </span>
           </div>
         </div>
@@ -221,9 +221,9 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-2 gap-4 mb-4">
 
         {/* Recent payments */}
-        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
               <Euro size={13} /> Letzte Zahlungen
             </h2>
             <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-medium">Alle →</Link>
@@ -234,32 +234,32 @@ export default function DashboardPage() {
                 const m = memberMap.get(p.member_id)
                 return (
                   <Link key={p.id} href={`/dashboard/members/${p.member_id}`}
-                    className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
+                    className="flex items-center gap-3 py-2.5 border-b border-zinc-100 last:border-0 hover:bg-zinc-50 -mx-2 px-2 rounded-lg transition-colors">
                     <div className="w-7 h-7 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 size={13} className="text-green-500" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
+                      <p className="text-sm font-medium text-zinc-900 truncate">
                         {m ? `${m.first_name} ${m.last_name}` : '–'}
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-zinc-400">
                         {p.paid_at ? new Date(p.paid_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '–'}
                       </p>
                     </div>
-                    <span className="text-sm font-semibold text-slate-800 flex-shrink-0">{formatCents(p.amount_cents)}</span>
+                    <span className="text-sm font-semibold text-zinc-800 flex-shrink-0">{formatCents(p.amount_cents)}</span>
                   </Link>
                 )
               })}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">Noch keine Zahlungen.</p>
+            <p className="text-zinc-400 text-sm">Noch keine Zahlungen.</p>
           )}
         </div>
 
         {/* Today's training */}
-        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
               <Calendar size={13} /> Heute im Training
             </h2>
             <Link href="/dashboard/attendance" className="text-xs text-amber-600 hover:text-amber-500 font-medium">Check-in →</Link>
@@ -271,21 +271,21 @@ export default function DashboardPage() {
                 const payStatus = memberPayStatus.get(a.member_id)
                 return (
                   <Link key={a.id} href={`/dashboard/members/${a.member_id}`}
-                    className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
+                    className="flex items-center gap-3 py-2.5 border-b border-zinc-100 last:border-0 hover:bg-zinc-50 -mx-2 px-2 rounded-lg transition-colors">
                     <div className="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0 text-amber-600 text-[11px] font-bold">
                       {m?.first_name?.[0]}{m?.last_name?.[0]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
+                      <p className="text-sm font-medium text-zinc-900 truncate">
                         {m ? `${m.first_name} ${m.last_name}` : '–'}
                       </p>
-                      <p className="text-xs text-slate-400 truncate capitalize">{a.class_type}</p>
+                      <p className="text-xs text-zinc-400 truncate capitalize">{a.class_type}</p>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {payStatus === 'paid'    && <CheckCircle2 size={12} className="text-green-400" />}
                       {payStatus === 'pending' && <Clock size={12} className="text-amber-400" />}
                       {!payStatus             && <AlertCircle size={12} className="text-red-300" />}
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-zinc-400">
                         {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -293,11 +293,11 @@ export default function DashboardPage() {
                 )
               })}
               {todayAttendance.length > 7 && (
-                <p className="text-xs text-slate-400 pt-2 text-center">+{todayAttendance.length - 7} weitere</p>
+                <p className="text-xs text-zinc-400 pt-2 text-center">+{todayAttendance.length - 7} weitere</p>
               )}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">Noch niemand eingecheckt.</p>
+            <p className="text-zinc-400 text-sm">Noch niemand eingecheckt.</p>
           )}
         </div>
       </div>
@@ -306,8 +306,8 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-2 gap-4 mb-4">
 
         {/* Belt distribution */}
-        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
             <TrendingUp size={13} /> Belt-Verteilung
           </h2>
           <div className="space-y-3">
@@ -316,13 +316,13 @@ export default function DashboardPage() {
                 <div className="w-20 flex-shrink-0">
                   <BeltBadge belt={belt} stripes={0} />
                 </div>
-                <div className="flex-1 min-w-0 bg-gray-100 rounded-full h-1.5">
+                <div className="flex-1 min-w-0 bg-zinc-100 rounded-full h-1.5">
                   <div
                     className="h-1.5 rounded-full bg-amber-400 transition-all"
                     style={{ width: `${activeMembers ? ((beltCounts[belt] ?? 0) / activeMembers) * 100 : 0}%` }}
                   />
                 </div>
-                <span className="text-slate-500 text-xs w-4 text-right font-medium flex-shrink-0">
+                <span className="text-zinc-500 text-xs w-4 text-right font-medium flex-shrink-0">
                   {beltCounts[belt] ?? 0}
                 </span>
               </div>
@@ -331,8 +331,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Top attenders this month */}
-        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
             <Zap size={13} /> Top-Trainingsbesucher · {new Date().toLocaleDateString('de-DE', { month: 'long' })}
           </h2>
           {topAttenders.length > 0 ? (
@@ -342,15 +342,15 @@ export default function DashboardPage() {
                 const maxCount = topAttenders[0]?.count ?? 1
                 return (
                   <Link key={a.member_id} href={`/dashboard/members/${a.member_id}`}
-                    className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors">
-                    <span className={`text-xs font-bold w-4 flex-shrink-0 ${i === 0 ? 'text-amber-500' : 'text-slate-400'}`}>
+                    className="flex items-center gap-3 py-2.5 border-b border-zinc-100 last:border-0 hover:bg-zinc-50 -mx-2 px-2 rounded-lg transition-colors">
+                    <span className={`text-xs font-bold w-4 flex-shrink-0 ${i === 0 ? 'text-amber-500' : 'text-zinc-400'}`}>
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
+                      <p className="text-sm font-medium text-zinc-900 truncate">
                         {m ? `${m.first_name} ${m.last_name}` : '–'}
                       </p>
-                      <div className="mt-1 bg-gray-100 rounded-full h-1 overflow-hidden">
+                      <div className="mt-1 bg-zinc-100 rounded-full h-1 overflow-hidden">
                         <div
                           className="h-1 rounded-full bg-amber-400 transition-all"
                           style={{ width: `${(a.count / maxCount) * 100}%` }}
@@ -365,7 +365,7 @@ export default function DashboardPage() {
               })}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">Noch keine Trainingseinheiten diesen Monat.</p>
+            <p className="text-zinc-400 text-sm">Noch keine Trainingseinheiten diesen Monat.</p>
           )}
         </div>
       </div>
@@ -374,21 +374,21 @@ export default function DashboardPage() {
       {churnRisk.length > 0 && (
         <div className="bg-white rounded-xl p-5 border border-amber-100 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
               <AlertCircle size={13} className="text-amber-500" /> Abwesenheits-Warnung
             </h2>
-            <span className="text-xs text-slate-400">{churnRisk.length} Mitglieder · 14+ Tage weg</span>
+            <span className="text-xs text-zinc-400">{churnRisk.length} Mitglieder · 14+ Tage weg</span>
           </div>
           <div className="grid sm:grid-cols-2 gap-2">
             {churnRisk.map(m => (
               <Link key={m.id} href={`/dashboard/members/${m.id}`}
-                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-amber-50 hover:border-amber-200 transition-colors">
+                className="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 hover:bg-amber-50 hover:border-amber-200 transition-colors">
                 <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-bold text-amber-600">{m.first_name[0]}{m.last_name[0]}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{m.first_name} {m.last_name}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm font-medium text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
+                  <p className="text-xs text-zinc-400">
                     {m.days_ago >= 999 ? 'Noch nie eingecheckt' : `${m.days_ago} Tage nicht da`}
                   </p>
                 </div>
@@ -405,8 +405,8 @@ export default function DashboardPage() {
 
       {/* Birthdays */}
       {birthdayMembers.length > 0 && (
-        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm mb-4">
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm mb-4">
+          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
             <Cake size={13} /> Geburtstage · nächste 7 Tage
           </h2>
           <div className="grid sm:grid-cols-2 gap-2.5">
@@ -417,8 +417,8 @@ export default function DashboardPage() {
                   <span className="text-xs font-bold text-amber-600">{m.first_name[0]}{m.last_name[0]}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-slate-900 font-medium text-sm truncate">{m.first_name} {m.last_name}</p>
-                  <p className="text-slate-500 text-xs">
+                  <p className="text-zinc-900 font-medium text-sm truncate">{m.first_name} {m.last_name}</p>
+                  <p className="text-zinc-500 text-xs">
                     {m.nextBirthday.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}
                   </p>
                 </div>
@@ -433,8 +433,8 @@ export default function DashboardPage() {
 
       {/* Recent promotions */}
       {recentPromotions.length > 0 && (
-        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
             <Award size={13} /> Letzte Graduierungen
           </h2>
           <div className="space-y-0">
@@ -442,13 +442,13 @@ export default function DashboardPage() {
               const m = memberMap.get(p.member_id)
               return (
                 <Link key={p.id} href={`/dashboard/members/${p.member_id}`}
-                  className="flex items-center justify-between py-2.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors gap-3">
-                  <span className="text-slate-800 text-sm font-medium truncate flex-1 min-w-0">
+                  className="flex items-center justify-between py-2.5 border-b border-zinc-100 last:border-0 hover:bg-zinc-50 -mx-2 px-2 rounded-lg transition-colors gap-3">
+                  <span className="text-zinc-800 text-sm font-medium truncate flex-1 min-w-0">
                     {m ? `${m.first_name} ${m.last_name}` : '–'}
                   </span>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <BeltBadge belt={p.new_belt as Belt} stripes={p.new_stripes} />
-                    <span className="text-slate-400 text-xs whitespace-nowrap">
+                    <span className="text-zinc-400 text-xs whitespace-nowrap">
                       {new Date(p.promoted_at).toLocaleDateString('de-DE')}
                     </span>
                   </div>
@@ -474,18 +474,18 @@ function StatCard({ icon, label, value, valueCents, color }: {
     blue:  'bg-blue-50 text-blue-600',
     green: 'bg-green-50 text-green-600',
     amber: 'bg-amber-50 text-amber-600',
-    slate: 'bg-gray-100 text-slate-500',
+    slate: 'bg-zinc-100 text-zinc-500',
     red:   'bg-red-50 text-red-500',
   }
   return (
-    <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm min-w-0">
+    <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
       <div className={`inline-flex p-2 rounded-lg mb-2.5 ${colors[color]}`}>{icon}</div>
-      <div className="text-2xl font-bold text-slate-900 truncate">
+      <div className="text-2xl font-bold text-zinc-900 truncate">
         {valueCents !== undefined
           ? (valueCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
           : value ?? 0}
       </div>
-      <div className="text-slate-500 text-xs mt-0.5 truncate">{label}</div>
+      <div className="text-zinc-500 text-xs mt-0.5 truncate">{label}</div>
     </div>
   )
 }

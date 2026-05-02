@@ -158,7 +158,7 @@ export default function RevenuePage() {
     load()
   }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-full text-slate-400 text-sm">Lädt…</div>
+  if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
 
   const paidCount    = members.filter(m => m.status === 'paid').length
   const pendingCount = members.filter(m => m.status === 'pending').length
@@ -176,21 +176,21 @@ export default function RevenuePage() {
     <div className="p-4 md:p-6 max-w-3xl">
       {/* Header */}
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-slate-900">Einnahmen</h1>
-        <p className="text-slate-400 text-xs mt-0.5">Zahlungsübersicht und Mitgliederstatus</p>
+        <h1 className="text-xl font-bold text-zinc-900">Einnahmen</h1>
+        <p className="text-zinc-400 text-xs mt-0.5">Zahlungsübersicht und Mitgliederstatus</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm min-w-0">
+        <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
           <div className="inline-flex p-2 rounded-lg mb-2 bg-amber-50 text-amber-600"><Euro size={15} /></div>
-          <div className="text-xl font-bold text-slate-900 truncate">{formatCents(allTimeCents)}</div>
-          <div className="text-slate-500 text-xs mt-0.5 truncate">Gesamt</div>
+          <div className="text-xl font-bold text-zinc-900 truncate">{formatCents(allTimeCents)}</div>
+          <div className="text-zinc-500 text-xs mt-0.5 truncate">Gesamt</div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm min-w-0">
+        <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
           <div className="inline-flex p-2 rounded-lg mb-2 bg-green-50 text-green-600"><Calendar size={15} /></div>
-          <div className="text-xl font-bold text-slate-900 truncate">{formatCents(monthCents)}</div>
-          <div className="text-slate-500 text-xs mt-0.5 flex items-center gap-1 flex-wrap">
+          <div className="text-xl font-bold text-zinc-900 truncate">{formatCents(monthCents)}</div>
+          <div className="text-zinc-500 text-xs mt-0.5 flex items-center gap-1 flex-wrap">
             <span className="truncate">{new Date().toLocaleDateString('de-DE', { month: 'long' })}</span>
             {monthDelta !== 0 && (
               <span className={`font-medium flex-shrink-0 ${monthDelta > 0 ? 'text-green-600' : 'text-red-500'}`}>
@@ -199,30 +199,30 @@ export default function RevenuePage() {
             )}
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm min-w-0">
+        <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
           <div className="inline-flex p-2 rounded-lg mb-2 bg-blue-50 text-blue-600"><Users size={15} /></div>
-          <div className="text-xl font-bold text-slate-900">{formatCents(expectedMonthlyCents)}</div>
-          <div className="text-slate-500 text-xs mt-0.5 truncate">Soll / Monat</div>
+          <div className="text-xl font-bold text-zinc-900">{formatCents(expectedMonthlyCents)}</div>
+          <div className="text-zinc-500 text-xs mt-0.5 truncate">Soll / Monat</div>
         </div>
-        <div className={`bg-white rounded-xl p-4 border shadow-sm min-w-0 ${pendingCount + neverCount > 0 ? 'border-red-100' : 'border-gray-200'}`}>
-          <div className={`inline-flex p-2 rounded-lg mb-2 ${pendingCount + neverCount > 0 ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-slate-400'}`}>
+        <div className={`bg-white rounded-xl p-4 border shadow-sm min-w-0 ${pendingCount + neverCount > 0 ? 'border-red-100' : 'border-zinc-200'}`}>
+          <div className={`inline-flex p-2 rounded-lg mb-2 ${pendingCount + neverCount > 0 ? 'bg-red-50 text-red-500' : 'bg-zinc-100 text-zinc-400'}`}>
             <AlertCircle size={15} />
           </div>
-          <div className={`text-xl font-bold ${pendingCount + neverCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+          <div className={`text-xl font-bold ${pendingCount + neverCount > 0 ? 'text-red-600' : 'text-zinc-900'}`}>
             {pendingCount + neverCount}
           </div>
-          <div className="text-slate-500 text-xs mt-0.5 truncate">Ausstehend</div>
+          <div className="text-zinc-500 text-xs mt-0.5 truncate">Ausstehend</div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5">
+      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl mb-5">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
               tab === t.key
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-white text-zinc-900 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-700'
             }`}>
             {t.label}
           </button>
@@ -233,9 +233,9 @@ export default function RevenuePage() {
       {tab === 'overview' && (
         <div className="space-y-4">
           {/* Payment health */}
-          <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Zahlungsstatus · Aktive Mitglieder</h2>
-            <div className="flex rounded-full overflow-hidden h-3 bg-gray-100 mb-4">
+          <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Zahlungsstatus · Aktive Mitglieder</h2>
+            <div className="flex rounded-full overflow-hidden h-3 bg-zinc-100 mb-4">
               {paidCount    > 0 && <div className="bg-green-400 transition-all" style={{ width: `${members.length ? (paidCount / members.length) * 100 : 0}%` }} />}
               {pendingCount > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${members.length ? (pendingCount / members.length) * 100 : 0}%` }} />}
               {neverCount   > 0 && <div className="bg-red-300 transition-all" style={{ width: `${members.length ? (neverCount / members.length) * 100 : 0}%` }} />}
@@ -256,19 +256,19 @@ export default function RevenuePage() {
 
           {/* Monthly bar chart */}
           {months.length > 0 && (
-            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Monatsübersicht</h2>
+            <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+              <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Monatsübersicht</h2>
               <div className="space-y-3">
                 {months.slice(0, 6).map(m => (
                   <div key={m.month} className="flex items-center gap-3">
-                    <span className="text-xs text-slate-500 w-24 flex-shrink-0 truncate">{m.label}</span>
-                    <div className="flex-1 min-w-0 bg-gray-100 rounded-full h-2">
+                    <span className="text-xs text-zinc-500 w-24 flex-shrink-0 truncate">{m.label}</span>
+                    <div className="flex-1 min-w-0 bg-zinc-100 rounded-full h-2">
                       <div
                         className="h-2 rounded-full bg-amber-400 transition-all"
                         style={{ width: `${(m.total_cents / maxMonthCents) * 100}%` }}
                       />
                     </div>
-                    <span className="text-xs font-semibold text-slate-700 w-16 text-right flex-shrink-0 truncate">
+                    <span className="text-xs font-semibold text-zinc-700 w-16 text-right flex-shrink-0 truncate">
                       {formatCents(m.total_cents)}
                     </span>
                   </div>
@@ -279,17 +279,17 @@ export default function RevenuePage() {
 
           {/* Summary table */}
           {months.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Details nach Monat</p>
+            <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50">
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Details nach Monat</p>
               </div>
               <div className="divide-y divide-gray-100">
                 {months.map(m => (
-                  <div key={m.month} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
-                    <span className="text-sm font-medium text-slate-900">{m.label}</span>
+                  <div key={m.month} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50">
+                    <span className="text-sm font-medium text-zinc-900">{m.label}</span>
                     <div className="flex items-center gap-4 min-w-0">
-                      <span className="text-xs text-slate-400 flex-shrink-0">{m.count} Zahlung{m.count !== 1 ? 'en' : ''}</span>
-                      <span className="text-sm font-semibold text-slate-900 flex-shrink-0">{formatCents(m.total_cents)}</span>
+                      <span className="text-xs text-zinc-400 flex-shrink-0">{m.count} Zahlung{m.count !== 1 ? 'en' : ''}</span>
+                      <span className="text-sm font-semibold text-zinc-900 flex-shrink-0">{formatCents(m.total_cents)}</span>
                     </div>
                   </div>
                 ))}
@@ -298,12 +298,12 @@ export default function RevenuePage() {
           )}
 
           {months.length === 0 && (
-            <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="text-center py-16 bg-white rounded-xl border border-zinc-200 shadow-sm">
               <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
                 <Euro size={20} className="text-amber-500" />
               </div>
-              <p className="text-slate-900 font-semibold text-sm mb-1">Noch keine Einnahmen</p>
-              <p className="text-slate-400 text-xs">Erstelle Zahlungslinks in den Mitgliederprofilen.</p>
+              <p className="text-zinc-900 font-semibold text-sm mb-1">Noch keine Einnahmen</p>
+              <p className="text-zinc-400 text-xs">Erstelle Zahlungslinks in den Mitgliederprofilen.</p>
             </div>
           )}
         </div>
@@ -311,15 +311,15 @@ export default function RevenuePage() {
 
       {/* MEMBERS TAB */}
       {tab === 'members' && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mitglieder · Zahlungsstatus</p>
-            <span className="text-xs text-slate-400">{members.length} aktiv</span>
+        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Mitglieder · Zahlungsstatus</p>
+            <span className="text-xs text-zinc-400">{members.length} aktiv</span>
           </div>
           <div className="divide-y divide-gray-100">
             {members.map(m => (
               <Link key={m.id} href={`/dashboard/members/${m.id}`}
-                className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors">
+                className="flex items-center gap-3 px-4 py-3.5 hover:bg-zinc-50 transition-colors">
                 {/* Status icon */}
                 <div className="flex-shrink-0">
                   {m.status === 'paid'    && <CheckCircle2 size={16} className="text-green-500" />}
@@ -329,10 +329,10 @@ export default function RevenuePage() {
 
                 {/* Name + date */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">
+                  <p className="text-sm font-medium text-zinc-900 truncate">
                     {m.first_name} {m.last_name}
                   </p>
-                  <p className="text-xs text-slate-400 truncate">
+                  <p className="text-xs text-zinc-400 truncate">
                     {m.status === 'paid' && m.last_paid_at
                       ? `Bezahlt vor ${daysSince(m.last_paid_at)} Tagen · ${m.total_payments}× insgesamt`
                       : m.status === 'pending' && m.last_paid_at
@@ -343,7 +343,7 @@ export default function RevenuePage() {
 
                 {/* Right side */}
                 <div className="flex-shrink-0 text-right">
-                  <p className="text-sm font-semibold text-slate-700">{formatCents(m.monthly_fee_cents)}</p>
+                  <p className="text-sm font-semibold text-zinc-700">{formatCents(m.monthly_fee_cents)}</p>
                   <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${
                     m.status === 'paid'    ? 'bg-green-50 text-green-700' :
                     m.status === 'pending' ? 'bg-amber-50 text-amber-700' :
@@ -352,11 +352,11 @@ export default function RevenuePage() {
                     {m.status === 'paid' ? 'Aktuell' : m.status === 'pending' ? 'Ausstehend' : 'Nie bezahlt'}
                   </span>
                 </div>
-                <ChevronRight size={14} className="text-slate-300 flex-shrink-0" />
+                <ChevronRight size={14} className="text-zinc-300 flex-shrink-0" />
               </Link>
             ))}
             {members.length === 0 && (
-              <div className="py-12 text-center text-slate-400 text-sm">Keine aktiven Mitglieder.</div>
+              <div className="py-12 text-center text-zinc-400 text-sm">Keine aktiven Mitglieder.</div>
             )}
           </div>
         </div>
@@ -364,31 +364,31 @@ export default function RevenuePage() {
 
       {/* HISTORY TAB */}
       {tab === 'history' && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Zahlungshistorie</p>
-            <span className="text-xs text-slate-400">{allPayments.length} Transaktionen · {formatCents(allTimeCents)}</span>
+        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Zahlungshistorie</p>
+            <span className="text-xs text-zinc-400">{allPayments.length} Transaktionen · {formatCents(allTimeCents)}</span>
           </div>
           <div className="divide-y divide-gray-100">
             {allPayments.map(p => (
               <Link key={p.id} href={`/dashboard/members/${p.member_id}`}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors">
                 <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
                   <ArrowUpRight size={13} className="text-green-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{p.member_name}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-sm font-medium text-zinc-900 truncate">{p.member_name}</p>
+                  <p className="text-xs text-zinc-400">
                     {p.paid_at
                       ? new Date(p.paid_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                       : '–'}
                   </p>
                 </div>
-                <span className="text-sm font-semibold text-slate-800 flex-shrink-0">{formatCents(p.amount_cents)}</span>
+                <span className="text-sm font-semibold text-zinc-800 flex-shrink-0">{formatCents(p.amount_cents)}</span>
               </Link>
             ))}
             {allPayments.length === 0 && (
-              <div className="py-12 text-center text-slate-400 text-sm">Noch keine Zahlungen vorhanden.</div>
+              <div className="py-12 text-center text-zinc-400 text-sm">Noch keine Zahlungen vorhanden.</div>
             )}
           </div>
         </div>

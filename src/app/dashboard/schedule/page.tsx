@@ -24,7 +24,7 @@ interface GymMember {
 
 const TYPE_COLORS: Record<string, string> = {
   gi:          'bg-blue-50 text-blue-700 border-blue-200',
-  'no-gi':     'bg-slate-100 text-slate-600 border-slate-200',
+  'no-gi':     'bg-zinc-100 text-zinc-600 border-zinc-200',
   'open mat':  'bg-amber-50 text-amber-700 border-amber-200',
   kids:        'bg-green-50 text-green-700 border-green-200',
   competition: 'bg-red-50 text-red-700 border-red-200',
@@ -205,27 +205,27 @@ export default function SchedulePage() {
     <div className="flex flex-col h-full">
 
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 md:px-6 border-b border-gray-200 bg-white flex items-center justify-between gap-3">
+      <div className="flex-shrink-0 px-4 py-3 md:px-6 border-b border-zinc-200 bg-white flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-base font-bold text-slate-900">Stundenplan</h1>
-          <p className="text-slate-400 text-xs mt-0.5 hidden sm:block">{weekLabel}</p>
+          <h1 className="text-base font-bold text-zinc-900">Stundenplan</h1>
+          <p className="text-zinc-400 text-xs mt-0.5 hidden sm:block">{weekLabel}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={() => { setWeekStart(w => addDays(w,-7)); setSelectedDay(s => addDays(s,-7)) }}
-            className="p-2 rounded-lg border border-gray-200 text-slate-500 hover:bg-gray-50 transition-colors">
+            className="p-2 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition-colors">
             <ChevronLeft size={15} />
           </button>
           <button onClick={() => { setWeekStart(startOfWeek(new Date())); setSelectedDay(today) }}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 text-slate-600 text-xs font-medium hover:bg-gray-50 transition-colors">
+            className="px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-zinc-50 transition-colors">
             Heute
           </button>
           <button onClick={() => { setWeekStart(w => addDays(w,7)); setSelectedDay(s => addDays(s,7)) }}
-            className="p-2 rounded-lg border border-gray-200 text-slate-500 hover:bg-gray-50 transition-colors">
+            className="p-2 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition-colors">
             <ChevronRight size={15} />
           </button>
           {gymId && (
             <a href={`/api/schedule/ical?gymId=${gymId}`}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-slate-600 text-xs font-medium hover:bg-gray-50 transition-colors ml-1"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-zinc-50 transition-colors ml-1"
               title="Stundenplan als iCal exportieren">
               📅 iCal-Export
             </a>
@@ -238,7 +238,7 @@ export default function SchedulePage() {
       </div>
 
       {/* Day strip */}
-      <div className="flex-shrink-0 border-b border-gray-200 bg-white overflow-x-auto">
+      <div className="flex-shrink-0 border-b border-zinc-200 bg-white overflow-x-auto">
         <div className="flex min-w-max md:grid md:grid-cols-7 px-2 md:px-4 gap-1 py-2">
           {weekDays.map((day, idx) => {
             const isToday = isSameDay(day, today)
@@ -247,7 +247,7 @@ export default function SchedulePage() {
             return (
               <button key={idx} onClick={() => setSelectedDay(day)}
                 className={`flex flex-col items-center px-4 md:px-2 py-2 rounded-lg transition-colors min-w-[56px] md:min-w-0 ${
-                  isSel ? 'bg-amber-600 text-white' : isToday ? 'bg-amber-50 text-amber-700' : 'text-slate-500 hover:bg-gray-50'
+                  isSel ? 'bg-amber-600 text-white' : isToday ? 'bg-amber-50 text-amber-700' : 'text-zinc-500 hover:bg-zinc-50'
                 }`}>
                 <span className="text-[10px] font-medium uppercase tracking-wide">{WEEKDAYS[idx]}</span>
                 <span className="text-sm font-bold mt-0.5">{day.getDate()}</span>
@@ -261,16 +261,16 @@ export default function SchedulePage() {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {loading ? (
-          <div className="flex items-center justify-center h-40 text-slate-400 text-sm">Lädt…</div>
+          <div className="flex items-center justify-center h-40 text-zinc-400 text-sm">Lädt…</div>
         ) : (
           <>
             {/* Mobile: single-day list */}
             <div className="md:hidden px-4 py-4 space-y-2">
               {selectedDayClasses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <p className="text-slate-400 text-sm mb-3">Kein Training an diesem Tag</p>
+                  <p className="text-zinc-400 text-sm mb-3">Kein Training an diesem Tag</p>
                   <button onClick={() => openAddModal(selectedDay)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300 text-slate-400 hover:border-amber-400 hover:text-amber-600 text-sm transition-colors">
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300 text-zinc-400 hover:border-amber-400 hover:text-amber-600 text-sm transition-colors">
                     <Plus size={14} /> Klasse hinzufügen
                   </button>
                 </div>
@@ -291,7 +291,7 @@ export default function SchedulePage() {
                     />
                   ))}
                   <button onClick={() => openAddModal(selectedDay)}
-                    className="w-full py-2 rounded-lg text-slate-400 hover:text-amber-600 text-sm border border-dashed border-gray-200 hover:border-amber-300 transition-colors">
+                    className="w-full py-2 rounded-lg text-zinc-400 hover:text-amber-600 text-sm border border-dashed border-zinc-200 hover:border-amber-300 transition-colors">
                     + Hinzufügen
                   </button>
                 </>
@@ -308,9 +308,9 @@ export default function SchedulePage() {
                     <div className="space-y-1.5">
                       {dayClasses.length === 0 && (
                         <div className="flex flex-col items-center py-6">
-                          <p className="text-[11px] text-slate-300 mb-2">Kein Training</p>
+                          <p className="text-[11px] text-zinc-300 mb-2">Kein Training</p>
                           <button onClick={() => openAddModal(day)}
-                            className="text-slate-300 hover:text-amber-500 transition-colors">
+                            className="text-zinc-300 hover:text-amber-500 transition-colors">
                             <Plus size={15} />
                           </button>
                         </div>
@@ -331,7 +331,7 @@ export default function SchedulePage() {
                       ))}
                       {dayClasses.length > 0 && (
                         <button onClick={() => openAddModal(day)}
-                          className="w-full py-1 rounded text-slate-300 hover:text-amber-500 transition-colors text-xs">
+                          className="w-full py-1 rounded text-zinc-300 hover:text-amber-500 transition-colors text-xs">
                           + Hinzufügen
                         </button>
                       )}
@@ -377,10 +377,10 @@ function ClassCard({
 }) {
   return (
     <div className={`rounded-lg border bg-white overflow-hidden transition-all ${
-      cls.is_cancelled ? 'border-gray-200 opacity-60' : 'border-gray-200'
+      cls.is_cancelled ? 'border-zinc-200 opacity-60' : 'border-zinc-200'
     }`}>
       {/* Card header – always visible */}
-      <button className="w-full text-left p-3 hover:bg-gray-50 transition-colors" onClick={onToggle}>
+      <button className="w-full text-left p-3 hover:bg-zinc-50 transition-colors" onClick={onToggle}>
         <div className="flex items-start justify-between gap-1 mb-1.5">
           <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border font-semibold tracking-wide ${TYPE_COLORS[cls.class_type] ?? TYPE_COLORS.gi}`}>
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${TYPE_DOT[cls.class_type] ?? TYPE_DOT.gi}`} />
@@ -388,23 +388,23 @@ function ClassCard({
           </span>
           <div className="flex items-center gap-1.5">
             {cls.recurrence_parent_id && cls.recurrence_type !== 'none' && (
-              <RefreshCw size={10} className="text-slate-300" />
+              <RefreshCw size={10} className="text-zinc-300" />
             )}
             {cls.is_cancelled && (
               <span className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">Abgesagt</span>
             )}
           </div>
         </div>
-        <p className={`text-slate-900 text-xs font-semibold leading-tight ${cls.is_cancelled ? 'line-through text-slate-400' : ''}`}>
+        <p className={`text-zinc-900 text-xs font-semibold leading-tight ${cls.is_cancelled ? 'line-through text-zinc-400' : ''}`}>
           {cls.title}
         </p>
-        <p className="text-slate-400 text-[11px] mt-0.5 tabular-nums">
+        <p className="text-zinc-400 text-[11px] mt-0.5 tabular-nums">
           {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
         </p>
         {cls.instructor && (
-          <p className="text-slate-400 text-[11px] truncate">{cls.instructor}</p>
+          <p className="text-zinc-400 text-[11px] truncate">{cls.instructor}</p>
         )}
-        <div className="flex items-center gap-1.5 mt-1.5 text-slate-400 text-[11px]">
+        <div className="flex items-center gap-1.5 mt-1.5 text-zinc-400 text-[11px]">
           <Users size={10} />
           <span>{cls.confirmed_count}{cls.max_capacity ? `/${cls.max_capacity}` : ''}</span>
           {cls.waitlist_count > 0 && (
@@ -415,18 +415,18 @@ function ClassCard({
 
       {/* Expanded panel */}
       {expanded && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-zinc-100">
           {/* Roster */}
           {(rosterLoading || roster.length > 0) && (
             <div className="px-3 pt-2.5 pb-2">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Angemeldet</p>
+              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Angemeldet</p>
               {rosterLoading ? (
-                <p className="text-xs text-slate-400">Lädt…</p>
+                <p className="text-xs text-zinc-400">Lädt…</p>
               ) : (
                 <div className="space-y-1 max-h-28 overflow-auto">
                   {roster.map(b => (
                     <div key={b.id} className="flex items-center justify-between">
-                      <p className="text-xs text-slate-700 truncate">{b.member_name}</p>
+                      <p className="text-xs text-zinc-700 truncate">{b.member_name}</p>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
                         b.status === 'confirmed' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
                       }`}>
@@ -441,30 +441,30 @@ function ClassCard({
 
           {/* Check-in section */}
           {!cls.is_cancelled && (
-            <div className="px-3 pt-2 pb-2.5 border-t border-gray-100 bg-gray-50">
+            <div className="px-3 pt-2 pb-2.5 border-t border-zinc-100 bg-zinc-50">
               <div className="flex items-center gap-1.5 mb-2">
-                <UserCheck size={11} className="text-slate-400" />
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Einchecken</p>
+                <UserCheck size={11} className="text-zinc-400" />
+                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Einchecken</p>
               </div>
               <div className="relative mb-2">
-                <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <input
                   type="text" value={checkinSearch}
                   onChange={e => setCheckinSearch(e.target.value)}
                   placeholder="Mitglied suchen…"
-                  className="w-full pl-7 pr-3 py-1.5 rounded-md bg-white border border-gray-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400"
+                  className="w-full pl-7 pr-3 py-1.5 rounded-md bg-white border border-zinc-200 text-xs text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400"
                 />
               </div>
               {checkinSearch && (
                 <div className="space-y-0.5 max-h-32 overflow-auto">
                   {gymMembers.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-1">Keine Ergebnisse</p>
+                    <p className="text-xs text-zinc-400 py-1">Keine Ergebnisse</p>
                   ) : (
                     gymMembers.map(m => {
                       const isIn = checkedIn.has(m.id)
                       return (
                         <div key={m.id} className="flex items-center justify-between py-1.5">
-                          <span className="text-xs text-slate-700 truncate">{m.first_name} {m.last_name}</span>
+                          <span className="text-xs text-zinc-700 truncate">{m.first_name} {m.last_name}</span>
                           <button
                             onClick={() => !isIn && onCheckIn(m.id)}
                             disabled={isIn || checkingIn === m.id}
@@ -485,9 +485,9 @@ function ClassCard({
           )}
 
           {/* Actions */}
-          <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100">
+          <div className="flex items-center justify-between px-3 py-2 border-t border-zinc-100">
             <button onClick={onEdit}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors font-medium">
+              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 transition-colors font-medium">
               <Pencil size={11} /> Bearbeiten
             </button>
             {!cls.is_cancelled && (

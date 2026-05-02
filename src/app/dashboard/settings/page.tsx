@@ -435,15 +435,15 @@ export default function SettingsPage() {
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
-  const inputCls = 'w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100'
+  const inputCls = 'w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100'
   const saveBtnCls = 'w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2'
-  const sectionCls = 'bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden'
-  const sectionHeaderCls = 'px-5 py-3 border-b border-gray-100 bg-gray-50'
+  const sectionCls = 'bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden'
+  const sectionHeaderCls = 'px-5 py-3 border-b border-zinc-100 bg-zinc-50'
 
   function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
     return (
       <div className={sectionHeaderCls}>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
           {icon} {title}
         </p>
       </div>
@@ -453,10 +453,10 @@ export default function SettingsPage() {
   function CopyRow({ label, value, copied, onCopy }: { label: string; value: string; copied: boolean; onCopy: () => void }) {
     return (
       <div>
-        {label && <p className="text-xs font-medium text-slate-500 mb-1.5">{label}</p>}
-        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-          <code className="text-xs font-mono text-slate-600 flex-1 truncate min-w-0">{value}</code>
-          <button type="button" onClick={onCopy} className="flex-shrink-0 flex items-center gap-1 text-xs text-slate-400 hover:text-amber-600 transition-colors">
+        {label && <p className="text-xs font-medium text-zinc-500 mb-1.5">{label}</p>}
+        <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+          <code className="text-xs font-mono text-zinc-600 flex-1 truncate min-w-0">{value}</code>
+          <button type="button" onClick={onCopy} className="flex-shrink-0 flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors">
             {copied ? <><Check size={13} className="text-green-500" /><span className="text-green-600 font-medium">Kopiert!</span></> : <><Copy size={13} /><span>Kopieren</span></>}
           </button>
         </div>
@@ -469,8 +469,8 @@ export default function SettingsPage() {
   return (
     <div className="p-4 md:p-6 max-w-lg">
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-slate-900">Einstellungen</h1>
-        <p className="text-slate-400 text-xs mt-0.5">Gym konfigurieren</p>
+        <h1 className="text-xl font-bold text-zinc-900">Einstellungen</h1>
+        <p className="text-zinc-400 text-xs mt-0.5">Gym konfigurieren</p>
       </div>
 
       {/* Banners */}
@@ -494,15 +494,15 @@ export default function SettingsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
+      <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 mb-6">
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-semibold transition-all ${
               activeTab === tab.id
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-white text-zinc-900 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-700'
             }`}
           >
             {tab.icon}
@@ -516,9 +516,9 @@ export default function SettingsPage() {
         <div className="space-y-4">
           {/* Plan */}
           <div className={`rounded-2xl p-5 border ${
-            gymPlan === 'pro' ? 'bg-slate-900 border-slate-700' :
+            gymPlan === 'pro' ? 'bg-zinc-900 border-slate-700' :
             gymPlan === 'grow' ? 'bg-amber-50 border-amber-200' :
-            gymPlan === 'starter' ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200'
+            gymPlan === 'starter' ? 'bg-blue-50 border-blue-200' : 'bg-white border-zinc-200'
           }`}>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -526,11 +526,11 @@ export default function SettingsPage() {
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                     gymPlan === 'pro' ? 'bg-amber-500 text-white' :
                     gymPlan === 'grow' ? 'bg-amber-500 text-white' :
-                    gymPlan === 'starter' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'
+                    gymPlan === 'starter' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-zinc-600'
                   }`}>{gymPlan.toUpperCase()}</span>
-                  <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-slate-900'}`}>Aktueller Plan</span>
+                  <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-zinc-900'}`}>Aktueller Plan</span>
                 </div>
-                <p className={`text-sm ${gymPlan === 'pro' ? 'text-slate-300' : 'text-slate-500'}`}>
+                <p className={`text-sm ${gymPlan === 'pro' ? 'text-zinc-300' : 'text-zinc-500'}`}>
                   {memberCount} / {gymPlan === 'pro' ? '∞' : planLimit} aktive Mitglieder
                 </p>
                 {gymPlan !== 'pro' && memberCount >= planLimit * 0.9 && (
@@ -540,7 +540,7 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-2 flex-shrink-0">
                 {gymPlan === 'free' ? (
                   <button onClick={() => handleUpgrade('starter')} disabled={loadingPlan !== null}
-                    className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
+                    className="px-4 py-2 rounded-xl text-sm font-semibold bg-zinc-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
                     {loadingPlan ? 'Wird geladen…' : 'Upgraden →'}
                   </button>
                 ) : gymPlan === 'pro' ? (
@@ -551,11 +551,11 @@ export default function SettingsPage() {
                 ) : (
                   <>
                     <button onClick={() => handleUpgrade(gymPlan === 'starter' ? 'grow' : 'pro')} disabled={loadingPlan !== null}
-                      className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
+                      className="px-4 py-2 rounded-xl text-sm font-semibold bg-zinc-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
                       {loadingPlan ? 'Wird geladen…' : 'Plan ändern →'}
                     </button>
                     <button onClick={handlePortal} disabled={portalLoading}
-                      className="px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors">
+                      className="px-4 py-2 rounded-xl text-sm font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors">
                       {portalLoading ? 'Wird geladen…' : 'Abo verwalten'}
                     </button>
                   </>
@@ -571,10 +571,10 @@ export default function SettingsPage() {
 
               {/* Logo upload */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Gym-Logo</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">Gym-Logo</label>
                 <div className="flex items-center gap-4">
                   {/* Preview */}
-                  <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100 border border-gray-200 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-zinc-100 border border-zinc-200 flex items-center justify-center">
                     {logoUrl ? (
                       <Image src={logoUrl} alt="Logo" width={64} height={64} className="w-full h-full object-cover" />
                     ) : (
@@ -598,7 +598,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => logoInputRef.current?.click()}
                       disabled={logoUploading}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-semibold transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-semibold transition-colors"
                     >
                       <ImagePlus size={13} />
                       {logoUploading ? 'Wird hochgeladen…' : logoUrl ? 'Logo ändern' : 'Logo hochladen'}
@@ -607,42 +607,42 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={handleLogoRemove}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-slate-500 hover:text-red-500 hover:border-red-200 text-xs font-medium transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:text-red-500 hover:border-red-200 text-xs font-medium transition-colors"
                       >
                         <X size={12} /> Entfernen
                       </button>
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-2">Erscheint im Menü und auf Mitglieder-Portalen. PNG oder JPG, min. 100×100 px.</p>
+                <p className="text-xs text-zinc-400 mt-2">Erscheint im Menü und auf Mitglieder-Portalen. PNG oder JPG, min. 100×100 px.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Gym-Name *</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Gym-Name *</label>
                 <input value={name} onChange={e => setName(e.target.value)} required className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Adresse</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Adresse</label>
                 <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Musterstraße 1, 80331 München" className={inputCls} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Telefon</label>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Telefon</label>
                   <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+49 89 123456" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">E-Mail</label>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">E-Mail</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="info@gym.de" className={inputCls} />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Monatlicher Beitrag (€)</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Monatlicher Beitrag (€)</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">€</span>
                   <input value={monthlyFee} onChange={e => setMonthlyFee(e.target.value)} placeholder="79,00"
-                    className="w-full pl-8 pr-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                    className="w-full pl-8 pr-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                 </div>
-                <p className="text-xs text-slate-400 mt-1">Standard für neue Zahlungslinks.</p>
+                <p className="text-xs text-zinc-400 mt-1">Standard für neue Zahlungslinks.</p>
               </div>
               <button type="submit" disabled={loading} className={saveBtnCls}>
                 <Save size={15} />
@@ -661,27 +661,27 @@ export default function SettingsPage() {
                   title: 'Produktions-URL',
                   desc: webhookUrl.includes('localhost')
                     ? <span className="text-amber-600">Setze <code className="font-mono bg-amber-50 px-1 rounded">NEXT_PUBLIC_APP_URL</code> in Vercel auf deine Domain.</span>
-                    : <span className="text-slate-400">{webhookUrl.replace('/api/stripe/webhook', '')}</span>,
+                    : <span className="text-zinc-400">{webhookUrl.replace('/api/stripe/webhook', '')}</span>,
                 },
                 {
                   ok: webhookActive,
                   title: 'Stripe Webhook',
                   desc: webhookActive
-                    ? <span className="text-slate-400">Webhook aktiv – Zahlungsbestätigungen werden empfangen.</span>
-                    : <span className="text-slate-400">Im <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> Webhook-URL eintragen (Tab Zahlungen).</span>,
+                    ? <span className="text-zinc-400">Webhook aktiv – Zahlungsbestätigungen werden empfangen.</span>
+                    : <span className="text-zinc-400">Im <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> Webhook-URL eintragen (Tab Zahlungen).</span>,
                 },
                 {
                   ok: !!stripeAccountId,
                   title: 'Stripe Connect verbunden',
                   desc: stripeAccountId
-                    ? <span className="text-slate-400">Beiträge gehen direkt auf dein Konto.</span>
+                    ? <span className="text-zinc-400">Beiträge gehen direkt auf dein Konto.</span>
                     : <span className="text-amber-600">Verbinde dein Stripe-Konto im Tab Zahlungen.</span>,
                 },
                 {
                   ok: !!legalName,
                   title: 'Datenschutz',
                   desc: legalName
-                    ? <span className="text-slate-400">Verantwortlicher: <strong className="text-slate-600">{legalName}</strong> · <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">Vorschau <ExternalLink size={10} /></a></span>
+                    ? <span className="text-zinc-400">Verantwortlicher: <strong className="text-zinc-600">{legalName}</strong> · <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">Vorschau <ExternalLink size={10} /></a></span>
                     : <span className="text-amber-600">Name als Verantwortlichen im Tab Zahlungen eintragen.</span>,
                 },
               ].map(item => (
@@ -690,7 +690,7 @@ export default function SettingsPage() {
                     {item.ok ? <Check size={10} className="text-green-600" /> : <span className="w-1.5 h-1.5 rounded-full bg-amber-500 block" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800">{item.title}</p>
+                    <p className="text-sm font-medium text-zinc-800">{item.title}</p>
                     <p className="text-xs mt-0.5">{item.desc}</p>
                   </div>
                 </div>
@@ -715,24 +715,24 @@ export default function SettingsPage() {
               </div>
 
               {/* Connect */}
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-800">Stripe Connect</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stripeAccountId ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-slate-500 border border-gray-200'}`}>
+              <div className="rounded-lg border border-zinc-200 overflow-hidden">
+                <div className="px-4 py-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-zinc-800">Stripe Connect</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stripeAccountId ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
                     {stripeAccountId ? 'Verbunden' : 'Nicht verbunden'}
                   </span>
                 </div>
                 <div className="p-4">
                   {stripeAccountId ? (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-slate-600 text-sm">
+                      <div className="flex items-center gap-2 text-zinc-600 text-sm">
                         <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
                         Beiträge gehen direkt auf dein Stripe-Konto.
                       </div>
-                      <p className="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-slate-500 truncate">{stripeAccountId}</p>
+                      <p className="font-mono text-xs bg-zinc-100 px-2 py-1 rounded text-zinc-500 truncate">{stripeAccountId}</p>
                       <div className="flex gap-2">
                         <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-slate-700 text-xs font-medium transition-colors">
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium transition-colors">
                           <ExternalLink size={11} /> Stripe Dashboard
                         </a>
                         <button type="button" onClick={handleDisconnect}
@@ -743,11 +743,11 @@ export default function SettingsPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-slate-600 text-sm">Verbinde dein Konto — Beiträge landen direkt bei dir. Osss behält <strong>2%</strong> Plattformgebühr.</p>
-                      <div className="text-xs text-slate-500 bg-gray-50 rounded-lg p-3 space-y-1">
+                      <p className="text-zinc-600 text-sm">Verbinde dein Konto — Beiträge landen direkt bei dir. Osss behält <strong>2%</strong> Plattformgebühr.</p>
+                      <div className="text-xs text-zinc-500 bg-zinc-50 rounded-lg p-3 space-y-1">
                         <p>Beispiel 80 € Monatsbeitrag:</p>
-                        <p>→ <strong className="text-slate-700">78,40 €</strong> auf dein Konto</p>
-                        <p>→ <strong className="text-slate-700">1,60 €</strong> Plattformgebühr + Stripe-Gebühren</p>
+                        <p>→ <strong className="text-zinc-700">78,40 €</strong> auf dein Konto</p>
+                        <p>→ <strong className="text-zinc-700">1,60 €</strong> Plattformgebühr + Stripe-Gebühren</p>
                       </div>
                       <button type="button" onClick={handleConnect} disabled={connectLoading || !stripeConfigured}
                         className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
@@ -762,7 +762,7 @@ export default function SettingsPage() {
               {/* Webhook URL */}
               {!webhookActive && (
                 <div>
-                  <p className="text-xs font-medium text-slate-600 mb-1.5">
+                  <p className="text-xs font-medium text-zinc-600 mb-1.5">
                     Webhook-URL — im <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> eintragen:
                   </p>
                   <CopyRow label="" value={webhookUrl} copied={copiedWebhook} onCopy={() => copyWithFeedback(webhookUrl, setCopiedWebhook)} />
@@ -777,43 +777,43 @@ export default function SettingsPage() {
             <div className="p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Kleinunternehmer (§19 UStG)</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Keine Umsatzsteuer auf Rechnungen</p>
+                  <p className="text-sm font-medium text-zinc-700">Kleinunternehmer (§19 UStG)</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">Keine Umsatzsteuer auf Rechnungen</p>
                 </div>
                 <button type="button" onClick={() => setIsKleinunternehmer(v => !v)}
-                  className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${isKleinunternehmer ? 'bg-amber-500' : 'bg-gray-200'}`}>
+                  className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${isKleinunternehmer ? 'bg-amber-500' : 'bg-zinc-200'}`}>
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isKleinunternehmer ? 'translate-x-4' : ''}`} />
                 </button>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Steuernummer</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Steuernummer</label>
                 <input value={taxNumber} onChange={e => setTaxNumber(e.target.value)} placeholder="12/345/67890" className={inputCls} />
               </div>
               {!isKleinunternehmer && (
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1.5">USt-IdNr.</label>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">USt-IdNr.</label>
                   <input value={ustid} onChange={e => setUstid(e.target.value)} placeholder="DE123456789" className={inputCls} />
-                  <p className="text-xs text-slate-400 mt-1">Auf Rechnungen wird 19% USt. ausgewiesen.</p>
+                  <p className="text-xs text-zinc-400 mt-1">Auf Rechnungen wird 19% USt. ausgewiesen.</p>
                 </div>
               )}
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Rechnungspräfix</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Rechnungspräfix</label>
                 <input value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value)} placeholder="RE" className={inputCls} />
-                <p className="text-xs text-slate-400 mt-1">Beispiel: RE → RE-2025-0001</p>
+                <p className="text-xs text-zinc-400 mt-1">Beispiel: RE → RE-2025-0001</p>
               </div>
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Bankverbindung</p>
+              <div className="pt-2 border-t border-zinc-100">
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Bankverbindung</p>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1.5">Bank</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1.5">Bank</label>
                     <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Sparkasse München" className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1.5">IBAN</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1.5">IBAN</label>
                     <input value={bankIban} onChange={e => setBankIban(e.target.value)} placeholder="DE89 3704 0044 0532 0130 00" className={`${inputCls} font-mono`} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1.5">BIC</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1.5">BIC</label>
                     <input value={bankBic} onChange={e => setBankBic(e.target.value)} placeholder="COBADEFFXXX" className={`${inputCls} font-mono`} />
                   </div>
                 </div>
@@ -828,7 +828,7 @@ export default function SettingsPage() {
           {/* Datenschutz / Impressum */}
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
                 <FileText size={12} /> Datenschutz / Impressum
               </p>
               <a href="/datenschutz" target="_blank" rel="noopener noreferrer"
@@ -837,17 +837,17 @@ export default function SettingsPage() {
               </a>
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-xs text-slate-500">Diese Angaben erscheinen in der Datenschutzerklärung als Verantwortlicher.</p>
+              <p className="text-xs text-zinc-500">Diese Angaben erscheinen in der Datenschutzerklärung als Verantwortlicher.</p>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Name / Firma *</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Name / Firma *</label>
                 <input value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="Max Mustermann / BJJ Gym GmbH" className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Adresse</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Adresse</label>
                 <input value={legalAddress} onChange={e => setLegalAddress(e.target.value)} placeholder="Musterstraße 1, 80331 München" className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">E-Mail (Datenschutzanfragen)</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">E-Mail (Datenschutzanfragen)</label>
                 <input type="email" value={legalEmail} onChange={e => setLegalEmail(e.target.value)} placeholder="datenschutz@gym.de" className={inputCls} />
               </div>
               <button type="button" onClick={handleLegalSave} disabled={legalSaving} className={saveBtnCls}>
@@ -867,7 +867,7 @@ export default function SettingsPage() {
           <div className={sectionCls}>
             <SectionHeader icon={<Tag size={12} />} title="Trainings-Typen" />
             <div className="p-5 space-y-4">
-              <p className="text-slate-500 text-sm">
+              <p className="text-zinc-500 text-sm">
                 Kommagetrennte Liste der Klassen-Typen. Standard: gi, no-gi, open mat, kids, competition
               </p>
               <input
@@ -879,7 +879,7 @@ export default function SettingsPage() {
               />
               <div className="flex flex-wrap gap-2">
                 {classTypesInput.split(',').map(s => s.trim()).filter(Boolean).map((t, i) => (
-                  <span key={i} className="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">{t}</span>
+                  <span key={i} className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 text-xs font-medium">{t}</span>
                 ))}
               </div>
               <button onClick={handleClassTypesSave} disabled={classTypesSaving} className={saveBtnCls}>
@@ -895,7 +895,7 @@ export default function SettingsPage() {
             <div className="p-5 space-y-4">
               {/* Sport type selector */}
               <div>
-                <p className="text-xs font-medium text-slate-600 mb-2">Sportart</p>
+                <p className="text-xs font-medium text-zinc-600 mb-2">Sportart</p>
                 <div className="grid grid-cols-4 gap-1.5 mb-1.5">
                   {([
                     { id: 'bjj',       label: 'BJJ',       belt: true  },
@@ -924,15 +924,15 @@ export default function SettingsPage() {
                       }}
                       className={`py-2 rounded-lg text-xs font-semibold transition-all border ${
                         sportType === sport.id
-                          ? 'bg-slate-900 text-white border-slate-900'
-                          : 'bg-white text-slate-600 border-gray-200 hover:border-slate-300'
+                          ? 'bg-zinc-900 text-white border-slate-900'
+                          : 'bg-white text-zinc-600 border-zinc-200 hover:border-slate-300'
                       }`}
                     >
                       {sport.label}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-zinc-400 mt-1">
                   {isBeltFreeSport(sportType)
                     ? 'Ohne Gürtelsystem — Belt-Tracking im Dashboard deaktiviert.'
                     : sportType === 'custom'
@@ -942,10 +942,10 @@ export default function SettingsPage() {
               </div>
 
               {/* Belt enabled toggle */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-200">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Gürtelsystem aktiv</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-sm font-medium text-zinc-700">Gürtelsystem aktiv</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
                     {beltEnabled ? 'Gürtel & Promotions werden im Dashboard angezeigt.' : 'Belt-Tracking deaktiviert — nur Mitglieder & Anwesenheit.'}
                   </p>
                 </div>
@@ -957,29 +957,29 @@ export default function SettingsPage() {
 
               {/* Belt slot rows — only when enabled */}
               {!beltEnabled && (
-                <div className="text-center py-6 text-slate-400 text-sm">
+                <div className="text-center py-6 text-zinc-400 text-sm">
                   Gürtelsystem deaktiviert. Schalte es oben ein um Stufen zu konfigurieren.
                 </div>
               )}
               <div className={`space-y-2 ${!beltEnabled ? 'opacity-30 pointer-events-none' : ''}`}>
                 {beltSlots.map((slot, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 w-4 text-right flex-shrink-0">{i + 1}.</span>
+                    <span className="text-xs text-zinc-400 w-4 text-right flex-shrink-0">{i + 1}.</span>
                     <input
                       type="text"
                       value={slot.label}
                       maxLength={20}
                       onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, label: e.target.value } : s))}
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 min-w-0"
+                      className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 min-w-0"
                       placeholder="z.B. Gelb"
                     />
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <input type="color" value={slot.bg} title="Hintergrundfarbe"
                         onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, bg: e.target.value } : s))}
-                        className="w-7 h-7 rounded cursor-pointer border border-gray-200" />
+                        className="w-7 h-7 rounded cursor-pointer border border-zinc-200" />
                       <input type="color" value={slot.text} title="Textfarbe"
                         onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, text: e.target.value } : s))}
-                        className="w-7 h-7 rounded cursor-pointer border border-gray-200" />
+                        className="w-7 h-7 rounded cursor-pointer border border-zinc-200" />
                     </div>
                     <span className="px-2.5 py-1 rounded-full text-xs font-semibold w-16 text-center flex-shrink-0"
                       style={{ backgroundColor: slot.bg, color: slot.text }}>
@@ -989,7 +989,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => setBeltSlots(prev => prev.filter((_, j) => j !== i))}
                       disabled={beltSlots.length <= 1}
-                      className="flex-shrink-0 text-slate-300 hover:text-red-400 disabled:opacity-20 transition-colors"
+                      className="flex-shrink-0 text-zinc-300 hover:text-red-400 disabled:opacity-20 transition-colors"
                       title="Stufe entfernen"
                     >
                       <Minus size={14} />
@@ -1001,7 +1001,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setBeltSlots(prev => [...prev, { key: `slot_${prev.length + 1}`, label: '', bg: '#e2e8f0', text: '#1e293b' }])}
-                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-amber-600 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-amber-600 transition-colors"
               >
                 <Plus size={13} /> Stufe hinzufügen
               </button>
@@ -1022,13 +1022,13 @@ export default function SettingsPage() {
           {/* Mitglieder-Anmeldung */}
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
                 <UserPlus size={12} /> Mitglieder-Anmeldung
               </p>
               <label className="flex items-center gap-2 cursor-pointer select-none">
-                <span className="text-xs text-slate-500">{signupEnabled ? 'Aktiv' : 'Inaktiv'}</span>
+                <span className="text-xs text-zinc-500">{signupEnabled ? 'Aktiv' : 'Inaktiv'}</span>
                 <button type="button" onClick={() => setSignupEnabled(v => !v)}
-                  className={`relative w-9 h-5 rounded-full transition-colors ${signupEnabled ? 'bg-amber-500' : 'bg-gray-200'}`}>
+                  className={`relative w-9 h-5 rounded-full transition-colors ${signupEnabled ? 'bg-amber-500' : 'bg-zinc-200'}`}>
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${signupEnabled ? 'translate-x-4' : ''}`} />
                 </button>
               </label>
@@ -1048,21 +1048,21 @@ export default function SettingsPage() {
                       <ExternalLink size={11} /> Vorschau
                     </a>
                   )}
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-zinc-400 mt-1">
                     {signupEnabled ? 'Aktiv — teile diesen Link mit neuen Mitgliedern.' : 'Aktiviere die Anmeldung oben, damit der Link funktioniert.'}
                   </p>
                 </div>
               )}
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">Vertragsvorlage</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Vertragsvorlage</label>
                 <textarea
                   value={contractTemplate}
                   onChange={e => setContractTemplate(e.target.value)}
                   rows={8}
                   placeholder="Mitgliedschaftsvertrag…"
-                  className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-900 text-sm font-mono placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
+                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm font-mono placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
                 />
-                <p className="text-xs text-slate-400 mt-1">Wird dem Mitglied beim Anmelden angezeigt.</p>
+                <p className="text-xs text-zinc-400 mt-1">Wird dem Mitglied beim Anmelden angezeigt.</p>
               </div>
               <button type="button" onClick={handleSignupSave} disabled={signupSaving} className={saveBtnCls}>
                 <Save size={14} />
@@ -1076,7 +1076,7 @@ export default function SettingsPage() {
             <div className={sectionCls}>
               <SectionHeader icon={<Globe size={12} />} title="Öffentlicher Stundenplan" />
               <div className="p-5 space-y-4">
-                <p className="text-slate-500 text-sm">Bette den Stundenplan auf deiner Website ein — kein Login nötig.</p>
+                <p className="text-zinc-500 text-sm">Bette den Stundenplan auf deiner Website ein — kein Login nötig.</p>
                 <CopyRow
                   label="Direktlink"
                   value={`${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}`}
@@ -1100,11 +1100,11 @@ export default function SettingsPage() {
               <form onSubmit={handleStaffInvite} className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Name</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">Name</label>
                     <input value={staffName} onChange={e => setStaffName(e.target.value)} required placeholder="Max Mustermann" className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Email</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">Email</label>
                     <input type="email" value={staffEmail} onChange={e => setStaffEmail(e.target.value)} required placeholder="trainer@gym.de" className={inputCls} />
                   </div>
                 </div>
@@ -1129,18 +1129,18 @@ export default function SettingsPage() {
 
               {staffList.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-slate-500">Aktuelles Personal ({staffList.length})</p>
-                  <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 overflow-hidden">
+                  <p className="text-xs font-medium text-zinc-500">Aktuelles Personal ({staffList.length})</p>
+                  <div className="divide-y divide-gray-100 rounded-lg border border-zinc-200 overflow-hidden">
                     {staffList.map(s => (
                       <div key={s.id} className="flex items-center gap-3 px-4 py-3 bg-white">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-800 truncate">{s.name}</p>
-                          <p className="text-xs text-slate-400 truncate">{s.email}</p>
+                          <p className="text-sm font-medium text-zinc-800 truncate">{s.name}</p>
+                          <p className="text-xs text-zinc-400 truncate">{s.email}</p>
                         </div>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.accepted_at ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
                           {s.accepted_at ? 'Aktiv' : 'Eingeladen'}
                         </span>
-                        <button type="button" onClick={() => handleStaffDelete(s.id)} className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0">
+                        <button type="button" onClick={() => handleStaffDelete(s.id)} className="text-zinc-300 hover:text-red-500 transition-colors flex-shrink-0">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -1160,7 +1160,7 @@ export default function SettingsPage() {
           {/* Membership plans */}
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
                 <Package size={12} /> Mitgliedschafts-Tarife
               </p>
               {!planFormOpen && (
@@ -1171,7 +1171,7 @@ export default function SettingsPage() {
               )}
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-zinc-500">
                 Definiere Tarife mit Preis, Laufzeit und Abrechnungsintervall. Mitglieder können über ihr Portal einen Wechsel anfordern.
               </p>
 
@@ -1182,26 +1182,26 @@ export default function SettingsPage() {
                     {editingPlanId ? 'Tarif bearbeiten' : 'Neuer Tarif'}
                   </p>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Name *</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">Name *</label>
                     <input value={planForm.name} onChange={e => setPlanForm(p => ({ ...p, name: e.target.value }))}
                       placeholder="z.B. Jahresvertrag" className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Beschreibung</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">Beschreibung</label>
                     <input value={planForm.description} onChange={e => setPlanForm(p => ({ ...p, description: e.target.value }))}
                       placeholder="z.B. Günstigster Preis, volle Flexibilität" className={inputCls} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Preis (€) *</label>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">Preis (€) *</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">€</span>
                         <input value={planForm.price} onChange={e => setPlanForm(p => ({ ...p, price: e.target.value }))}
-                          placeholder="89,00" className="w-full pl-7 pr-3 py-2.5 rounded-lg bg-white border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                          placeholder="89,00" className="w-full pl-7 pr-3 py-2.5 rounded-lg bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Abrechnungsintervall</label>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">Abrechnungsintervall</label>
                       <select value={planForm.billingInterval} onChange={e => setPlanForm(p => ({ ...p, billingInterval: e.target.value }))} className={inputCls}>
                         <option value="monthly">Monatlich</option>
                         <option value="biannual">Halbjährlich</option>
@@ -1210,7 +1210,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Mindestlaufzeit</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">Mindestlaufzeit</label>
                     <select value={planForm.contractMonths} onChange={e => setPlanForm(p => ({ ...p, contractMonths: e.target.value }))} className={inputCls}>
                       <option value="0">Jederzeit kündbar</option>
                       <option value="3">3 Monate</option>
@@ -1221,7 +1221,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex gap-2 pt-1">
                     <button type="button" onClick={() => { setPlanFormOpen(false); setEditingPlanId(null) }}
-                      className="flex-1 py-2.5 rounded-lg border border-gray-200 text-slate-600 text-sm font-medium hover:bg-white transition-colors">
+                      className="flex-1 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-white transition-colors">
                       Abbrechen
                     </button>
                     <button type="button" onClick={handlePlanSave} disabled={planSaving || !planForm.name || !planForm.price}
@@ -1234,7 +1234,7 @@ export default function SettingsPage() {
 
               {/* Plans list */}
               {plans.length === 0 && !planFormOpen ? (
-                <div className="text-center py-6 text-slate-400 text-sm">
+                <div className="text-center py-6 text-zinc-400 text-sm">
                   Noch keine Tarife angelegt. Klicke auf „Tarif hinzufügen".
                 </div>
               ) : (
@@ -1243,28 +1243,28 @@ export default function SettingsPage() {
                     const months = plan.billing_interval === 'annual' ? 12 : plan.billing_interval === 'biannual' ? 6 : 1
                     const perMonth = months > 1 ? ` (≈ €${(plan.price_cents / 100 / months).toFixed(2).replace('.', ',')}/Mo)` : ''
                     return (
-                      <div key={plan.id} className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50">
+                      <div key={plan.id} className="flex items-start gap-3 p-3 rounded-xl border border-zinc-200 bg-zinc-50">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-slate-800">{plan.name}</p>
-                            {!plan.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-500">Inaktiv</span>}
+                            <p className="text-sm font-semibold text-zinc-800">{plan.name}</p>
+                            {!plan.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-zinc-500">Inaktiv</span>}
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <p className="text-xs text-zinc-500 mt-0.5">
                             €{(plan.price_cents / 100).toFixed(2).replace('.', ',')}
                             {plan.billing_interval === 'monthly' ? '/Monat' : plan.billing_interval === 'biannual' ? '/6 Monate' : '/Jahr'}
                             {perMonth}
                             {' · '}
                             {plan.contract_months === 0 ? 'Jederzeit kündbar' : `${plan.contract_months} Mo. Laufzeit`}
                           </p>
-                          {plan.description && <p className="text-xs text-slate-400 mt-0.5">{plan.description}</p>}
+                          {plan.description && <p className="text-xs text-zinc-400 mt-0.5">{plan.description}</p>}
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0">
                           <button type="button" onClick={() => handlePlanEdit(plan)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                            className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
                             <Edit2 size={13} />
                           </button>
                           <button type="button" onClick={() => handlePlanDelete(plan.id)}
-                            className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                            className="p-1.5 rounded-lg text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors">
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -1279,7 +1279,7 @@ export default function SettingsPage() {
           {/* Announcements */}
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
                 <Megaphone size={12} /> Ankündigungen
               </p>
               {!annoFormOpen && (
@@ -1290,7 +1290,7 @@ export default function SettingsPage() {
               )}
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-zinc-500">
                 Ankündigungen werden im Mitglieder-Portal angezeigt. Gepinnte Beiträge erscheinen immer oben.
               </p>
 
@@ -1298,36 +1298,36 @@ export default function SettingsPage() {
                 <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 space-y-3">
                   <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Neue Ankündigung</p>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Titel *</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">Titel *</label>
                     <input value={annoForm.title} onChange={e => setAnnoForm(a => ({ ...a, title: e.target.value }))}
                       placeholder="z.B. Neue Öffnungszeiten ab März" className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Text</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">Text</label>
                     <textarea value={annoForm.body} onChange={e => setAnnoForm(a => ({ ...a, body: e.target.value }))}
                       rows={3} placeholder="Detailliertere Informationen…"
-                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y" />
+                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Läuft ab am</label>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">Läuft ab am</label>
                       <input type="date" value={annoForm.expiresAt} onChange={e => setAnnoForm(a => ({ ...a, expiresAt: e.target.value }))}
                         className={inputCls} />
                     </div>
                     <div className="flex items-center justify-between pt-5">
                       <div>
-                        <p className="text-xs font-medium text-slate-600">Gepinnt</p>
-                        <p className="text-[10px] text-slate-400">Immer oben anzeigen</p>
+                        <p className="text-xs font-medium text-zinc-600">Gepinnt</p>
+                        <p className="text-[10px] text-zinc-400">Immer oben anzeigen</p>
                       </div>
                       <button type="button" onClick={() => setAnnoForm(a => ({ ...a, isPinned: !a.isPinned }))}
-                        className={`relative w-9 h-5 rounded-full transition-colors ${annoForm.isPinned ? 'bg-amber-500' : 'bg-gray-200'}`}>
+                        className={`relative w-9 h-5 rounded-full transition-colors ${annoForm.isPinned ? 'bg-amber-500' : 'bg-zinc-200'}`}>
                         <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${annoForm.isPinned ? 'translate-x-4' : ''}`} />
                       </button>
                     </div>
                   </div>
                   <div className="flex gap-2 pt-1">
                     <button type="button" onClick={() => setAnnoFormOpen(false)}
-                      className="flex-1 py-2.5 rounded-lg border border-gray-200 text-slate-600 text-sm font-medium hover:bg-white transition-colors">
+                      className="flex-1 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-white transition-colors">
                       Abbrechen
                     </button>
                     <button type="button" onClick={handleAnnoSave} disabled={annoSaving || !annoForm.title}
@@ -1339,26 +1339,26 @@ export default function SettingsPage() {
               )}
 
               {announcements.length === 0 && !annoFormOpen ? (
-                <div className="text-center py-6 text-slate-400 text-sm">
+                <div className="text-center py-6 text-zinc-400 text-sm">
                   Noch keine Ankündigungen. Klicke auf „Neue Ankündigung".
                 </div>
               ) : (
                 <div className="space-y-2">
                   {announcements.map(a => (
-                    <div key={a.id} className={`flex items-start gap-3 p-3 rounded-xl border ${a.is_pinned ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <div key={a.id} className={`flex items-start gap-3 p-3 rounded-xl border ${a.is_pinned ? 'border-amber-200 bg-amber-50' : 'border-zinc-200 bg-zinc-50'}`}>
                       <div className="flex-shrink-0 mt-0.5">
-                        {a.is_pinned ? <Pin size={12} className="text-amber-500" /> : <Megaphone size={12} className="text-slate-400" />}
+                        {a.is_pinned ? <Pin size={12} className="text-amber-500" /> : <Megaphone size={12} className="text-zinc-400" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800">{a.title}</p>
-                        {a.body && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{a.body}</p>}
-                        <p className="text-[10px] text-slate-400 mt-1">
+                        <p className="text-sm font-semibold text-zinc-800">{a.title}</p>
+                        {a.body && <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{a.body}</p>}
+                        <p className="text-[10px] text-zinc-400 mt-1">
                           {new Date(a.created_at).toLocaleDateString('de-DE')}
                           {a.expires_at && ` · läuft ab ${new Date(a.expires_at).toLocaleDateString('de-DE')}`}
                         </p>
                       </div>
                       <button type="button" onClick={() => handleAnnoDelete(a.id)}
-                        className="flex-shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                        className="flex-shrink-0 p-1.5 rounded-lg text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors">
                         <Trash2 size={13} />
                       </button>
                     </div>

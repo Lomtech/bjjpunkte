@@ -242,7 +242,7 @@ export default function MemberDetailPage() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-full">
-        <div className="text-slate-400 text-sm">Lädt...</div>
+        <div className="text-zinc-400 text-sm">Lädt...</div>
       </div>
     )
   }
@@ -250,65 +250,68 @@ export default function MemberDetailPage() {
   if (notFound || !member) {
     return (
       <div className="p-8">
-        <Link href="/dashboard/members" className="text-slate-400 hover:text-slate-600 text-sm">← Mitglieder</Link>
-        <p className="mt-6 text-slate-500">Mitglied nicht gefunden.</p>
+        <Link href="/dashboard/members" className="text-zinc-400 hover:text-zinc-600 text-sm">← Mitglieder</Link>
+        <p className="mt-6 text-zinc-500">Mitglied nicht gefunden.</p>
       </div>
     )
   }
 
   return (
     <div className="p-4 md:p-6 max-w-3xl">
-      <div className="mb-8">
-        <Link href="/dashboard/members" className="text-slate-400 hover:text-slate-600 text-sm">← Mitglieder</Link>
-        <div className="flex items-start justify-between mt-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">{member.first_name} {member.last_name}</h1>
-              <Link href={`/dashboard/members/${member.id}/edit`}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-600 text-xs font-medium transition-colors flex-shrink-0">
-                <Pencil size={12} /> Bearbeiten
-              </Link>
-            </div>
-            <div className="flex items-center gap-3 mt-2 flex-wrap">
-              {beltEnabled && <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />}
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
-                member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-400 border-slate-200'
-              }`}>
-                {member.is_active ? 'Aktiv' : 'Inaktiv'}
+      {/* Header */}
+      <div className="mb-6">
+        <Link href="/dashboard/members" className="text-zinc-400 hover:text-zinc-600 text-sm">← Mitglieder</Link>
+
+        <h1 className="text-2xl font-bold text-zinc-900 mt-3 mb-2">
+          {member.first_name} {member.last_name}
+        </h1>
+
+        {/* Status badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {beltEnabled && <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />}
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+            member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-zinc-100 text-zinc-400 border-zinc-200'
+          }`}>
+            {member.is_active ? 'Aktiv' : 'Inaktiv'}
+          </span>
+          {(() => {
+            const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+            const paidThisMonth = payments.some(p =>
+              p.status === 'paid' && new Date(p.paid_at ?? p.created_at) >= monthStart
+            )
+            const hasPendingThisMonth = payments.some(p =>
+              p.status === 'pending' && new Date(p.created_at) >= monthStart
+            )
+            if (paidThisMonth) return (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-green-50 text-green-700 border-green-200">
+                Beitrag bezahlt
               </span>
-              {/* Payment badge: based on actual payment this month, not subscription_status */}
-              {(() => {
-                const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-                const paidThisMonth = payments.some(p =>
-                  p.status === 'paid' && new Date(p.paid_at ?? p.created_at) >= monthStart
-                )
-                // Only count pending payments that are from THIS month (old pending links don't count)
-                const hasPendingThisMonth = payments.some(p =>
-                  p.status === 'pending' && new Date(p.created_at) >= monthStart
-                )
-                if (paidThisMonth) return (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-green-50 text-green-700 border-green-200">
-                    Beitrag: Bezahlt ✓
-                  </span>
-                )
-                if (hasPendingThisMonth) return (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-200">
-                    Beitrag: Ausstehend
-                  </span>
-                )
-                return null
-              })()}
-              {/* Subscription badge: separate from monthly payment status */}
-              {(member as any).stripe_subscription_id && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
-                  member.subscription_status === 'past_due' ? 'bg-red-50 text-red-700 border-red-200' :
-                  'bg-blue-50 text-blue-700 border-blue-200'
-                }`}>
-                  {member.subscription_status === 'past_due' ? 'Abo überfällig' : 'Abo aktiv'}
-                </span>
-              )}
-            </div>
-          </div>
+            )
+            if (hasPendingThisMonth) return (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-200">
+                Beitrag ausstehend
+              </span>
+            )
+            return null
+          })()}
+          {(member as any).stripe_subscription_id && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+              member.subscription_status === 'past_due' ? 'bg-red-50 text-red-700 border-red-200' :
+              'bg-blue-50 text-blue-700 border-blue-200'
+            }`}>
+              {member.subscription_status === 'past_due' ? 'Abo überfällig' : 'Abo aktiv'}
+            </span>
+          )}
+        </div>
+
+        {/* Action buttons — same row, same height */}
+        <div className="flex items-center gap-2 mt-4">
+          <Link
+            href={`/dashboard/members/${member.id}/edit`}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-sm font-medium transition-colors"
+          >
+            <Pencil size={13} /> Bearbeiten
+          </Link>
           <ToggleActiveButton
             memberId={member.id}
             isActive={member.is_active}
@@ -336,7 +339,7 @@ export default function MemberDetailPage() {
                 {new Date(member.cancellation_requested_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
               </p>
               {member.cancellation_note && (
-                <p className="text-sm text-slate-600 mt-2 bg-white rounded-lg px-3 py-2 border border-red-100">"{member.cancellation_note}"</p>
+                <p className="text-sm text-zinc-600 mt-2 bg-white rounded-lg px-3 py-2 border border-red-100">"{member.cancellation_note}"</p>
               )}
             </div>
             <button
@@ -368,8 +371,8 @@ export default function MemberDetailPage() {
       {(parentInfo || children.length > 0) && (
         <div className="flex flex-wrap gap-4 mb-4">
           {parentInfo && (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Users size={14} className="text-slate-400" />
+            <div className="flex items-center gap-2 text-sm text-zinc-600">
+              <Users size={14} className="text-zinc-400" />
               <span>Kind von </span>
               <Link href={`/dashboard/members/${parentInfo.id}`} className="text-amber-600 hover:underline font-medium">
                 {parentInfo.first_name} {parentInfo.last_name}
@@ -377,8 +380,8 @@ export default function MemberDetailPage() {
             </div>
           )}
           {children.length > 0 && (
-            <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap">
-              <Users size={14} className="text-slate-400" />
+            <div className="flex items-center gap-2 text-sm text-zinc-600 flex-wrap">
+              <Users size={14} className="text-zinc-400" />
               <span>Kinder: </span>
               {children.map(child => (
                 <Link key={child.id} href={`/dashboard/members/${child.id}`} className="text-amber-600 hover:underline font-medium">
@@ -404,17 +407,17 @@ export default function MemberDetailPage() {
       />
 
       {member.notes && (
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-5">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Notizen</p>
-          <p className="text-slate-600 text-sm">{member.notes}</p>
+        <div className="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm mb-5">
+          <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Notizen</p>
+          <p className="text-zinc-600 text-sm">{member.notes}</p>
         </div>
       )}
 
       {/* Belt Promotion — hidden when belt system disabled */}
       {beltEnabled && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
+        <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm mb-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-slate-900">Belt-Promotion</h2>
+            <h2 className="font-semibold text-zinc-900">Belt-Promotion</h2>
             <DemoteButton
               memberId={member.id} gymId={gymId}
               currentBelt={member.belt as Belt} currentStripes={member.stripes}
@@ -450,25 +453,25 @@ export default function MemberDetailPage() {
 
       {/* Promotion history */}
       {promotions.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm mb-5">
-          <h2 className="font-semibold text-slate-900 mb-4">Promotion-Verlauf</h2>
+        <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm mb-5">
+          <h2 className="font-semibold text-zinc-900 mb-4">Promotion-Verlauf</h2>
           <div className="space-y-0">
             {promotions.map((p, i) => {
               const isLatest = i === 0
               return (
-                <div key={p.id} className="group flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+                <div key={p.id} className="group flex items-center justify-between py-2.5 border-b border-zinc-100 last:border-0">
                   <div className="flex items-center gap-3">
                     <BeltBadge belt={p.previous_belt as Belt} stripes={p.previous_stripes} beltSystem={beltSystem} />
-                    <span className="text-slate-400">→</span>
+                    <span className="text-zinc-400">→</span>
                     <BeltBadge belt={p.new_belt as Belt} stripes={p.new_stripes} beltSystem={beltSystem} />
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-slate-400 text-sm">{new Date(p.promoted_at).toLocaleDateString('de-DE')}</span>
+                    <span className="text-zinc-400 text-sm">{new Date(p.promoted_at).toLocaleDateString('de-DE')}</span>
                     <button
                       onClick={() => deletePromotion(p.id, isLatest)}
                       disabled={deletingPromoId === p.id}
                       title={isLatest ? 'Graduierung rückgängig machen' : 'Eintrag löschen'}
-                      className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-all disabled:opacity-30"
+                      className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 transition-all disabled:opacity-30"
                     >
                       <Undo2 size={13} />
                       {isLatest ? 'Rückgängig' : 'Löschen'}
@@ -483,13 +486,13 @@ export default function MemberDetailPage() {
 
       {/* Recent attendance */}
       {attendance.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-4">Letzte Trainings</h2>
+        <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm">
+          <h2 className="font-semibold text-zinc-900 mb-4">Letzte Trainings</h2>
           <div className="space-y-2">
             {attendance.map(a => (
-              <div key={a.id} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
-                <span className="text-slate-700 text-sm capitalize font-medium flex-1 min-w-0 truncate">{a.class_type}</span>
-                <span className="text-slate-400 text-xs flex-shrink-0 whitespace-nowrap">
+              <div key={a.id} className="flex items-center gap-3 py-2 border-b border-zinc-100 last:border-0">
+                <span className="text-zinc-700 text-sm capitalize font-medium flex-1 min-w-0 truncate">{a.class_type}</span>
+                <span className="text-zinc-400 text-xs flex-shrink-0 whitespace-nowrap">
                   {new Date(a.checked_in_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}
                   {' · '}
                   {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
@@ -508,7 +511,7 @@ export default function MemberDetailPage() {
             <Trash2 size={14} />
             {deletingMember ? 'Wird gelöscht…' : 'Mitglied dauerhaft löschen'}
           </button>
-          <p className="text-xs text-slate-400 mt-2">Nur für inaktive Mitglieder. Alle Daten werden unwiderruflich gelöscht.</p>
+          <p className="text-xs text-zinc-400 mt-2">Nur für inaktive Mitglieder. Alle Daten werden unwiderruflich gelöscht.</p>
         </div>
       )}
     </div>
@@ -517,9 +520,9 @@ export default function MemberDetailPage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm min-w-0 overflow-hidden">
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 truncate">{label}</p>
-      <p className="text-slate-900 font-semibold text-sm truncate">{value}</p>
+    <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0 overflow-hidden">
+      <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1 truncate">{label}</p>
+      <p className="text-zinc-900 font-semibold text-sm truncate">{value}</p>
     </div>
   )
 }
@@ -532,7 +535,7 @@ function ContactBar({ firstName, phone, email }: { firstName: string; phone: str
         {phone && (
           <>
             <a href={`tel:${phone}`}
-              className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors">
               <Phone size={14} /> Anrufen
             </a>
             <button onClick={() => setShowWa(true)}
@@ -543,7 +546,7 @@ function ContactBar({ firstName, phone, email }: { firstName: string; phone: str
         )}
         {email && (
           <a href={`mailto:${email}`}
-            className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-medium text-sm transition-colors">
+            className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors">
             <Mail size={14} /> E-Mail
           </a>
         )}
@@ -567,7 +570,7 @@ function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; pho
     <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-[#25D366]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#25D366]">
           <div className="flex items-center gap-2 text-white">
             <MessageCircle size={18} />
             <span className="font-bold">WhatsApp an {firstName}</span>
@@ -576,12 +579,12 @@ function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; pho
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Vorlage</p>
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Vorlage</p>
             <div className="grid grid-cols-1 gap-1.5">
               {WA_TEMPLATES.map(t => (
                 <button key={t.id} onClick={() => { setSelected(t.id); setCustomText('') }}
                   className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                    selected === t.id ? 'bg-[#25D366]/10 text-[#128C7E] font-semibold border border-[#25D366]/30' : 'bg-gray-50 text-slate-700 hover:bg-gray-100'
+                    selected === t.id ? 'bg-[#25D366]/10 text-[#128C7E] font-semibold border border-[#25D366]/30' : 'bg-zinc-50 text-zinc-700 hover:bg-zinc-100'
                   }`}>
                   {t.label}
                 </button>
@@ -589,12 +592,12 @@ function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; pho
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nachricht bearbeiten</p>
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Nachricht bearbeiten</p>
             <textarea
               value={customText || template.text(firstName)}
               onChange={e => setCustomText(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-slate-800 text-sm focus:outline-none focus:border-[#25D366] focus:ring-2 focus:ring-[#25D366]/20 resize-none"
+              className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm focus:outline-none focus:border-[#25D366] focus:ring-2 focus:ring-[#25D366]/20 resize-none"
             />
           </div>
           <a href={waUrl} target="_blank" rel="noopener noreferrer"
@@ -619,9 +622,9 @@ function PortalLinkSection({ token }: { token: string }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-5">
+    <div className="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm mb-5">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mitgliederbereich</p>
+        <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Mitgliederbereich</p>
         <a
           href={portalUrl}
           target="_blank"
@@ -631,14 +634,14 @@ function PortalLinkSection({ token }: { token: string }) {
           <ExternalLink size={12} /> Öffnen
         </a>
       </div>
-      <p className="text-slate-500 text-xs mb-3">
+      <p className="text-zinc-500 text-xs mb-3">
         Diesen Link an das Mitglied schicken — dort sieht es Trainings, Zahlungen und Statistiken.
       </p>
       <div className="flex items-center gap-2">
         <input
           readOnly
           value={portalUrl}
-          className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-xs font-mono focus:outline-none truncate"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-600 text-xs font-mono focus:outline-none truncate"
         />
         <button
           onClick={copy}
@@ -684,9 +687,9 @@ function ContractSection({
   const isExpiring = diffDays !== null && diffDays >= 0 && diffDays <= 30
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-5">
+    <div className="bg-white rounded-2xl p-5 border border-zinc-200 shadow-sm mb-5">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Vertragsende</p>
+        <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Vertragsende</p>
         <button
           onClick={() => { setEditing(e => !e); setValue(contractEndDate ?? '') }}
           className="text-xs text-amber-600 hover:text-amber-500 font-medium"
@@ -701,7 +704,7 @@ function ContractSection({
             type="date"
             value={value}
             onChange={e => setValue(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-amber-400"
+            className="px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm focus:outline-none focus:border-amber-400"
           />
           <button
             onClick={save}
@@ -713,7 +716,7 @@ function ContractSection({
         </div>
       ) : (
         <div>
-          <p className="text-slate-900 font-semibold text-sm">
+          <p className="text-zinc-900 font-semibold text-sm">
             {contractEndDate ? new Date(contractEndDate).toLocaleDateString('de-DE') : '—'}
           </p>
           {isExpired && (
