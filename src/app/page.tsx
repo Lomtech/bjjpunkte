@@ -65,24 +65,6 @@ const STEPS = [
   { num: '03', title: 'Gym läuft',              desc: 'Zahlungen, Stundenplan, Portale — alles sofort einsatzbereit.' },
 ]
 
-const TESTIMONIALS = [
-  {
-    initials: 'MR', name: 'Marco Reiter',
-    role: 'Inhaber, Reiter BJJ Academy', city: 'München', sport: 'BJJ',
-    quote: 'Endlich eine Software die versteht wie ein deutsches Gym funktioniert. §19-Rechnungen, DSGVO, Kleinunternehmer — alles dabei. Spart mir Stunden pro Monat.',
-  },
-  {
-    initials: 'JS', name: 'Jana Schwarz',
-    role: 'Inhaberin, Kampfgeist MMA Club', city: 'Hamburg', sport: 'MMA',
-    quote: 'Meine Mitglieder buchen Kurse jetzt selbst über das Portal. Kein WhatsApp-Chaos mehr, kein manuelles Eintragen. Läuft einfach.',
-  },
-  {
-    initials: 'KB', name: 'Kevin Baum',
-    role: 'Cheftrainer, Precision Judo', city: 'Köln', sport: 'Judo',
-    quote: 'Von Excel auf Osss in einem Nachmittag. CSV-Import hat alles übernommen. Das Gürtelsystem ist exakt so wie ich es brauche.',
-  },
-]
-
 const MARQUEE_ITEMS = [
   'BJJ', 'MMA', 'Judo', 'Karate', 'Muay Thai', 'Boxen', 'Ringen', 'Taekwondo',
   'Hamburg', 'München', 'Berlin', 'Köln', 'Frankfurt', 'Stuttgart', 'Leipzig', 'Dresden',
@@ -156,91 +138,100 @@ export default function Home() {
       </motion.nav>
 
       {/* ── HERO ── */}
-      <section className="relative bg-white px-5 pt-16 pb-0 overflow-hidden">
-        {/* Soft warm glow top-right */}
-        <div className="absolute top-0 right-0 w-[600px] h-[500px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(251,191,36,0.12) 0%, transparent 60%)' }} />
-        {/* Soft glow bottom-left */}
-        <div className="absolute bottom-0 left-0 w-[400px] h-[300px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 0% 100%, rgba(251,191,36,0.06) 0%, transparent 70%)' }} />
+      <section className="relative bg-white overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[88vh]">
 
-        <div className="max-w-6xl mx-auto relative">
-          <motion.div variants={stagger} initial="hidden" animate="show" className="text-center max-w-4xl mx-auto mb-10">
+          {/* Left — text */}
+          <div className="flex flex-col justify-center px-6 sm:px-12 lg:px-16 xl:px-20 py-20 lg:py-24 relative">
+            {/* Soft amber glow */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none"
+              style={{ background: 'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(251,191,36,0.07) 0%, transparent 70%)' }} />
 
-            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 mb-8">
-              <Shield size={11} className="text-amber-600" />
-              <span className="text-amber-700 text-xs font-semibold tracking-wide">Made in Germany · DSGVO-konform</span>
+            <motion.div variants={stagger} initial="hidden" animate="show" className="relative max-w-xl">
+              <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 mb-8">
+                <Shield size={11} className="text-amber-600" />
+                <span className="text-amber-700 text-xs font-semibold tracking-wide">Made in Germany · DSGVO-konform</span>
+              </motion.div>
+
+              <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-black tracking-tighter leading-[0.9] mb-6 text-zinc-950">
+                Schluss mit Excel.<br />
+                <span className="text-amber-500">Dein Gym läuft</span><br />
+                in 10 Minuten.
+              </motion.h1>
+
+              <motion.p variants={fadeUp} className="text-zinc-500 text-lg mb-8 leading-relaxed">
+                Mitglieder, Beiträge, Stundenplan — alles in einer Software. Auf Deutsch. Für Kampfsport-Gyms.
+              </motion.p>
+
+              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-8">
+                <Link href="/register"
+                  className="bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/20">
+                  <Zap size={16} className="text-amber-400" />
+                  Jetzt kostenlos starten
+                </Link>
+                <Link href="/pricing"
+                  className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
+                  Preise ansehen <ArrowRight size={15} />
+                </Link>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="flex flex-wrap gap-x-7 gap-y-3">
+                {[
+                  { val: '€0',     label: 'Startkosten' },
+                  { val: '10 Min', label: 'Setup' },
+                  { val: '2%',     label: 'Plattformgebühr' },
+                  { val: 'DSGVO',  label: 'konform' },
+                ].map(s => (
+                  <div key={s.label}>
+                    <span className="text-zinc-950 font-black text-lg tracking-tight">{s.val}</span>
+                    <span className="text-zinc-400 text-xs ml-1.5 tracking-wide">{s.label}</span>
+                  </div>
+                ))}
+              </motion.div>
             </motion.div>
+          </div>
 
-            <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl lg:text-[5.5rem] font-black tracking-tighter leading-[0.92] mb-6 text-zinc-950">
-              Schluss mit Excel.<br />
-              <span className="text-amber-500">Dein Gym läuft</span><br />
-              in 10 Minuten.
-            </motion.h1>
-
-            <motion.p variants={fadeUp} className="text-zinc-500 text-lg sm:text-xl max-w-xl mx-auto mb-8 leading-relaxed">
-              Mitglieder, Beiträge, Stundenplan — alles in einer Software. Auf Deutsch. Für Kampfsport-Gyms.
-            </motion.p>
-
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-5">
-              <Link href="/register"
-                className="w-full sm:w-auto bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/20">
-                <Zap size={16} className="text-amber-400" />
-                Jetzt kostenlos starten
-              </Link>
-              <Link href="/pricing"
-                className="w-full sm:w-auto border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
-                Preise ansehen
-                <ArrowRight size={15} />
-              </Link>
-            </motion.div>
-
-            <motion.p variants={fadeUp} className="text-zinc-400 text-xs tracking-wide">
-              Keine Kreditkarte · Kein Risiko · Jederzeit kündbar
-            </motion.p>
-          </motion.div>
-
-          {/* Stats */}
+          {/* Right — photo */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-12"
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="relative hidden lg:block"
           >
-            {[
-              { val: '€0',     label: 'Startkosten' },
-              { val: '10 Min', label: 'Setup' },
-              { val: '2%',     label: 'Plattformgebühr' },
-              { val: 'DSGVO',  label: '100% konform' },
-            ].map(s => (
-              <div key={s.label} className="text-center">
-                <div className="text-zinc-950 font-black text-xl tracking-tight">{s.val}</div>
-                <div className="text-zinc-400 text-[10px] tracking-widest uppercase mt-0.5">{s.label}</div>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Screenshot — light frame */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="relative mx-auto max-w-5xl"
-          >
-            <div className="rounded-t-2xl border border-zinc-200 border-b-0 bg-zinc-50 px-4 pt-3 shadow-[0_-4px_40px_rgba(0,0,0,0.06)]">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-zinc-300" />
-                  <div className="w-3 h-3 rounded-full bg-zinc-300" />
-                  <div className="w-3 h-3 rounded-full bg-zinc-300" />
-                </div>
-                <div className="flex-1 bg-white border border-zinc-200 rounded h-5 flex items-center px-3">
-                  <span className="text-zinc-400 text-[10px] font-mono">app.osss.pro/dashboard</span>
-                </div>
-              </div>
-              <Image src="/screenshot_betrieb.png" alt="Osss Dashboard" width={1706} height={922} className="w-full rounded-t-lg" priority />
+            <Image
+              src="/tournament-podium.jpg"
+              alt="Wettkampf Siegerehrung"
+              fill
+              className="object-cover object-top"
+              priority
+            />
+            {/* Left fade to white */}
+            <div className="absolute inset-0"
+              style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.15) 0%, transparent 20%)' }} />
+            {/* Bottom caption */}
+            <div className="absolute bottom-8 left-8">
+              <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                Spring Nationals · Podium
+              </span>
             </div>
           </motion.div>
+
+          {/* Mobile: photo below text */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="relative lg:hidden h-72 sm:h-96"
+          >
+            <Image
+              src="/tournament-podium.jpg"
+              alt="Wettkampf Siegerehrung"
+              fill
+              className="object-cover object-top"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent" />
+          </motion.div>
+
         </div>
       </section>
 
@@ -262,43 +253,27 @@ export default function Home() {
       </div>
 
       {/* ── PHOTO SECTION ── */}
-      <section className="bg-zinc-950 py-20 px-5 overflow-hidden">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Echtes Training. Echter Wettkampf.</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Für Gyms, die gewinnen wollen.
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-[1.3fr_0.7fr] gap-3">
-            <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[460px] rounded-2xl overflow-hidden">
-              <Image
-                src="/competition-mat.jpg"
-                alt="Wettkampf auf der Matte"
-                fill
-                className="object-cover object-center"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-5 left-5">
-                <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">Wettkampf · Submission Grappling</span>
-              </div>
-            </div>
-            <div className="relative aspect-[3/4] md:aspect-auto md:min-h-[460px] rounded-2xl overflow-hidden">
-              <Image
-                src="/tournament-podium.jpg"
-                alt="Siegerehrung Turnier"
-                fill
-                className="object-cover object-top"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-5 left-5">
-                <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">Spring Nationals · Podium</span>
-              </div>
-            </div>
-          </div>
-          <p className="text-zinc-500 text-center text-sm mt-6 max-w-md mx-auto leading-relaxed">
-            Osss hält deinen Gym-Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
+      <section className="relative h-[55vh] min-h-[380px] overflow-hidden">
+        <Image
+          src="/competition-mat.jpg"
+          alt="Wettkampf auf der Matte"
+          fill
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-zinc-950/55" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-5">
+          <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.25em] mb-4">Echtes Training. Echter Wettkampf.</p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight max-w-xl">
+            Für Gyms, die gewinnen wollen.
+          </h2>
+          <p className="text-zinc-300 text-sm mt-5 max-w-sm leading-relaxed">
+            Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
           </p>
+        </div>
+        <div className="absolute bottom-5 right-5">
+          <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            Wettkampf · Submission Grappling
+          </span>
         </div>
       </section>
 
@@ -401,8 +376,7 @@ export default function Home() {
               Kein langer Onboarding-Prozess. Du bist in unter 10 Minuten live.
             </motion.p>
           </div>
-          <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-5 relative">
-            <div className="hidden sm:block absolute top-9 left-[calc(33.33%+20px)] right-[calc(33.33%+20px)] h-px bg-amber-200" />
+          <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {STEPS.map(step => (
               <motion.div key={step.num} variants={fadeUp}>
                 <div className="bg-white rounded-2xl p-7 border border-amber-100 shadow-sm h-full">
@@ -529,35 +503,6 @@ export default function Home() {
               </div>
             </motion.div>
           </div>
-        </div>
-      </Section>
-
-      {/* ── TESTIMONIALS ── */}
-      <Section className="py-24 px-5 bg-zinc-50 border-y border-zinc-100">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Stimmen aus der Community</motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">Was Gym-Owner sagen</motion.h2>
-          </div>
-          <motion.div variants={stagger} className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map(t => (
-              <motion.div key={t.name} variants={fadeUp}
-                className="bg-white rounded-2xl border border-zinc-100 p-7 flex flex-col shadow-sm">
-                <div className="text-5xl font-black text-amber-300 leading-none mb-3 select-none font-serif">&ldquo;</div>
-                <p className="text-zinc-600 text-sm leading-relaxed flex-1 mb-6">{t.quote}</p>
-                <div className="flex items-center gap-3 pt-5 border-t border-zinc-100">
-                  <div className="w-9 h-9 rounded-full bg-zinc-900 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-xs font-black">{t.initials}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-zinc-900 text-sm">{t.name}</p>
-                    <p className="text-zinc-400 text-xs truncate">{t.role} · {t.city}</p>
-                  </div>
-                  <span className="text-[11px] font-semibold text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-1 rounded-full flex-shrink-0">{t.sport}</span>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
         </div>
       </Section>
 
