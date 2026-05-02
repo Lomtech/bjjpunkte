@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Check, Zap } from 'lucide-react'
+import { OsssLogo } from '@/components/Logo'
+import { ArrowLeft, Check, Zap, Shield, CreditCard, Clock } from 'lucide-react'
 
 const PLANS = [
   {
@@ -12,78 +13,65 @@ const PLANS = [
     price: '0',
     period: '',
     members: 'Bis zu 30 Mitglieder',
-    color: 'border-slate-200',
-    badge: '',
     planKey: 'free',
+    highlight: false,
     features: [
       'Mitgliederverwaltung',
       'Belt-Tracking & Promotions',
       'Anwesenheit & Kiosk-Modus',
       'Stundenplan',
       'Member-Portal (tokenbasiert)',
-      '2% Plattformgebühr bei Zahlungen',
-    ],
-    notIncluded: [
-      'Zahlungserinnerungen',
-      'Lead-Management',
+      'Lead-Management & Pipeline',
       'Rechnungsgenerierung',
+      '2% Plattformgebühr bei Zahlungen',
     ],
     cta: 'Kostenlos starten',
     ctaHref: '/register',
-    ctaStyle: 'border-2 border-slate-200 text-slate-700 hover:bg-slate-50',
   },
   {
     name: 'Starter',
     price: '29',
     period: '/Monat',
     members: 'Bis zu 50 Mitglieder',
-    color: 'border-slate-200',
-    badge: '',
     planKey: 'starter',
+    highlight: false,
     features: [
       'Alles aus Free',
       'Automatische Zahlungserinnerungen',
       'Geburtstags-E-Mails',
       'Rechnungsgenerierung (Kleinunternehmer)',
-      'Lead-Management & Pipeline',
       'Trainer-Accounts',
       '2% Plattformgebühr',
     ],
-    notIncluded: [],
     cta: 'Starter wählen',
     ctaHref: '/register?plan=starter',
-    ctaStyle: 'bg-slate-900 text-white hover:bg-slate-700',
   },
   {
     name: 'Grow',
     price: '59',
     period: '/Monat',
     members: 'Bis zu 150 Mitglieder',
-    color: 'border-amber-400',
-    badge: 'Beliebt',
     planKey: 'grow',
+    highlight: true,
     features: [
       'Alles aus Starter',
-      'WhatsApp-Vorlagen & Direktnachrichten',
+      'Ankündigungen & Pinnwand für Mitglieder',
       'Öffentlicher Stundenplan (Embed)',
       'QR-Code Check-in',
       'CSV & iCal-Export',
       'Eltern-Kind-Verknüpfung',
       '2% Plattformgebühr',
     ],
-    notIncluded: [],
     cta: 'Grow wählen',
     ctaHref: '/register?plan=grow',
-    ctaStyle: 'bg-amber-500 text-white hover:bg-amber-400',
   },
   {
     name: 'Pro',
     price: '99',
     period: '/Monat',
     members: 'Unbegrenzte Mitglieder',
-    color: 'border-slate-200',
-    badge: '',
     planKey: 'pro',
+    highlight: false,
     features: [
       'Alles aus Grow',
       'Unbegrenzte Mitglieder',
@@ -91,13 +79,17 @@ const PLANS = [
       'Prioritäts-Support',
       'Frühzeitiger Zugang zu neuen Features',
       '2% Plattformgebühr',
-      'Custom Branding (coming soon)',
     ],
-    notIncluded: [],
     cta: 'Pro wählen',
     ctaHref: '/register?plan=pro',
-    ctaStyle: 'bg-slate-900 text-white hover:bg-slate-700',
   },
+]
+
+const TRUST = [
+  { icon: CreditCard, label: 'Keine Kreditkarte beim Start' },
+  { icon: Clock,      label: 'Jederzeit kündbar' },
+  { icon: Shield,     label: 'DSGVO-konform · Daten in der EU' },
+  { icon: Zap,        label: 'Stripe-zertifiziert' },
 ]
 
 const FAQS = [
@@ -145,26 +137,25 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-slate-100">
-        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100">
+        <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-900 transition-colors font-medium"
             >
               <ArrowLeft size={15} />
-              Zurück
+              <span className="hidden sm:inline">Zurück</span>
             </button>
-            <span className="text-slate-200">|</span>
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
-                <span className="text-[9px] font-black text-white italic">oss</span>
-              </div>
-              <span className="font-black text-lg italic text-slate-900">Osss</span>
-            </Link>
+            <span className="text-zinc-200 hidden sm:block">|</span>
+            <OsssLogo variant="light" />
           </div>
-          <Link href="/register" className="bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+          <Link
+            href="/register"
+            className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
+          >
             <Zap size={13} />
             Kostenlos starten
           </Link>
@@ -172,50 +163,55 @@ export default function PricingPage() {
       </nav>
 
       {/* Header */}
-      <div className="bg-slate-900 text-white px-5 pt-14 pb-16 text-center">
-        <div className="max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/30 rounded-full px-4 py-1.5 mb-5">
-            <span className="text-amber-400 text-xs font-semibold">Keine versteckten Gebühren</span>
+      <div className="bg-zinc-950 text-white px-5 pt-16 pb-20 text-center relative overflow-hidden">
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 70% 50% at 50% -10%, rgba(251,191,36,0.12) 0%, transparent 65%)' }}
+        />
+        <div className="max-w-xl mx-auto relative">
+          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-6">
+            <span className="text-zinc-300 text-xs font-semibold tracking-wide">Keine versteckten Gebühren</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black mb-4">Einfache, faire Preise</h1>
-          <p className="text-slate-300 text-lg">
-            Starte kostenlos mit bis zu 30 Mitgliedern. Zahle erst wenn dein Gym wächst.
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tighter mb-4">
+            Einfache, faire Preise
+          </h1>
+          <p className="text-zinc-400 text-lg leading-relaxed">
+            Starte kostenlos mit bis zu 30 Mitgliedern.<br />Zahle erst wenn dein Gym wächst.
           </p>
         </div>
       </div>
 
-      {/* Plans grid */}
-      <div className="max-w-5xl mx-auto px-5 -mt-6">
+      {/* Plans */}
+      <div className="max-w-5xl mx-auto px-5 -mt-8 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {PLANS.map(plan => (
             <div
               key={plan.name}
-              className={`bg-white rounded-2xl border-2 ${plan.color} p-6 flex flex-col relative shadow-sm ${plan.badge ? 'shadow-amber-100' : ''}`}
+              className={`bg-white rounded-2xl border-2 p-6 flex flex-col relative shadow-sm transition-all ${
+                plan.highlight
+                  ? 'border-amber-400 shadow-amber-100/80 shadow-lg'
+                  : 'border-zinc-100 hover:border-zinc-200'
+              }`}
             >
-              {plan.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                  {plan.badge}
+              {plan.highlight && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-400 text-zinc-950 text-[11px] font-black px-3 py-1 rounded-full tracking-wide">
+                  BELIEBT
                 </div>
               )}
-              <div className="mb-5">
-                <p className="font-bold text-slate-900 text-lg">{plan.name}</p>
-                <div className="flex items-end gap-0.5 mt-1">
-                  <span className="text-3xl font-black text-slate-900">€{plan.price}</span>
-                  <span className="text-slate-400 text-sm pb-1">{plan.period}</span>
+
+              <div className="mb-6">
+                <p className="font-bold text-zinc-500 text-xs uppercase tracking-widest mb-2">{plan.name}</p>
+                <div className="flex items-end gap-0.5 mb-1">
+                  <span className="text-4xl font-black text-zinc-900 tracking-tight">€{plan.price}</span>
+                  <span className="text-zinc-400 text-sm pb-1.5">{plan.period}</span>
                 </div>
-                <p className="text-slate-500 text-xs mt-1">{plan.members}</p>
+                <p className="text-zinc-400 text-xs">{plan.members}</p>
               </div>
 
-              <ul className="space-y-2 flex-1 mb-6">
+              <ul className="space-y-2.5 flex-1 mb-6">
                 {plan.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                    <Check size={13} className="text-green-500 mt-0.5 flex-shrink-0" />
-                    {f}
-                  </li>
-                ))}
-                {plan.notIncluded.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300 line-through">
-                    <span className="mt-0.5 flex-shrink-0 w-3 h-3" />
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-zinc-700">
+                    <Check size={13} className="text-emerald-500 mt-0.5 flex-shrink-0" />
                     {f}
                   </li>
                 ))}
@@ -224,7 +220,11 @@ export default function PricingPage() {
               {plan.planKey === 'free' ? (
                 <Link
                   href={plan.ctaHref}
-                  className={`block text-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${plan.ctaStyle}`}
+                  className={`block text-center px-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+                    plan.highlight
+                      ? 'bg-amber-400 hover:bg-amber-300 text-zinc-950'
+                      : 'border-2 border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50'
+                  }`}
                 >
                   {plan.cta}
                 </Link>
@@ -232,7 +232,11 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleUpgrade(plan.planKey)}
                   disabled={loadingPlan === plan.planKey}
-                  className={`block w-full text-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${plan.ctaStyle}`}
+                  className={`block w-full text-center px-4 py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-60 ${
+                    plan.highlight
+                      ? 'bg-amber-400 hover:bg-amber-300 text-zinc-950'
+                      : 'bg-zinc-900 hover:bg-zinc-700 text-white'
+                  }`}
                 >
                   {loadingPlan === plan.planKey ? 'Wird geladen…' : plan.cta}
                 </button>
@@ -243,43 +247,50 @@ export default function PricingPage() {
       </div>
 
       {/* Trust strip */}
-      <div className="max-w-5xl mx-auto px-5 mt-8 mb-4">
-        <div className="bg-slate-50 rounded-2xl px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-slate-500">
-          {[
-            '✓  Keine Kreditkarte beim Start',
-            '✓  Jederzeit kündbar',
-            '✓  DSGVO-konform · Daten in der EU',
-            '✓  Stripe-zertifiziert',
-          ].map(t => (
-            <span key={t} className="font-medium">{t}</span>
-          ))}
+      <div className="max-w-5xl mx-auto px-5 mb-4">
+        <div className="bg-zinc-50 border border-zinc-100 rounded-2xl px-6 py-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {TRUST.map(t => (
+              <div key={t.label} className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center flex-shrink-0">
+                  <t.icon size={13} className="text-zinc-500" />
+                </div>
+                <span className="text-zinc-600 text-xs font-medium leading-tight">{t.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* FAQ */}
-      <div className="max-w-2xl mx-auto px-5 py-16">
-        <h2 className="text-2xl font-black text-slate-900 text-center mb-8">Häufige Fragen</h2>
-        <div className="divide-y divide-slate-100">
+      <div className="max-w-2xl mx-auto px-5 py-20">
+        <h2 className="text-2xl font-black text-zinc-900 tracking-tight text-center mb-10">
+          Häufige Fragen
+        </h2>
+        <div className="divide-y divide-zinc-100">
           {FAQS.map((faq, i) => (
             <div key={i}>
               <button
                 onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className="w-full text-left py-4 flex items-center justify-between gap-4 group"
+                className="w-full text-left py-5 flex items-center justify-between gap-4 group"
               >
-                <span className="font-semibold text-slate-900 group-hover:text-amber-600 transition-colors text-sm">{faq.q}</span>
-                <span className={`text-slate-400 text-lg flex-shrink-0 transition-transform ${openFaq === i ? 'rotate-45' : ''}`}>+</span>
+                <span className="font-semibold text-zinc-900 group-hover:text-amber-600 transition-colors text-sm">
+                  {faq.q}
+                </span>
+                <span className={`text-zinc-400 text-xl flex-shrink-0 transition-transform duration-200 leading-none ${openFaq === i ? 'rotate-45' : ''}`}>
+                  +
+                </span>
               </button>
               {openFaq === i && (
-                <p className="pb-4 text-sm text-slate-500 leading-relaxed">{faq.a}</p>
+                <p className="pb-5 text-sm text-zinc-500 leading-relaxed">{faq.a}</p>
               )}
             </div>
           ))}
         </div>
-
-        <div className="mt-10 text-center">
-          <p className="text-slate-400 text-sm">
+        <div className="mt-12 text-center">
+          <p className="text-zinc-400 text-sm">
             Weitere Fragen?{' '}
-            <a href="mailto:support@osss.pro" className="text-amber-600 hover:underline font-medium">
+            <a href="mailto:support@osss.pro" className="text-amber-600 hover:text-amber-700 font-semibold transition-colors">
               support@osss.pro
             </a>
           </p>
@@ -287,17 +298,37 @@ export default function PricingPage() {
       </div>
 
       {/* Final CTA */}
-      <div className="bg-slate-900 text-white text-center px-5 py-16">
-        <h2 className="text-3xl font-black mb-3">Bereit loszulegen?</h2>
-        <p className="text-slate-300 mb-6 max-w-md mx-auto">Kostenlos starten — kein Risiko, keine Kreditkarte. Dein Gym läuft in 10 Minuten.</p>
-        <Link
-          href="/register"
-          className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-colors"
-        >
-          <Zap size={16} />
-          Jetzt kostenlos starten
-        </Link>
+      <div className="bg-zinc-950 text-white text-center px-5 py-20 relative overflow-hidden">
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 60% 60% at 50% 110%, rgba(251,191,36,0.08) 0%, transparent 65%)' }}
+        />
+        <div className="max-w-md mx-auto relative">
+          <h2 className="text-3xl font-black tracking-tight mb-3">Bereit loszulegen?</h2>
+          <p className="text-zinc-400 mb-8 text-sm leading-relaxed">
+            Kostenlos starten — kein Risiko, keine Kreditkarte. Dein Gym läuft in 10 Minuten.
+          </p>
+          <Link
+            href="/register"
+            className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Zap size={16} />
+            Jetzt kostenlos starten
+          </Link>
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-zinc-100 py-6 px-5">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-400">
+          <p>© {new Date().getFullYear()} Osss · Die Kampfsport-Gym-Software</p>
+          <div className="flex gap-5">
+            <Link href="/datenschutz" className="hover:text-zinc-700 transition-colors">Datenschutz</Link>
+            <Link href="/impressum" className="hover:text-zinc-700 transition-colors">Impressum</Link>
+            <a href="mailto:support@osss.pro" className="hover:text-zinc-700 transition-colors">Kontakt</a>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
