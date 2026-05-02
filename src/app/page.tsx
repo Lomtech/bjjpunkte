@@ -249,22 +249,21 @@ export default function Home() {
             </motion.div>
           </div>
 
-          {/* Right — Dashboard Screenshot */}
+          {/* Right — Dashboard Screenshot + Podium float */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="relative hidden lg:flex items-center justify-center bg-zinc-50 overflow-hidden"
+            className="relative hidden lg:flex items-start justify-center bg-zinc-50 overflow-hidden pt-10"
           >
-            {/* Subtle grid background */}
+            {/* Dot grid background */}
             <div className="absolute inset-0 pointer-events-none"
               style={{ backgroundImage: 'radial-gradient(circle, rgba(251,191,36,0.08) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
             <div className="absolute inset-0"
               style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.6) 0%, transparent 15%, transparent 85%, rgba(255,255,255,0.3) 100%)' }} />
 
-            {/* Browser frame */}
-            <div className="relative w-[92%] mt-10 mb-0 rounded-t-xl overflow-hidden shadow-2xl shadow-zinc-300/60 border border-zinc-200/80 ring-1 ring-zinc-200/50">
-              {/* Browser chrome bar */}
+            {/* Browser frame — pushed slightly left + up */}
+            <div className="relative w-[88%] -ml-6 rounded-t-xl overflow-hidden shadow-2xl shadow-zinc-300/60 border border-zinc-200/80 ring-1 ring-zinc-200/50 z-10">
               <div className="bg-zinc-100 border-b border-zinc-200 px-4 py-2.5 flex items-center gap-2">
                 <div className="flex gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
@@ -284,6 +283,42 @@ export default function Home() {
                 priority
               />
             </div>
+
+            {/* Podium floating card */}
+            <motion.div
+              initial={{ opacity: 0, y: 60, rotate: -2 }}
+              animate={{ opacity: 1, y: 0, rotate: -2 }}
+              transition={{ duration: 0.9, delay: 0.65, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute bottom-12 right-4 xl:right-8 z-20 w-[42%] xl:w-[38%]"
+            >
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative rounded-2xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.22)] border-[3px] border-white ring-1 ring-zinc-200/50"
+              >
+                <Image
+                  src="/tournament-podium.jpg"
+                  alt="Athleten auf dem Siegerpodest"
+                  width={800}
+                  height={600}
+                  className="w-full object-cover"
+                />
+                {/* Subtle amber overlay at bottom */}
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'linear-gradient(to top, rgba(251,191,36,0.18) 0%, transparent 50%)' }} />
+                {/* Badge */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-sm">
+                  <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center flex-shrink-0">
+                    <Award size={12} className="text-zinc-950" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-zinc-900 leading-tight">Für Wettkämpfer</p>
+                    <p className="text-[9px] text-zinc-400 leading-tight">Promotions · Verlauf · Daten</p>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+
           </motion.div>
 
         </div>
