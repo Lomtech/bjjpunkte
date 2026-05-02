@@ -395,9 +395,9 @@ function ClassCard({
         <div className="px-3 pb-3">
           <Link
             href={buildKioskUrl(cls)}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-bold transition-colors shadow-sm active:scale-[0.98]"
+            className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-bold transition-colors shadow-sm active:scale-[0.98]"
           >
-            <Scan size={13} /> QR Check-in starten
+            <Scan size={16} strokeWidth={2} /> QR Check-in starten
           </Link>
         </div>
       )}
