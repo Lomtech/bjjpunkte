@@ -261,6 +261,47 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ── PHOTO SECTION ── */}
+      <section className="bg-zinc-950 py-20 px-5 overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Echtes Training. Echter Wettkampf.</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Für Gyms, die gewinnen wollen.
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-[1.3fr_0.7fr] gap-3">
+            <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[460px] rounded-2xl overflow-hidden">
+              <Image
+                src="/competition-mat.jpg"
+                alt="Wettkampf auf der Matte"
+                fill
+                className="object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-transparent to-transparent" />
+              <div className="absolute bottom-5 left-5">
+                <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">Wettkampf · Submission Grappling</span>
+              </div>
+            </div>
+            <div className="relative aspect-[3/4] md:aspect-auto md:min-h-[460px] rounded-2xl overflow-hidden">
+              <Image
+                src="/tournament-podium.jpg"
+                alt="Siegerehrung Turnier"
+                fill
+                className="object-cover object-top"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-transparent to-transparent" />
+              <div className="absolute bottom-5 left-5">
+                <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">Spring Nationals · Podium</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-zinc-500 text-center text-sm mt-6 max-w-md mx-auto leading-relaxed">
+            Osss hält deinen Gym-Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
+          </p>
+        </div>
+      </section>
+
       {/* ── SPORTS ── */}
       <section className="bg-zinc-50 px-5 py-24 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto">

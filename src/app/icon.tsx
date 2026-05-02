@@ -13,16 +13,15 @@ export default function Icon() {
           background: '#FBBF24',
           borderRadius: 7,
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
+          alignItems: 'center',
           justifyContent: 'center',
-          paddingLeft: 7,
-          gap: 4,
         }}
       >
-        <div style={{ width: 18, height: 3, background: '#09090B', borderRadius: 2 }} />
-        <div style={{ width: 12, height: 3, background: '#09090B', borderRadius: 2 }} />
-        <div style={{ width: 7,  height: 3, background: '#09090B', borderRadius: 2 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ width: 18, height: 3, background: '#09090B', borderRadius: 2 }} />
+          <div style={{ width: 12, height: 3, background: '#09090B', borderRadius: 2 }} />
+          <div style={{ width: 7,  height: 3, background: '#09090B', borderRadius: 2 }} />
+        </div>
       </div>
     ),
     { ...size },
