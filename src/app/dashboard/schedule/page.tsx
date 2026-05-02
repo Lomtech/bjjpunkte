@@ -16,7 +16,7 @@ interface ClassRow {
 }
 
 interface BookingMember {
-  id: string; status: string; member_id: string; member_name: string; belt: string
+  id: string; status: 'confirmed' | 'waitlist' | 'checked_in'; member_id: string; member_name: string; belt: string
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -140,18 +140,41 @@ export default function SchedulePage() {
     setRosterLoading(true)
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any)
-      .from('class_bookings')
-      .select('id, status, member_id, members(first_name, last_name, belt)')
-      .eq('class_id', classId).neq('status','cancelled').order('created_at')
-    setRoster((data ?? []).map((b: {
-      id: string; status: string; member_id: string
-      members: { first_name: string; last_name: string; belt: string } | null
-    }) => ({
-      id: b.id, status: b.status, member_id: b.member_id,
-      member_name: b.members ? `${b.members.first_name} ${b.members.last_name}` : 'Unbekannt',
-      belt: b.members?.belt ?? 'white',
-    })))
+    const [{ data: bookingsData }, { data: attendanceData }] = await Promise.all([
+      (supabase as any)
+        .from('class_bookings')
+        .select('id, status, member_id, members(first_name, last_name, belt)')
+        .eq('class_id', classId).neq('status', 'cancelled').order('created_at'),
+      (supabase as any)
+        .from('attendance')
+        .select('id, member_id, members(first_name, last_name, belt)')
+        .eq('class_id', classId),
+    ])
+
+    type RawBooking = { id: string; status: string; member_id: string; members: { first_name: string; last_name: string; belt: string } | null }
+    type RawAttendance = { id: string; member_id: string; members: { first_name: string; last_name: string; belt: string } | null }
+
+    const memberMap = new Map<string, BookingMember>()
+    for (const b of (bookingsData ?? []) as RawBooking[]) {
+      memberMap.set(b.member_id, {
+        id: b.id, status: b.status as BookingMember['status'], member_id: b.member_id,
+        member_name: b.members ? `${b.members.first_name} ${b.members.last_name}` : 'Unbekannt',
+        belt: b.members?.belt ?? 'white',
+      })
+    }
+    for (const a of (attendanceData ?? []) as RawAttendance[]) {
+      const existing = memberMap.get(a.member_id)
+      if (existing) {
+        existing.status = 'checked_in'
+      } else {
+        memberMap.set(a.member_id, {
+          id: a.id, status: 'checked_in', member_id: a.member_id,
+          member_name: a.members ? `${a.members.first_name} ${a.members.last_name}` : 'Unbekannt',
+          belt: a.members?.belt ?? 'white',
+        })
+      }
+    }
+    setRoster(Array.from(memberMap.values()))
     setRosterLoading(false)
   }
 
@@ -395,12 +418,10 @@ function ClassCard({
         <div className="px-3 pb-3">
           <Link
             href={buildKioskUrl(cls)}
-            className="flex items-center justify-center w-full py-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-bold transition-colors shadow-sm active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-bold transition-colors shadow-sm active:scale-[0.98]"
           >
-            <span className="inline-flex items-center gap-2 whitespace-nowrap">
-              <Scan size={16} strokeWidth={2} />
-              QR Check-in starten
-            </span>
+            <Scan size={16} strokeWidth={2} />
+            QR Check-in
           </Link>
         </div>
       )}
@@ -411,7 +432,7 @@ function ClassCard({
           {/* Roster */}
           {(rosterLoading || roster.length > 0) && (
             <div className="px-3 pt-2.5 pb-2">
-              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Angemeldet</p>
+              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Teilnehmer</p>
               {rosterLoading ? (
                 <p className="text-xs text-zinc-400">Lädt…</p>
               ) : (
@@ -420,9 +441,13 @@ function ClassCard({
                     <div key={b.id} className="flex items-center justify-between">
                       <p className="text-xs text-zinc-700 truncate">{b.member_name}</p>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
-                        b.status === 'confirmed' ? 'bg-zinc-100 text-zinc-600' : 'bg-amber-50 text-amber-700'
+                        b.status === 'checked_in'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : b.status === 'confirmed'
+                          ? 'bg-zinc-100 text-zinc-600'
+                          : 'bg-amber-50 text-amber-700'
                       }`}>
-                        {b.status === 'confirmed' ? 'Bestätigt' : 'Warteliste'}
+                        {b.status === 'checked_in' ? 'Eingecheckt' : b.status === 'confirmed' ? 'Bestätigt' : 'Warteliste'}
                       </span>
                     </div>
                   ))}
