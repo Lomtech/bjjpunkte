@@ -460,6 +460,31 @@ export default function PublicGymPage() {
                   <ChevronRight size={16} />
                 </a>
               )}
+              {gym.instagram_url && (
+                <a href={gym.instagram_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-90 transition-opacity text-white">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Share2 size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">Instagram folgen</p>
+                    <p className="text-xs text-white/80 truncate">{gym.instagram_url.replace(/^https?:\/\/(www\.)?instagram\.com\/?/, '@').replace(/\/$/, '')}</p>
+                  </div>
+                  <ChevronRight size={16} />
+                </a>
+              )}
+              {gym.facebook_url && (
+                <a href={gym.facebook_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-[#1877F2] hover:opacity-90 transition-opacity text-white">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Share2 size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">Facebook besuchen</p>
+                  </div>
+                  <ChevronRight size={16} />
+                </a>
+              )}
               {gym.email && (
                 <a href={`mailto:${gym.email}`} className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-sm transition-all">
                   <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0"><Mail size={16} className="text-zinc-500" /></div>
@@ -491,27 +516,16 @@ export default function PublicGymPage() {
                   <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
                 </a>
               )}
-              {(gym.instagram_url || gym.facebook_url || gym.website_url) && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {gym.instagram_url && (
-                    <a href={gym.instagram_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-zinc-200 hover:border-zinc-300 text-zinc-600 hover:text-zinc-900 text-sm font-medium transition-colors">
-                      <Share2 size={13} /> Instagram
-                    </a>
-                  )}
-                  {gym.facebook_url && (
-                    <a href={gym.facebook_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-zinc-200 hover:border-zinc-300 text-zinc-600 hover:text-zinc-900 text-sm font-medium transition-colors">
-                      <Share2 size={13} /> Facebook
-                    </a>
-                  )}
-                  {gym.website_url && (
-                    <a href={gym.website_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-zinc-200 hover:border-zinc-300 text-zinc-600 hover:text-zinc-900 text-sm font-medium transition-colors">
-                      <Globe size={13} /> Website
-                    </a>
-                  )}
-                </div>
+              {gym.website_url && (
+                <a href={gym.website_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-sm transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0"><Globe size={16} className="text-zinc-500" /></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-zinc-900 text-sm">Website besuchen</p>
+                    <p className="text-xs text-zinc-400 truncate">{gym.website_url.replace(/^https?:\/\//, '')}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
+                </a>
               )}
 
               {gym.opening_hours && (
