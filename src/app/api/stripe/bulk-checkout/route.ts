@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import type { Database } from '@/types/database'
 
-const PLATFORM_FEE_PERCENT = 0.02
+const PLATFORM_FEE_PERCENT = 0.03
 
 function authClient(accessToken: string) {
   return createClient<Database>(
