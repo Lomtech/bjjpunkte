@@ -254,12 +254,12 @@ export default function Home() {
 
       {/* ── PHOTO SECTION ── */}
       <section className="relative h-[55vh] min-h-[380px] overflow-hidden">
-        <Image
-          src="/competition-mat.jpg"
-          alt="Wettkampf auf der Matte"
-          fill
-          className="object-cover object-center"
-        />
+        <video
+          autoPlay muted loop playsInline
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        >
+          <source src="/competition-mat.mp4" type="video/mp4" />
+        </video>
         <div className="absolute inset-0 bg-zinc-950/55" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-5">
           <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.25em] mb-4">Echtes Training. Echter Wettkampf.</p>
