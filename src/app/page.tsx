@@ -132,7 +132,7 @@ export default function Home() {
       <motion.nav
         initial={{ y: -16, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.4, ease: EASE }}
         className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100"
       >
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -165,7 +165,7 @@ export default function Home() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.18, ease: EASE }}
               className="sm:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1"
             >
               <Link href="/pricing" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Preise</Link>
@@ -261,7 +261,7 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.8, delay: 0.2, ease: EASE }}
             className="relative hidden lg:flex items-start justify-center bg-zinc-50 overflow-hidden pt-10"
           >
             {/* Dot grid background */}
@@ -296,7 +296,7 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0, y: 60, rotate: -2 }}
               animate={{ opacity: 1, y: 0, rotate: -2 }}
-              transition={{ duration: 0.9, delay: 0.65, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.9, delay: 0.65, ease: EASE }}
               className="absolute bottom-12 right-4 xl:right-8 z-20 w-[42%] xl:w-[38%]"
             >
               <motion.div
@@ -349,67 +349,66 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── PODIUM SECTION ── Erstes Bild beim Scrollen */}
-      <section className="relative h-[92vh] min-h-[580px] overflow-hidden">
-        {/* Parallax image */}
-        <motion.div
-          className="absolute inset-0 scale-105"
-          style={{ y: podiumParallaxY }}
-        >
+      {/* ── PODIUM SECTION ── */}
+      <section className="relative h-[90vh] min-h-[560px] overflow-hidden">
+        <motion.div className="absolute inset-0 scale-105" style={{ y: podiumParallaxY }}>
           <Image
             src="/tournament-podium.jpg"
             alt="Athleten auf dem Siegerpodest"
-            fill
-            sizes="100vw"
-            className="object-cover"
+            fill sizes="100vw"
+            className="object-cover brightness-[0.88]"
             style={{ objectPosition: 'center 15%' }}
             priority
           />
         </motion.div>
 
-        {/* White vignette — flows in from top and bottom, light tones */}
+        {/* Dunkle Vignette — Rand abdunkeln, Mitte offen lassen */}
         <div className="absolute inset-0 pointer-events-none" style={{
-          background: 'linear-gradient(to bottom, white 0%, transparent 20%, transparent 78%, white 100%)'
+          background: [
+            'linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 68%, rgba(0,0,0,0.52) 100%)',
+            'radial-gradient(ellipse 70% 55% at 50% 50%, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 100%)',
+          ].join(', ')
         }} />
 
-        {/* Content — centered on the visible image */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-5">
           <motion.div style={{ y: podiumTextY }}>
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+              whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.6, ease: EASE }}
             >
-              <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-4 drop-shadow-sm">Echtes Training. Echter Wettkampf.</p>
+              <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-4"
+                style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
+                Echtes Training. Echter Wettkampf.
+              </p>
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none mb-5"
-                style={{ textShadow: '0 2px 24px rgba(0,0,0,0.45)' }}>
+                style={{ textShadow: '0 2px 32px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.5)' }}>
                 Für Gyms,<br />die gewinnen wollen.
               </h2>
-              <p className="text-white/80 text-base max-w-md mx-auto leading-relaxed"
-                style={{ textShadow: '0 1px 12px rgba(0,0,0,0.5)' }}>
+              <p className="text-white/85 text-base max-w-md mx-auto leading-relaxed"
+                style={{ textShadow: '0 1px 16px rgba(0,0,0,0.65)' }}>
                 Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
               </p>
             </motion.div>
           </motion.div>
         </div>
 
-        {/* Bottom label — sits above the white fade */}
-        <div className="absolute bottom-16 right-5">
-          <span className="text-white/80 text-xs font-semibold bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+        <div className="absolute bottom-6 right-5">
+          <span className="text-white/70 text-xs font-semibold bg-black/35 backdrop-blur-sm px-3 py-1.5 rounded-full tracking-wide">
             Wettkampf · Submission Grappling
           </span>
         </div>
       </section>
 
-      {/* ── DASHBOARD SHOWCASE ── Dynamisch einfließend */}
+      {/* ── DASHBOARD SHOWCASE ── */}
       <section className="bg-white py-24 px-5 overflow-hidden border-b border-zinc-100">
         <div className="max-w-5xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 16, filter: 'blur(3px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.48, ease: EASE }}
             className="text-center mb-12"
           >
             <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">Dein Gym. Dein Dashboard.</p>
@@ -423,10 +422,10 @@ export default function Home() {
 
           {/* Dashboard screenshot — 3D fly-in + scroll parallax */}
           <motion.div
-            initial={{ opacity: 0, y: 100, rotateX: 10 }}
-            whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+            initial={{ opacity: 0, y: 80, rotateX: 10, filter: 'blur(6px)' }}
+            whileInView={{ opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
             viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+            transition={{ duration: 0.85, ease: EASE, delay: 0.06 }}
             style={{ transformPerspective: 1400, y: dashboardImgY }}
             className="relative rounded-2xl overflow-hidden border border-zinc-200 shadow-[0_32px_80px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06)]"
           >
@@ -455,26 +454,36 @@ export default function Home() {
       {/* ── VIDEO SECTION ── */}
       <section className="relative h-[85vh] min-h-[540px] overflow-hidden">
         <motion.div
-          className="absolute inset-0 scale-110"
+          className="absolute inset-0"
           style={{ y: videoParallaxY, scale: videoScale }}
         >
-          <video
-            autoPlay muted loop playsInline
-            className="absolute inset-0 w-full h-full object-cover object-center"
-          >
+          <video autoPlay muted loop playsInline
+            className="absolute inset-0 w-full h-full object-cover object-center brightness-[0.82]">
             <source src="/competition-mat.mp4" type="video/mp4" />
           </video>
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/20 via-zinc-950/55 to-zinc-950/80" />
+
+        {/* Gleiche Vignette wie Podium — konsistent */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: [
+            'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.55) 100%)',
+            'radial-gradient(ellipse 65% 50% at 50% 50%, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 100%)',
+          ].join(', ')
+        }} />
+
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-5">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.6, ease: EASE }}
           >
-            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-5">Kein Papierkram. Mehr Training.</p>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[0.92] max-w-2xl mx-auto">
+            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-5"
+              style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
+              Kein Papierkram. Mehr Training.
+            </p>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[0.92] max-w-2xl mx-auto"
+              style={{ textShadow: '0 2px 32px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.5)' }}>
               Osss läuft im Hintergrund.<br />Du trainierst im Vordergrund.
             </h2>
           </motion.div>
@@ -508,7 +517,7 @@ export default function Home() {
           <AnimatePresence mode="wait">
             <motion.div key={activeSport}
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.22, ease: EASE }}
               className="bg-white border border-zinc-200 rounded-2xl p-7 md:p-9 shadow-sm"
             >
               <div className="flex flex-col md:flex-row gap-8 items-start">
