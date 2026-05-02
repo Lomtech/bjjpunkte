@@ -130,5 +130,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Registrierung fehlgeschlagen.' }, { status: 500 })
   }
 
+  // Auto-create lead so the gym owner sees new signups in Interessenten
+  await supabase.from('leads').upsert(
+    {
+      gym_id:     gymId,
+      first_name: firstName.trim(),
+      last_name:  lastName.trim(),
+      email:      email.toLowerCase().trim(),
+      phone:      phone?.trim() || null,
+      source:     'signup_link',
+      status:     'new',
+      notes:      'Angemeldet via Mitglieder-Anmeldelink',
+    },
+    { onConflict: 'gym_id,email', ignoreDuplicates: true }
+  )
+
   return NextResponse.json({ success: true, memberId: member.id })
 }

@@ -15,7 +15,7 @@ const NAV = [
   { href: '/dashboard/attendance',  label: 'Anwesenheit',   icon: UserCheck,       ownerOnly: false },
   { href: '/dashboard/revenue',     label: 'Einnahmen',     icon: TrendingUp,      ownerOnly: true  },
   { href: '/dashboard/website',     label: 'Webseite',      icon: Globe,           ownerOnly: true  },
-  { href: '/dashboard/links',       label: 'Zugänge',       icon: Link2,           ownerOnly: true  },
+  { href: '/dashboard/links',       label: 'Anmeldelink',   icon: Link2,           ownerOnly: true  },
   { href: '/dashboard/settings',    label: 'Einstellungen', icon: Settings,        ownerOnly: true  },
 ]
 
@@ -28,7 +28,7 @@ const BOTTOM_NAV = [
   { href: '/dashboard',             label: 'Übersicht',   icon: LayoutDashboard, ownerOnly: false },
   { href: '/dashboard/members',     label: 'Mitglieder',  icon: Users,           ownerOnly: false },
   { href: '/dashboard/schedule',    label: 'Stundenplan', icon: Calendar,        ownerOnly: false },
-  { href: '/dashboard/links',       label: 'Zugänge',     icon: Link2,           ownerOnly: true  },
+  { href: '/dashboard/links',       label: 'Anmeldelink', icon: Link2,           ownerOnly: true  },
   { href: '/dashboard/settings',    label: 'Einstellungen', icon: Settings,      ownerOnly: true  },
 ]
 

@@ -13,7 +13,7 @@ function toWaPhone(raw: string): string {
 }
 
 type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
-type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other'
+type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page'
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
   new:             'bg-zinc-100 text-zinc-600 border-zinc-200',
@@ -34,11 +34,18 @@ const STATUS_LABELS: Record<LeadStatus, string> = {
 }
 
 const SOURCE_LABELS: Record<LeadSource, string> = {
-  'walk-in':  'Walk-in',
-  referral:   'Empfehlung',
-  instagram:  'Instagram',
-  website:    'Website',
-  other:      'Sonstiges',
+  'walk-in':    'Walk-in',
+  referral:     'Empfehlung',
+  instagram:    'Instagram',
+  website:      'Website',
+  other:        'Sonstiges',
+  signup_link:  'Anmeldelink',
+  public_page:  'Gym-Seite',
+}
+
+const SOURCE_COLORS: Partial<Record<LeadSource, string>> = {
+  signup_link: 'bg-amber-50 text-amber-700 border-amber-200',
+  public_page: 'bg-amber-50 text-amber-700 border-amber-200',
 }
 
 const STATUS_ORDER: LeadStatus[] = ['new', 'contacted', 'trial_scheduled', 'trial_done', 'converted', 'lost']
@@ -362,7 +369,7 @@ export default function LeadsPage() {
                   {/* Name row */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-zinc-900 text-sm">{lead.first_name} {lead.last_name}</span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-100 text-zinc-500 border border-zinc-200">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${SOURCE_COLORS[lead.source] ?? 'bg-zinc-100 text-zinc-500 border-zinc-200'}`}>
                       {SOURCE_LABELS[lead.source] ?? lead.source}
                     </span>
                     <span className="text-xs text-zinc-400">vor {daysSince(lead.created_at)}d</span>
