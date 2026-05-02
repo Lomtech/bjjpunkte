@@ -9,6 +9,11 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const { data: { session } } = await createClient().auth.getSession()
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface GymWebsite {
@@ -141,7 +146,7 @@ function ImageUpload({
     setUploading(true)
     const fd = new FormData()
     fd.append('file', file)
-    const res = await fetch('/api/gym/media', { method: 'POST', body: fd })
+    const res = await fetch('/api/gym/media', { method: 'POST', headers: await getAuthHeaders(), body: fd })
     if (res.ok) {
       const { url: uploaded } = await res.json()
       setPreview(uploaded)
@@ -604,7 +609,7 @@ function GalleryUploader({ onUploaded }: { onUploaded: (url: string) => void }) 
     setError('')
     const fd = new FormData()
     fd.append('file', file)
-    const res = await fetch('/api/gym/media', { method: 'POST', body: fd })
+    const res = await fetch('/api/gym/media', { method: 'POST', headers: await getAuthHeaders(), body: fd })
     if (res.ok) {
       const { url } = await res.json()
       onUploaded(url)

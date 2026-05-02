@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient as createSupabase } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
 
 function serviceClient() {
   return createSupabase(
@@ -10,11 +9,20 @@ function serviceClient() {
 }
 
 export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  // Accept token from Authorization header (sent by client) or fall back to cookie-based check
+  const bearer = req.headers.get('authorization')?.replace('Bearer ', '').trim()
   const admin = serviceClient()
+
+  if (!bearer) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Verify the JWT token
+  const { data: { user }, error: authError } = await admin.auth.getUser(bearer)
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const { data: gym } = await admin.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym not found' }, { status: 404 })
 
