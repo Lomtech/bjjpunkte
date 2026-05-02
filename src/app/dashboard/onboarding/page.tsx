@@ -25,7 +25,7 @@ type MembershipPlan = {
   name: string
   price: string
   interval: 'monthly' | 'halfyearly' | 'yearly'
-  duration_months: number
+  contract_months: number
 }
 
 // ─── Sport options ─────────────────────────────────────────────────────────────
@@ -207,7 +207,7 @@ export default function OnboardingPage() {
       name: planName.trim(),
       price: planPrice.trim(),
       interval: planInterval,
-      duration_months: planDuration,
+      contract_months: planDuration,
     }])
     setPlanName('')
     setPlanPrice('')
@@ -229,7 +229,7 @@ export default function OnboardingPage() {
         name: p.name,
         price_cents: Math.round(parseFloat(p.price) * 100),
         billing_interval: p.interval,
-        duration_months: p.duration_months,
+        contract_months: p.contract_months,
       }))
       const { error: err } = await (supabase.from('membership_plans') as any).insert(rows)
       if (err) { setSaving(false); setError(err.message); return }
@@ -506,7 +506,7 @@ export default function OnboardingPage() {
                     <div>
                       <p className="text-sm font-bold text-gray-900">{p.name}</p>
                       <p className="text-xs text-gray-500">
-                        {parseFloat(p.price).toFixed(2)} € · {INTERVAL_LABELS[p.interval]} · {DURATION_LABELS[p.duration_months]}
+                        {parseFloat(p.price).toFixed(2)} € · {INTERVAL_LABELS[p.interval]} · {DURATION_LABELS[p.contract_months]}
                       </p>
                     </div>
                     <button onClick={() => removePlan(p.id)} className="text-gray-400 hover:text-red-500 transition-colors">
