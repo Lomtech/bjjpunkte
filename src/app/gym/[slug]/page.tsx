@@ -99,13 +99,13 @@ function Nav({ gym }: { gym: GymInfo }) {
   return (
     <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-zinc-100' : 'bg-transparent'}`}>
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
+        <a href="#" className="flex items-center gap-2.5">
           {gym.logo_url
             ? <Image src={gym.logo_url} alt={gym.name} width={30} height={30} className="rounded-lg object-cover border border-zinc-200 flex-shrink-0" />
             : <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0"><LogoMark className="w-3 h-2.5 text-zinc-950" /></div>
           }
           <span className={`font-black text-sm tracking-tight truncate max-w-[180px] transition-colors ${scrolled ? 'text-zinc-900' : 'text-white'}`}>{gym.name}</span>
-        </div>
+        </a>
         <div className="hidden md:flex items-center gap-0.5">
           {links.map(l => (
             <a key={l.href} href={l.href} className={`px-3 py-1.5 text-[13px] rounded-lg transition-colors ${scrolled ? 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>{l.label}</a>
