@@ -35,8 +35,8 @@ export default function DatenschutzPage() {
               <p>Kreuzstraße 1</p>
               <p>82276 Adelshofen</p>
               <p>
-                <a href="mailto:lomaliimadaev@gmail.com" className="text-amber-600 hover:underline">
-                  lomaliimadaev@gmail.com
+                <a href="mailto:oss@osss.pro" className="text-amber-600 hover:underline">
+                  oss@osss.pro
                 </a>
               </p>
             </div>
@@ -114,8 +114,8 @@ export default function DatenschutzPage() {
             </ul>
             <p className="mt-3 text-zinc-600">
               Anfragen richte bitte an:{' '}
-              <a href="mailto:lomaliimadaev@gmail.com" className="text-amber-600 hover:underline">
-                lomaliimadaev@gmail.com
+              <a href="mailto:oss@osss.pro" className="text-amber-600 hover:underline">
+                oss@osss.pro
               </a>
             </p>
           </section>
