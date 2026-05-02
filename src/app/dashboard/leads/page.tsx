@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserPlus, Trash2, MessageCircle, Phone, Mail } from 'lucide-react'
+import { UserPlus, Trash2, MessageCircle, Phone, Mail, Pencil } from 'lucide-react'
 import Link from 'next/link'
 
 function toWaPhone(raw: string): string {
@@ -73,6 +73,14 @@ export default function LeadsPage() {
   // inline edit state
   const [editNotes, setEditNotes]   = useState<Record<string, string>>({})
 
+  // edit modal state
+  const [editingLead, setEditingLead] = useState<Lead | null>(null)
+  const [editForm, setEditForm] = useState({
+    first_name: '', last_name: '', email: '', phone: '',
+    source: 'walk-in' as LeadSource, trial_date: '', referred_by: '', notes: '',
+  })
+  const [editSaving, setEditSaving] = useState(false)
+
   // form state
   const [form, setForm] = useState({
     first_name: '', last_name: '', email: '', phone: '',
@@ -137,6 +145,38 @@ export default function LeadsPage() {
     const sb = createClient() as any
     const { data: updated } = await sb.from('leads').update({ notes }).eq('id', lead.id).select().single()
     if (updated) setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
+  }
+
+  function openEdit(lead: Lead) {
+    setEditingLead(lead)
+    setEditForm({
+      first_name:  lead.first_name,
+      last_name:   lead.last_name,
+      email:       lead.email ?? '',
+      phone:       lead.phone ?? '',
+      source:      lead.source,
+      trial_date:  lead.trial_date ? lead.trial_date.slice(0, 10) : '',
+      referred_by: lead.referred_by ?? '',
+      notes:       lead.notes ?? '',
+    })
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingLead) return
+    setEditSaving(true)
+    const sb = createClient() as any // eslint-disable-line @typescript-eslint/no-explicit-any
+    const body: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(editForm)) body[k] = v || null
+    body.first_name = editForm.first_name
+    body.last_name  = editForm.last_name
+    const { data: updated } = await sb.from('leads').update(body).eq('id', editingLead.id).select().single()
+    if (updated) {
+      setLeads(prev => prev.map(l => l.id === editingLead.id ? updated : l))
+      setEditNotes(prev => ({ ...prev, [updated.id]: updated.notes ?? '' }))
+    }
+    setEditSaving(false)
+    setEditingLead(null)
   }
 
   async function deleteLead(id: string) {
@@ -401,6 +441,12 @@ export default function LeadsPage() {
                     </Link>
                   )}
                   <button
+                    onClick={() => openEdit(lead)}
+                    title="Bearbeiten"
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-colors">
+                    <Pencil size={14} />
+                  </button>
+                  <button
                     onClick={() => deleteLead(lead.id)}
                     title="Löschen"
                     className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors">
@@ -410,6 +456,92 @@ export default function LeadsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editingLead && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
+            <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+              <p className="font-semibold text-zinc-900 text-sm">Interessent bearbeiten</p>
+              <button onClick={() => setEditingLead(null)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors">
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleUpdate} className="p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1">Vorname *</label>
+                  <input required value={editForm.first_name}
+                    onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1">Nachname *</label>
+                  <input required value={editForm.last_name}
+                    onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1">E-Mail</label>
+                  <input type="email" value={editForm.email}
+                    onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1">Telefon</label>
+                  <input type="tel" value={editForm.phone}
+                    onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1">Quelle</label>
+                  <select value={editForm.source}
+                    onChange={e => setEditForm(f => ({ ...f, source: e.target.value as LeadSource }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
+                    <option value="walk-in">Walk-in</option>
+                    <option value="referral">Empfehlung</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="website">Website</option>
+                    <option value="other">Sonstiges</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1">Probetraining</label>
+                  <input type="date" value={editForm.trial_date}
+                    onChange={e => setEditForm(f => ({ ...f, trial_date: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Empfohlen von</label>
+                <input value={editForm.referred_by}
+                  onChange={e => setEditForm(f => ({ ...f, referred_by: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Notizen</label>
+                <textarea value={editForm.notes} rows={2}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-none" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="submit" disabled={editSaving}
+                  className="flex-1 px-4 py-2.5 min-h-[44px] rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors">
+                  {editSaving ? 'Speichern…' : 'Speichern'}
+                </button>
+                <button type="button" onClick={() => setEditingLead(null)}
+                  className="flex-1 px-4 py-2.5 min-h-[44px] rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors">
+                  Abbrechen
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
