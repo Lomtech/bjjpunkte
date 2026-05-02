@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, AnimatePresence, useInView, useScroll, useTransform } from 'framer-motion'
+import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { OsssLogo, LogoMark } from '@/components/Logo'
 import {
@@ -39,21 +39,9 @@ const SPORT_FEATURES: Record<SportId, { title: string; items: string[] }> = {
 }
 
 const PAIN_POINTS = [
-  {
-    icon: FileSpreadsheet,
-    title: 'Excel & WhatsApp',
-    desc: 'Mitgliederlisten in Tabellen, Zahlungserinnerungen per Chat — fehleranfällig, zeitaufwändig, nicht skalierbar.',
-  },
-  {
-    icon: Globe,
-    title: 'US-Tools für €200+',
-    desc: 'Mindbody, Glofox & Co. — auf Englisch, ohne deutsches Rechnungswesen und ohne DSGVO-Compliance.',
-  },
-  {
-    icon: FileEdit,
-    title: 'Rechnungen manuell',
-    desc: 'Jeden Monat Rechnungen per Hand — besonders als Kleinunternehmer ein bürokratischer Albtraum.',
-  },
+  { icon: FileSpreadsheet, title: 'Excel & WhatsApp',   desc: 'Mitgliederlisten in Tabellen, Zahlungserinnerungen per Chat — fehleranfällig, zeitaufwändig, nicht skalierbar.' },
+  { icon: Globe,           title: 'US-Tools für €200+', desc: 'Mindbody, Glofox & Co. — auf Englisch, ohne deutsches Rechnungswesen und ohne DSGVO-Compliance.' },
+  { icon: FileEdit,        title: 'Rechnungen manuell', desc: 'Jeden Monat Rechnungen per Hand — besonders als Kleinunternehmer ein bürokratischer Albtraum.' },
 ]
 
 const FEATURES = [
@@ -79,28 +67,19 @@ const STEPS = [
 
 const TESTIMONIALS = [
   {
-    initials: 'MR',
-    name: 'Marco Reiter',
-    role: 'Inhaber, Reiter BJJ Academy',
-    city: 'München',
-    sport: 'BJJ',
+    initials: 'MR', name: 'Marco Reiter',
+    role: 'Inhaber, Reiter BJJ Academy', city: 'München', sport: 'BJJ',
     quote: 'Endlich eine Software die versteht wie ein deutsches Gym funktioniert. §19-Rechnungen, DSGVO, Kleinunternehmer — alles dabei. Spart mir Stunden pro Monat.',
   },
   {
-    initials: 'JS',
-    name: 'Jana Schwarz',
-    role: 'Inhaberin, Kampfgeist MMA Club',
-    city: 'Hamburg',
-    sport: 'MMA',
+    initials: 'JS', name: 'Jana Schwarz',
+    role: 'Inhaberin, Kampfgeist MMA Club', city: 'Hamburg', sport: 'MMA',
     quote: 'Meine Mitglieder buchen Kurse jetzt selbst über das Portal. Kein WhatsApp-Chaos mehr, kein manuelles Eintragen. Läuft einfach.',
   },
   {
-    initials: 'KB',
-    name: 'Kevin Baum',
-    role: 'Cheftrainer, Precision Judo',
-    city: 'Köln',
-    sport: 'Judo',
-    quote: 'Von Excel auf Osss in einem Nachmittag. CSV-Import hat alles übernommen. Das Gürtelsystem ist exakt so wie ich es für Judo brauche.',
+    initials: 'KB', name: 'Kevin Baum',
+    role: 'Cheftrainer, Precision Judo', city: 'Köln', sport: 'Judo',
+    quote: 'Von Excel auf Osss in einem Nachmittag. CSV-Import hat alles übernommen. Das Gürtelsystem ist exakt so wie ich es brauche.',
   },
 ]
 
@@ -114,28 +93,19 @@ const MARQUEE_ITEMS = [
 // ── Variants ──────────────────────────────────────────────────────────────────
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const } },
+  hidden: { opacity: 0, y: 18 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const } },
 }
-
 const stagger = {
   hidden: {},
-  show:   { transition: { staggerChildren: 0.08 } },
+  show:   { transition: { staggerChildren: 0.07 } },
 }
-
-// ── Section wrapper ───────────────────────────────────────────────────────────
 
 function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const ref = useRef(null)
   const inView = useInView(ref, { once: true, margin: '-60px' })
   return (
-    <motion.section
-      ref={ref}
-      variants={stagger}
-      initial="hidden"
-      animate={inView ? 'show' : 'hidden'}
-      className={className}
-    >
+    <motion.section ref={ref} variants={stagger} initial="hidden" animate={inView ? 'show' : 'hidden'} className={className}>
       {children}
     </motion.section>
   )
@@ -151,20 +121,13 @@ export default function Home() {
   useEffect(() => {
     try {
       createClient().auth.getSession().then(({ data: { session } }) => {
-        setLoggedIn(!!session)
-        setChecked(true)
+        setLoggedIn(!!session); setChecked(true)
       })
-    } catch {
-      setChecked(true)
-    }
+    } catch { setChecked(true) }
   }, [])
 
-  const heroRef = useRef(null)
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
-  const screenshotY = useTransform(scrollYProgress, [0, 1], [0, 60])
-
   const features = SPORT_FEATURES[activeSport]
-  const hasBelt = SPORTS.find(s => s.id === activeSport)?.belt ?? false
+  const hasBelt  = SPORTS.find(s => s.id === activeSport)?.belt ?? false
 
   return (
     <div className="min-h-screen bg-white font-sans overflow-x-hidden">
@@ -179,93 +142,70 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <OsssLogo variant="light" />
           <div className="flex items-center gap-6">
-            <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">
-              Preise
-            </Link>
-            <a href="mailto:support@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">
-              Kontakt
-            </a>
-            {checked && (
-              loggedIn ? (
-                <Link href="/dashboard" className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors">
-                  Dashboard
-                </Link>
-              ) : (
-                <>
-                  <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">
-                    Anmelden
-                  </Link>
-                  <Link href="/register" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
-                    Kostenlos starten
-                  </Link>
+            <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">Preise</Link>
+            <a href="mailto:support@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Kontakt</a>
+            {checked && (loggedIn
+              ? <Link href="/dashboard" className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors">Dashboard</Link>
+              : <>
+                  <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">Anmelden</Link>
+                  <Link href="/register" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">Kostenlos starten</Link>
                 </>
-              )
             )}
           </div>
         </div>
       </motion.nav>
 
       {/* ── HERO ── */}
-      <section ref={heroRef} className="relative bg-zinc-950 text-white px-5 pt-20 pb-0 overflow-hidden">
-        {/* Amber radial glow */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 80% 50% at 50% -5%, rgba(251,191,36,0.13) 0%, transparent 65%)' }}
-        />
+      <section className="relative bg-white px-5 pt-16 pb-0 overflow-hidden">
+        {/* Soft warm glow top-right */}
+        <div className="absolute top-0 right-0 w-[600px] h-[500px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(251,191,36,0.12) 0%, transparent 60%)' }} />
+        {/* Soft glow bottom-left */}
+        <div className="absolute bottom-0 left-0 w-[400px] h-[300px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 0% 100%, rgba(251,191,36,0.06) 0%, transparent 70%)' }} />
 
         <div className="max-w-6xl mx-auto relative">
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            animate="show"
-            className="text-center max-w-4xl mx-auto mb-12"
-          >
-            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-8">
-              <Shield size={11} className="text-amber-400" />
-              <span className="text-zinc-300 text-xs font-semibold tracking-wide">Made in Germany · DSGVO-konform</span>
+          <motion.div variants={stagger} initial="hidden" animate="show" className="text-center max-w-4xl mx-auto mb-10">
+
+            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 mb-8">
+              <Shield size={11} className="text-amber-600" />
+              <span className="text-amber-700 text-xs font-semibold tracking-wide">Made in Germany · DSGVO-konform</span>
             </motion.div>
 
-            <motion.h1
-              variants={fadeUp}
-              className="text-5xl sm:text-6xl lg:text-[5.25rem] font-black tracking-tighter leading-[0.93] mb-6"
-            >
+            <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl lg:text-[5.5rem] font-black tracking-tighter leading-[0.92] mb-6 text-zinc-950">
               Schluss mit Excel.<br />
-              <span className="text-amber-400">Dein Gym läuft</span><br />
+              <span className="text-amber-500">Dein Gym läuft</span><br />
               in 10 Minuten.
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-zinc-400 text-lg sm:text-xl max-w-xl mx-auto mb-8 leading-relaxed">
+            <motion.p variants={fadeUp} className="text-zinc-500 text-lg sm:text-xl max-w-xl mx-auto mb-8 leading-relaxed">
               Mitglieder, Beiträge, Stundenplan — alles in einer Software. Auf Deutsch. Für Kampfsport-Gyms.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-5">
-              <Link
-                href="/register"
-                className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                <Zap size={16} />
+              <Link href="/register"
+                className="w-full sm:w-auto bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/20">
+                <Zap size={16} className="text-amber-400" />
                 Jetzt kostenlos starten
               </Link>
-              <Link
-                href="/pricing"
-                className="w-full sm:w-auto border border-white/15 hover:border-white/30 hover:bg-white/5 text-zinc-300 hover:text-white font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2"
-              >
+              <Link href="/pricing"
+                className="w-full sm:w-auto border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
                 Preise ansehen
                 <ArrowRight size={15} />
               </Link>
             </motion.div>
 
-            <motion.p variants={fadeUp} className="text-zinc-600 text-xs tracking-wide">
+            <motion.p variants={fadeUp} className="text-zinc-400 text-xs tracking-wide">
               Keine Kreditkarte · Kein Risiko · Jederzeit kündbar
             </motion.p>
           </motion.div>
 
-          {/* Stats row */}
+          {/* Stats */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-14"
+            transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-wrap justify-center gap-x-10 gap-y-4 mb-12"
           >
             {[
               { val: '€0',     label: 'Startkosten' },
@@ -274,54 +214,46 @@ export default function Home() {
               { val: 'DSGVO',  label: '100% konform' },
             ].map(s => (
               <div key={s.label} className="text-center">
-                <div className="text-amber-400 font-black text-xl tracking-tight">{s.val}</div>
-                <div className="text-zinc-500 text-xs tracking-wider uppercase mt-0.5">{s.label}</div>
+                <div className="text-zinc-950 font-black text-xl tracking-tight">{s.val}</div>
+                <div className="text-zinc-400 text-[10px] tracking-widest uppercase mt-0.5">{s.label}</div>
               </div>
             ))}
           </motion.div>
 
-          {/* Dashboard screenshot */}
+          {/* Screenshot — light frame */}
           <motion.div
-            style={{ y: screenshotY }}
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="relative mx-auto max-w-5xl"
           >
-            <div className="bg-zinc-900 rounded-t-2xl border border-zinc-800 border-b-0 px-4 pt-3">
+            <div className="rounded-t-2xl border border-zinc-200 border-b-0 bg-zinc-50 px-4 pt-3 shadow-[0_-4px_40px_rgba(0,0,0,0.06)]">
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-zinc-700" />
-                  <div className="w-3 h-3 rounded-full bg-zinc-700" />
-                  <div className="w-3 h-3 rounded-full bg-zinc-700" />
+                  <div className="w-3 h-3 rounded-full bg-zinc-300" />
+                  <div className="w-3 h-3 rounded-full bg-zinc-300" />
+                  <div className="w-3 h-3 rounded-full bg-zinc-300" />
                 </div>
-                <div className="flex-1 bg-zinc-800 rounded h-5 flex items-center px-3">
-                  <span className="text-zinc-500 text-[10px] font-mono">app.osss.pro/dashboard</span>
+                <div className="flex-1 bg-white border border-zinc-200 rounded h-5 flex items-center px-3">
+                  <span className="text-zinc-400 text-[10px] font-mono">app.osss.pro/dashboard</span>
                 </div>
               </div>
-              <Image
-                src="/screenshot_betrieb.png"
-                alt="Osss Dashboard"
-                width={1706}
-                height={922}
-                className="w-full rounded-t-lg"
-                priority
-              />
+              <Image src="/screenshot_betrieb.png" alt="Osss Dashboard" width={1706} height={922} className="w-full rounded-t-lg" priority />
             </div>
           </motion.div>
         </div>
       </section>
 
       {/* ── TRUST MARQUEE ── */}
-      <div className="bg-zinc-900 border-b border-zinc-800 py-5 overflow-hidden">
-        <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] text-center mb-3">
+      <div className="bg-zinc-50 border-y border-zinc-100 py-5 overflow-hidden">
+        <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em] text-center mb-3">
           Von Kampfsport-Gyms in ganz Deutschland genutzt
         </p>
         <div className="relative overflow-hidden">
           <div className="animate-marquee">
             {MARQUEE_ITEMS.map((item, i) => (
-              <span key={i} className="inline-flex items-center mx-5 text-zinc-500 text-sm font-medium whitespace-nowrap">
-                <span className="inline-block w-1 h-1 rounded-full bg-amber-400/50 mr-5" />
+              <span key={i} className="inline-flex items-center mx-5 text-zinc-400 text-sm font-medium whitespace-nowrap">
+                <span className="inline-block w-1 h-1 rounded-full bg-amber-400 mr-5" />
                 {item}
               </span>
             ))}
@@ -330,55 +262,41 @@ export default function Home() {
       </div>
 
       {/* ── SPORTS ── */}
-      <section className="bg-zinc-950 px-5 py-24">
+      <section className="bg-zinc-50 px-5 py-24 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto">
           <Section className="text-center mb-12">
-            <motion.p variants={fadeUp} className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-              Für jede Kampfsportart
-            </motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-3">
-              Was trainierst du?
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-zinc-400 max-w-sm mx-auto text-sm leading-relaxed">
+            <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Für jede Kampfsportart</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">Was trainierst du?</motion.h2>
+            <motion.p variants={fadeUp} className="text-zinc-500 max-w-sm mx-auto text-sm leading-relaxed">
               Osss konfiguriert sich automatisch — mit oder ohne Gürtelsystem.
             </motion.p>
           </Section>
 
-          {/* Sport selector */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {SPORTS.map(s => (
-              <button
-                key={s.id}
-                onClick={() => setActiveSport(s.id)}
+              <button key={s.id} onClick={() => setActiveSport(s.id)}
                 className={`px-4 py-2 rounded-full text-sm font-semibold tracking-wide transition-all border ${
                   activeSport === s.id
-                    ? 'bg-amber-400 text-zinc-950 border-amber-400 shadow-lg shadow-amber-400/20'
-                    : 'bg-transparent text-zinc-400 border-zinc-700 hover:border-zinc-500 hover:text-zinc-200'
-                }`}
-              >
+                    ? 'bg-zinc-950 text-white border-zinc-950 shadow-sm'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-800'
+                }`}>
                 {s.label}
               </button>
             ))}
           </div>
 
-          {/* Feature panel */}
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSport}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+            <motion.div key={activeSport}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-7 md:p-9"
+              className="bg-white border border-zinc-200 rounded-2xl p-7 md:p-9 shadow-sm"
             >
               <div className="flex flex-col md:flex-row gap-8 items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-5 flex-wrap">
-                    <h3 className="text-xl font-black text-white">{features.title}</h3>
+                    <h3 className="text-xl font-black text-zinc-950">{features.title}</h3>
                     <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border tracking-wide ${
-                      hasBelt
-                        ? 'bg-amber-400/10 text-amber-400 border-amber-400/20'
-                        : 'bg-zinc-700/50 text-zinc-400 border-zinc-700'
+                      hasBelt ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'
                     }`}>
                       {hasBelt ? 'Mit Gürtelsystem' : 'Ohne Gürtelsystem'}
                     </span>
@@ -386,23 +304,20 @@ export default function Home() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {features.items.map(item => (
                       <div key={item} className="flex items-start gap-3 text-sm">
-                        <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 border ${
-                          hasBelt ? 'bg-amber-400/10 border-amber-400/20' : 'bg-zinc-700/50 border-zinc-700'
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                          hasBelt ? 'bg-amber-100' : 'bg-zinc-100'
                         }`}>
-                          <Check size={9} className={hasBelt ? 'text-amber-400' : 'text-zinc-400'} />
+                          <Check size={9} className={hasBelt ? 'text-amber-600' : 'text-zinc-400'} />
                         </div>
-                        <span className="text-zinc-300 leading-snug">{item}</span>
+                        <span className="text-zinc-600 leading-snug">{item}</span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="flex-shrink-0 self-end md:self-center">
-                  <Link
-                    href="/register"
-                    className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold px-5 py-2.5 rounded-xl text-sm transition-colors whitespace-nowrap"
-                  >
-                    Jetzt testen
-                    <ArrowRight size={14} />
+                  <Link href="/register"
+                    className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors whitespace-nowrap">
+                    Jetzt testen <ArrowRight size={14} />
                   </Link>
                 </div>
               </div>
@@ -415,12 +330,8 @@ export default function Home() {
       <Section className="py-24 px-5 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-              Das Problem
-            </motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight mb-3">
-              Kennst du das?
-            </motion.h2>
+            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Das Problem</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">Kennst du das?</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
               Die meisten Gym-Softwares sind zu teuer, zu komplex oder nicht auf Deutschland ausgelegt.
             </motion.p>
@@ -440,27 +351,21 @@ export default function Home() {
       </Section>
 
       {/* ── HOW IT WORKS ── */}
-      <Section className="py-24 px-5 bg-zinc-50">
+      <Section className="py-24 px-5 bg-amber-50">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-              So einfach geht&apos;s
-            </motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight mb-3">
-              In 3 Schritten fertig
-            </motion.h2>
+            <motion.p variants={fadeUp} className="text-amber-700 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">So einfach geht&apos;s</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">In 3 Schritten fertig</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-sm mx-auto text-sm leading-relaxed">
               Kein langer Onboarding-Prozess. Du bist in unter 10 Minuten live.
             </motion.p>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-5 relative">
-            <div className="hidden sm:block absolute top-9 left-[calc(33.33%+20px)] right-[calc(33.33%+20px)] h-px bg-zinc-200" />
+            <div className="hidden sm:block absolute top-9 left-[calc(33.33%+20px)] right-[calc(33.33%+20px)] h-px bg-amber-200" />
             {STEPS.map(step => (
               <motion.div key={step.num} variants={fadeUp}>
-                <div className="bg-white rounded-2xl p-7 border border-zinc-100 shadow-sm h-full">
-                  <div className="text-amber-400 font-black text-4xl tracking-tighter leading-none mb-5">
-                    {step.num}
-                  </div>
+                <div className="bg-white rounded-2xl p-7 border border-amber-100 shadow-sm h-full">
+                  <div className="text-amber-500 font-black text-4xl tracking-tighter leading-none mb-5">{step.num}</div>
                   <p className="font-bold text-zinc-900 mb-2">{step.title}</p>
                   <p className="text-sm text-zinc-500 leading-relaxed">{step.desc}</p>
                 </div>
@@ -474,25 +379,18 @@ export default function Home() {
       <Section className="py-24 px-5 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-              Features
-            </motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight mb-3">
-              Alles was dein Gym braucht
-            </motion.h2>
+            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Features</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">Alles was dein Gym braucht</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
               Von der Mitgliederverwaltung bis zur automatischen Rechnung — in einer Software.
             </motion.p>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map(f => (
-              <motion.div
-                key={f.title}
-                variants={fadeUp}
-                className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-7 hover:border-amber-200 hover:bg-white hover:shadow-sm transition-all duration-200 group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-amber-400/10 group-hover:bg-amber-400/15 flex items-center justify-center mb-5 transition-colors">
-                  <f.icon size={18} className="text-amber-600" />
+              <motion.div key={f.title} variants={fadeUp}
+                className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-7 hover:border-amber-200 hover:bg-white hover:shadow-sm transition-all duration-200 group">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center mb-5 transition-colors">
+                  <f.icon size={18} className="text-amber-700" />
                 </div>
                 <p className="font-bold text-zinc-900 mb-2">{f.title}</p>
                 <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>
@@ -503,43 +401,30 @@ export default function Home() {
       </Section>
 
       {/* ── SCHEDULE SCREENSHOT ── */}
-      <Section className="py-24 px-5 bg-zinc-950 overflow-hidden">
+      <Section className="py-24 px-5 bg-zinc-50 overflow-hidden border-y border-zinc-100">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
-            <div className="text-white">
-              <motion.p variants={fadeUp} className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-                Stundenplan
-              </motion.p>
-              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black tracking-tight mb-5">
+            <div>
+              <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Stundenplan</motion.p>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-5">
                 Kursplan direkt auf deiner Website
               </motion.h2>
-              <motion.p variants={fadeUp} className="text-zinc-400 mb-8 leading-relaxed text-sm">
+              <motion.p variants={fadeUp} className="text-zinc-500 mb-8 leading-relaxed text-sm">
                 Stundenplan verwalten und per iframe einbetten. Mitglieder sehen immer den aktuellen Plan — ohne Pflege einer zweiten Seite.
               </motion.p>
               <motion.ul variants={stagger} className="space-y-3.5">
-                {[
-                  'Wochenansicht mit Kursdetails',
-                  'Öffentlicher Embed-Link',
-                  'iCal-Export für Google Calendar',
-                  'Online-Buchung für Mitglieder',
-                ].map(item => (
-                  <motion.li key={item} variants={fadeUp} className="flex items-center gap-3 text-sm text-zinc-300">
-                    <div className="w-5 h-5 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle size={11} className="text-amber-400" />
+                {['Wochenansicht mit Kursdetails', 'Öffentlicher Embed-Link', 'iCal-Export für Google Calendar', 'Online-Buchung für Mitglieder'].map(item => (
+                  <motion.li key={item} variants={fadeUp} className="flex items-center gap-3 text-sm text-zinc-700">
+                    <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle size={11} className="text-amber-600" />
                     </div>
                     {item}
                   </motion.li>
                 ))}
               </motion.ul>
             </div>
-            <motion.div variants={fadeUp} className="rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl shadow-black/60">
-              <Image
-                src="/screenshot_stundenplan.png"
-                alt="Stundenplan"
-                width={2912}
-                height={896}
-                className="w-full"
-              />
+            <motion.div variants={fadeUp} className="rounded-2xl overflow-hidden border border-zinc-200 shadow-xl shadow-zinc-200/60">
+              <Image src="/screenshot_stundenplan.png" alt="Stundenplan" width={2912} height={896} className="w-full" />
             </motion.div>
           </div>
         </div>
@@ -550,16 +435,14 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
             <div>
-              <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-                Nur bei Osss
-              </motion.p>
-              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight mb-8">
+              <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Nur bei Osss</motion.p>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-8">
                 Gemacht für<br />deutsche Gyms
               </motion.h2>
               <motion.div variants={stagger} className="space-y-6">
                 {GERMAN_FEATURES.map(item => (
                   <motion.div key={item.title} variants={fadeUp} className="flex gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
                       <item.icon size={16} className="text-amber-600" />
                     </div>
                     <div>
@@ -571,20 +454,18 @@ export default function Home() {
               </motion.div>
             </div>
 
-            {/* Invoice card */}
-            <motion.div variants={fadeUp} className="bg-zinc-950 rounded-2xl p-7 border border-zinc-800">
-              <div className="flex items-center gap-3 mb-6 pb-5 border-b border-zinc-800">
+            {/* Invoice card — light version */}
+            <motion.div variants={fadeUp} className="bg-zinc-50 rounded-2xl p-7 border border-zinc-200">
+              <div className="flex items-center gap-3 mb-6 pb-5 border-b border-zinc-200">
                 <div className="w-9 h-9 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0">
                   <LogoMark className="w-4 h-3 text-zinc-950" />
                 </div>
                 <div>
-                  <p className="text-white font-bold text-sm">Osss</p>
-                  <p className="text-zinc-500 text-xs">Automatische Rechnung</p>
+                  <p className="text-zinc-900 font-bold text-sm">Osss</p>
+                  <p className="text-zinc-400 text-xs">Automatische Rechnung</p>
                 </div>
                 <div className="ml-auto">
-                  <span className="text-[11px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-full">
-                    Bezahlt
-                  </span>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">Bezahlt</span>
                 </div>
               </div>
               <div className="space-y-3.5">
@@ -595,13 +476,13 @@ export default function Home() {
                   ['Betrag',          '€ 89,00'],
                   ['Steuerhinweis',   '§19 UStG — keine USt.'],
                 ].map(([label, val]) => (
-                  <div key={label} className="flex justify-between text-sm border-b border-zinc-800/80 pb-3.5">
-                    <span className="text-zinc-500">{label}</span>
-                    <span className="text-white font-medium">{val}</span>
+                  <div key={label} className="flex justify-between text-sm border-b border-zinc-200/80 pb-3.5">
+                    <span className="text-zinc-400">{label}</span>
+                    <span className="text-zinc-900 font-medium">{val}</span>
                   </div>
                 ))}
               </div>
-              <div className="mt-5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 text-emerald-400 text-xs font-semibold">
+              <div className="mt-5 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 text-emerald-700 text-xs font-semibold">
                 <CheckCircle size={12} />
                 Automatisch erstellt und archiviert
               </div>
@@ -611,26 +492,17 @@ export default function Home() {
       </Section>
 
       {/* ── TESTIMONIALS ── */}
-      <Section className="py-24 px-5 bg-zinc-50">
+      <Section className="py-24 px-5 bg-zinc-50 border-y border-zinc-100">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-              Stimmen aus der Community
-            </motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight">
-              Was Gym-Owner sagen
-            </motion.h2>
+            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Stimmen aus der Community</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">Was Gym-Owner sagen</motion.h2>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {TESTIMONIALS.map(t => (
-              <motion.div
-                key={t.name}
-                variants={fadeUp}
-                className="bg-white rounded-2xl border border-zinc-100 p-7 flex flex-col shadow-sm"
-              >
-                <div className="text-5xl font-black text-amber-400/25 leading-none mb-3 select-none font-serif">
-                  &ldquo;
-                </div>
+              <motion.div key={t.name} variants={fadeUp}
+                className="bg-white rounded-2xl border border-zinc-100 p-7 flex flex-col shadow-sm">
+                <div className="text-5xl font-black text-amber-300 leading-none mb-3 select-none font-serif">&ldquo;</div>
                 <p className="text-zinc-600 text-sm leading-relaxed flex-1 mb-6">{t.quote}</p>
                 <div className="flex items-center gap-3 pt-5 border-t border-zinc-100">
                   <div className="w-9 h-9 rounded-full bg-zinc-900 flex items-center justify-center flex-shrink-0">
@@ -640,9 +512,7 @@ export default function Home() {
                     <p className="font-bold text-zinc-900 text-sm">{t.name}</p>
                     <p className="text-zinc-400 text-xs truncate">{t.role} · {t.city}</p>
                   </div>
-                  <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-50 border border-zinc-200 px-2 py-1 rounded-full flex-shrink-0">
-                    {t.sport}
-                  </span>
+                  <span className="text-[11px] font-semibold text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-1 rounded-full flex-shrink-0">{t.sport}</span>
                 </div>
               </motion.div>
             ))}
@@ -653,77 +523,49 @@ export default function Home() {
       {/* ── PRICING TEASER ── */}
       <Section className="py-24 px-5 bg-white">
         <div className="max-w-3xl mx-auto text-center">
-          <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-            Preise
-          </motion.p>
-          <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight mb-3">
-            Faire Preise. Kein Kleingedrucktes.
-          </motion.h2>
-          <motion.p variants={fadeUp} className="text-zinc-500 mb-10 text-sm leading-relaxed">
-            Starte kostenlos mit bis zu 30 Mitgliedern. Zahle erst wenn du wächst.
-          </motion.p>
+          <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Preise</motion.p>
+          <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">Faire Preise. Kein Kleingedrucktes.</motion.h2>
+          <motion.p variants={fadeUp} className="text-zinc-500 mb-10 text-sm leading-relaxed">Starte kostenlos mit bis zu 30 Mitgliedern. Zahle erst wenn du wächst.</motion.p>
           <motion.div variants={stagger} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             {[
-              { name: 'Free',    price: '€0',  members: '30 Mitgl.',   highlight: false },
-              { name: 'Starter', price: '€29', members: '50 Mitgl.',   highlight: false },
-              { name: 'Grow',    price: '€59', members: '150 Mitgl.',  highlight: true  },
-              { name: 'Pro',     price: '€99', members: 'Unbegrenzt',  highlight: false },
+              { name: 'Free',    price: '€0',  members: '30 Mitgl.',  highlight: false },
+              { name: 'Starter', price: '€29', members: '50 Mitgl.',  highlight: false },
+              { name: 'Grow',    price: '€59', members: '150 Mitgl.', highlight: true  },
+              { name: 'Pro',     price: '€99', members: 'Unbegrenzt', highlight: false },
             ].map(p => (
-              <motion.div
-                key={p.name}
-                variants={fadeUp}
+              <motion.div key={p.name} variants={fadeUp}
                 className={`rounded-2xl p-5 border-2 text-center transition-all ${
-                  p.highlight
-                    ? 'border-amber-400 bg-amber-400 shadow-lg shadow-amber-200/50'
-                    : 'border-zinc-100 bg-zinc-50 hover:border-zinc-200'
-                }`}
-              >
-                <p className={`text-[11px] font-bold mb-1 tracking-wide uppercase ${p.highlight ? 'text-zinc-950/60' : 'text-zinc-400'}`}>
-                  {p.name}
-                </p>
-                <p className={`text-2xl font-black tracking-tight ${p.highlight ? 'text-zinc-950' : 'text-zinc-900'}`}>
-                  {p.price}
-                </p>
-                <p className={`text-xs mt-1 ${p.highlight ? 'text-zinc-950/60' : 'text-zinc-400'}`}>
-                  {p.members}
-                </p>
+                  p.highlight ? 'border-amber-400 bg-amber-400 shadow-lg shadow-amber-100' : 'border-zinc-100 bg-zinc-50 hover:border-zinc-200'
+                }`}>
+                <p className={`text-[11px] font-bold mb-1 tracking-wide uppercase ${p.highlight ? 'text-zinc-950/60' : 'text-zinc-400'}`}>{p.name}</p>
+                <p className={`text-2xl font-black tracking-tight ${p.highlight ? 'text-zinc-950' : 'text-zinc-900'}`}>{p.price}</p>
+                <p className={`text-xs mt-1 ${p.highlight ? 'text-zinc-950/60' : 'text-zinc-400'}`}>{p.members}</p>
               </motion.div>
             ))}
           </motion.div>
           <motion.div variants={fadeUp}>
             <Link href="/pricing" className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-700 font-semibold text-sm transition-colors">
-              Alle Features im Detail vergleichen
-              <ArrowRight size={14} />
+              Alle Features im Detail vergleichen <ArrowRight size={14} />
             </Link>
           </motion.div>
         </div>
       </Section>
 
-      {/* ── FINAL CTA ── */}
-      <section className="py-28 px-5 bg-zinc-950 text-white text-center relative overflow-hidden">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 70% 70% at 50% 110%, rgba(251,191,36,0.09) 0%, transparent 65%)' }}
-        />
+      {/* ── FINAL CTA — full amber ── */}
+      <section className="py-28 px-5 bg-amber-400 text-center relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse 70% 70% at 50% 110%, rgba(255,255,255,0.15) 0%, transparent 70%)' }} />
         <div className="max-w-xl mx-auto relative">
-          <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/20 rounded-full px-4 py-1.5 mb-8">
-            <Zap size={11} className="text-amber-400" />
-            <span className="text-amber-400 text-xs font-semibold tracking-wide">Kostenlos starten — kein Risiko</span>
-          </div>
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter mb-5">Bereit loszulegen?</h2>
-          <p className="text-zinc-400 text-lg mb-10 leading-relaxed">
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-950 mb-5">Bereit loszulegen?</h2>
+          <p className="text-zinc-800 text-lg mb-10 leading-relaxed">
             Dein Gym läuft in 10 Minuten.<br />Keine Kreditkarte, keine Mindestlaufzeit.
           </p>
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Zap size={18} />
+          <Link href="/register"
+            className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-zinc-900/25">
+            <Zap size={18} className="text-amber-400" />
             Jetzt kostenlos starten
           </Link>
-          <p className="text-zinc-600 text-xs mt-5 tracking-wide">
-            Keine Kreditkarte · Keine Mindestlaufzeit · Jederzeit kündbar
-          </p>
+          <p className="text-zinc-700 text-xs mt-5 tracking-wide">Keine Kreditkarte · Keine Mindestlaufzeit · Jederzeit kündbar</p>
         </div>
       </section>
 
@@ -740,40 +582,22 @@ export default function Home() {
             <div>
               <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">Produkt</p>
               <ul className="space-y-3">
-                {[
-                  { label: 'Preise',       href: '/pricing'  },
-                  { label: 'Anmelden',     href: '/login'    },
-                  { label: 'Registrieren', href: '/register' },
-                ].map(l => (
-                  <li key={l.label}>
-                    <Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">
-                      {l.label}
-                    </Link>
-                  </li>
+                {[{ label: 'Preise', href: '/pricing' }, { label: 'Anmelden', href: '/login' }, { label: 'Registrieren', href: '/register' }].map(l => (
+                  <li key={l.label}><Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">{l.label}</Link></li>
                 ))}
               </ul>
             </div>
             <div>
               <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">Rechtliches</p>
               <ul className="space-y-3">
-                {[
-                  { label: 'Datenschutz', href: '/datenschutz'          },
-                  { label: 'Impressum',   href: '/impressum'            },
-                  { label: 'Kontakt',     href: 'mailto:support@osss.pro' },
-                ].map(l => (
-                  <li key={l.label}>
-                    <Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">
-                      {l.label}
-                    </Link>
-                  </li>
+                {[{ label: 'Datenschutz', href: '/datenschutz' }, { label: 'Impressum', href: '/impressum' }, { label: 'Kontakt', href: 'mailto:support@osss.pro' }].map(l => (
+                  <li key={l.label}><Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">{l.label}</Link></li>
                 ))}
               </ul>
             </div>
           </div>
           <div className="pt-6 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-zinc-400 text-xs">
-              © {new Date().getFullYear()} Osss · Die Kampfsport-Gym-Software
-            </p>
+            <p className="text-zinc-400 text-xs">© {new Date().getFullYear()} Osss · Die Kampfsport-Gym-Software</p>
             <p className="text-zinc-300 text-xs">Made in Germany · DSGVO-konform · Daten auf EU-Servern</p>
           </div>
         </div>

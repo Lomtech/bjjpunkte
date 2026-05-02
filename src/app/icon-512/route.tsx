@@ -9,69 +9,21 @@ export function GET() {
         style={{
           width: 512,
           height: 512,
-          background: '#0f172a',
+          background: '#FBBF24',
           borderRadius: 96,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'center',
-          gap: 36,
+          paddingLeft: 120,
+          gap: 44,
         }}
       >
-        {/* Top accent line (belt style) */}
-        <div
-          style={{
-            width: 180,
-            height: 6,
-            borderRadius: 9999,
-            background: '#f59e0b',
-            opacity: 0.4,
-          }}
-        />
-        {/* "oss" wordmark */}
-        <span
-          style={{
-            color: '#f59e0b',
-            fontSize: 200,
-            fontWeight: 900,
-            fontStyle: 'italic',
-            lineHeight: 1,
-            letterSpacing: '-6px',
-            marginTop: -20,
-          }}
-        >
-          oss
-        </span>
-        {/* Belt stripes */}
-        <div style={{ display: 'flex', gap: 20, marginTop: -16 }}>
-          {[0, 1, 2].map(i => (
-            <div
-              key={i}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 9999,
-                background: '#f59e0b',
-                opacity: 0.75,
-              }}
-            />
-          ))}
-        </div>
-        {/* Bottom label */}
-        <span
-          style={{
-            color: '#64748b',
-            fontSize: 32,
-            fontWeight: 600,
-            letterSpacing: '4px',
-            textTransform: 'uppercase',
-            marginTop: -8,
-          }}
-        >
-          Gym Software
-        </span>
+        <div style={{ width: 272, height: 40, background: '#09090B', borderRadius: 20 }} />
+        <div style={{ width: 182, height: 40, background: '#09090B', borderRadius: 20 }} />
+        <div style={{ width: 100, height: 40, background: '#09090B', borderRadius: 20 }} />
       </div>
     ),
-    { width: 512, height: 512 }
+    { width: 512, height: 512 },
   )
 }
