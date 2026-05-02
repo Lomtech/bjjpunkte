@@ -85,8 +85,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     whatsappText: `🥋 Probetraining-Anfrage!\n${fullName}\n${email.trim().toLowerCase()}${phone ? '\n' + phone.trim() : ''}${bookedClass ? '\nSlot: ' + bookedClass.title : ''}\nosss.pro Dashboard`,
   })
 
-  // Send portal link to the lead if they have an email and token
-  if (portalUrl && email) {
+  // Send portal link to the lead if Resend is configured and lead has email + token
+  const resendKey  = process.env.RESEND_API_KEY
+  const resendFrom = process.env.RESEND_FROM_EMAIL
+  if (portalUrl && email && resendKey && resendFrom) {
     const slotLine = bookedClass
       ? `<p style="margin:0 0 12px;font-size:14px;color:#374151">
           <strong>Dein gebuchter Slot:</strong> ${bookedClass.title} –
@@ -98,11 +100,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: `${gym.name} via Osss <noreply@osss.pro>`,
-        to:   [email.trim().toLowerCase()],
+        from:    resendFrom,
+        to:      [email.trim().toLowerCase()],
         subject: `Dein Probetraining bei ${gym.name} – Portal-Link`,
         html: `
           <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">

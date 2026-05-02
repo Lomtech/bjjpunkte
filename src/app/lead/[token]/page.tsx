@@ -227,10 +227,14 @@ export default function LeadPortalPage() {
                 Du bist als Interessent registriert.
               </p>
               {gym?.address && (
-                <p className="text-zinc-400 text-xs mt-2 flex items-center gap-1">
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(gym.address)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="text-zinc-400 hover:text-amber-600 text-xs mt-2 flex items-center gap-1 transition-colors"
+                >
                   <MapPin size={11} />
                   {gym.address}
-                </p>
+                </a>
               )}
             </div>
             <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium border ${statusColor}`}>
@@ -238,6 +242,32 @@ export default function LeadPortalPage() {
             </span>
           </div>
         </div>
+
+        {/* Map */}
+        {gym?.address && (
+          <div className="rounded-2xl overflow-hidden border border-zinc-100 shadow-sm">
+            <iframe
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(gym.address)}&output=embed&z=15`}
+              width="100%"
+              height="220"
+              style={{ border: 0, display: 'block' }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Standort"
+            />
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(gym.address)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-between px-4 py-3 bg-white hover:bg-zinc-50 transition-colors"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                <MapPin size={14} className="text-amber-500" />
+                {gym.address}
+              </span>
+              <span className="text-xs text-amber-500 font-semibold">Route →</span>
+            </a>
+          </div>
+        )}
 
         {/* Upcoming classes */}
         <div>
