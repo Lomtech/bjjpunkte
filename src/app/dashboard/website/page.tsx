@@ -126,6 +126,7 @@ function ImageUpload({
   const ref = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview]     = useState(url ?? '')
+  const [uploadError, setUploadError] = useState('')
 
   // Sync when parent loads data asynchronously
   useEffect(() => { setPreview(url ?? '') }, [url])
@@ -133,6 +134,7 @@ function ImageUpload({
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setUploadError('')
     // Show local blob preview immediately
     const localUrl = URL.createObjectURL(file)
     setPreview(localUrl)
@@ -145,6 +147,8 @@ function ImageUpload({
       setPreview(uploaded)
       onUploaded(uploaded)
     } else {
+      const data = await res.json().catch(() => ({}))
+      setUploadError(data.error ?? 'Upload fehlgeschlagen — bitte erneut versuchen.')
       setPreview(url ?? '') // revert on error
     }
     setUploading(false)
@@ -179,6 +183,7 @@ function ImageUpload({
         </button>
         <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
+      {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}
       {hint && <p className="text-xs text-zinc-400">{hint}</p>}
     </div>
   )
@@ -590,30 +595,38 @@ export default function WebsitePage() {
 function GalleryUploader({ onUploaded }: { onUploaded: (url: string) => void }) {
   const ref = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
+    setError('')
     const fd = new FormData()
     fd.append('file', file)
     const res = await fetch('/api/gym/media', { method: 'POST', body: fd })
     if (res.ok) {
       const { url } = await res.json()
       onUploaded(url)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error ?? 'Upload fehlgeschlagen')
     }
     setUploading(false)
     if (ref.current) ref.current.value = ''
   }
 
   return (
-    <button type="button" onClick={() => ref.current?.click()} disabled={uploading}
-      className="aspect-square rounded-xl border-2 border-dashed border-zinc-200 hover:border-amber-400 hover:bg-amber-50 flex flex-col items-center justify-center gap-1.5 transition-colors disabled:opacity-50">
-      {uploading
-        ? <Loader2 size={18} className="text-amber-500 animate-spin" />
-        : <ImagePlus size={18} className="text-zinc-400" />}
-      <span className="text-[10px] text-zinc-400">{uploading ? 'Lädt…' : 'Foto hinzufügen'}</span>
+    <div className="aspect-square flex flex-col">
+      <button type="button" onClick={() => ref.current?.click()} disabled={uploading}
+        className="flex-1 rounded-xl border-2 border-dashed border-zinc-200 hover:border-amber-400 hover:bg-amber-50 flex flex-col items-center justify-center gap-1.5 transition-colors disabled:opacity-50">
+        {uploading
+          ? <Loader2 size={18} className="text-amber-500 animate-spin" />
+          : <ImagePlus size={18} className="text-zinc-400" />}
+        <span className="text-[10px] text-zinc-400">{uploading ? 'Lädt…' : 'Foto hinzufügen'}</span>
+      </button>
+      {error && <p className="text-[10px] text-red-500 mt-1 text-center">{error}</p>}
       <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-    </button>
+    </div>
   )
 }

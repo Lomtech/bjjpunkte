@@ -11,11 +11,11 @@ function serviceClient() {
 
 export async function POST(req: Request) {
   const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const admin = serviceClient()
-  const { data: gym } = await admin.from('gyms').select('id').eq('owner_id', session.user.id).maybeSingle()
+  const { data: gym } = await admin.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym not found' }, { status: 404 })
 
   const form = await req.formData()
