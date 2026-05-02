@@ -35,7 +35,7 @@ interface GymInfo {
   tagline: string | null; about: string | null
   hero_image_url: string | null; hero_image_position: number
   gallery_urls: string[]
-  video_url: string | null; whatsapp_number: string | null
+  video_url: string | null; video_urls: string[]; whatsapp_number: string | null
   instagram_url: string | null; facebook_url: string | null
   website_url: string | null; founded_year: number | null
   opening_hours: Record<DayKey, DayHours> | null
@@ -81,8 +81,12 @@ function toWa(raw: string) {
   if (p.startsWith('0'))  p = '+49' + p.slice(1)
   return p.replace(/^\+/, '')
 }
-function ytId(url: string) {
-  return url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/)?.[1] ?? null
+function ytParse(url: string): { id: string; isShort: boolean } | null {
+  const short = url.match(/youtube\.com\/shorts\/([^?&/\s]+)/)
+  if (short) return { id: short[1], isShort: true }
+  const regular = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/\s]+)/)
+  if (regular) return { id: regular[1], isShort: false }
+  return null
 }
 
 // ── Sticky nav ────────────────────────────────────────────────────────────────
@@ -247,8 +251,12 @@ export default function PublicGymPage() {
     </div>
   )
 
-  const days    = groupByDay(classes)
-  const videoId = gym.video_url ? ytId(gym.video_url) : null
+  const days   = groupByDay(classes)
+  // Merge video_urls array (new) with legacy video_url fallback, dedupe, parse
+  const allVideoUrls = Array.isArray(gym.video_urls) && gym.video_urls.length > 0
+    ? gym.video_urls
+    : gym.video_url ? [gym.video_url] : []
+  const videos = allVideoUrls.map(u => ytParse(u)).filter(Boolean) as { id: string; isShort: boolean }[]
 
   function PostsSection() {
     if (posts.length === 0) return null
@@ -375,18 +383,75 @@ export default function PublicGymPage() {
         </div>
       </section>
 
-      {/* ── VIDEO ── full-width, right after hero ── */}
-      {videoId && (
-        <section className="bg-zinc-950">
-          <div className="max-w-6xl mx-auto">
-            <div className="relative" style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
-                className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen title="Gym Video"
-              />
-            </div>
+      {/* ── VIDEOS ── */}
+      {videos.length > 0 && (
+        <section className="bg-zinc-950 py-8">
+          <div className="max-w-6xl mx-auto px-5">
+            {/* Single regular video → full width */}
+            {videos.length === 1 && !videos[0].isShort && (
+              <div className="relative rounded-2xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  src={`https://www.youtube.com/embed/${videos[0].id}?rel=0&modestbranding=1`}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen title="Gym Video"
+                />
+              </div>
+            )}
+            {/* Single short → centred portrait */}
+            {videos.length === 1 && videos[0].isShort && (
+              <div className="flex justify-center">
+                <div className="relative rounded-2xl overflow-hidden w-full max-w-xs" style={{ paddingBottom: 'min(177.78%, 80dvh)', maxHeight: '80dvh' }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videos[0].id}?rel=0&modestbranding=1`}
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen title="Short"
+                  />
+                </div>
+              </div>
+            )}
+            {/* Multiple videos → adaptive grid */}
+            {videos.length > 1 && (() => {
+              const regulars = videos.filter(v => !v.isShort)
+              const shorts   = videos.filter(v => v.isShort)
+              return (
+                <div className="space-y-4">
+                  {regulars.length > 0 && (
+                    <div className={`grid gap-4 ${regulars.length === 1 ? 'grid-cols-1' : 'sm:grid-cols-2'}`}>
+                      {regulars.map(v => (
+                        <div key={v.id} className="relative rounded-2xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+                          <iframe
+                            src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
+                            className="absolute inset-0 w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen title="Video"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {shorts.length > 0 && (
+                    <div className={`grid gap-4 ${
+                      shorts.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' :
+                      shorts.length === 2 ? 'grid-cols-2 max-w-sm mx-auto' :
+                      'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+                    }`}>
+                      {shorts.map(v => (
+                        <div key={v.id} className="relative rounded-2xl overflow-hidden" style={{ paddingBottom: '177.78%' }}>
+                          <iframe
+                            src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
+                            className="absolute inset-0 w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen title="Short"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         </section>
       )}

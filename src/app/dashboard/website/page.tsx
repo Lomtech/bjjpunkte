@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Globe, Save, ExternalLink, CheckCircle2, Camera, Trash2,
   ImagePlus, Play, Share2, Phone, Mail, MapPin,
-  Clock, FileText, Info, ChevronDown, ChevronUp, Loader2,
+  Clock, FileText, Info, ChevronDown, ChevronUp, Loader2, Plus, X,
 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -26,6 +26,7 @@ interface GymWebsite {
   hero_image_url: string | null
   gallery_urls: string[]
   video_url: string | null
+  video_urls: string[]
   whatsapp_number: string | null
   instagram_url: string | null
   facebook_url: string | null
@@ -67,7 +68,7 @@ const TEXTAREA = INPUT + ' resize-none leading-relaxed'
 function completionScore(g: GymWebsite): number {
   const checks = [
     !!g.tagline, !!g.about, !!g.hero_image_url,
-    g.gallery_urls.length > 0, !!g.video_url,
+    g.gallery_urls.length > 0, g.video_urls?.length > 0 || !!g.video_url,
     !!g.whatsapp_number || !!g.instagram_url,
     !!g.opening_hours, !!g.impressum_text,
   ]
@@ -275,7 +276,7 @@ export default function WebsitePage() {
   const [heroImageUrl, setHeroImageUrl] = useState('')
   const [heroPos,      setHeroPos]      = useState(50)
   const [galleryUrls,  setGalleryUrls]  = useState<string[]>([])
-  const [videoUrl,     setVideoUrl]     = useState('')
+  const [videoUrls,    setVideoUrls]    = useState<string[]>([''])
 
   const [whatsapp,   setWhatsapp]   = useState('')
   const [instagram,  setInstagram]  = useState('')
@@ -297,7 +298,7 @@ export default function WebsitePage() {
       const { data } = await (supabase as any)
         .from('gyms')
         .select(`id, slug, name, logo_url, sport_type,
-          tagline, about, hero_image_url, hero_image_position, gallery_urls, video_url,
+          tagline, about, hero_image_url, hero_image_position, gallery_urls, video_url, video_urls,
           whatsapp_number, instagram_url, facebook_url, website_url,
           founded_year, opening_hours, impressum_text`)
         .single()
@@ -310,7 +311,10 @@ export default function WebsitePage() {
         setHeroImageUrl(data.hero_image_url ?? '')
         setHeroPos(data.hero_image_position ?? 50)
         setGalleryUrls(data.gallery_urls ?? [])
-        setVideoUrl(data.video_url ?? '')
+        const existingUrls: string[] = Array.isArray(data.video_urls) && data.video_urls.length > 0
+          ? data.video_urls
+          : data.video_url ? [data.video_url] : ['']
+        setVideoUrls(existingUrls.length ? existingUrls : [''])
         setWhatsapp(data.whatsapp_number ?? '')
         setInstagram(data.instagram_url ?? '')
         setFacebook(data.facebook_url ?? '')
@@ -361,7 +365,7 @@ export default function WebsitePage() {
   const score = gym ? completionScore({
     ...gym,
     tagline, about, hero_image_url: heroImageUrl,
-    gallery_urls: galleryUrls, video_url: videoUrl,
+    gallery_urls: galleryUrls, video_url: videoUrls[0] ?? null, video_urls: videoUrls,
     whatsapp_number: whatsapp, instagram_url: instagram,
     opening_hours: hours, impressum_text: impressum,
   }) : 0
@@ -539,15 +543,36 @@ export default function WebsitePage() {
               <p className="text-xs text-zinc-400">Klicke auf + um Fotos hochzuladen. Empfehlung: quadratische oder querformatige Aufnahmen.</p>
             </div>
 
-            {/* Video */}
+            {/* Videos */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">
-                <span className="flex items-center gap-1.5"><Play size={12} /> YouTube-Video URL</span>
+              <label className="block text-xs font-semibold text-zinc-600 mb-2">
+                <span className="flex items-center gap-1.5"><Play size={12} /> YouTube-Videos & Shorts</span>
               </label>
-              <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=…"
-                className={INPUT} />
-              <p className="text-xs text-zinc-400 mt-1">Trainings-Highlights, Gym-Tour oder Wettkampf-Videos — erscheint als eingebettetes Video auf deiner Seite.</p>
+              <div className="space-y-2">
+                {videoUrls.map((url, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      value={url}
+                      onChange={e => setVideoUrls(vs => vs.map((v, j) => j === i ? e.target.value : v))}
+                      placeholder={i === 0 ? 'https://www.youtube.com/watch?v=… oder /shorts/…' : 'Weitere URL…'}
+                      className={INPUT + ' flex-1'}
+                    />
+                    {videoUrls.length > 1 && (
+                      <button type="button"
+                        onClick={() => setVideoUrls(vs => vs.filter((_, j) => j !== i))}
+                        className="p-2 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button type="button"
+                  onClick={() => setVideoUrls(vs => [...vs, ''])}
+                  className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-amber-600 transition-colors py-1">
+                  <Plus size={13} /> Video hinzufügen
+                </button>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1">Regular Videos (16:9) und Shorts (9:16) werden automatisch erkannt.</p>
             </div>
 
             <div className="flex justify-end">
@@ -556,7 +581,8 @@ export default function WebsitePage() {
                   hero_image_url:      heroImageUrl || null,
                   hero_image_position: heroPos,
                   gallery_urls:        galleryUrls,
-                  video_url:           videoUrl || null,
+                  video_urls:          videoUrls.filter(u => u.trim()),
+                  video_url:           videoUrls.find(u => u.trim()) || null,
                 })}
                 saving={saving.medien} saved={saved.medien}
               />

@@ -17,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     .select(`
       id, name, logo_url, address, phone, email,
       class_types, belt_system, belt_system_enabled, sport_type,
-      tagline, about, hero_image_url, hero_image_position, gallery_urls, video_url,
+      tagline, about, hero_image_url, hero_image_position, gallery_urls, video_url, video_urls,
       whatsapp_number, instagram_url, facebook_url, website_url,
       founded_year, opening_hours, impressum_text
     `)
@@ -75,6 +75,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       hero_image_position: (g.hero_image_position as number) ?? 50,
       gallery_urls:        (g.gallery_urls as string[]) ?? [],
       video_url:        g.video_url ?? null,
+      video_urls:       (g.video_urls as string[]) ?? [],
       whatsapp_number:  g.whatsapp_number ?? null,
       instagram_url:    g.instagram_url ?? null,
       facebook_url:     g.facebook_url ?? null,
