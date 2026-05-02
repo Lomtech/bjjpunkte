@@ -381,15 +381,26 @@ export default function PublicGymPage() {
             </div>
           </div>
         </div>
+        {/* Fade hero bottom into video section */}
+        {videos.length > 0 && (
+          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-b from-transparent to-zinc-950 z-10 pointer-events-none" />
+        )}
       </section>
 
-      {/* ── VIDEOS ── */}
+      {/* ── VIDEOS ── seamless continuation from hero (no top gap) ── */}
       {videos.length > 0 && (
-        <section className="bg-zinc-950 py-8">
+        <section className="bg-zinc-950 pb-16">
           <div className="max-w-6xl mx-auto px-5">
+            {/* Section label */}
+            <div data-reveal className="flex items-center gap-3 pb-8">
+              <span className="w-6 h-px bg-amber-400/60" />
+              <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">Videos</p>
+              <span className="flex-1 h-px bg-white/5" />
+            </div>
+
             {/* Single regular video → full width */}
             {videos.length === 1 && !videos[0].isShort && (
-              <div className="relative rounded-2xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+              <div data-reveal className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/60" style={{ paddingBottom: '56.25%' }}>
                 <iframe
                   src={`https://www.youtube.com/embed/${videos[0].id}?rel=0&modestbranding=1`}
                   className="absolute inset-0 w-full h-full"
@@ -398,10 +409,11 @@ export default function PublicGymPage() {
                 />
               </div>
             )}
+
             {/* Single short → centred portrait */}
             {videos.length === 1 && videos[0].isShort && (
-              <div className="flex justify-center">
-                <div className="relative rounded-2xl overflow-hidden w-full max-w-xs" style={{ paddingBottom: 'min(177.78%, 80dvh)', maxHeight: '80dvh' }}>
+              <div data-reveal className="flex justify-center">
+                <div className="relative rounded-2xl overflow-hidden w-full max-w-xs shadow-2xl shadow-black/60" style={{ paddingBottom: 'min(177.78%, 80dvh)', maxHeight: '80dvh' }}>
                   <iframe
                     src={`https://www.youtube.com/embed/${videos[0].id}?rel=0&modestbranding=1`}
                     className="absolute inset-0 w-full h-full"
@@ -411,6 +423,7 @@ export default function PublicGymPage() {
                 </div>
               </div>
             )}
+
             {/* Multiple videos → adaptive grid */}
             {videos.length > 1 && (() => {
               const regulars = videos.filter(v => !v.isShort)
@@ -419,8 +432,9 @@ export default function PublicGymPage() {
                 <div className="space-y-4">
                   {regulars.length > 0 && (
                     <div className={`grid gap-4 ${regulars.length === 1 ? 'grid-cols-1' : 'sm:grid-cols-2'}`}>
-                      {regulars.map(v => (
-                        <div key={v.id} className="relative rounded-2xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+                      {regulars.map((v, i) => (
+                        <div key={v.id} data-reveal style={{ transitionDelay: `${i * 100}ms`, paddingBottom: '56.25%' }}
+                          className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/60">
                           <iframe
                             src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
                             className="absolute inset-0 w-full h-full"
@@ -437,8 +451,9 @@ export default function PublicGymPage() {
                       shorts.length === 2 ? 'grid-cols-2 max-w-sm mx-auto' :
                       'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
                     }`}>
-                      {shorts.map(v => (
-                        <div key={v.id} className="relative rounded-2xl overflow-hidden" style={{ paddingBottom: '177.78%' }}>
+                      {shorts.map((v, i) => (
+                        <div key={v.id} data-reveal style={{ transitionDelay: `${(regulars.length + i) * 100}ms`, paddingBottom: '177.78%' }}
+                          className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/60">
                           <iframe
                             src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
                             className="absolute inset-0 w-full h-full"
