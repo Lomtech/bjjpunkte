@@ -241,6 +241,7 @@ export default function SettingsPage() {
     const { data: { publicUrl } } = supabase.storage.from('gym-logos').getPublicUrl(path)
     await supabase.from('gyms').update({ logo_url: publicUrl }).eq('owner_id', user.id)
     setLogoUrl(publicUrl)
+    window.dispatchEvent(new CustomEvent('gym-logo-updated', { detail: { url: publicUrl } }))
     setLogoUploading(false)
   }
 
@@ -250,6 +251,7 @@ export default function SettingsPage() {
     if (!user) return
     await supabase.from('gyms').update({ logo_url: null }).eq('owner_id', user.id)
     setLogoUrl(null)
+    window.dispatchEvent(new CustomEvent('gym-logo-updated', { detail: { url: null } }))
   }
 
   async function handleConnect() {

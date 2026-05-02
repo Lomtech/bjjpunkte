@@ -74,6 +74,13 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
     const cached = localStorage.getItem('userRole') as Role
     if (cached) { setRole(cached); setReady(true) }
     detectRole()
+
+    function onLogoUpdate(e: Event) {
+      const url = (e as CustomEvent<{ url: string | null }>).detail.url
+      setLogoUrl(url)
+    }
+    window.addEventListener('gym-logo-updated', onLogoUpdate)
+    return () => window.removeEventListener('gym-logo-updated', onLogoUpdate)
   }, [])
 
   const isTrainer = role === 'trainer'
