@@ -84,33 +84,31 @@ export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
   const items = isTrainer ? TRAINER_BOTTOM_NAV : BOTTOM_NAV.filter(n => !n.ownerOnly || !isTrainer)
 
   return (
-    <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/96 backdrop-blur-md border-t border-zinc-100"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-    >
-      <div className="h-14 flex items-stretch">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/96 backdrop-blur-md border-t border-zinc-100">
+      {/* Tab items — fixed 49px (iOS HIG standard) */}
+      <div className="h-[49px] flex items-stretch">
         {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
           return (
             <Link key={href} href={href}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                active ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
+              className={`flex-1 flex flex-col items-center justify-center gap-[2px] transition-colors ${
+                active ? 'text-zinc-900' : 'text-zinc-400'
               }`}
             >
-              <div className={`w-9 h-7 flex items-center justify-center rounded-xl transition-colors ${active ? 'bg-amber-50' : ''}`}>
-                <Icon
-                  size={19}
-                  strokeWidth={active ? 2.25 : 1.75}
-                  className={active ? 'text-amber-500' : ''}
-                />
-              </div>
-              <span className={`text-[10px] font-medium tracking-wide ${active ? 'text-zinc-700' : ''}`}>
+              <Icon
+                size={active ? 22 : 21}
+                strokeWidth={active ? 2.3 : 1.6}
+                className={`transition-all ${active ? 'text-amber-500' : 'text-zinc-400'}`}
+              />
+              <span className={`text-[10px] leading-none tracking-tight font-medium ${active ? 'text-amber-500' : 'text-zinc-400'}`}>
                 {label}
               </span>
             </Link>
           )
         })}
       </div>
+      {/* Safe-area spacer — fills home indicator area without padding confusion */}
+      <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
     </nav>
   )
 }

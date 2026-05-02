@@ -34,10 +34,10 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
-/* Mobile nav safe-area clearance */
+/* Mobile nav safe-area clearance — 49px items + safe area (separate div handles visual) */
 @media (max-width: 767px) {
   .mobile-content-pad {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+    padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px));
   }
 }
 

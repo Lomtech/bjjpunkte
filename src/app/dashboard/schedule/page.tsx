@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw, UserCheck, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw, Scan } from 'lucide-react'
+import Link from 'next/link'
 import { NewClassModal } from './NewClassModal'
 import { EditClassModal } from './EditClassModal'
 
@@ -16,10 +17,6 @@ interface ClassRow {
 
 interface BookingMember {
   id: string; status: string; member_id: string; member_name: string; belt: string
-}
-
-interface GymMember {
-  id: string; first_name: string; last_name: string
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -62,7 +59,6 @@ export default function SchedulePage() {
   const [loading, setLoading]           = useState(true)
   const [accessToken, setAccessToken]   = useState('')
   const [gymId, setGymId]               = useState('')
-  const [gymMembers, setGymMembers]     = useState<GymMember[]>([])
   const [showModal, setShowModal]       = useState(false)
   const [modalDate, setModalDate]       = useState('')
   const [expandedId, setExpandedId]     = useState<string | null>(null)
@@ -70,10 +66,6 @@ export default function SchedulePage() {
   const [rosterLoading, setRosterLoading] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [editingClass, setEditingClass] = useState<ClassRow | null>(null)
-  // Per-class check-in state
-  const [checkinSearch, setCheckinSearch] = useState('')
-  const [checkingIn, setCheckingIn]       = useState<string | null>(null)
-  const [checkedIn, setCheckedIn]         = useState<Set<string>>(new Set())
 
   // Refs so loadClasses can access gymId without stale closure
   const gymIdRef       = useRef('')
@@ -109,18 +101,12 @@ export default function SchedulePage() {
       gymIdRef.current = gId
       setGymId(gId)
       // Batch 2: classes and members in parallel
-      const [classesRes, membersRes] = await Promise.all([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any).rpc('get_classes_for_gym', {
-          p_gym_id: gId,
-          p_from: startOfWeek(new Date()).toISOString(),
-        }),
-        supabase.from('members')
-          .select('id, first_name, last_name')
-          .eq('gym_id', gId).eq('is_active', true).order('last_name'),
-      ])
-      setClasses(classesRes.data ?? [])
-      setGymMembers((membersRes.data as GymMember[]) ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: classesData } = await (supabase as any).rpc('get_classes_for_gym', {
+        p_gym_id: gId,
+        p_from: startOfWeek(new Date()).toISOString(),
+      })
+      setClasses(classesData ?? [])
       setLoading(false)
       initializedRef.current = true
     }
@@ -171,33 +157,15 @@ export default function SchedulePage() {
 
   function toggleExpand(classId: string) {
     if (expandedId === classId) {
-      setExpandedId(null); setRoster([]); setCheckinSearch(''); setCheckedIn(new Set())
+      setExpandedId(null); setRoster([])
     } else {
-      setExpandedId(classId); loadRoster(classId); setCheckinSearch(''); setCheckedIn(new Set())
+      setExpandedId(classId); loadRoster(classId)
     }
-  }
-
-  async function handleCheckIn(memberId: string, cls: ClassRow) {
-    if (!gymId) return
-    setCheckingIn(memberId)
-    const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('attendance').insert({
-      member_id: memberId, gym_id: gymId,
-      class_type: cls.class_type, class_id: cls.id,
-    })
-    setCheckedIn(prev => new Set([...prev, memberId]))
-    setCheckingIn(null)
   }
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const selectedDayClasses = classes.filter(c => isSameDay(new Date(c.starts_at), selectedDay))
   const weekLabel = `${weekStart.toLocaleDateString('de-DE',{day:'numeric',month:'short'})} – ${addDays(weekStart,6).toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'})}`
-
-  const filteredMembers = gymMembers.filter(m => {
-    if (!checkinSearch) return true
-    return `${m.first_name} ${m.last_name}`.toLowerCase().includes(checkinSearch.toLowerCase())
-  })
 
   function openAddModal(day: Date) { setModalDate(toLocalDateString(day)); setShowModal(true) }
 
@@ -281,13 +249,10 @@ export default function SchedulePage() {
                       expanded={expandedId === cls.id}
                       roster={roster} rosterLoading={rosterLoading}
                       cancellingId={cancellingId}
-                      gymMembers={filteredMembers} checkinSearch={checkinSearch}
-                      setCheckinSearch={setCheckinSearch} checkedIn={checkedIn}
-                      checkingIn={checkingIn}
+                      isToday={isSameDay(new Date(cls.starts_at), today)}
                       onToggle={() => toggleExpand(cls.id)}
                       onCancel={() => handleCancel(cls)}
                       onEdit={() => { setEditingClass(cls); setExpandedId(null) }}
-                      onCheckIn={(memberId) => handleCheckIn(memberId, cls)}
                     />
                   ))}
                   <button onClick={() => openAddModal(selectedDay)}
@@ -320,13 +285,10 @@ export default function SchedulePage() {
                           expanded={expandedId === cls.id}
                           roster={roster} rosterLoading={rosterLoading}
                           cancellingId={cancellingId}
-                          gymMembers={filteredMembers} checkinSearch={checkinSearch}
-                          setCheckinSearch={setCheckinSearch} checkedIn={checkedIn}
-                          checkingIn={checkingIn}
+                          isToday={isSameDay(new Date(cls.starts_at), today)}
                           onToggle={() => toggleExpand(cls.id)}
                           onCancel={() => handleCancel(cls)}
                           onEdit={() => { setEditingClass(cls); setExpandedId(null) }}
-                          onCheckIn={(memberId) => handleCheckIn(memberId, cls)}
                         />
                       ))}
                       {dayClasses.length > 0 && (
@@ -362,31 +324,46 @@ export default function SchedulePage() {
 
 // ─── ClassCard ────────────────────────────────────────────────────────────────
 
+function buildKioskUrl(cls: ClassRow) {
+  const p = new URLSearchParams({
+    class_id:   cls.id,
+    title:      cls.title,
+    class_type: cls.class_type,
+    starts_at:  cls.starts_at,
+    ends_at:    cls.ends_at,
+  })
+  return `/dashboard/attendance/kiosk?${p.toString()}`
+}
+
 function ClassCard({
-  cls, expanded, roster, rosterLoading, cancellingId,
-  gymMembers, checkinSearch, setCheckinSearch, checkedIn, checkingIn,
-  onToggle, onCancel, onEdit, onCheckIn,
+  cls, expanded, roster, rosterLoading, cancellingId, isToday,
+  onToggle, onCancel, onEdit,
 }: {
-  cls: ClassRow; expanded: boolean
+  cls: ClassRow; expanded: boolean; isToday: boolean
   roster: BookingMember[]; rosterLoading: boolean; cancellingId: string | null
-  gymMembers: GymMember[]; checkinSearch: string
-  setCheckinSearch: (v: string) => void
-  checkedIn: Set<string>; checkingIn: string | null
   onToggle: () => void; onCancel: () => void; onEdit: () => void
-  onCheckIn: (memberId: string) => void
 }) {
+  const now = new Date()
+  const isLive = isToday && new Date(cls.starts_at) <= now && new Date(cls.ends_at) >= now
+
   return (
-    <div className={`rounded-lg border bg-white overflow-hidden transition-all ${
-      cls.is_cancelled ? 'border-zinc-200 opacity-60' : 'border-zinc-200'
+    <div className={`rounded-xl border bg-white overflow-hidden transition-all shadow-sm ${
+      cls.is_cancelled ? 'border-zinc-200 opacity-60' : 'border-zinc-100'
     }`}>
-      {/* Card header – always visible */}
-      <button className="w-full text-left p-3 hover:bg-zinc-50 transition-colors" onClick={onToggle}>
+      {/* Card header */}
+      <button className="w-full text-left p-3 hover:bg-zinc-50/80 transition-colors" onClick={onToggle}>
         <div className="flex items-start justify-between gap-1 mb-1.5">
-          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border font-semibold tracking-wide ${TYPE_COLORS[cls.class_type] ?? TYPE_COLORS.gi}`}>
+          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border font-semibold tracking-wide ${TYPE_COLORS[cls.class_type] ?? TYPE_COLORS.gi}`}>
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${TYPE_DOT[cls.class_type] ?? TYPE_DOT.gi}`} />
             {TYPE_LABELS[cls.class_type] ?? cls.class_type}
           </span>
           <div className="flex items-center gap-1.5">
+            {isLive && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                LIVE
+              </span>
+            )}
             {cls.recurrence_parent_id && cls.recurrence_type !== 'none' && (
               <RefreshCw size={10} className="text-zinc-300" />
             )}
@@ -413,6 +390,18 @@ function ClassCard({
         </div>
       </button>
 
+      {/* QR Check-in button — only for today's non-cancelled classes */}
+      {isToday && !cls.is_cancelled && (
+        <div className="px-3 pb-3">
+          <Link
+            href={buildKioskUrl(cls)}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-bold transition-colors shadow-sm active:scale-[0.98]"
+          >
+            <Scan size={13} /> QR Check-in starten
+          </Link>
+        </div>
+      )}
+
       {/* Expanded panel */}
       {expanded && (
         <div className="border-t border-zinc-100">
@@ -427,58 +416,13 @@ function ClassCard({
                   {roster.map(b => (
                     <div key={b.id} className="flex items-center justify-between">
                       <p className="text-xs text-zinc-700 truncate">{b.member_name}</p>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
                         b.status === 'confirmed' ? 'bg-zinc-100 text-zinc-600' : 'bg-amber-50 text-amber-700'
                       }`}>
                         {b.status === 'confirmed' ? 'Bestätigt' : 'Warteliste'}
                       </span>
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Check-in section */}
-          {!cls.is_cancelled && (
-            <div className="px-3 pt-2 pb-2.5 border-t border-zinc-100 bg-zinc-50">
-              <div className="flex items-center gap-1.5 mb-2">
-                <UserCheck size={11} className="text-zinc-400" />
-                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Einchecken</p>
-              </div>
-              <div className="relative mb-2">
-                <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="text" value={checkinSearch}
-                  onChange={e => setCheckinSearch(e.target.value)}
-                  placeholder="Mitglied suchen…"
-                  className="w-full pl-7 pr-3 py-1.5 rounded-md bg-white border border-zinc-200 text-xs text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-              {checkinSearch && (
-                <div className="space-y-0.5 max-h-32 overflow-auto">
-                  {gymMembers.length === 0 ? (
-                    <p className="text-xs text-zinc-400 py-1">Keine Ergebnisse</p>
-                  ) : (
-                    gymMembers.map(m => {
-                      const isIn = checkedIn.has(m.id)
-                      return (
-                        <div key={m.id} className="flex items-center justify-between py-1.5">
-                          <span className="text-xs text-zinc-700 truncate">{m.first_name} {m.last_name}</span>
-                          <button
-                            onClick={() => !isIn && onCheckIn(m.id)}
-                            disabled={isIn || checkingIn === m.id}
-                            className={`ml-2 flex-shrink-0 px-2 py-1 rounded text-[10px] font-semibold transition-colors ${
-                              isIn
-                                ? 'bg-zinc-100 text-zinc-600 border border-zinc-200'
-                                : 'bg-amber-600 hover:bg-amber-500 text-white'
-                            }`}>
-                            {checkingIn === m.id ? '…' : isIn ? 'Eingecheckt' : 'Check-in'}
-                          </button>
-                        </div>
-                      )
-                    })
-                  )}
                 </div>
               )}
             </div>

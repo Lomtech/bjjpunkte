@@ -1,510 +1,451 @@
 'use client'
 
+import { Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 import Link from 'next/link'
-import { ArrowLeft, Search, CheckCircle2, X, QrCode } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, ChevronRight, Scan } from 'lucide-react'
 
-interface Member { id: string; first_name: string; last_name: string; belt: string; stripes: number }
-
+interface Member {
+  id: string; first_name: string; last_name: string; belt: string; stripes: number
+}
 interface ClassEvent {
-  id: string
-  title: string
-  class_type: string
-  starts_at: string
-  ends_at: string
-  is_cancelled: boolean
+  id: string; title: string; class_type: string; starts_at: string; ends_at: string; is_cancelled: boolean
 }
-
 interface CheckedInEntry {
-  member_id: string
-  name: string
-  belt: string
-  stripes: number
-  time: string
+  member_id: string; name: string; belt: string; stripes: number; time: string
 }
-
-const DEFAULT_CLASS_TYPES = [
-  { value: 'gi',          label: 'Gi' },
-  { value: 'no-gi',       label: 'No-Gi' },
-  { value: 'open mat',    label: 'Open Mat' },
-  { value: 'kids',        label: 'Kids' },
-  { value: 'competition', label: 'Competition' },
-]
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
 
-function toWaPhone(raw: string): string {
-  let p = raw.replace(/[\s\-().]/g, '')
-  if (p.startsWith('00')) p = '+' + p.slice(2)
-  if (p.startsWith('0'))  p = '+49' + p.slice(1)
-  return p.replace(/^\+/, '')
-}
+// ── Event Picker (shown when no class_id in URL) ──────────────────────────────
 
-export default function KioskPage() {
-  const [loading, setLoading]         = useState(true)
-  const [gymId, setGymId]             = useState('')
-  const [members, setMembers]         = useState<Member[]>([])
-  const [search, setSearch]           = useState('')
-  const [todayClasses, setTodayClasses] = useState<ClassEvent[]>([])
-  const [selectedClass, setSelectedClass] = useState<ClassEvent | null>(null)
-  const [classTypes, setClassTypes]   = useState(DEFAULT_CLASS_TYPES)
-  const [manualClassType, setManualClassType] = useState('gi')
-  const [checkedIn, setCheckedIn]     = useState<Map<string, CheckedInEntry>>(new Map())
-  const [totalToday, setTotalToday]   = useState(0)
-  const [flash, setFlash]             = useState<{ name: string; belt: string; stripes: number } | null>(null)
-  const [checkingId, setCheckingId]   = useState<string | null>(null)
-  const [scanMode, setScanMode]       = useState(false)
-  const [scanError, setScanError]     = useState('')
-  const [alreadyName, setAlreadyName] = useState<string | null>(null)
-  const inputRef  = useRef<HTMLInputElement>(null)
-  const videoRef  = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const gymIdRef  = useRef('')
-
-  // Load check-ins for a specific event (or all today if no event)
-  const loadCheckedIn = useCallback(async (classId: string | null, memberMap: Map<string, Member>) => {
-    const supabase = createClient()
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    let q = supabase.from('attendance')
-      .select('member_id, checked_in_at, class_type')
-      .eq('gym_id', gymIdRef.current)
-      .gte('checked_in_at', today.toISOString())
-    if (classId) q = (q as any).eq('class_id', classId)
-    const { data } = await q
-    const map = new Map<string, CheckedInEntry>()
-    for (const a of (data ?? []) as { member_id: string; checked_in_at: string }[]) {
-      const m = memberMap.get(a.member_id)
-      if (m) map.set(a.member_id, {
-        member_id: a.member_id,
-        name: `${m.first_name} ${m.last_name}`,
-        belt: m.belt, stripes: m.stripes,
-        time: new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-      })
-    }
-    setCheckedIn(map)
-  }, [])
+function EventPicker({ gymId, onSelect }: { gymId: string; onSelect: (cls: ClassEvent) => void }) {
+  const [classes, setClasses] = useState<ClassEvent[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, class_types').single()
-      if (!gym) { setLoading(false); return }
-      gymIdRef.current = gym.id
-      setGymId(gym.id)
-
-      const rawTypes = (gym as any)?.class_types
-      if (Array.isArray(rawTypes) && rawTypes.length > 0) {
-        setClassTypes(rawTypes.map((v: string) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) })))
-        setManualClassType(rawTypes[0])
-      }
-
       const today = new Date(); today.setHours(0, 0, 0, 0)
       const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
-
-      const [membersRes, classesRes, totalRes] = await Promise.all([
-        supabase.from('members').select('id, first_name, last_name, belt, stripes')
-          .eq('gym_id', gym.id).eq('is_active', true).order('last_name'),
-        (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: today.toISOString() }),
-        supabase.from('attendance').select('id', { count: 'exact', head: true })
-          .eq('gym_id', gym.id).gte('checked_in_at', today.toISOString()),
-      ])
-
-      const memberList = (membersRes.data as Member[]) ?? []
-      setMembers(memberList)
-      setTotalToday(totalRes.count ?? 0)
-
-      // Filter to today's non-cancelled classes, sorted by time
-      const todayCls = ((classesRes.data ?? []) as ClassEvent[])
+      const { data } = await (supabase as any).rpc('get_classes_for_gym', {
+        p_gym_id: gymId, p_from: today.toISOString(),
+      })
+      const todayCls = ((data ?? []) as ClassEvent[])
         .filter(c => {
           const s = new Date(c.starts_at)
           return s >= today && s < tomorrow && !c.is_cancelled
         })
         .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
-      setTodayClasses(todayCls)
-
-      // Auto-select: active class now, else next upcoming, else first
+      setClasses(todayCls)
+      setLoading(false)
+      // Auto-select currently active class
       const now = new Date()
       const active = todayCls.find(c => new Date(c.starts_at) <= now && new Date(c.ends_at) >= now)
-      const next   = todayCls.find(c => new Date(c.starts_at) > now)
-      const auto   = active ?? next ?? todayCls[0] ?? null
-
-      const memberMap = new Map(memberList.map(m => [m.id, m]))
-      if (auto) {
-        setSelectedClass(auto)
-        await loadCheckedIn(auto.id, memberMap)
-      } else {
-        await loadCheckedIn(null, memberMap)
-      }
-
-      setLoading(false)
-      setTimeout(() => inputRef.current?.focus(), 200)
+      if (active) onSelect(active)
     }
     load()
-  }, [loadCheckedIn])
+  }, [gymId, onSelect])
 
-  // Reload check-ins when selected class changes
-  async function selectClass(cls: ClassEvent) {
-    setSelectedClass(cls)
-    const memberMap = new Map(members.map(m => [m.id, m]))
-    await loadCheckedIn(cls.id, memberMap)
-  }
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <p className="text-zinc-400 text-sm">Lädt Klassen…</p>
+    </div>
+  )
 
-  const activeClassType = selectedClass?.class_type ?? manualClassType
-  const activeClassId   = selectedClass?.id ?? null
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center px-6">
+      <div className="w-full max-w-sm">
+        <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest text-center mb-2">
+          Welche Klasse?
+        </p>
+        <p className="text-zinc-950 text-2xl font-black tracking-tight text-center mb-8">
+          {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
 
-  const filtered = search
-    ? members.filter(m => `${m.first_name} ${m.last_name}`.toLowerCase().includes(search.toLowerCase()))
-    : members
+        {classes.length === 0 ? (
+          <div className="text-center py-12">
+            <Scan size={40} className="text-zinc-200 mx-auto mb-4" />
+            <p className="text-zinc-500 text-sm font-medium">Kein Training heute geplant.</p>
+            <p className="text-zinc-400 text-xs mt-1">Trage zuerst Klassen im Stundenplan ein.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {classes.map(cls => {
+              const now = new Date()
+              const isActive = new Date(cls.starts_at) <= now && new Date(cls.ends_at) >= now
+              return (
+                <button
+                  key={cls.id}
+                  onClick={() => onSelect(cls)}
+                  className="w-full flex items-center justify-between bg-white rounded-2xl px-5 py-4 border border-zinc-100 shadow-sm hover:border-amber-300 hover:shadow-md active:scale-[0.98] transition-all"
+                >
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <p className="text-zinc-950 font-bold text-base">{cls.title}</p>
+                      {isActive && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          LIVE
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-zinc-400 text-sm tabular-nums mt-0.5">
+                      {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
+                    </p>
+                  </div>
+                  <ChevronRight size={18} className="text-zinc-300 flex-shrink-0" />
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
-  async function checkIn(member: Member) {
-    if (checkedIn.has(member.id) || checkingId === member.id) return
-    setCheckingId(member.id)
+// ── QR Scanner ────────────────────────────────────────────────────────────────
+
+function QRScanner({ cls, gymId }: { cls: ClassEvent; gymId: string }) {
+  const [checkedIn, setCheckedIn]   = useState<CheckedInEntry[]>([])
+  const [flash, setFlash]           = useState<{ name: string; belt: string; stripes: number } | null>(null)
+  const [alreadyFlash, setAlreadyFlash] = useState<string | null>(null)
+  const [error, setScanError]       = useState('')
+  const [scanning, setScanning]     = useState(false)
+  const [members, setMembers]       = useState<Member[]>([])
+  const videoRef  = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const scanningRef = useRef(false)
+
+  // Load existing check-ins for this class
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient()
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const [membersRes, attendanceRes] = await Promise.all([
+        supabase.from('members').select('id, first_name, last_name, belt, stripes')
+          .eq('gym_id', gymId).eq('is_active', true),
+        supabase.from('attendance').select('member_id, checked_in_at')
+          .eq('gym_id', gymId)
+          .eq('class_id', cls.id)
+          .gte('checked_in_at', today.toISOString())
+          .order('checked_in_at', { ascending: false }),
+      ])
+      const memberList = (membersRes.data as Member[]) ?? []
+      setMembers(memberList)
+      const memberMap = new Map(memberList.map(m => [m.id, m]))
+      const entries: CheckedInEntry[] = []
+      for (const a of (attendanceRes.data ?? []) as { member_id: string; checked_in_at: string }[]) {
+        const m = memberMap.get(a.member_id)
+        if (m) entries.push({
+          member_id: a.member_id,
+          name: `${m.first_name} ${m.last_name}`,
+          belt: m.belt, stripes: m.stripes,
+          time: new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        })
+      }
+      setCheckedIn(entries)
+    }
+    load()
+  }, [cls.id, gymId])
+
+  const startCamera = useCallback(async () => {
+    setScanError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+      setScanning(true)
+      scanningRef.current = true
+      if ('BarcodeDetector' in window) {
+        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
+        const scan = async () => {
+          if (!scanningRef.current || !videoRef.current || !streamRef.current) return
+          try {
+            const codes = await detector.detect(videoRef.current)
+            if (codes.length > 0) {
+              await handleQR(codes[0].rawValue)
+              // Pause scanning briefly, then resume
+              await new Promise(r => setTimeout(r, 2800))
+            }
+          } catch {}
+          if (scanningRef.current) requestAnimationFrame(scan)
+        }
+        requestAnimationFrame(scan)
+      }
+    } catch {
+      setScanError('Kamera konnte nicht geöffnet werden. Bitte Kamerazugriff erlauben.')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    startCamera()
+    return () => {
+      scanningRef.current = false
+      streamRef.current?.getTracks().forEach(t => t.stop())
+    }
+  }, [startCamera])
+
+  async function handleQR(url: string) {
+    const match = url.match(/\/portal\/([a-zA-Z0-9_-]+)/)
+    if (!match) return
     const supabase = createClient()
+    const { data: member } = await (supabase.from('members') as any)
+      .select('id, first_name, last_name, belt, stripes')
+      .eq('portal_token', match[1]).single()
+    if (!member) { setScanError('Mitglied nicht gefunden.'); return }
+
+    // Already in THIS class?
+    if (checkedIn.some(e => e.member_id === member.id)) {
+      setAlreadyFlash(`${member.first_name} ${member.last_name}`)
+      setTimeout(() => setAlreadyFlash(null), 2500)
+      return
+    }
+
     await (supabase as any).from('attendance').insert({
-      member_id: member.id,
-      gym_id: gymId,
-      class_type: activeClassType,
-      ...(activeClassId ? { class_id: activeClassId } : {}),
+      member_id: member.id, gym_id: gymId,
+      class_type: cls.class_type, class_id: cls.id,
     })
+
+    // Haptic feedback (iOS PWA)
+    try { navigator.vibrate?.(60) } catch {}
+
     const entry: CheckedInEntry = {
       member_id: member.id,
       name: `${member.first_name} ${member.last_name}`,
       belt: member.belt, stripes: member.stripes,
       time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
     }
-    setCheckedIn(prev => new Map(prev).set(member.id, entry))
-    setTotalToday(n => n + 1)
+    setCheckedIn(prev => [entry, ...prev])
     setFlash({ name: `${member.first_name} ${member.last_name}`, belt: member.belt, stripes: member.stripes })
     setTimeout(() => setFlash(null), 2500)
-    setSearch('')
-    setCheckingId(null)
-    setTimeout(() => inputRef.current?.focus(), 100)
   }
-
-  async function startScanner() {
-    setScanMode(true); setScanError('')
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      streamRef.current = stream
-      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play() }
-      if ('BarcodeDetector' in window) {
-        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
-        const scan = async () => {
-          if (!videoRef.current || !streamRef.current) return
-          try {
-            const barcodes = await detector.detect(videoRef.current)
-            if (barcodes.length > 0) { await handleQRResult(barcodes[0].rawValue); return }
-          } catch {}
-          if (streamRef.current) requestAnimationFrame(scan)
-        }
-        requestAnimationFrame(scan)
-      }
-    } catch {
-      setScanError('Kamera konnte nicht geöffnet werden.')
-      setScanMode(false)
-    }
-  }
-
-  function stopScanner() {
-    setScanMode(false)
-    streamRef.current?.getTracks().forEach(t => t.stop())
-    streamRef.current = null
-  }
-
-  async function handleQRResult(url: string) {
-    const match = url.match(/\/portal\/([a-zA-Z0-9_-]+)/)
-    if (!match) { setScanError('Ungültiger QR-Code.'); return }
-    stopScanner()
-    const supabase = createClient()
-    const { data: member } = await (supabase.from('members') as any)
-      .select('id, first_name, last_name, belt, stripes')
-      .eq('portal_token', match[1]).single()
-    if (!member) { setScanError('Mitglied nicht gefunden.'); return }
-    if (checkedIn.has(member.id)) {
-      setAlreadyName(`${member.first_name} ${member.last_name}`)
-      setTimeout(() => setAlreadyName(null), 3000)
-      return
-    }
-    await checkIn(member as Member)
-  }
-
-  if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-zinc-50 text-zinc-400 text-sm">Lädt…</div>
-  )
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col">
+    <div className="flex-1 flex flex-col overflow-hidden">
 
-      {/* ── Header ── */}
-      <div className="bg-white border-b border-zinc-100 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)] flex-shrink-0">
-        <div className="flex items-center justify-between px-5 py-3.5">
-          <Link href="/dashboard/attendance"
-            className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">
-            <ArrowLeft size={14} /> Zurück
-          </Link>
-          <div className="text-center">
-            <p className="text-zinc-950 font-black tracking-tight text-lg leading-none">Check-in</p>
-            <p className="text-zinc-400 text-xs mt-0.5">
-              {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={scanMode ? stopScanner : startScanner}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm ${
-                scanMode
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'
-              }`}
-            >
-              <QrCode size={14} />
-              <span className="hidden sm:inline">{scanMode ? 'Scan aktiv' : 'QR-Scan'}</span>
-            </button>
-            <div className="text-right min-w-[40px]">
-              <p className="text-zinc-950 font-black text-2xl tracking-tight leading-none">{checkedIn.size}</p>
-              <p className="text-zinc-400 text-[10px]">
-                {activeClassId ? 'diese Klasse' : 'heute'}
-              </p>
+      {/* Camera — fills available space */}
+      <div className="relative flex-1 bg-zinc-950 overflow-hidden">
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover"
+          playsInline muted
+        />
+
+        {/* Dimmed overlay with clear center window */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Top dim */}
+          <div className="absolute top-0 left-0 right-0 h-[22%] bg-zinc-950/60" />
+          {/* Bottom dim */}
+          <div className="absolute bottom-0 left-0 right-0 h-[22%] bg-zinc-950/60" />
+          {/* Left dim */}
+          <div className="absolute top-[22%] bottom-[22%] left-0 w-[12%] bg-zinc-950/60" />
+          {/* Right dim */}
+          <div className="absolute top-[22%] bottom-[22%] right-0 w-[12%] bg-zinc-950/60" />
+
+          {/* Scanner frame */}
+          <div className="absolute top-[22%] bottom-[22%] left-[12%] right-[12%] flex items-center justify-center">
+            <div className="w-full h-full relative">
+              {/* Corner brackets */}
+              {[
+                'top-0 left-0 border-t-4 border-l-4 rounded-tl-2xl',
+                'top-0 right-0 border-t-4 border-r-4 rounded-tr-2xl',
+                'bottom-0 left-0 border-b-4 border-l-4 rounded-bl-2xl',
+                'bottom-0 right-0 border-b-4 border-r-4 rounded-br-2xl',
+              ].map((cls, i) => (
+                <div key={i} className={`absolute w-8 h-8 border-white/90 ${cls}`} />
+              ))}
+              {/* Scan line */}
+              <div className="absolute left-2 right-2 top-1/2 h-px bg-amber-400/80 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
             </div>
           </div>
         </div>
 
-        {/* ── Event / class selector ── */}
-        <div className="px-5 pb-4 pt-0.5">
-          {todayClasses.length > 0 ? (
-            <>
-              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">
-                Klasse wählen
-              </p>
-              <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-                {todayClasses.map(cls => {
-                  const active = selectedClass?.id === cls.id
-                  const now = new Date()
-                  const isNow = new Date(cls.starts_at) <= now && new Date(cls.ends_at) >= now
-                  return (
-                    <button
-                      key={cls.id}
-                      onClick={() => selectClass(cls)}
-                      className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-left transition-all border ${
-                        active
-                          ? 'bg-zinc-950 text-white border-zinc-950 shadow-md'
-                          : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400 hover:shadow-sm'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-sm font-black leading-tight ${active ? 'text-white' : 'text-zinc-900'}`}>
-                          {cls.title}
-                        </span>
-                        {isNow && (
-                          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        )}
-                      </div>
-                      <div className={`text-[11px] font-medium mt-0.5 tabular-nums ${active ? 'text-zinc-400' : 'text-zinc-400'}`}>
-                        {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">Klasse</p>
-              <div className="flex gap-2 flex-wrap">
-                {classTypes.map(t => (
-                  <button key={t.value} onClick={() => setManualClassType(t.value)}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors border ${
-                      manualClassType === t.value
-                        ? 'bg-zinc-950 text-white border-zinc-950'
-                        : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'
-                    }`}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+        {/* Hint label */}
+        <div className="absolute bottom-5 inset-x-0 flex justify-center pointer-events-none">
+          <div className="bg-zinc-950/70 backdrop-blur-sm rounded-full px-4 py-1.5">
+            <p className="text-white/80 text-xs font-medium">QR-Code in den Rahmen halten</p>
+          </div>
         </div>
+
+        {error && (
+          <div className="absolute bottom-16 inset-x-4 bg-red-500 text-white text-sm font-medium text-center rounded-2xl px-4 py-3">
+            {error}
+          </div>
+        )}
+
+        {/* Success flash */}
+        {flash && (
+          <div className="absolute inset-0 bg-emerald-500 flex flex-col items-center justify-center z-20 animate-in fade-in duration-150">
+            <CheckCircle2 size={64} className="text-white mb-4" strokeWidth={1.5} />
+            <p className="text-white font-black text-3xl tracking-tight mb-2">{flash.name}</p>
+            <BeltBadge belt={flash.belt as Belt} stripes={flash.stripes} />
+            <p className="text-emerald-100 text-sm font-medium mt-3">Eingecheckt ✓</p>
+          </div>
+        )}
+
+        {/* Already flash */}
+        {alreadyFlash && (
+          <div className="absolute inset-0 bg-amber-500 flex flex-col items-center justify-center z-20 animate-in fade-in duration-150">
+            <CheckCircle2 size={64} className="text-white mb-4" strokeWidth={1.5} />
+            <p className="text-white font-black text-3xl tracking-tight mb-2">{alreadyFlash}</p>
+            <p className="text-amber-100 text-sm font-medium mt-2">Bereits eingecheckt ✓</p>
+          </div>
+        )}
       </div>
 
-      {/* ── Flash: success ── */}
-      {flash && (
-        <div className="fixed inset-x-0 top-28 flex justify-center z-50 pointer-events-none px-4">
-          <div className="bg-emerald-500 text-white rounded-2xl px-8 py-5 shadow-2xl flex flex-col items-center gap-2">
-            <CheckCircle2 size={36} />
-            <p className="font-black text-2xl tracking-tight">{flash.name}</p>
-            <BeltBadge belt={flash.belt as Belt} stripes={flash.stripes} />
-            <p className="text-emerald-100 text-sm font-medium mt-0.5">Eingecheckt 🥋</p>
-          </div>
+      {/* Checked-in strip */}
+      <div className="bg-white border-t border-zinc-100 flex-shrink-0" style={{ maxHeight: '36vh' }}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-50">
+          <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">
+            {cls.title}
+          </p>
+          <span className="text-sm font-black text-zinc-950 tabular-nums">{checkedIn.length}</span>
         </div>
-      )}
-
-      {/* ── Flash: already ── */}
-      {alreadyName && (
-        <div className="fixed inset-x-0 top-28 flex justify-center z-50 pointer-events-none px-4">
-          <div className="bg-amber-500 text-white rounded-2xl px-8 py-5 shadow-2xl flex flex-col items-center gap-2">
-            <CheckCircle2 size={36} />
-            <p className="font-black text-2xl tracking-tight">{alreadyName}</p>
-            <p className="text-amber-100 text-sm font-medium">Bereits eingecheckt ✓</p>
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-
-        {/* ── Left: check-in panel ── */}
-        <div className="flex-1 flex flex-col p-5 overflow-auto">
-
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Name suchen…"
-              className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-white border border-zinc-200 text-zinc-900 placeholder-zinc-400 text-base focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 shadow-sm"
-            />
-            {search && (
-              <button onClick={() => { setSearch(''); inputRef.current?.focus() }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700">
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* QR scanner */}
-          {scanMode && (
-            <div className="relative mb-4">
-              <video ref={videoRef}
-                className="w-full rounded-2xl border border-zinc-200 shadow-sm"
-                style={{ maxHeight: '260px', objectFit: 'cover' }}
-                playsInline muted
-              />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-44 h-44 border-4 border-amber-500 rounded-2xl opacity-80" />
-              </div>
-              {scanError && (
-                <div className="mt-2 p-3 bg-red-50 rounded-xl text-red-700 text-sm text-center border border-red-100">{scanError}</div>
-              )}
-              <button onClick={stopScanner}
-                className="mt-3 w-full py-2.5 rounded-xl bg-white border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-zinc-50 transition-colors shadow-sm">
-                Abbrechen
-              </button>
-              <div className="mt-3">
-                <p className="text-xs text-zinc-400 text-center mb-2">QR-Scan nicht verfügbar?</p>
-                <form onSubmit={async (e) => {
-                  e.preventDefault()
-                  const input = (e.target as HTMLFormElement).querySelector('input') as HTMLInputElement
-                  await handleQRResult(`/portal/${input.value}`)
-                  input.value = ''
-                }} className="flex gap-2">
-                  <input
-                    placeholder="Portal-Token"
-                    className="flex-1 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-zinc-900 placeholder-zinc-400 text-sm focus:outline-none focus:border-amber-400"
-                  />
-                  <button type="submit"
-                    className="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-400 transition-colors">
-                    OK
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* Member grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filtered.map(m => {
-              const done = checkedIn.has(m.id)
-              const checking = checkingId === m.id
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => checkIn(m)}
-                  disabled={done || checking}
-                  className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center ${
-                    done
-                      ? 'bg-emerald-50 border-emerald-200 cursor-default'
-                      : checking
-                      ? 'bg-amber-50 border-amber-300 scale-95'
-                      : 'bg-white border-zinc-100 hover:border-amber-400 hover:shadow-md active:scale-95 shadow-sm'
-                  }`}
-                >
-                  {done && (
-                    <CheckCircle2 size={14} className="absolute top-2.5 right-2.5 text-emerald-500" />
-                  )}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    done ? 'bg-emerald-100' : 'bg-amber-50'
-                  }`}>
-                    <span className={`font-black text-base ${done ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      {m.first_name[0]}{m.last_name[0]}
-                    </span>
-                  </div>
-                  <div className="min-w-0 w-full">
-                    <p className={`text-sm font-bold tracking-tight truncate leading-tight ${done ? 'text-emerald-700' : 'text-zinc-900'}`}>
-                      {m.first_name}
-                    </p>
-                    <p className="text-zinc-400 text-xs truncate">{m.last_name}</p>
-                  </div>
-                  <BeltBadge belt={m.belt as Belt} stripes={m.stripes} />
-                  {done && (
-                    <p className="text-emerald-600 text-[10px] font-semibold">{checkedIn.get(m.id)?.time}</p>
-                  )}
-                </button>
-              )
-            })}
-            {filtered.length === 0 && (
-              <div className="col-span-full text-center py-16 text-zinc-400 text-sm">
-                Kein Mitglied gefunden.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Right: roster ── */}
-        <div className="lg:w-72 bg-white border-t lg:border-t-0 lg:border-l border-zinc-100 flex flex-col max-h-64 lg:max-h-full flex-shrink-0">
-          <div className="px-4 py-3 border-b border-zinc-100 flex-shrink-0">
-            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">
-              {activeClassId
-                ? `${selectedClass?.title ?? 'Klasse'} · ${checkedIn.size}`
-                : `Heute eingecheckt · ${checkedIn.size}`
-              }
-            </p>
-          </div>
-          <div className="flex-1 overflow-auto">
-            {Array.from(checkedIn.values()).reverse().map(entry => (
-              <div key={entry.member_id} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-50 last:border-0">
+        <div className="overflow-auto" style={{ maxHeight: 'calc(36vh - 44px)' }}>
+          {checkedIn.length === 0 ? (
+            <p className="text-zinc-400 text-sm text-center py-6">Noch niemand eingecheckt.</p>
+          ) : (
+            checkedIn.map(entry => (
+              <div key={entry.member_id} className="flex items-center gap-3 px-5 py-2.5 border-b border-zinc-50 last:border-0">
                 <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-600 text-xs font-black">
-                    {entry.name.split(' ').map((n: string) => n[0]).join('')}
+                  <span className="text-amber-600 text-[11px] font-black">
+                    {entry.name.split(' ').map(n => n[0]).join('')}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-zinc-900 text-sm font-semibold truncate">{entry.name}</p>
+                  <p className="text-zinc-900 text-sm font-semibold truncate leading-tight">{entry.name}</p>
                   <BeltBadge belt={entry.belt as Belt} stripes={entry.stripes} />
                 </div>
-                <span className="text-zinc-400 text-xs flex-shrink-0 tabular-nums">{entry.time}</span>
+                <span className="text-zinc-400 text-xs tabular-nums flex-shrink-0">{entry.time}</span>
               </div>
-            ))}
-            {checkedIn.size === 0 && (
-              <p className="text-zinc-400 text-sm text-center py-10">Noch niemand eingecheckt.</p>
-            )}
-          </div>
-          {activeClassId && totalToday > checkedIn.size && (
-            <div className="px-4 py-2.5 border-t border-zinc-100 flex-shrink-0">
-              <p className="text-[10px] text-zinc-400 text-center">
-                {totalToday} insgesamt heute im Gym
-              </p>
-            </div>
+            ))
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+function KioskContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [gymId, setGymId]           = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [selectedClass, setSelectedClass] = useState<ClassEvent | null>(null)
+
+  const classIdParam    = searchParams.get('class_id')
+  const classTitleParam = searchParams.get('title')
+  const classTypeParam  = searchParams.get('class_type')
+  const startsAtParam   = searchParams.get('starts_at')
+  const endsAtParam     = searchParams.get('ends_at')
+
+  useEffect(() => {
+    async function init() {
+      const supabase = createClient()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id').single()
+      if (!gym) { setLoading(false); return }
+      setGymId(gym.id)
+
+      // If class info is in URL params, use it directly (came from schedule)
+      if (classIdParam && classTitleParam && classTypeParam) {
+        setSelectedClass({
+          id: classIdParam,
+          title: decodeURIComponent(classTitleParam),
+          class_type: decodeURIComponent(classTypeParam),
+          starts_at: startsAtParam ? decodeURIComponent(startsAtParam) : new Date().toISOString(),
+          ends_at: endsAtParam ? decodeURIComponent(endsAtParam) : new Date().toISOString(),
+          is_cancelled: false,
+        })
+      }
+      setLoading(false)
+    }
+    init()
+  }, [classIdParam, classTitleParam, classTypeParam, startsAtParam, endsAtParam])
+
+  if (loading) return (
+    <div className="flex items-center justify-center flex-1">
+      <p className="text-zinc-400 text-sm">Lädt…</p>
+    </div>
+  )
+
+  return (
+    <>
+      {/* ── Header ── */}
+      <div className="bg-white/96 backdrop-blur-md border-b border-zinc-100 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            onClick={() => selectedClass && !classIdParam ? setSelectedClass(null) : router.back()}
+            className="flex items-center gap-1.5 text-amber-500 text-sm font-semibold"
+          >
+            <ArrowLeft size={16} /> {selectedClass && !classIdParam ? 'Klassen' : 'Zurück'}
+          </button>
+
+          {selectedClass ? (
+            <div className="text-center">
+              <p className="text-zinc-950 font-black text-base tracking-tight leading-tight">{selectedClass.title}</p>
+              <p className="text-zinc-400 text-xs tabular-nums">
+                {formatTime(selectedClass.starts_at)} – {formatTime(selectedClass.ends_at)}
+              </p>
+            </div>
+          ) : (
+            <p className="text-zinc-950 font-black text-base tracking-tight">Check-in</p>
+          )}
+
+          {/* Live indicator or empty spacer */}
+          {selectedClass ? (
+            (() => {
+              const now = new Date()
+              const isLive = new Date(selectedClass.starts_at) <= now && new Date(selectedClass.ends_at) >= now
+              return isLive ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  LIVE
+                </span>
+              ) : <div className="w-14" />
+            })()
+          ) : (
+            <div className="w-14" />
+          )}
+        </div>
+      </div>
+
+      {/* ── Content ── */}
+      {gymId && (
+        selectedClass
+          ? <QRScanner cls={selectedClass} gymId={gymId} />
+          : <EventPicker gymId={gymId} onSelect={setSelectedClass} />
+      )}
+    </>
+  )
+}
+
+export default function KioskPage() {
+  return (
+    <div className="flex flex-col bg-zinc-50"
+      style={{ height: '100dvh' }}
+    >
+      <Suspense fallback={
+        <div className="flex items-center justify-center flex-1">
+          <p className="text-zinc-400 text-sm">Lädt…</p>
+        </div>
+      }>
+        <KioskContent />
+      </Suspense>
     </div>
   )
 }
