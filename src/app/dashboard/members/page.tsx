@@ -107,12 +107,26 @@ export default function MembersPage() {
   const activeWithEmail = active.filter(m => m.email)
 
   function downloadCSV() {
-    const headers = ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Gürtel', 'Stripes', 'Mitglied seit', 'Status', 'Vertrag bis']
+    const headers = [
+      'Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Geburtsdatum',
+      'Gürtel', 'Stripes', 'Mitglied seit', 'Status', 'Abo-Status',
+      'Vertrag bis', 'Beitrag (€)',
+    ]
     const rows = members.map(m => [
-      m.first_name, m.last_name, m.email ?? '', m.phone ?? '',
-      m.belt, String(m.stripes), m.join_date,
+      m.first_name,
+      m.last_name,
+      m.email ?? '',
+      m.phone ?? '',
+      (m as { date_of_birth?: string | null }).date_of_birth ?? '',
+      m.belt,
+      String(m.stripes),
+      m.join_date,
       m.is_active ? 'Aktiv' : 'Inaktiv',
-      m.contract_end_date ?? ''
+      (m as { subscription_status?: string }).subscription_status ?? '',
+      m.contract_end_date ?? '',
+      ((m as { monthly_fee_override_cents?: number | null }).monthly_fee_override_cents ?? 0) > 0
+        ? (((m as { monthly_fee_override_cents?: number | null }).monthly_fee_override_cents ?? 0) / 100).toFixed(2).replace('.', ',')
+        : '',
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })

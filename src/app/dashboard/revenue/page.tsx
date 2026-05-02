@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   TrendingUp, CheckCircle2, Clock, AlertCircle, ChevronRight,
-  Euro, Users, Calendar, ArrowUpRight,
+  Euro, Users, Calendar, ArrowUpRight, Download,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -15,6 +15,7 @@ interface PaymentFull {
   paid_at: string | null
   status: string
   created_at: string
+  invoice_number: string | null
 }
 
 interface MemberStatus {
@@ -157,6 +158,23 @@ export default function RevenuePage() {
     }
     load()
   }, [])
+
+  function downloadPaymentsCSV() {
+    const headers = ['Datum', 'Mitglied', 'Betrag (€)', 'Status', 'Zahlungs-ID']
+    const rows = allPayments.map(p => [
+      p.paid_at ? new Date(p.paid_at).toLocaleDateString('de-DE') : new Date(p.created_at).toLocaleDateString('de-DE'),
+      p.member_name,
+      (p.amount_cents / 100).toFixed(2).replace('.', ','),
+      p.status === 'paid' ? 'Bezahlt' : p.status === 'pending' ? 'Ausstehend' : p.status,
+      p.id,
+    ])
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url
+    a.download = `zahlungen-${new Date().toISOString().split('T')[0]}.csv`
+    a.click(); URL.revokeObjectURL(url)
+  }
 
   if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
 
@@ -357,25 +375,43 @@ export default function RevenuePage() {
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Zahlungshistorie</p>
-            <span className="text-xs text-zinc-400">{allPayments.length} Transaktionen · {formatCents(allTimeCents)}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-zinc-400">{allPayments.length} Transaktionen · {formatCents(allTimeCents)}</span>
+              {allPayments.length > 0 && (
+                <button onClick={downloadPaymentsCSV}
+                  className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
+                  title="CSV exportieren">
+                  <Download size={12} /> CSV
+                </button>
+              )}
+            </div>
           </div>
           <div className="divide-y divide-gray-100">
             {allPayments.map(p => (
-              <Link key={p.id} href={`/dashboard/members/${p.member_id}`}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                  <ArrowUpRight size={13} className="text-amber-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-900 truncate">{p.member_name}</p>
-                  <p className="text-xs text-zinc-400">
-                    {p.paid_at
-                      ? new Date(p.paid_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                      : '–'}
-                  </p>
-                </div>
+              <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors group">
+                <Link href={`/dashboard/members/${p.member_id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                    <ArrowUpRight size={13} className="text-amber-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-zinc-900 truncate">{p.member_name}</p>
+                    <p className="text-xs text-zinc-400">
+                      {p.paid_at
+                        ? new Date(p.paid_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                        : '–'}
+                      {p.invoice_number && <span className="ml-2 text-zinc-300">#{p.invoice_number}</span>}
+                    </p>
+                  </div>
+                </Link>
                 <span className="text-sm font-semibold text-zinc-800 flex-shrink-0">{formatCents(p.amount_cents)}</span>
-              </Link>
+                {p.status === 'paid' && (
+                  <a href={`/api/invoices/${p.id}`} target="_blank" rel="noopener noreferrer"
+                    className="flex-shrink-0 p-1.5 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Rechnung herunterladen">
+                    <Download size={13} />
+                  </a>
+                )}
+              </div>
             ))}
             {allPayments.length === 0 && (
               <div className="py-12 text-center text-zinc-400 text-sm">Noch keine Zahlungen vorhanden.</div>

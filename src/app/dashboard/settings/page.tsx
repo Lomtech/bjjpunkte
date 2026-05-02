@@ -1227,20 +1227,32 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-zinc-500">Aktuelles Personal ({staffList.length})</p>
                   <div className="divide-y divide-gray-100 rounded-lg border border-zinc-200 overflow-hidden">
-                    {staffList.map(s => (
-                      <div key={s.id} className="flex items-center gap-3 px-4 py-3 bg-white">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-zinc-800 truncate">{s.name}</p>
-                          <p className="text-xs text-zinc-400 truncate">{s.email}</p>
+                    {staffList.map(s => {
+                      const inviteLink = s.invite_token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/staff/accept?token=${s.invite_token}` : null
+                      return (
+                        <div key={s.id} className="flex items-center gap-3 px-4 py-3 bg-white">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-zinc-800 truncate">{s.name}</p>
+                            <p className="text-xs text-zinc-400 truncate">{s.email}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.accepted_at ? 'bg-zinc-200 text-zinc-700 border border-zinc-300' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                              {s.accepted_at ? 'Aktiv' : 'Eingeladen'}
+                            </span>
+                            {!s.accepted_at && inviteLink && (
+                              <button type="button"
+                                onClick={() => copyWithFeedback(inviteLink, setCopiedStaff)}
+                                className="text-zinc-300 hover:text-amber-500 transition-colors" title="Link kopieren">
+                                <Copy size={13} />
+                              </button>
+                            )}
+                            <button type="button" onClick={() => handleStaffDelete(s.id)} className="text-zinc-300 hover:text-red-500 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.accepted_at ? 'bg-zinc-200 text-zinc-700 border border-zinc-300' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
-                          {s.accepted_at ? 'Aktiv' : 'Eingeladen'}
-                        </span>
-                        <button type="button" onClick={() => handleStaffDelete(s.id)} className="text-zinc-300 hover:text-red-500 transition-colors flex-shrink-0">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )}
