@@ -80,7 +80,10 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
   if (!ready) return null
 
   return (
-    <div className="flex h-dvh bg-zinc-50 safe-area-top">
+    <div className="flex flex-col h-dvh bg-zinc-50 safe-area-top">
+
+      {/* ── Main row: sidebar + content ── */}
+      <div className="flex flex-1 overflow-hidden">
 
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-56 flex-shrink-0 flex-col bg-white shadow-[1px_0_0_0_#f0f0f0,2px_0_12px_0_rgba(0,0,0,0.03)]">
@@ -117,11 +120,13 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 overflow-auto min-w-0 mobile-content-pad md:pb-0">
+      <main className="flex-1 overflow-auto min-w-0">
         {children}
       </main>
 
-      {/* ── Mobile bottom nav ── */}
+      </div>{/* end main row */}
+
+      {/* ── Mobile bottom nav — part of flex column, not fixed ── */}
       <BottomNav isTrainer={isTrainer} />
     </div>
   )

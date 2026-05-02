@@ -84,7 +84,7 @@ export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
   const items = isTrainer ? TRAINER_BOTTOM_NAV : BOTTOM_NAV.filter(n => !n.ownerOnly || !isTrainer)
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/96 backdrop-blur-md border-t border-zinc-100">
+    <nav className="md:hidden flex-shrink-0 bg-white/96 backdrop-blur-md border-t border-zinc-100 z-40">
       {/* Tab items — fixed 49px (iOS HIG standard) */}
       <div className="h-[49px] flex items-stretch">
         {items.map(({ href, label, icon: Icon }) => {
@@ -107,7 +107,7 @@ export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
           )
         })}
       </div>
-      {/* Safe-area spacer — fills home indicator area without padding confusion */}
+      {/* Safe-area spacer for home indicator */}
       <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
     </nav>
   )
