@@ -20,7 +20,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   const { data: member, error } = await supabase
     .from('members')
-    .select('id, gym_id')
+    .select('id, gym_id, first_name, last_name')
     .eq('portal_token', token)
     .single()
 
@@ -43,6 +43,33 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   await (supabase.from('members') as any)
     .update({ requested_plan_id: plan_id })
     .eq('id', member.id)
+
+  // Notify gym owner
+  try {
+    const { data: gymData } = await (supabase.from('gyms') as any)
+      .select('name, email')
+      .eq('id', member.gym_id)
+      .single()
+    const { data: planData } = await (supabase.from('membership_plans') as any)
+      .select('name')
+      .eq('id', plan_id)
+      .single()
+    if (gymData?.email && process.env.RESEND_API_KEY) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL ?? 'noreply@osss.app',
+          to: gymData.email,
+          subject: `Plan-Änderung beantragt von ${member.first_name} ${member.last_name}`,
+          html: `<p>Hallo,</p><p><strong>${member.first_name} ${member.last_name}</strong> möchte den Tarif wechseln${planData?.name ? ` zu <strong>${planData.name}</strong>` : ''}.</p><p>Bitte bearbeite die Anfrage im Dashboard.</p>`,
+        }),
+      })
+    }
+  } catch {}
 
   return NextResponse.json({ success: true })
 }

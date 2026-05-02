@@ -15,7 +15,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   const supabase = serviceClient()
 
   const { data: member, error } = await supabase
-    .from('members').select('id').eq('portal_token', token).single()
+    .from('members').select('id, gym_id, first_name, last_name').eq('portal_token', token).single()
 
   if (error || !member) {
     return NextResponse.json({ error: 'Mitglied nicht gefunden' }, { status: 404 })
@@ -25,6 +25,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     cancellation_requested_at: new Date().toISOString(),
     cancellation_note: note || null,
   }).eq('id', member.id)
+
+  // Notify gym owner
+  try {
+    const { data: gymData } = await (supabase.from('gyms') as any)
+      .select('name, email')
+      .eq('id', member.gym_id)
+      .single()
+    if (gymData?.email && process.env.RESEND_API_KEY) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL ?? 'noreply@osss.app',
+          to: gymData.email,
+          subject: `Kündigungsanfrage von ${member.first_name} ${member.last_name}`,
+          html: `<p>Hallo,</p><p><strong>${member.first_name} ${member.last_name}</strong> hat über das Mitglieder-Portal eine Kündigung beantragt.${note ? `</p><p>Notiz: <em>${note}</em>` : ''}</p><p>Bitte bearbeite die Anfrage im Dashboard.</p>`,
+        }),
+      })
+    }
+  } catch {}
 
   return NextResponse.json({ success: true })
 }

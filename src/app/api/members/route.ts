@@ -65,5 +65,40 @@ export async function POST(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // Send welcome email with portal link if email provided
+  if (email && process.env.RESEND_API_KEY) {
+    try {
+      // Fetch portal token
+      const { data: newMember } = await (supabase.from('members') as any)
+        .select('portal_token')
+        .eq('id', (member as { id: string }).id)
+        .single()
+      const portalToken = (newMember as any)?.portal_token
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+      const portalUrl = portalToken ? `${appUrl}/portal/${portalToken}` : null
+      const { data: gymInfo } = await (supabase.from('gyms') as any)
+        .select('name')
+        .eq('id', gymData.id)
+        .single()
+      const gymName = (gymInfo as any)?.name ?? 'Deinem Gym'
+
+      if (portalUrl) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: process.env.RESEND_FROM_EMAIL ?? 'noreply@osss.app',
+            to: email,
+            subject: `Willkommen bei ${gymName}!`,
+            html: `<p>Hallo ${first_name},</p><p>Herzlich willkommen bei <strong>${gymName}</strong>! Wir freuen uns, dich dabei zu haben.</p><p>Über deinen persönlichen Mitglieder-Link kannst du jederzeit deine Daten, Trainingsanwesenheit und Beiträge einsehen:</p><p><a href="${portalUrl}" style="background:#f59e0b;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Mein Mitglieder-Portal →</a></p><p>Oss!</p>`,
+          }),
+        })
+      }
+    } catch {}
+  }
+
   return NextResponse.json({ id: (member as { id: string }).id }, { status: 201 })
 }

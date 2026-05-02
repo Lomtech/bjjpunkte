@@ -41,6 +41,8 @@ interface Member {
   is_active: boolean; subscription_status: string | null
   contract_end_date: string | null; monthly_fee_override_cents: number | null
   onboarding_status: string | null; portal_token: string | null
+  cancellation_requested_at: string | null
+  requested_plan_id: string | null
 }
 
 function contractStatus(endDate: string | null): 'ok' | 'expiring' | 'expired' {
@@ -83,7 +85,7 @@ export default function MembersPage() {
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
       const { data } = await supabase
         .from('members')
-        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token')
+        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id')
         .eq('gym_id', gym.id).order('last_name')
       setMembers((data as unknown as Member[]) ?? [])
       setLoading(false)
@@ -101,6 +103,7 @@ export default function MembersPage() {
   })
   const active   = nonPending.filter(m => m.is_active)
   const inactive = nonPending.filter(m => !m.is_active)
+  const pendingRequests = nonPending.filter(m => m.cancellation_requested_at || m.requested_plan_id)
   const activeWithEmail = active.filter(m => m.email)
 
   function downloadCSV() {
@@ -205,6 +208,38 @@ export default function MembersPage() {
 
       {bulkResult && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm font-medium">{bulkResult}</div>
+      )}
+
+      {/* Pending member requests (cancellations / plan changes) */}
+      {pendingRequests.length > 0 && (
+        <div className="mb-4 bg-red-50 rounded-xl border border-red-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-red-200 flex items-center gap-2">
+            <span className="text-xs font-semibold text-red-800 uppercase tracking-wider">Offene Mitglieder-Anfragen</span>
+            <span className="ml-auto text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full border border-red-200">{pendingRequests.length}</span>
+          </div>
+          <div className="divide-y divide-red-100">
+            {pendingRequests.map(m => (
+              <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-red-700">{m.first_name[0]}{m.last_name[0]}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{m.first_name} {m.last_name}</p>
+                  <div className="flex gap-2 mt-0.5">
+                    {m.cancellation_requested_at && (
+                      <span className="text-xs text-red-600 font-medium">Kündigung beantragt</span>
+                    )}
+                    {m.requested_plan_id && (
+                      <span className="text-xs text-amber-600 font-medium">Plan-Änderung beantragt</span>
+                    )}
+                  </div>
+                </div>
+                <Link href={`/dashboard/members/${m.id}`}
+                  className="text-xs text-red-700 hover:text-red-600 font-medium flex-shrink-0">Details →</Link>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Pending sign-ups */}

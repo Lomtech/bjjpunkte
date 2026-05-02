@@ -46,6 +46,9 @@ interface Member {
   date_of_birth: string | null
   portal_token: string | null
   parent_member_id: string | null
+  cancellation_requested_at: string | null
+  cancellation_note: string | null
+  requested_plan_id: string | null
 }
 
 interface Promotion {
@@ -208,6 +211,25 @@ export default function MemberDetailPage() {
       .then(({ data }) => { if (data) setPromotions(data as Promotion[]) })
   }
 
+  async function handleClearCancellation() {
+    if (!confirm('Kündigung als erledigt markieren und zurücksetzen?')) return
+    const supabase = createClient()
+    await (supabase.from('members') as any).update({
+      cancellation_requested_at: null,
+      cancellation_note: null,
+    }).eq('id', id)
+    setMember(m => m ? { ...m, cancellation_requested_at: null, cancellation_note: null } : m)
+  }
+
+  async function handleClearPlanRequest() {
+    if (!confirm('Plan-Anfrage als erledigt markieren und zurücksetzen?')) return
+    const supabase = createClient()
+    await (supabase.from('members') as any).update({
+      requested_plan_id: null,
+    }).eq('id', id)
+    setMember(m => m ? { ...m, requested_plan_id: null } : m)
+  }
+
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-full">
@@ -293,6 +315,44 @@ export default function MemberDetailPage() {
           phone={member.phone}
           email={member.email}
         />
+      )}
+
+      {/* Pending member requests */}
+      {member.cancellation_requested_at && (
+        <div className="mb-4 bg-red-50 rounded-xl border border-red-200 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-red-800">Kündigung beantragt</p>
+              <p className="text-xs text-red-600 mt-0.5">
+                {new Date(member.cancellation_requested_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+              </p>
+              {member.cancellation_note && (
+                <p className="text-sm text-slate-600 mt-2 bg-white rounded-lg px-3 py-2 border border-red-100">"{member.cancellation_note}"</p>
+              )}
+            </div>
+            <button
+              onClick={handleClearCancellation}
+              className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white border border-red-200 hover:bg-red-50 text-red-700 text-xs font-semibold transition-colors">
+              Erledigt
+            </button>
+          </div>
+        </div>
+      )}
+
+      {member.requested_plan_id && (
+        <div className="mb-4 bg-amber-50 rounded-xl border border-amber-200 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Plan-Änderung beantragt</p>
+              <p className="text-xs text-amber-600 mt-0.5">Mitglied möchte den Tarif wechseln</p>
+            </div>
+            <button
+              onClick={handleClearPlanRequest}
+              className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 text-amber-700 text-xs font-semibold transition-colors">
+              Erledigt
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Family links */}
