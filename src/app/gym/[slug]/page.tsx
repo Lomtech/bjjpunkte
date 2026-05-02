@@ -9,6 +9,7 @@ import {
   Share2, Globe, MessageCircle, Menu, X, CalendarDays, Award,
 } from 'lucide-react'
 import { LogoMark } from '@/components/Logo'
+import { SectionWave } from '@/components/SectionWave'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ function ytParse(url: string): { id: string; isShort: boolean } | null {
 
 // ── Sticky nav ────────────────────────────────────────────────────────────────
 
-function Nav({ gym }: { gym: GymInfo }) {
+function Nav({ gym, hasVideos }: { gym: GymInfo; hasVideos: boolean }) {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen]         = useState(false)
   useEffect(() => {
@@ -101,6 +102,7 @@ function Nav({ gym }: { gym: GymInfo }) {
   }, [])
   const links = [
     { href: '#about', label: 'Über uns' },
+    ...(hasVideos ? [{ href: '#videos', label: 'Videos' }] : []),
     { href: '#news', label: 'News' },
     { href: '#schedule', label: 'Stundenplan' },
     { href: '#plans', label: 'Preise' },
@@ -144,11 +146,11 @@ function Nav({ gym }: { gym: GymInfo }) {
 
 // ── Contact form ──────────────────────────────────────────────────────────────
 
-function ContactForm({ slug }: { slug: string }) {
+function ContactForm({ slug, classes }: { slug: string; classes: GymClass[] }) {
   const [step, setStep] = useState<'idle' | 'form' | 'done'>('idle')
   const [busy, setBusy] = useState(false)
   const [err, setErr]   = useState('')
-  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', message: '' })
+  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', message: '', class_id: '' })
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setErr('')
@@ -186,6 +188,19 @@ function ContactForm({ slug }: { slug: string }) {
       </div>
       <div><label className="block text-xs font-medium text-zinc-500 mb-1">E-Mail *</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required placeholder="max@beispiel.de" className={ic} /></div>
       <div><label className="block text-xs font-medium text-zinc-500 mb-1">Telefon</label><input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+49 151 …" className={ic} /></div>
+      {classes.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-zinc-500 mb-1">Trainingsslot wählen (optional)</label>
+          <select value={form.class_id} onChange={e => setForm(f => ({ ...f, class_id: e.target.value }))} className={ic}>
+            <option value="">Kein bestimmter Slot</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.id}>
+                {new Date(c.starts_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' })} {new Date(c.starts_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – {c.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div><label className="block text-xs font-medium text-zinc-500 mb-1">Nachricht</label><textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} rows={2} placeholder="Ich interessiere mich für…" className={ic + ' resize-none'} /></div>
       {err && <p className="text-red-500 text-xs">{err}</p>}
       <div className="flex gap-2 pt-1">
@@ -324,7 +339,7 @@ export default function PublicGymPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased">
-      <Nav gym={gym} />
+      <Nav gym={gym} hasVideos={videos.length > 0} />
 
       {/* ── HERO ── photo left, text right, dark overlay for readability ── */}
       <section className="relative min-h-screen overflow-hidden bg-zinc-900">
@@ -381,26 +396,24 @@ export default function PublicGymPage() {
             </div>
           </div>
         </div>
-        {/* Fade hero bottom into video section */}
-        {videos.length > 0 && (
-          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-b from-transparent to-zinc-950 z-10 pointer-events-none" />
-        )}
       </section>
 
-      {/* ── VIDEOS ── seamless continuation from hero (no top gap) ── */}
-      {videos.length > 0 && (
-        <section className="bg-zinc-950 pb-16">
+      <SectionWave fromBg="bg-zinc-900" toBg="bg-zinc-50" />
+
+      {/* ── VIDEOS ── */}
+      {videos.length > 0 && (<>
+        <section id="videos" className="bg-zinc-50 py-16">
           <div className="max-w-6xl mx-auto px-5">
             {/* Section label */}
             <div data-reveal className="flex items-center gap-3 pb-8">
-              <span className="w-6 h-px bg-amber-400/60" />
-              <p className="text-amber-400/80 text-xs font-bold uppercase tracking-[0.2em]">Videos</p>
-              <span className="flex-1 h-px bg-white/5" />
+              <span className="w-6 h-px bg-amber-400" />
+              <p className="text-amber-600 text-xs font-bold uppercase tracking-[0.2em]">Videos</p>
+              <span className="flex-1 h-px bg-zinc-200" />
             </div>
 
             {/* Single regular video → full width */}
             {videos.length === 1 && !videos[0].isShort && (
-              <div data-reveal className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/60" style={{ paddingBottom: '56.25%' }}>
+              <div data-reveal className="relative rounded-2xl overflow-hidden shadow-2xl shadow-zinc-300/60" style={{ paddingBottom: '56.25%' }}>
                 <iframe
                   src={`https://www.youtube.com/embed/${videos[0].id}?rel=0&modestbranding=1`}
                   className="absolute inset-0 w-full h-full"
@@ -413,7 +426,7 @@ export default function PublicGymPage() {
             {/* Single short → centred portrait */}
             {videos.length === 1 && videos[0].isShort && (
               <div data-reveal className="flex justify-center">
-                <div className="relative rounded-2xl overflow-hidden w-full max-w-xs shadow-2xl shadow-black/60" style={{ paddingBottom: 'min(177.78%, 80dvh)', maxHeight: '80dvh' }}>
+                <div className="relative rounded-2xl overflow-hidden w-full max-w-xs shadow-2xl shadow-zinc-300/60" style={{ paddingBottom: 'min(177.78%, 80dvh)', maxHeight: '80dvh' }}>
                   <iframe
                     src={`https://www.youtube.com/embed/${videos[0].id}?rel=0&modestbranding=1`}
                     className="absolute inset-0 w-full h-full"
@@ -434,7 +447,7 @@ export default function PublicGymPage() {
                     <div className={`grid gap-4 ${regulars.length === 1 ? 'grid-cols-1' : 'sm:grid-cols-2'}`}>
                       {regulars.map((v, i) => (
                         <div key={v.id} data-reveal style={{ transitionDelay: `${i * 100}ms`, paddingBottom: '56.25%' }}
-                          className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/60">
+                          className="relative rounded-2xl overflow-hidden shadow-2xl shadow-zinc-300/60">
                           <iframe
                             src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
                             className="absolute inset-0 w-full h-full"
@@ -453,7 +466,7 @@ export default function PublicGymPage() {
                     }`}>
                       {shorts.map((v, i) => (
                         <div key={v.id} data-reveal style={{ transitionDelay: `${(regulars.length + i) * 100}ms`, paddingBottom: '177.78%' }}
-                          className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/60">
+                          className="relative rounded-2xl overflow-hidden shadow-2xl shadow-zinc-300/60">
                           <iframe
                             src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
                             className="absolute inset-0 w-full h-full"
@@ -469,10 +482,11 @@ export default function PublicGymPage() {
             })()}
           </div>
         </section>
-      )}
+        <SectionWave fromBg="bg-zinc-50" toBg="bg-white" flip />
+      </>)}
 
       {/* ── ABOUT ── */}
-      {(gym.about_blocks?.length > 0 || gym.about) && (
+      {(gym.about_blocks?.length > 0 || gym.about) && (<>
         <section id="about" className="bg-white py-24">
           <div className="max-w-6xl mx-auto px-5">
             {/* Section label + meta column */}
@@ -528,11 +542,12 @@ export default function PublicGymPage() {
             </div>
           </div>
         </section>
-      )}
+        <SectionWave fromBg="bg-white" toBg="bg-zinc-50" />
+      </>)}
 
       {/* ── GALLERY ── photos fully visible, no crop ── */}
-      {gym.gallery_urls.length > 0 && (
-        <section className="bg-zinc-900 py-6">
+      {gym.gallery_urls.length > 0 && (<>
+        <section className="bg-zinc-50 py-16">
           <div className="max-w-6xl mx-auto px-4">
             <div className={`grid gap-3 ${
               gym.gallery_urls.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
@@ -541,7 +556,7 @@ export default function PublicGymPage() {
             }`}>
               {gym.gallery_urls.slice(0, 6).map((url, i) => (
                 <div key={i} data-reveal style={{ transitionDelay: `${i * 60}ms` }}
-                  className="overflow-hidden rounded-2xl bg-zinc-800 group">
+                  className="overflow-hidden rounded-2xl bg-white border border-zinc-100 group">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={url} alt=""
                     className="w-full h-auto object-contain max-h-[420px] group-hover:scale-[1.02] transition-transform duration-500" />
@@ -550,14 +565,16 @@ export default function PublicGymPage() {
             </div>
           </div>
         </section>
-      )}
+        <SectionWave fromBg="bg-zinc-50" toBg="bg-white" flip />
+      </>)}
 
       {/* ── NEWS / POSTS ── */}
       <PostsSection />
+      {posts.length > 0 && <SectionWave fromBg="bg-white" toBg="bg-zinc-50" />}
 
       {/* ── SCHEDULE ── */}
-      {days.length > 0 && (
-        <section id="schedule" className="bg-white py-24">
+      {days.length > 0 && (<>
+        <section id="schedule" className="bg-zinc-50 py-24">
           <div className="max-w-6xl mx-auto px-5">
             <div data-reveal className="flex items-center gap-2 mb-3">
               <span className="w-6 h-px bg-amber-400" />
@@ -601,11 +618,12 @@ export default function PublicGymPage() {
             </div>
           </div>
         </section>
-      )}
+        <SectionWave fromBg="bg-zinc-50" toBg="bg-white" flip />
+      </>)}
 
       {/* ── PLANS ── */}
-      {plans.length > 0 && (
-        <section id="plans" className="bg-zinc-50 py-24">
+      {plans.length > 0 && (<>
+        <section id="plans" className="bg-white py-24">
           <div className="max-w-6xl mx-auto px-5">
             <div data-reveal className="flex items-center gap-2 mb-3">
               <span className="w-6 h-px bg-amber-400" />
@@ -634,10 +652,11 @@ export default function PublicGymPage() {
             </div>
           </div>
         </section>
-      )}
+        <SectionWave fromBg="bg-white" toBg="bg-zinc-50" />
+      </>)}
 
       {/* ── CONTACT ── */}
-      <section id="contact" className="bg-white py-24">
+      <section id="contact" className="bg-zinc-50 py-24">
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-6 h-px bg-amber-400" />
@@ -755,10 +774,10 @@ export default function PublicGymPage() {
             </div>
 
             {/* Right: form */}
-            <div className="bg-zinc-50 rounded-3xl border border-zinc-200 p-6 md:p-8 shadow-sm">
+            <div className="bg-white rounded-3xl border border-zinc-200 p-6 md:p-8 shadow-sm">
               <h3 className="font-black text-zinc-900 text-xl mb-1">Probetraining anfragen</h3>
               <p className="text-zinc-500 text-sm mb-6">Wir melden uns innerhalb von 24 Stunden.</p>
-              <ContactForm slug={slug} />
+              <ContactForm slug={slug} classes={classes} />
             </div>
           </div>
         </div>

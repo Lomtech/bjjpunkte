@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserPlus, Trash2, MessageCircle, Phone, Mail, Pencil } from 'lucide-react'
+import { UserPlus, Trash2, MessageCircle, Phone, Mail, Pencil, Link2 } from 'lucide-react'
 import Link from 'next/link'
 
 function toWaPhone(raw: string): string {
@@ -65,6 +65,7 @@ interface Lead {
   created_at: string
   contacted_at: string | null
   converted_at: string | null
+  lead_token: string | null
 }
 
 function daysSince(dateStr: string): number {
@@ -431,6 +432,17 @@ export default function LeadsPage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                  {lead.lead_token && (
+                    <button
+                      onClick={() => {
+                        const url = `${window.location.origin}/lead/${lead.lead_token}`
+                        navigator.clipboard.writeText(url).catch(() => {})
+                      }}
+                      title="Portal-Link kopieren"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                      <Link2 size={14} />
+                    </button>
+                  )}
                   {lead.phone && (
                     <a
                       href={`https://wa.me/${toWaPhone(lead.phone)}?text=${encodeURIComponent(`Hallo ${lead.first_name}! 👋`)}`}

@@ -15,20 +15,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
   const { data: gym } = await supabase
     .from('gyms')
-    .select('id')
+    .select('id, name')
     .eq('slug', slug)
     .single()
 
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const body = await req.json()
-  const { first_name, last_name, email, phone, message } = body
+  const { first_name, last_name, email, phone, message, class_id } = body
 
   if (!first_name || !last_name || !email) {
     return NextResponse.json({ error: 'Name und E-Mail sind erforderlich' }, { status: 400 })
   }
 
-  const { error } = await supabase.from('leads').insert({
+  const { data: lead, error } = await supabase.from('leads').insert({
     gym_id:     gym.id,
     first_name: first_name.trim(),
     last_name:  last_name.trim(),
@@ -37,12 +37,35 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     notes:      message?.trim() || null,
     status:     'new',
     source:     'public_page',
-  })
+  }).select('id, lead_token').single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error || !lead) return NextResponse.json({ error: error?.message ?? 'Fehler' }, { status: 500 })
 
-  // Notify gym owner via email + WhatsApp
-  const fullName = `${first_name.trim()} ${last_name.trim()}`
+  // If a class was chosen, book it immediately
+  let bookedClass: { title: string; starts_at: string } | null = null
+  if (class_id) {
+    const { data: cls } = await supabase
+      .from('classes')
+      .select('id, title, starts_at')
+      .eq('id', class_id)
+      .eq('gym_id', gym.id)
+      .single()
+    if (cls) {
+      bookedClass = cls
+      await supabase.from('lead_bookings').insert({
+        lead_id:  lead.id,
+        class_id: cls.id,
+        status:   'booked',
+      })
+    }
+  }
+
+  const fullName   = `${first_name.trim()} ${last_name.trim()}`
+  const portalUrl  = lead.lead_token
+    ? `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://osss.pro'}/lead/${lead.lead_token}`
+    : null
+
+  // Notify gym owner
   await notifyGym({
     gymId: gym.id,
     subject: `Probetraining-Anfrage: ${fullName}`,
@@ -55,12 +78,54 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         <tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Name</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-weight:600">${fullName}</td></tr>
         <tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">E-Mail</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${email.trim().toLowerCase()}</td></tr>
         ${phone ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Telefon</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${phone.trim()}</td></tr>` : ''}
+        ${bookedClass ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Slot</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${bookedClass.title} – ${new Date(bookedClass.starts_at).toLocaleString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td></tr>` : ''}
         ${message ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Nachricht</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${message.trim()}</td></tr>` : ''}
       </table>
-      <p style="margin:20px 0 0;font-size:14px;color:#64748b">Der Interessent wurde automatisch in deinem Dashboard unter <strong>Interessenten</strong> angelegt.</p>
     `,
-    whatsappText: `🥋 Probetraining-Anfrage!\n${fullName}\n${email.trim().toLowerCase()}${phone ? '\n' + phone.trim() : ''}${message ? '\n"' + message.trim() + '"' : ''}\n\nosss.pro Dashboard`,
+    whatsappText: `🥋 Probetraining-Anfrage!\n${fullName}\n${email.trim().toLowerCase()}${phone ? '\n' + phone.trim() : ''}${bookedClass ? '\nSlot: ' + bookedClass.title : ''}\nosss.pro Dashboard`,
   })
+
+  // Send portal link to the lead if they have an email and token
+  if (portalUrl && email) {
+    const slotLine = bookedClass
+      ? `<p style="margin:0 0 12px;font-size:14px;color:#374151">
+          <strong>Dein gebuchter Slot:</strong> ${bookedClass.title} –
+          ${new Date(bookedClass.starts_at).toLocaleString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })} Uhr
+        </p>`
+      : ''
+
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: `${gym.name} via Osss <noreply@osss.pro>`,
+        to:   [email.trim().toLowerCase()],
+        subject: `Dein Probetraining bei ${gym.name} – Portal-Link`,
+        html: `
+          <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+            <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0f172a">Hallo ${first_name.trim()}! 🥋</p>
+            <p style="margin:0 0 20px;font-size:15px;color:#64748b;line-height:1.6">
+              Deine Probetraining-Anfrage bei <strong>${gym.name}</strong> ist eingegangen.
+              Das Team meldet sich in Kürze bei dir.
+            </p>
+            ${slotLine}
+            <p style="margin:0 0 12px;font-size:14px;color:#374151">
+              Über deinen persönlichen Portal-Link kannst du dich für Trainings anmelden und einchecken:
+            </p>
+            <a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#0f172a;font-weight:700;font-size:14px;border-radius:12px;text-decoration:none">
+              Zum Interessenten-Portal →
+            </a>
+            <p style="margin:24px 0 0;font-size:12px;color:#94a3b8">
+              Dieser Link ist persönlich und nur für dich bestimmt. Teile ihn nicht mit anderen.
+            </p>
+          </div>
+        `,
+      }),
+    }).catch(() => {})
+  }
 
   return NextResponse.json({ success: true })
 }
