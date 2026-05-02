@@ -28,14 +28,11 @@ export default function ImpressumPage() {
         <div className="space-y-8 text-sm text-zinc-700 leading-relaxed">
 
           <section>
-            <h2 className="font-bold text-zinc-900 text-base mb-2">Anbieter</h2>
-            <p className="text-zinc-500 italic text-xs mb-3">
-              Bitte ergänze hier deinen vollständigen Namen, deine Anschrift und deine Kontaktdaten.
-            </p>
+            <h2 className="font-bold text-zinc-900 text-base mb-3">Anbieter</h2>
             <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-5 space-y-1 text-zinc-600">
-              <p>[Vor- und Nachname / Firmenname]</p>
-              <p>[Straße und Hausnummer]</p>
-              <p>[PLZ Ort]</p>
+              <p className="font-semibold text-zinc-900">Lom-Ali Imadaev</p>
+              <p>Kreuzstraße 1</p>
+              <p>82276 Adelshofen</p>
               <p>Deutschland</p>
             </div>
           </section>
@@ -45,6 +42,12 @@ export default function ImpressumPage() {
             <div className="space-y-1 text-zinc-600">
               <p>
                 E-Mail:{' '}
+                <a href="mailto:lomaliimadaev@gmail.com" className="text-amber-600 hover:underline">
+                  lomaliimadaev@gmail.com
+                </a>
+              </p>
+              <p>
+                Support:{' '}
                 <a href="mailto:support@osss.pro" className="text-amber-600 hover:underline">
                   support@osss.pro
                 </a>
@@ -55,10 +58,7 @@ export default function ImpressumPage() {
           <section>
             <h2 className="font-bold text-zinc-900 text-base mb-3">Umsatzsteuer</h2>
             <p className="text-zinc-600">
-              Gemäß §19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).<br />
-              <span className="text-zinc-400 text-xs italic">
-                Wenn du umsatzsteuerpflichtig bist, ersetze diesen Absatz durch deine USt-ID.
-              </span>
+              Gemäß §19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).
             </p>
           </section>
 
@@ -66,7 +66,7 @@ export default function ImpressumPage() {
             <h2 className="font-bold text-zinc-900 text-base mb-3">Verantwortlich für den Inhalt</h2>
             <p className="text-zinc-600">
               gemäß §55 Abs. 2 RStV:<br />
-              [Vor- und Nachname, Anschrift wie oben]
+              Lom-Ali Imadaev, Kreuzstraße 1, 82276 Adelshofen
             </p>
           </section>
 
