@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, AnimatePresence, useInView } from 'framer-motion'
+import { motion, AnimatePresence, useInView, useScroll, useTransform } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { OsssLogo, LogoMark } from '@/components/Logo'
 import {
@@ -108,6 +108,11 @@ export default function Home() {
     } catch { setChecked(true) }
   }, [])
 
+  const { scrollY } = useScroll()
+  const mobileImgOpacity = useTransform(scrollY, [0, 280], [1, 0])
+  const mobileImgY       = useTransform(scrollY, [0, 400], [0, -55])
+  const mobileImgScale   = useTransform(scrollY, [0, 400], [1, 1.08])
+
   const features = SPORT_FEATURES[activeSport]
   const hasBelt  = SPORTS.find(s => s.id === activeSport)?.belt ?? false
 
@@ -139,10 +144,29 @@ export default function Home() {
 
       {/* ── HERO ── */}
       <section className="relative bg-white overflow-hidden">
+
+        {/* Mobile ghost photo — dissolves as you scroll */}
+        <motion.div
+          className="lg:hidden absolute top-0 left-0 right-0 h-[82vw] z-0 pointer-events-none"
+          style={{ opacity: mobileImgOpacity, y: mobileImgY, scale: mobileImgScale }}
+        >
+          <Image
+            src="/tournament-podium.jpg"
+            alt="Wettkampf Siegerehrung"
+            fill
+            className="object-cover object-top"
+            priority
+          />
+          {/* Dissolve gradient — top clear, bottom melts into white */}
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 35%, rgba(255,255,255,0.5) 60%, rgba(255,255,255,0.88) 75%, rgba(255,255,255,1) 90%)'
+          }} />
+        </motion.div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[88vh]">
 
           {/* Left — text */}
-          <div className="flex flex-col justify-center px-6 sm:px-12 lg:px-16 xl:px-20 py-20 lg:py-24 relative">
+          <div className="flex flex-col justify-center px-6 sm:px-12 lg:px-16 xl:px-20 pt-[68vw] pb-14 lg:py-24 relative">
             {/* Soft amber glow */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none"
               style={{ background: 'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(251,191,36,0.07) 0%, transparent 70%)' }} />
@@ -214,22 +238,6 @@ export default function Home() {
                 Spring Nationals · Podium
               </span>
             </div>
-          </motion.div>
-
-          {/* Mobile: photo below text */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="relative lg:hidden h-72 sm:h-96"
-          >
-            <Image
-              src="/tournament-podium.jpg"
-              alt="Wettkampf Siegerehrung"
-              fill
-              className="object-cover object-top"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent" />
           </motion.div>
 
         </div>
