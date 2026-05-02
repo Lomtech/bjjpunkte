@@ -75,12 +75,12 @@ const MARQUEE_ITEMS = [
 // ── Variants ──────────────────────────────────────────────────────────────────
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 18 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const } },
+  hidden: { opacity: 0, y: 24, scale: 0.97 },
+  show:   { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
 }
 const stagger = {
   hidden: {},
-  show:   { transition: { staggerChildren: 0.07 } },
+  show:   { transition: { staggerChildren: 0.08 } },
 }
 
 function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -110,10 +110,14 @@ export default function Home() {
   }, [])
 
   const { scrollY } = useScroll()
-  const mobileImgOpacity = useTransform(scrollY, [0, 280], [1, 0])
-  const mobileImgY       = useTransform(scrollY, [0, 400], [0, -55])
-  const mobileImgScale   = useTransform(scrollY, [0, 400], [1, 1.08])
-  const podiumParallaxY  = useTransform(scrollY, [0, 1200], [0, 120])
+  const mobileImgOpacity  = useTransform(scrollY, [0, 280], [1, 0])
+  const mobileImgY        = useTransform(scrollY, [0, 400], [0, -55])
+  const mobileImgScale    = useTransform(scrollY, [0, 400], [1, 1.08])
+  const podiumParallaxY   = useTransform(scrollY, [0, 1400], [0, 140])
+  const podiumTextY       = useTransform(scrollY, [500, 1100], [0, -50])
+  const dashboardImgY     = useTransform(scrollY, [1000, 1900], [60, -30])
+  const videoParallaxY    = useTransform(scrollY, [1600, 2600], [0, 80])
+  const videoScale        = useTransform(scrollY, [1600, 2200], [1.08, 1.0])
 
   const features = SPORT_FEATURES[activeSport]
   const hasBelt  = SPORTS.find(s => s.id === activeSport)?.belt ?? false
@@ -302,7 +306,7 @@ export default function Home() {
                   alt="Athleten auf dem Siegerpodest"
                   width={800}
                   height={600}
-                  className="w-full object-cover"
+                  className="w-full object-cover object-top"
                 />
                 {/* Subtle amber overlay at bottom */}
                 <div className="absolute inset-0 pointer-events-none"
@@ -343,7 +347,7 @@ export default function Home() {
       </div>
 
       {/* ── PODIUM SECTION ── Erstes Bild beim Scrollen */}
-      <section className="relative h-[70vh] min-h-[480px] overflow-hidden">
+      <section className="relative h-[90vh] min-h-[560px] overflow-hidden">
         {/* Parallax image */}
         <motion.div
           className="absolute inset-0 scale-110"
@@ -353,7 +357,7 @@ export default function Home() {
             src="/tournament-podium.jpg"
             alt="Athleten auf dem Siegerpodest"
             fill
-            className="object-cover object-center"
+            className="object-cover object-top"
             priority
           />
         </motion.div>
@@ -363,12 +367,13 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/40 via-transparent to-transparent" />
 
         {/* Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-end text-center pb-16 px-5">
+        <div className="absolute inset-0 flex flex-col items-center justify-end text-center pb-20 px-5">
+          <motion.div style={{ y: podiumTextY }}>
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
           >
             <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-4">Echtes Training. Echter Wettkampf.</p>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none mb-5">
@@ -377,6 +382,7 @@ export default function Home() {
             <p className="text-zinc-300 text-base max-w-md mx-auto leading-relaxed">
               Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
             </p>
+          </motion.div>
           </motion.div>
         </div>
 
@@ -389,41 +395,41 @@ export default function Home() {
       </section>
 
       {/* ── DASHBOARD SHOWCASE ── Dynamisch einfließend */}
-      <section className="bg-zinc-950 py-20 px-5 overflow-hidden">
+      <section className="bg-white py-24 px-5 overflow-hidden border-b border-zinc-100">
         <div className="max-w-5xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="text-center mb-12"
           >
-            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">Dein Gym. Dein Dashboard.</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">Dein Gym. Dein Dashboard.</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">
               Alles auf einen Blick.
             </h2>
-            <p className="text-zinc-400 mt-3 text-sm max-w-sm mx-auto leading-relaxed">
+            <p className="text-zinc-500 mt-3 text-sm max-w-sm mx-auto leading-relaxed">
               Mitglieder, Einnahmen, Belt-Verteilung — live und in Echtzeit.
             </p>
           </motion.div>
 
-          {/* Dashboard screenshot — fliegt von unten rein */}
+          {/* Dashboard screenshot — 3D fly-in + scroll parallax */}
           <motion.div
-            initial={{ opacity: 0, y: 80, rotateX: 8 }}
+            initial={{ opacity: 0, y: 100, rotateX: 10 }}
             whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
             viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-            style={{ transformPerspective: 1200 }}
-            className="relative rounded-2xl overflow-hidden border border-zinc-800 shadow-[0_40px_100px_rgba(0,0,0,0.6)]"
+            transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+            style={{ transformPerspective: 1400, y: dashboardImgY }}
+            className="relative rounded-2xl overflow-hidden border border-zinc-200 shadow-[0_32px_80px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06)]"
           >
-            {/* Browser chrome */}
-            <div className="bg-zinc-900 border-b border-zinc-800 px-4 py-2.5 flex items-center gap-2">
+            {/* Browser chrome — light */}
+            <div className="bg-zinc-100 border-b border-zinc-200 px-4 py-2.5 flex items-center gap-2">
               <div className="flex gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
-                <div className="w-2.5 h-2.5 rounded-full bg-zinc-700" />
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
               </div>
-              <div className="flex-1 mx-3 bg-zinc-800 rounded px-3 py-1 text-[10px] text-zinc-500 font-mono">
+              <div className="flex-1 mx-3 bg-white rounded-md px-3 py-1 text-[10px] text-zinc-400 font-mono border border-zinc-200">
                 app.osss.pro/dashboard
               </div>
             </div>
@@ -434,27 +440,36 @@ export default function Home() {
               height={876}
               className="w-full"
             />
-            {/* Amber glow at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-              style={{ background: 'linear-gradient(to top, rgba(251,191,36,0.06) 0%, transparent 100%)' }} />
           </motion.div>
         </div>
       </section>
 
-      {/* ── PHOTO SECTION ── */}
-      <section className="relative h-[50vh] min-h-[340px] overflow-hidden">
-        <video
-          autoPlay muted loop playsInline
-          className="absolute inset-0 w-full h-full object-cover object-center"
+      {/* ── VIDEO SECTION ── */}
+      <section className="relative h-[85vh] min-h-[540px] overflow-hidden">
+        <motion.div
+          className="absolute inset-0 scale-110"
+          style={{ y: videoParallaxY, scale: videoScale }}
         >
-          <source src="/competition-mat.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-zinc-950/60" />
+          <video
+            autoPlay muted loop playsInline
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          >
+            <source src="/competition-mat.mp4" type="video/mp4" />
+          </video>
+        </motion.div>
+        <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/20 via-zinc-950/55 to-zinc-950/80" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-5">
-          <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">Kein Papierkram. Mehr Training.</p>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight max-w-lg">
-            Osss läuft im Hintergrund.<br />Du trainierst im Vordergrund.
-          </h2>
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-5">Kein Papierkram. Mehr Training.</p>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[0.92] max-w-2xl mx-auto">
+              Osss läuft im Hintergrund.<br />Du trainierst im Vordergrund.
+            </h2>
+          </motion.div>
         </div>
       </section>
 
