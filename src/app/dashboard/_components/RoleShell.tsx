@@ -112,7 +112,7 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 overflow-auto min-w-0 pb-16 md:pb-0">
+      <main className="flex-1 overflow-auto min-w-0 mobile-content-pad md:pb-0">
         {children}
       </main>
 

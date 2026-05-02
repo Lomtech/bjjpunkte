@@ -29,6 +29,13 @@ body {
 }
 .animate-marquee:hover { animation-play-state: paused; }
 
+/* Mobile nav safe-area clearance */
+@media (max-width: 767px) {
+  .mobile-content-pad {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+}
+
 .belt-white   { background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; }
 .belt-blue    { background: #1d4ed8; color: #ffffff; }
 .belt-purple  { background: #7c3aed; color: #ffffff; }

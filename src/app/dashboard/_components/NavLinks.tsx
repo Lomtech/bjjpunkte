@@ -44,27 +44,32 @@ export function SidebarNav({ isTrainer = false }: { isTrainer?: boolean }) {
 
   return (
     <>
-      <nav className="flex-1 px-3 py-3 space-y-0.5">
+      <nav className="flex-1 px-2 py-2 space-y-px">
         {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
           return (
             <Link key={href} href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
                 active
-                  ? 'bg-amber-50 text-amber-700 font-semibold'
-                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
-              }`}>
-              <Icon size={15} className={`flex-shrink-0 ${active ? 'text-amber-600' : ''}`} />
+                  ? 'bg-zinc-100 text-zinc-900 font-medium'
+                  : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
+              }`}
+            >
+              <Icon
+                size={15}
+                strokeWidth={active ? 2 : 1.75}
+                className={`flex-shrink-0 ${active ? 'text-zinc-700' : 'text-zinc-400'}`}
+              />
               {label}
-              {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />}
             </Link>
           )
         })}
       </nav>
-      <div className="px-3 pb-4 border-t border-zinc-100 pt-3">
+
+      <div className="px-2 pb-3 pt-2 border-t border-zinc-100">
         <Link href="/auth/signout"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all text-sm font-medium w-full">
-          <LogOut size={15} className="flex-shrink-0" />
+          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm w-full">
+          <LogOut size={15} strokeWidth={1.75} className="flex-shrink-0" />
           Abmelden
         </Link>
       </div>
@@ -77,18 +82,27 @@ export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
   const items = isTrainer ? TRAINER_BOTTOM_NAV : BOTTOM_NAV.filter(n => !n.ownerOnly || !isTrainer)
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-zinc-100 safe-area-bottom">
-      <div className="flex items-stretch">
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-zinc-100"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="flex items-stretch h-14">
         {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
           return (
             <Link key={href} href={href}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-[10px] font-semibold transition-colors ${
-                active ? 'text-amber-600' : 'text-zinc-400 hover:text-zinc-700'
-              }`}>
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.75} />
-              <span className="mt-0.5 tracking-wide">{label}</span>
-              {active && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-amber-500" />}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 transition-colors ${
+                active ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
+              }`}
+            >
+              <Icon
+                size={20}
+                strokeWidth={active ? 2.25 : 1.75}
+                className={active ? 'text-amber-500' : ''}
+              />
+              <span className={`text-[10px] font-medium tracking-wide ${active ? 'text-zinc-700' : ''}`}>
+                {label}
+              </span>
             </Link>
           )
         })}
