@@ -305,18 +305,21 @@ async function main() {
       assert(status === 400, `Erwartet 400, bekam ${status}`)
     })
 
-    // Payment auf pending setzen
+    // Test 1: Match via stripe_checkout_session_id (neue primäre Logik)
+    const csId = `cs_test_${runId}`
     const piId = `pi_test_${runId}`
-    await db.from('payments').insert({
+    await (db.from('payments') as any).insert({
       gym_id: gymId, member_id: memberId,
-      stripe_payment_intent_id: piId,
+      stripe_checkout_session_id: csId,
+      stripe_payment_intent_id: null, // absichtlich null — sollte trotzdem via session ID matchen
       amount_cents: 8000, status: 'pending',
     })
 
-    await test('Webhook: checkout.session.completed → payment = paid (DB-Verifikation)', async () => {
+    await test('Webhook: checkout.session.completed → match via session_id (primär)', async () => {
       const payload = JSON.stringify({
         id: `evt_${runId}`, type: 'checkout.session.completed',
         data: { object: {
+          id: csId,
           payment_status: 'paid',
           payment_intent: piId,
           metadata: { memberId },
@@ -329,10 +332,40 @@ async function main() {
         body: payload,
       })
       assert(status === 200, `Webhook: Erwartet 200, bekam ${status}`)
+      await new Promise(r => setTimeout(r, 700))
+      const { data } = await (db.from('payments') as any).select('status, stripe_payment_intent_id').eq('stripe_checkout_session_id', csId).single()
+      assert((data as any)?.status === 'paid', `DB-Status nach Session-ID-Match: "${(data as any)?.status}" statt "paid"`)
+      assert((data as any)?.stripe_payment_intent_id === piId, `payment_intent_id nicht gesetzt: ${(data as any)?.stripe_payment_intent_id}`)
+    })
 
-      await new Promise(r => setTimeout(r, 600))
-      const { data } = await db.from('payments').select('status').eq('stripe_payment_intent_id', piId).single()
-      assert((data as any)?.status === 'paid', `DB-Status nach Webhook: "${(data as any)?.status}" statt "paid" — Service Role Bug?`)
+    // Test 2: Legacy-Match via payment_intent_id (Fallback für alte Einträge)
+    const piLegacyId = `pi_legacy_${runId}`
+    await db.from('payments').insert({
+      gym_id: gymId, member_id: memberId,
+      stripe_payment_intent_id: piLegacyId,
+      amount_cents: 8000, status: 'pending',
+    })
+
+    await test('Webhook: checkout.session.completed → match via payment_intent (legacy fallback)', async () => {
+      const payload = JSON.stringify({
+        id: `evt_legacy_${runId}`, type: 'checkout.session.completed',
+        data: { object: {
+          id: `cs_legacy_${runId}`,
+          payment_status: 'paid',
+          payment_intent: piLegacyId,
+          metadata: { memberId },
+          customer: null, subscription: null,
+        }},
+      })
+      const { status } = await api('/api/stripe/webhook', {
+        method: 'POST',
+        headers: { 'stripe-signature': signWebhook(payload, webhookSecret), 'Content-Type': 'application/json' },
+        body: payload,
+      })
+      assert(status === 200, `Webhook: Erwartet 200, bekam ${status}`)
+      await new Promise(r => setTimeout(r, 700))
+      const { data } = await db.from('payments').select('status').eq('stripe_payment_intent_id', piLegacyId).single()
+      assert((data as any)?.status === 'paid', `DB-Status nach PI-Match: "${(data as any)?.status}" statt "paid"`)
     })
 
     await test('Webhook: payment_intent.payment_failed → payment = failed (DB-Verifikation)', async () => {

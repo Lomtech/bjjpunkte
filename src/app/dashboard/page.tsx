@@ -181,7 +181,7 @@ export default function DashboardPage() {
         <p className="text-xs text-zinc-400 font-medium mb-0.5">
           {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
-        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{greeting} 👋</h1>
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{greeting}</h1>
       </div>
 
       {/* KPI Cards */}
