@@ -11,6 +11,37 @@ function authClient(accessToken: string) {
   )
 }
 
+// Returns the Stripe Connect account status (charges_enabled, payouts_enabled)
+export async function GET(req: Request) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY
+  if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert' }, { status: 400 })
+
+  const authHeader = req.headers.get('Authorization')
+  const accessToken = authHeader?.replace('Bearer ', '')
+  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const supabase = authClient(accessToken)
+  const { data: { user } } = await supabase.auth.getUser(accessToken)
+  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const { data: gym } = await supabase.from('gyms').select('stripe_account_id').single()
+  const accountId = (gym as any)?.stripe_account_id as string | null
+  if (!accountId) return NextResponse.json({ connected: false })
+
+  try {
+    const stripe = new Stripe(stripeKey)
+    const account = await stripe.accounts.retrieve(accountId)
+    return NextResponse.json({
+      connected: true,
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+    })
+  } catch {
+    return NextResponse.json({ connected: false })
+  }
+}
+
 // Creates a Stripe Express account for the gym + returns onboarding link
 // No STRIPE_CLIENT_ID needed — account is created programmatically
 export async function POST(req: Request) {

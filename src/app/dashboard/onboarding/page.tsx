@@ -191,6 +191,7 @@ export default function OnboardingPage() {
         address,
         phone,
         email,
+        monthly_fee_cents: monthlyFee ? Math.round(parseFloat(monthlyFee) * 100) : null,
       })
       .eq('id', gym.id)
     setSaving(false)

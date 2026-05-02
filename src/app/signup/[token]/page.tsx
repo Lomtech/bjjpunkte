@@ -253,7 +253,7 @@ export default function SignupPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 safe-area-top">
       {/* Header */}
       <div className="bg-[#0f172a] px-4 py-5 text-center">
         <p className="text-amber-400 font-black text-2xl italic tracking-tight">Osss</p>

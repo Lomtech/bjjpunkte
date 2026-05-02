@@ -323,7 +323,7 @@ export default function MemberPortalPage() {
   const CLASS_TYPE_OPTIONS = ['gi', 'no-gi', 'open mat', 'kids', 'competition']
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 safe-area-top">
 
       {/* Header */}
       <div className="bg-white border-b border-slate-200">

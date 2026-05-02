@@ -80,7 +80,7 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
   if (!ready) return null
 
   return (
-    <div className="flex h-dvh bg-zinc-50">
+    <div className="flex h-dvh bg-zinc-50 safe-area-top">
 
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-56 flex-shrink-0 flex-col bg-white border-r border-zinc-100">

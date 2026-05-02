@@ -46,6 +46,7 @@ export default function SettingsPage() {
   const [stripeAccountId, setStripeAccountId]   = useState<string | null>(null)
   const [connectLoading, setConnectLoading]     = useState(false)
   const [copiedWebhook, setCopiedWebhook]       = useState(false)
+  const [stripeChargesEnabled, setStripeChargesEnabled] = useState<boolean | null>(null)
 
   // Legal
   const [legalName, setLegalName]       = useState('')
@@ -140,6 +141,9 @@ export default function SettingsPage() {
       const t = setTimeout(() => setUpgradedBanner(false), 5000)
       return () => clearTimeout(t)
     }
+    if (searchParams.get('stripe_connected') === '1' || searchParams.get('stripe_error')) {
+      setActiveTab('zahlungen')
+    }
   }, [searchParams])
 
   useEffect(() => {
@@ -194,6 +198,13 @@ export default function SettingsPage() {
       if (!session) return
       const res = await fetch('/api/staff', { headers: { Authorization: `Bearer ${session.access_token}` } })
       if (res.ok) setStaffList(await res.json())
+      // Check Stripe Connect account completion status
+      const statusRes = await fetch('/api/stripe/connect', { headers: { Authorization: `Bearer ${session.access_token}` } })
+      if (statusRes.ok) {
+        const statusData = await statusRes.json()
+        if (statusData.connected) setStripeChargesEnabled(statusData.charges_enabled ?? false)
+        else setStripeChargesEnabled(null)
+      }
     })
   }, [])
 
@@ -725,16 +736,40 @@ export default function SettingsPage() {
                 <div className="p-4">
                   {stripeAccountId ? (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-zinc-600 text-sm">
-                        <CheckCircle2 size={14} className="text-zinc-400 flex-shrink-0" />
-                        Beiträge gehen direkt auf dein Stripe-Konto.
-                      </div>
+                      {stripeChargesEnabled === false && (
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                          <AlertCircle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-semibold text-amber-800">Onboarding unvollständig</p>
+                            <p className="text-xs text-amber-700 mt-0.5">Dein Stripe-Konto kann noch keine Zahlungen empfangen. Klicke auf &quot;Einrichtung fortsetzen&quot; um das Onboarding abzuschließen.</p>
+                          </div>
+                        </div>
+                      )}
+                      {stripeChargesEnabled === true && (
+                        <div className="flex items-center gap-2 text-zinc-600 text-sm">
+                          <CheckCircle2 size={14} className="text-zinc-400 flex-shrink-0" />
+                          Beiträge gehen direkt auf dein Stripe-Konto.
+                        </div>
+                      )}
+                      {stripeChargesEnabled === null && (
+                        <div className="flex items-center gap-2 text-zinc-600 text-sm">
+                          <CheckCircle2 size={14} className="text-zinc-400 flex-shrink-0" />
+                          Beiträge gehen direkt auf dein Stripe-Konto.
+                        </div>
+                      )}
                       <p className="font-mono text-xs bg-zinc-100 px-2 py-1 rounded text-zinc-500 truncate">{stripeAccountId}</p>
-                      <div className="flex gap-2">
-                        <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium transition-colors">
-                          <ExternalLink size={11} /> Stripe Dashboard
-                        </a>
+                      <div className="flex gap-2 flex-wrap">
+                        {stripeChargesEnabled === false ? (
+                          <button type="button" onClick={handleConnect} disabled={connectLoading}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                            <Zap size={11} /> {connectLoading ? 'Stripe öffnet…' : 'Einrichtung fortsetzen'}
+                          </button>
+                        ) : (
+                          <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium transition-colors">
+                            <ExternalLink size={11} /> Stripe Dashboard
+                          </a>
+                        )}
                         <button type="button" onClick={handleDisconnect}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition-colors border border-red-200">
                           <Unlink size={11} /> Trennen

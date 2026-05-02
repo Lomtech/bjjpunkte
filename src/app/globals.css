@@ -29,6 +29,11 @@ body {
 }
 .animate-marquee:hover { animation-play-state: paused; }
 
+/* PWA safe-area insets */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
 /* Mobile nav safe-area clearance */
 @media (max-width: 767px) {
   .mobile-content-pad {

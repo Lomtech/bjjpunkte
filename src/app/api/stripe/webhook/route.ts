@@ -93,6 +93,18 @@ export async function POST(req: Request) {
     }
   }
 
+  // Connected account status changed (onboarding complete or account restricted)
+  if (event.type === 'account.updated') {
+    const account = event.data.object as Stripe.Account
+    const { data: gym } = await (supabase.from('gyms') as any)
+      .select('id').eq('stripe_account_id', account.id).single()
+    if (gym) {
+      await (supabase.from('gyms') as any)
+        .update({ stripe_charges_enabled: account.charges_enabled })
+        .eq('id', gym.id)
+    }
+  }
+
   if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as Stripe.PaymentIntent
     await supabase
