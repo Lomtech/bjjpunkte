@@ -44,6 +44,8 @@ export interface Database {
           // Belt system config
           belt_system: string | null
           class_types: string[] | null
+          // Public page
+          slug: string | null
         }
         Insert: {
           owner_id: string
@@ -72,6 +74,7 @@ export interface Database {
           legal_email?: string | null
           belt_system?: string | null
           class_types?: string[] | null
+          slug?: string | null
         }
         Update: {
           name?: string
@@ -99,6 +102,7 @@ export interface Database {
           legal_email?: string | null
           belt_system?: string | null
           class_types?: string[] | null
+          slug?: string | null
         }
         Relationships: Rel[]
       }

@@ -408,19 +408,23 @@ export default function MemberPortalPage() {
         </div>
 
         {/* QR-Code */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+        <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 shadow-sm">
+          <h2 className="font-semibold text-white mb-1 flex items-center gap-2">
             <QrCode size={15} className="text-slate-400" /> Mein Check-in Code
           </h2>
           <p className="text-slate-400 text-xs mb-4">Am Eingang scannen lassen für schnelles Einchecken</p>
           <div className="flex flex-col items-center">
-            <div className="bg-white border-2 border-slate-100 rounded-2xl p-3 shadow-sm">
+            <div className="bg-white rounded-2xl p-3 shadow-sm">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : 'https://bjjpunkte.vercel.app'}/portal/${token}`)}&color=0f172a&bgcolor=ffffff&margin=10`}
                 alt="QR Code" width={240} height={240} className="rounded-lg w-full max-w-[240px]"
               />
             </div>
-            <p className="text-slate-400 text-xs mt-3 text-center">Zeige diesen Code am Eingang oder Kiosk</p>
+            <p className="text-slate-500 text-xs mt-3 text-center">Zeige diesen Code am Eingang oder Kiosk</p>
+            <a href={`/qr/${token}`}
+              className="mt-4 w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-white text-sm font-medium rounded-xl py-2.5 transition-colors">
+              <QrCode size={14} /> Karte öffnen & speichern
+            </a>
           </div>
         </div>
 

@@ -67,6 +67,10 @@ export default function SettingsPage() {
 
   // Gym ID & public links
   const [gymId, setGymId]                     = useState<string | null>(null)
+  const [gymSlug, setGymSlug]                 = useState('')
+  const [slugSaving, setSlugSaving]           = useState(false)
+  const [slugSaved, setSlugSaved]             = useState(false)
+  const [copiedGymPage, setCopiedGymPage]     = useState(false)
   const [copiedScheduleLink, setCopiedScheduleLink] = useState(false)
   const [copiedEmbedCode, setCopiedEmbedCode]       = useState(false)
 
@@ -151,6 +155,7 @@ export default function SettingsPage() {
     supabase.from('gyms').select('*').single().then(async ({ data }) => {
       if (data) {
         setGymId(data.id ?? null)
+        setGymSlug((data as any).slug ?? '')
         setName(data.name ?? '')
         setAddress(data.address ?? '')
         setPhone(data.phone ?? '')
@@ -287,6 +292,17 @@ export default function SettingsPage() {
     const data = await res.json()
     if (data.url) window.location.href = data.url
     setPortalLoading(false)
+  }
+
+  async function handleSlugSave() {
+    if (!gymSlug.trim()) return
+    setSlugSaving(true)
+    const clean = gymSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    setGymSlug(clean)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await (supabase.from('gyms') as any).update({ slug: clean }).eq('owner_id', user?.id ?? '')
+    setSlugSaving(false); setSlugSaved(true); setTimeout(() => setSlugSaved(false), 2000)
   }
 
   async function handleSignupSave() {
@@ -1105,6 +1121,48 @@ export default function SettingsPage() {
               <button type="button" onClick={handleSignupSave} disabled={signupSaving} className={saveBtnCls}>
                 <Save size={14} />
                 {signupSaved ? 'Gespeichert ✓' : signupSaving ? 'Wird gespeichert…' : 'Anmeldung speichern'}
+              </button>
+            </div>
+          </div>
+
+          {/* Öffentliche Gym-Seite */}
+          <div className={sectionCls}>
+            <SectionHeader icon={<Globe size={12} />} title="Öffentliche Gym-Seite" />
+            <div className="p-5 space-y-4">
+              <p className="text-zinc-500 text-sm">
+                Deine öffentliche Seite mit Stundenplan, Tarifen und Anmeldeformular.
+                Neue Interessenten landen direkt in deiner Lead-Pipeline.
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Gym-Slug (URL-Kürzel)</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-400 shrink-0">osss.pro/gym/</span>
+                  <input
+                    value={gymSlug}
+                    onChange={e => setGymSlug(e.target.value)}
+                    placeholder="mein-gym"
+                    className={inputCls + ' flex-1'}
+                  />
+                </div>
+                <p className="text-xs text-zinc-400 mt-1">Nur Kleinbuchstaben, Zahlen und Bindestriche.</p>
+              </div>
+              {gymSlug && (
+                <CopyRow
+                  label="Gym-Seite"
+                  value={`${typeof window !== 'undefined' ? window.location.origin : ''}/gym/${gymSlug}`}
+                  copied={copiedGymPage}
+                  onCopy={() => copyWithFeedback(`${window.location.origin}/gym/${gymSlug}`, setCopiedGymPage)}
+                />
+              )}
+              {gymSlug && (
+                <a href={`/gym/${gymSlug}`} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-amber-600 hover:underline">
+                  <ExternalLink size={11} /> Vorschau öffnen
+                </a>
+              )}
+              <button type="button" onClick={handleSlugSave} disabled={slugSaving || !gymSlug.trim()} className={saveBtnCls}>
+                <Save size={14} />
+                {slugSaved ? 'Gespeichert ✓' : slugSaving ? 'Wird gespeichert…' : 'URL speichern'}
               </button>
             </div>
           </div>
