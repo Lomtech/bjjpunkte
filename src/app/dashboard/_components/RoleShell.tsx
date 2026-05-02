@@ -83,17 +83,17 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-dvh bg-zinc-50 safe-area-top">
 
       {/* ── Desktop sidebar ── */}
-      <aside className="hidden md:flex w-56 flex-shrink-0 flex-col bg-white border-r border-zinc-100">
+      <aside className="hidden md:flex w-56 flex-shrink-0 flex-col bg-white shadow-[1px_0_0_0_#f0f0f0,2px_0_12px_0_rgba(0,0,0,0.03)]">
 
         {/* Gym identity */}
-        <div className="px-4 py-4 border-b border-zinc-100">
+        <div className="px-4 py-5">
           <div className="flex items-center gap-3">
             {logoUrl ? (
-              <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 border border-zinc-100">
+              <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 ring-1 ring-zinc-200/80">
                 <Image src={logoUrl} alt={gymName || 'Gym Logo'} width={36} height={36} className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center flex-shrink-0 shadow-sm shadow-amber-200">
                 <LogoMark className="w-4 h-3 text-zinc-950" />
               </div>
             )}
@@ -101,12 +101,17 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
               <p className="font-black text-zinc-950 text-sm leading-tight tracking-tight truncate">
                 {gymName || 'Osss'}
               </p>
-              <p className="text-[10px] text-zinc-400 mt-0.5 tracking-wider uppercase">
-                {isTrainer ? 'Trainer' : 'Gym Software'}
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                <p className="text-[10px] text-zinc-400 tracking-wide font-medium">
+                  {isTrainer ? 'Trainer' : 'Owner'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
+
+        <div className="mx-4 h-px bg-zinc-100" />
 
         <SidebarNav isTrainer={isTrainer} />
       </aside>

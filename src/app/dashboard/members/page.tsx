@@ -169,37 +169,37 @@ export default function MembersPage() {
   return (
     <div className="p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 gap-3">
+      <div className="flex items-center justify-between mb-5 gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-zinc-900">Mitglieder</h1>
-          <p className="text-zinc-400 text-xs mt-0.5">{active.length} aktiv · {inactive.length} inaktiv</p>
+          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Mitglieder</h1>
+          <p className="text-zinc-400 text-xs mt-0.5 font-medium">{active.length} aktiv · {inactive.length} inaktiv</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link href="/dashboard/members/import"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors">
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors shadow-sm">
             <Upload size={14} /> CSV
           </Link>
           <button onClick={handleEmailAll}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors shadow-sm"
             title={`E-Mail an ${activeWithEmail.length} Mitglieder`}>
             <Mail size={14} /> E-Mail
           </button>
           <button onClick={() => setShowWaModal(true)}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors shadow-sm"
             title="WhatsApp Nachrichten vorbereiten">
             <MessageCircle size={14} /> WhatsApp
           </button>
           <button onClick={downloadCSV}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors shadow-sm"
             title="Mitgliederliste als CSV exportieren">
             <Download size={14} /> Export
           </button>
           <button onClick={() => setShowBulkConfirm(true)}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium text-sm transition-colors border border-amber-200">
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm transition-colors border border-amber-200">
             Alle anfordern
           </button>
           <Link href="/dashboard/members/new"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors">
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-semibold text-sm transition-colors shadow-sm">
             <Plus size={14} /> Mitglied
           </Link>
         </div>
@@ -209,7 +209,7 @@ export default function MembersPage() {
       <input
         type="search" placeholder="Name oder E-Mail suchen…"
         value={search} onChange={e => setSearch(e.target.value)}
-        className="w-full mb-4 px-3 py-2.5 rounded-lg bg-white border border-zinc-200 text-sm text-zinc-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+        className="w-full mb-4 px-4 py-2.5 rounded-xl bg-white border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 shadow-sm"
       />
 
       {bulkResult && (
@@ -307,15 +307,15 @@ export default function MembersPage() {
       {filtered.length > 0 ? (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="hidden md:block bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-zinc-100 bg-zinc-50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Name</th>
-                  {beltEnabled && <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Gürtel</th>}
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Seit</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Beitrag</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
+                <tr className="border-b border-zinc-100 bg-zinc-50/80">
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Name</th>
+                  {beltEnabled && <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Gürtel</th>}
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Seit</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Beitrag</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Status</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>

@@ -44,21 +44,21 @@ export function SidebarNav({ isTrainer = false }: { isTrainer?: boolean }) {
 
   return (
     <>
-      <nav className="flex-1 px-2 py-2 space-y-px">
+      <nav className="flex-1 px-3 py-3 space-y-0.5">
         {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
           return (
             <Link key={href} href={href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
                 active
-                  ? 'bg-zinc-100 text-zinc-900 font-medium'
+                  ? 'bg-amber-50 text-amber-700 font-semibold'
                   : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
               }`}
             >
               <Icon
-                size={15}
-                strokeWidth={active ? 2 : 1.75}
-                className={`flex-shrink-0 ${active ? 'text-zinc-700' : 'text-zinc-400'}`}
+                size={16}
+                strokeWidth={active ? 2.25 : 1.75}
+                className={`flex-shrink-0 transition-colors ${active ? 'text-amber-600' : 'text-zinc-400'}`}
               />
               {label}
             </Link>
@@ -66,10 +66,10 @@ export function SidebarNav({ isTrainer = false }: { isTrainer?: boolean }) {
         })}
       </nav>
 
-      <div className="px-2 pb-3 pt-2 border-t border-zinc-100">
+      <div className="px-3 pb-4 pt-2 border-t border-zinc-100">
         <Link href="/auth/signout"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm w-full">
-          <LogOut size={15} strokeWidth={1.75} className="flex-shrink-0" />
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150 text-sm w-full">
+          <LogOut size={16} strokeWidth={1.75} className="flex-shrink-0" />
           Abmelden
         </Link>
       </div>
@@ -83,7 +83,7 @@ export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-zinc-100"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/96 backdrop-blur-md border-t border-zinc-100"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="h-14 flex items-stretch">
@@ -95,11 +95,13 @@ export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
                 active ? 'text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'
               }`}
             >
-              <Icon
-                size={20}
-                strokeWidth={active ? 2.25 : 1.75}
-                className={active ? 'text-amber-500' : ''}
-              />
+              <div className={`w-9 h-7 flex items-center justify-center rounded-xl transition-colors ${active ? 'bg-amber-50' : ''}`}>
+                <Icon
+                  size={19}
+                  strokeWidth={active ? 2.25 : 1.75}
+                  className={active ? 'text-amber-500' : ''}
+                />
+              </div>
               <span className={`text-[10px] font-medium tracking-wide ${active ? 'text-zinc-700' : ''}`}>
                 {label}
               </span>

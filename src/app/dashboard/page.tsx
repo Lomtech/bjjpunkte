@@ -171,47 +171,50 @@ export default function DashboardPage() {
   const paidCount    = Array.from(memberPayStatus.values()).filter(s => s === 'paid').length
   const pendingCount = Array.from(memberPayStatus.values()).filter(s => s === 'pending').length
 
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Guten Morgen' : hour < 18 ? 'Guten Tag' : 'Guten Abend'
+
   return (
     <div className="p-4 md:p-6 max-w-5xl">
       {/* Header */}
-      <div className="mb-5">
-        <h1 className="text-xl font-bold text-zinc-900">Dashboard</h1>
-        <p className="text-zinc-400 text-sm mt-0.5">
-          {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+      <div className="mb-6">
+        <p className="text-xs text-zinc-400 font-medium mb-0.5">
+          {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{greeting} 👋</h1>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatCard icon={<Users size={16} />}       label="Aktive Mitglieder"  value={activeMembers} />
-        <StatCard icon={<Calendar size={16} />}    label="Heute im Training"  value={todayAttendance.length} />
-        <StatCard icon={<Euro size={16} />}        label={new Date().toLocaleDateString('de-DE', { month: 'long' })} valueCents={monthRevenue} primary />
-        <StatCard icon={<FileWarning size={16} />} label="Verträge laufen ab" value={expiringContracts} />
+        <StatCard icon={<Users size={18} />}       label="Aktive Mitglieder"  value={activeMembers} />
+        <StatCard icon={<Calendar size={18} />}    label="Heute im Training"  value={todayAttendance.length} />
+        <StatCard icon={<Euro size={18} />}        label={new Date().toLocaleDateString('de-DE', { month: 'long' })} valueCents={monthRevenue} primary />
+        <StatCard icon={<FileWarning size={18} />} label="Verträge laufen ab" value={expiringContracts} warn={expiringContracts > 0} />
       </div>
 
       {/* Payment health bar */}
       {activeMembers > 0 && (
-        <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm mb-4">
-          <div className="flex items-center justify-between mb-2.5">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Zahlungsstatus · Aktive Mitglieder</p>
-            <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-medium">Details →</Link>
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-zinc-700">Zahlungsstatus</p>
+            <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">Details →</Link>
           </div>
-          <div className="flex rounded-full overflow-hidden h-2.5 bg-zinc-100 mb-2.5">
+          <div className="flex rounded-full overflow-hidden h-2 bg-zinc-100 mb-3">
             {paidCount    > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${(paidCount / activeMembers) * 100}%` }} />}
-            {pendingCount > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${(pendingCount / activeMembers) * 100}%` }} />}
+            {pendingCount > 0 && <div className="bg-zinc-300 transition-all" style={{ width: `${(pendingCount / activeMembers) * 100}%` }} />}
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0" />
-              Bezahlt <span className="font-semibold text-zinc-700">{paidCount}</span>
+              <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+              Bezahlt <span className="font-bold text-zinc-800 ml-1">{paidCount}</span>
             </span>
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0" />
-              Ausstehend <span className="font-semibold text-zinc-700">{pendingCount}</span>
+              <span className="w-2 h-2 rounded-full bg-zinc-300 flex-shrink-0" />
+              Ausstehend <span className="font-bold text-zinc-800 ml-1">{pendingCount}</span>
             </span>
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
-              <span className="w-2.5 h-2.5 rounded-full bg-zinc-200 flex-shrink-0" />
-              Nie bezahlt <span className="font-semibold text-zinc-700">{activeMembers - paidCount - pendingCount}</span>
+              <span className="w-2 h-2 rounded-full bg-zinc-100 border border-zinc-300 flex-shrink-0" />
+              Nie bezahlt <span className="font-bold text-zinc-800 ml-1">{activeMembers - paidCount - pendingCount}</span>
             </span>
           </div>
         </div>
@@ -221,12 +224,15 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-2 gap-4 mb-4">
 
         {/* Recent payments */}
-        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-              <Euro size={13} /> Letzte Zahlungen
+            <h2 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
+                <Euro size={12} className="text-amber-600" />
+              </span>
+              Letzte Zahlungen
             </h2>
-            <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-medium">Alle →</Link>
+            <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">Alle →</Link>
           </div>
           {recentPayments.length > 0 ? (
             <div className="space-y-0">
@@ -257,12 +263,15 @@ export default function DashboardPage() {
         </div>
 
         {/* Today's training */}
-        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-              <Calendar size={13} /> Heute im Training
+            <h2 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center">
+                <Calendar size={12} className="text-zinc-500" />
+              </span>
+              Heute im Training
             </h2>
-            <Link href="/dashboard/attendance" className="text-xs text-amber-600 hover:text-amber-500 font-medium">Check-in →</Link>
+            <Link href="/dashboard/attendance" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">Check-in →</Link>
           </div>
           {todayAttendance.length > 0 ? (
             <div className="space-y-0">
@@ -306,9 +315,12 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-2 gap-4 mb-4">
 
         {/* Belt distribution */}
-        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <TrendingUp size={13} /> Belt-Verteilung
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-800 mb-4 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center">
+              <TrendingUp size={12} className="text-zinc-500" />
+            </span>
+            Belt-Verteilung
           </h2>
           <div className="space-y-3">
             {(['white', 'blue', 'purple', 'brown', 'black'] as Belt[]).map(belt => (
@@ -331,9 +343,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Top attenders this month */}
-        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Zap size={13} /> Top-Trainingsbesucher · {new Date().toLocaleDateString('de-DE', { month: 'long' })}
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-800 mb-4 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
+              <Zap size={12} className="text-amber-600" />
+            </span>
+            Top-Trainingsbesucher · {new Date().toLocaleDateString('de-DE', { month: 'long' })}
           </h2>
           {topAttenders.length > 0 ? (
             <div className="space-y-0">
@@ -372,12 +387,15 @@ export default function DashboardPage() {
 
       {/* Churn Risk */}
       {churnRisk.length > 0 && (
-        <div className="bg-white rounded-xl p-5 border border-amber-100 shadow-sm mb-4">
+        <div className="bg-white rounded-2xl p-5 border border-amber-100 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-              <AlertCircle size={13} className="text-amber-500" /> Abwesenheits-Warnung
+            <h2 className="text-sm font-semibold text-zinc-800 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
+                <AlertCircle size={12} className="text-amber-500" />
+              </span>
+              Abwesenheits-Warnung
             </h2>
-            <span className="text-xs text-zinc-400">{churnRisk.length} Mitglieder · 14+ Tage weg</span>
+            <span className="text-xs text-zinc-400 font-medium">{churnRisk.length} · 14+ Tage weg</span>
           </div>
           <div className="grid sm:grid-cols-2 gap-2">
             {churnRisk.map(m => (
@@ -405,9 +423,12 @@ export default function DashboardPage() {
 
       {/* Birthdays */}
       {birthdayMembers.length > 0 && (
-        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm mb-4">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Cake size={13} /> Geburtstage · nächste 7 Tage
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
+          <h2 className="text-sm font-semibold text-zinc-800 mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center">
+              <Cake size={12} className="text-zinc-500" />
+            </span>
+            Geburtstage · nächste 7 Tage
           </h2>
           <div className="grid sm:grid-cols-2 gap-2.5">
             {birthdayMembers.map(m => (
@@ -433,9 +454,12 @@ export default function DashboardPage() {
 
       {/* Recent promotions */}
       {recentPromotions.length > 0 && (
-        <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Award size={13} /> Letzte Graduierungen
+        <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
+          <h2 className="text-sm font-semibold text-zinc-800 mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
+              <Award size={12} className="text-amber-600" />
+            </span>
+            Letzte Graduierungen
           </h2>
           <div className="space-y-0">
             {recentPromotions.map(p => {
@@ -463,24 +487,31 @@ export default function DashboardPage() {
 }
 
 /* ─── StatCard ─────────────────────────────────────────────────────── */
-function StatCard({ icon, label, value, valueCents, primary = false }: {
+function StatCard({ icon, label, value, valueCents, primary = false, warn = false }: {
   icon: React.ReactNode
   label: string
   value?: number
   valueCents?: number
   primary?: boolean
+  warn?: boolean
 }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
-      <div className={`inline-flex p-2 rounded-lg mb-2.5 ${primary ? 'bg-amber-50 text-amber-600' : 'bg-zinc-100 text-zinc-500'}`}>
-        {icon}
+    <div className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm min-w-0 hover:shadow-md transition-shadow duration-200">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${
+        primary ? 'bg-amber-400 shadow-sm shadow-amber-200' :
+        warn    ? 'bg-red-50' :
+                  'bg-zinc-100'
+      }`}>
+        <span className={primary ? 'text-white' : warn ? 'text-red-500' : 'text-zinc-500'}>
+          {icon}
+        </span>
       </div>
-      <div className="text-2xl font-bold text-zinc-900 truncate">
+      <div className="text-2xl font-black text-zinc-950 tracking-tight truncate leading-none">
         {valueCents !== undefined
           ? (valueCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
           : value ?? 0}
       </div>
-      <div className="text-zinc-500 text-xs mt-0.5 truncate">{label}</div>
+      <div className="text-zinc-400 text-xs mt-1.5 truncate font-medium">{label}</div>
     </div>
   )
 }

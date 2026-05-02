@@ -175,28 +175,28 @@ export default function RevenuePage() {
   return (
     <div className="p-4 md:p-6 max-w-3xl">
       {/* Header */}
-      <div className="mb-5">
-        <h1 className="text-xl font-bold text-zinc-900">Einnahmen</h1>
-        <p className="text-zinc-400 text-xs mt-0.5">Zahlungsübersicht und Mitgliederstatus</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Einnahmen</h1>
+        <p className="text-zinc-400 text-xs mt-0.5 font-medium">Zahlungsübersicht und Mitgliederstatus</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
-          { icon: <Euro size={15} />, value: formatCents(allTimeCents), label: 'Gesamt', primary: true },
-          { icon: <Calendar size={15} />, value: formatCents(monthCents), label: new Date().toLocaleDateString('de-DE', { month: 'long' }), sub: monthDelta !== 0 ? `${monthDelta > 0 ? '+' : ''}${formatCents(monthDelta)}` : null, primary: false },
-          { icon: <Users size={15} />, value: formatCents(expectedMonthlyCents), label: 'Soll / Monat', primary: false },
-          { icon: <AlertCircle size={15} />, value: String(pendingCount + neverCount), label: 'Ausstehend', primary: false },
+          { icon: <Euro size={18} />, value: formatCents(allTimeCents), label: 'Gesamt', primary: true },
+          { icon: <Calendar size={18} />, value: formatCents(monthCents), label: new Date().toLocaleDateString('de-DE', { month: 'long' }), sub: monthDelta !== 0 ? `${monthDelta > 0 ? '+' : ''}${formatCents(monthDelta)}` : null, primary: false },
+          { icon: <Users size={18} />, value: formatCents(expectedMonthlyCents), label: 'Soll / Monat', primary: false },
+          { icon: <AlertCircle size={18} />, value: String(pendingCount + neverCount), label: 'Ausstehend', primary: false },
         ].map((card, i) => (
-          <div key={i} className="bg-white rounded-xl p-4 border border-zinc-200 shadow-sm min-w-0">
-            <div className={`inline-flex p-2 rounded-lg mb-2 ${card.primary ? 'bg-amber-50 text-amber-600' : 'bg-zinc-100 text-zinc-500'}`}>
-              {card.icon}
+          <div key={i} className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm min-w-0 hover:shadow-md transition-shadow duration-200">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${card.primary ? 'bg-amber-400 shadow-sm shadow-amber-200' : 'bg-zinc-100'}`}>
+              <span className={card.primary ? 'text-white' : 'text-zinc-500'}>{card.icon}</span>
             </div>
-            <div className="text-xl font-bold text-zinc-900 truncate">{card.value}</div>
-            <div className="text-zinc-500 text-xs mt-0.5 truncate flex items-center gap-1.5">
+            <div className="text-2xl font-black text-zinc-950 tracking-tight truncate leading-none">{card.value}</div>
+            <div className="text-zinc-400 text-xs mt-1.5 truncate flex items-center gap-1.5 font-medium">
               <span className="truncate">{card.label}</span>
               {'sub' in card && card.sub && (
-                <span className={`font-medium flex-shrink-0 ${monthDelta > 0 ? 'text-amber-600' : 'text-zinc-400'}`}>{card.sub}</span>
+                <span className={`font-semibold flex-shrink-0 ${monthDelta > 0 ? 'text-emerald-600' : 'text-zinc-400'}`}>{card.sub}</span>
               )}
             </div>
           </div>
@@ -204,13 +204,13 @@ export default function RevenuePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl mb-5">
+      <div className="flex gap-1 bg-zinc-100 p-1 rounded-2xl mb-5">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-150 ${
               tab === t.key
                 ? 'bg-white text-zinc-900 shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-700'
+                : 'text-zinc-400 hover:text-zinc-600'
             }`}>
             {t.label}
           </button>
@@ -221,7 +221,7 @@ export default function RevenuePage() {
       {tab === 'overview' && (
         <div className="space-y-4">
           {/* Payment health */}
-          <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
             <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Zahlungsstatus · Aktive Mitglieder</h2>
             <div className="flex rounded-full overflow-hidden h-2 bg-zinc-100 mb-4">
               {paidCount    > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${members.length ? (paidCount / members.length) * 100 : 0}%` }} />}
@@ -247,7 +247,7 @@ export default function RevenuePage() {
 
           {/* Monthly bar chart */}
           {months.length > 0 && (
-            <div className="bg-white rounded-xl p-5 border border-zinc-200 shadow-sm">
+            <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
               <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Monatsübersicht</h2>
               <div className="space-y-3">
                 {months.slice(0, 6).map(m => (
@@ -270,7 +270,7 @@ export default function RevenuePage() {
 
           {/* Summary table */}
           {months.length > 0 && (
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50">
                 <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Details nach Monat</p>
               </div>
@@ -302,7 +302,7 @@ export default function RevenuePage() {
 
       {/* MEMBERS TAB */}
       {tab === 'members' && (
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Mitglieder · Zahlungsstatus</p>
             <span className="text-xs text-zinc-400">{members.length} aktiv</span>
@@ -354,7 +354,7 @@ export default function RevenuePage() {
 
       {/* HISTORY TAB */}
       {tab === 'history' && (
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Zahlungshistorie</p>
             <span className="text-xs text-zinc-400">{allPayments.length} Transaktionen · {formatCents(allTimeCents)}</span>
