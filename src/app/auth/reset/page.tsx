@@ -28,7 +28,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-slate-50"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex flex-col items-center justify-center w-20 h-20 rounded-3xl bg-[#0f172a] shadow-xl mb-4 gap-1.5">

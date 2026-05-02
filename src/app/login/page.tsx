@@ -98,8 +98,9 @@ export default function LoginPage() {
 
       {/* ── Right panel — form ── */}
       <div className="flex-1 flex flex-col">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 lg:border-b-0 lg:justify-end">
+        {/* Top bar — safe-area-inset-top keeps content below iOS status bar in PWA mode */}
+        <div className="flex items-center justify-between px-6 border-b border-zinc-100 lg:border-b-0 lg:justify-end"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)', paddingBottom: '1rem' }}>
           <Link href="/" className="flex items-center gap-2.5 group lg:hidden">
             <div className="w-8 h-8 rounded-xl bg-amber-400 group-hover:bg-amber-300 flex items-center justify-center transition-colors">
               <LogoMark className="w-4 h-3 text-zinc-950" />
