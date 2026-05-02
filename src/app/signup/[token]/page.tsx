@@ -4,10 +4,20 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { CheckCircle2, ChevronRight, ChevronLeft, Pen, RotateCcw, AlertCircle } from 'lucide-react'
 
+interface Plan {
+  id: string
+  name: string
+  description: string | null
+  price_cents: number
+  billing_interval: string
+  contract_months: number
+}
+
 interface GymInfo {
   gymId: string
   gymName: string
   contractTemplate: string
+  plans: Plan[]
 }
 
 const BELTS = [
@@ -126,6 +136,7 @@ export default function SignupPage() {
   const [ecName,       setEcName]       = useState('')
   const [ecPhone,      setEcPhone]      = useState('')
   const [belt,         setBelt]         = useState('white')
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [agbAccepted, setAgbAccepted] = useState(false)
   const [contractRead, setContractRead] = useState(false)
   const [gdprAccepted, setGdprAccepted] = useState(false)
@@ -150,7 +161,9 @@ export default function SignupPage() {
   }, [token])
 
   // Step 1 validation
+  const plans = gymInfo?.plans ?? []
   const step1Valid = firstName.trim() && lastName.trim() && email.trim().includes('@') && dob
+    && (plans.length === 0 || selectedPlanId !== null)
 
   // Step 3 validation (signature)
   const step3Valid = signatureData !== null
@@ -183,6 +196,7 @@ export default function SignupPage() {
           emergencyContactPhone: ecPhone || null,
           signatureData,
           belt,
+          plan_id: selectedPlanId,
         }),
       })
       const data = await res.json()
@@ -306,6 +320,38 @@ export default function SignupPage() {
                 <Field label="Telefon" type="tel" value={ecPhone} onChange={setEcPhone} placeholder="+49 …" />
               </div>
             </div>
+
+            {plans.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Mitgliedschaft wählen *</p>
+                <div className="space-y-2">
+                  {plans.map(plan => {
+                    const intervalLabel = plan.billing_interval === 'monthly' ? 'mtl.' : plan.billing_interval === 'biannual' ? 'halbjährl.' : 'jährl.'
+                    const price = (plan.price_cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+                    const contractLabel = plan.contract_months === 0 ? 'Monatlich kündbar' : `${plan.contract_months} Monate Laufzeit`
+                    const isSelected = selectedPlanId === plan.id
+                    return (
+                      <button key={plan.id} type="button" onClick={() => setSelectedPlanId(plan.id)}
+                        className={`w-full text-left p-3.5 rounded-xl border-2 transition-all ${
+                          isSelected ? 'border-amber-500 bg-amber-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-900 text-sm">{plan.name}</p>
+                            {plan.description && <p className="text-xs text-slate-500 mt-0.5 truncate">{plan.description}</p>}
+                            <p className="text-xs text-slate-400 mt-1">{contractLabel}</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-bold text-slate-900 text-sm">{price}</p>
+                            <p className="text-xs text-slate-400">{intervalLabel}</p>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Aktueller Gürtelgrad</p>

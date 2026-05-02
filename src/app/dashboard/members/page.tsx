@@ -151,10 +151,16 @@ export default function MembersPage() {
   async function activateMember(id: string) {
     setActivatingId(id)
     const supabase = createClient()
-    await (supabase.from('members') as any).update({ is_active: true, onboarding_status: 'complete' }).eq('id', id)
-    setMembers(prev => prev.map(m => m.id === id ? { ...m, is_active: true, onboarding_status: 'complete' } : m))
-    const member = members.find(m => m.id === id)
-    if (member) setActivatedMember({ ...member, is_active: true, onboarding_status: 'complete' })
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`/api/members/${id}/activate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+    })
+    if (res.ok) {
+      setMembers(prev => prev.map(m => m.id === id ? { ...m, is_active: true, onboarding_status: 'complete' } : m))
+      const member = members.find(m => m.id === id)
+      if (member) setActivatedMember({ ...member, is_active: true, onboarding_status: 'complete' })
+    }
     setActivatingId(null)
   }
 

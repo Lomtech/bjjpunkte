@@ -28,10 +28,18 @@ export async function GET(req: Request) {
   if (error || !gym) return NextResponse.json({ error: 'Ungültiger Link' }, { status: 404 })
   if (!gym.signup_enabled) return NextResponse.json({ error: 'Anmeldung deaktiviert' }, { status: 403 })
 
+  const { data: plans } = await supabase
+    .from('membership_plans')
+    .select('id, name, description, price_cents, billing_interval, contract_months')
+    .eq('gym_id', gym.id)
+    .eq('is_active', true)
+    .order('sort_order')
+
   return NextResponse.json({
     gymId:            gym.id,
     gymName:          gym.name,
     contractTemplate: gym.contract_template,
+    plans:            plans ?? [],
   })
 }
 
@@ -42,7 +50,7 @@ export async function POST(req: Request) {
     firstName, lastName, email, phone,
     dateOfBirth, address,
     emergencyContactName, emergencyContactPhone,
-    signatureData, belt,
+    signatureData, belt, plan_id,
   } = body
 
   if (!token || !gymId || !firstName || !lastName || !email) {
@@ -109,6 +117,7 @@ export async function POST(req: Request) {
       contract_signed_at:      now,
       gdpr_consent_at:         now,
       belt:                    belt || 'white',
+      plan_id:                 plan_id || null,
       stripes:                 0,
       is_active:               false,          // pending until gym activates
       onboarding_status:       'pending',
