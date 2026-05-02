@@ -60,8 +60,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     }
   }
 
-  const fullName   = `${first_name.trim()} ${last_name.trim()}`
-  const portalUrl  = lead.lead_token
+  const fullName  = `${first_name.trim()} ${last_name.trim()}`
+  const portalUrl = lead.lead_token
     ? `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://osss.pro'}/lead/${lead.lead_token}`
     : null
 
@@ -85,13 +85,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     whatsappText: `🥋 Probetraining-Anfrage!\n${fullName}\n${email.trim().toLowerCase()}${phone ? '\n' + phone.trim() : ''}${bookedClass ? '\nSlot: ' + bookedClass.title : ''}\nosss.pro Dashboard`,
   })
 
-  // Send portal link to the lead
+  // Send portal link to lead via Resend
   const resendKey  = process.env.RESEND_API_KEY
   const resendFrom = process.env.RESEND_FROM_EMAIL
-
-  console.log('[lead] token:', lead.lead_token, '| portalUrl:', portalUrl)
-  console.log('[lead] resendKey set:', !!resendKey, '| resendFrom set:', !!resendFrom)
-
   if (portalUrl && email && resendKey && resendFrom) {
     const slotLine = bookedClass
       ? `<p style="margin:0 0 12px;font-size:14px;color:#374151">
@@ -100,7 +96,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         </p>`
       : ''
 
-    const resendRes = await fetch('https://api.resend.com/emails', {
+    await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -130,16 +126,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
           </div>
         `,
       }),
-    })
-    const resendBody = await resendRes.json().catch(() => ({}))
-    console.log('[lead] resend status:', resendRes.status, '| body:', JSON.stringify(resendBody))
-  } else {
-    console.log('[lead] email skipped — missing:', {
-      portalUrl: !portalUrl,
-      email: !email,
-      resendKey: !resendKey,
-      resendFrom: !resendFrom,
-    })
+    }).catch(() => {})
   }
 
   return NextResponse.json({ success: true, portalUrl })

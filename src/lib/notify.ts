@@ -42,8 +42,6 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
   }
 
   // ── WhatsApp via CallMeBot ───────────────────────────────────────
-  // Gym owner activates once: send "I allow callmebot to send me messages"
-  // to +34 644 59 98 05 on WhatsApp → receives an apikey → stores it in settings
   if (gym.whatsapp_number && (gym as Record<string, unknown>).callmebot_api_key) {
     const phone  = String(gym.whatsapp_number).replace(/\D/g, '')
     const apikey = (gym as Record<string, unknown>).callmebot_api_key as string
