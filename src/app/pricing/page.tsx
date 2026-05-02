@@ -39,7 +39,6 @@ const PLANS = [
       'Alles aus Free',
       'Automatische Zahlungserinnerungen',
       'Geburtstags-E-Mails',
-      'Rechnungsgenerierung (Kleinunternehmer)',
       'Trainer-Accounts',
       '2% Plattformgebühr',
     ],
@@ -57,9 +56,7 @@ const PLANS = [
       'Alles aus Starter',
       'Ankündigungen & Pinnwand für Mitglieder',
       'Öffentlicher Stundenplan (Embed)',
-      'QR-Code Check-in',
       'CSV & iCal-Export',
-      'Eltern-Kind-Verknüpfung',
       '2% Plattformgebühr',
     ],
     cta: 'Grow wählen',
@@ -89,7 +86,7 @@ const TRUST = [
   { icon: CreditCard, label: 'Keine Kreditkarte beim Start' },
   { icon: Clock,      label: 'Jederzeit kündbar' },
   { icon: Shield,     label: 'DSGVO-konform · Daten in der EU' },
-  { icon: Zap,        label: 'Stripe-zertifiziert' },
+  { icon: Zap,        label: 'Zahlungen via Stripe' },
 ]
 
 const FAQS = [
@@ -107,7 +104,7 @@ const FAQS = [
   },
   {
     q: 'Ist Osss DSGVO-konform?',
-    a: 'Ja. Alle Daten liegen auf europäischen Servern (Supabase EU). Beim Mitglieds-Signup wird die Einwilligung inklusive IP-Adresse dokumentiert.',
+    a: 'Ja. Alle Daten liegen auf europäischen Servern (Supabase EU). Mitgliederdaten werden ausschließlich für die Gym-Verwaltung verarbeitet und nicht an Dritte weitergegeben.',
   },
   {
     q: 'Funktioniert Osss für andere Kampfsportarten?',

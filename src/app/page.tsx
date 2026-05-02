@@ -55,7 +55,7 @@ const FEATURES = [
 
 const GERMAN_FEATURES = [
   { icon: FileText,   title: 'Kleinunternehmer-Rechnungen', desc: 'Automatische §19 UStG Rechnungen — du trägst einmal deine Daten ein, den Rest erledigt Osss.' },
-  { icon: Shield,     title: 'DSGVO von Anfang an',         desc: 'Daten auf europäischen Servern. Einwilligungs-Tracking beim Mitglieds-Signup inklusive.' },
+  { icon: Shield,     title: 'DSGVO von Anfang an',         desc: 'Daten auf europäischen Servern (Supabase EU). Keine Weitergabe an Dritte. Datenschutzerklärung inklusive.' },
   { icon: Headphones, title: 'Support auf Deutsch',         desc: 'Kein englisches Support-Ticket. Direkt, schnell, verständlich — support@osss.pro.' },
 ]
 
@@ -246,7 +246,7 @@ export default function Home() {
       {/* ── TRUST MARQUEE ── */}
       <div className="bg-zinc-50 border-y border-zinc-100 py-5 overflow-hidden">
         <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em] text-center mb-3">
-          Von Kampfsport-Gyms in ganz Deutschland genutzt
+          Für Kampfsport-Gyms in ganz Deutschland
         </p>
         <div className="relative overflow-hidden">
           <div className="animate-marquee">
@@ -363,8 +363,8 @@ export default function Home() {
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {PAIN_POINTS.map(p => (
               <motion.div key={p.title} variants={fadeUp} className="bg-zinc-50 rounded-2xl p-7 border border-zinc-100">
-                <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center mb-5">
-                  <p.icon size={18} className="text-red-500" />
+                <div className="w-10 h-10 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mb-5">
+                  <p.icon size={18} className="text-zinc-500" />
                 </div>
                 <p className="font-bold text-zinc-900 mb-2">{p.title}</p>
                 <p className="text-sm text-zinc-500 leading-relaxed">{p.desc}</p>
@@ -488,7 +488,7 @@ export default function Home() {
                   <p className="text-zinc-400 text-xs">Automatische Rechnung</p>
                 </div>
                 <div className="ml-auto">
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">Bezahlt</span>
+                  <span className="text-[11px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 px-2.5 py-1 rounded-full">Bezahlt</span>
                 </div>
               </div>
               <div className="space-y-3.5">
@@ -505,7 +505,7 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <div className="mt-5 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 text-emerald-700 text-xs font-semibold">
+              <div className="mt-5 bg-zinc-100 border border-zinc-200 rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 text-zinc-600 text-xs font-semibold">
                 <CheckCircle size={12} />
                 Automatisch erstellt und archiviert
               </div>
