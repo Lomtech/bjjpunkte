@@ -191,7 +191,6 @@ export default function OnboardingPage() {
         address,
         phone,
         email,
-        monthly_fee_cents: monthlyFee ? Math.round(parseFloat(monthlyFee) * 100) : null,
       })
       .eq('id', gym.id)
     setSaving(false)
@@ -395,23 +394,11 @@ export default function OnboardingPage() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-1">Monatlicher Beitrag (€)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={monthlyFee}
-                  onChange={e => setMonthlyFee(e.target.value)}
-                  placeholder="49.00"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                />
-              </div>
             </div>
 
             <div className="flex gap-3">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => { setError(null); setStep(1) }}
                 className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Zurück
@@ -519,7 +506,7 @@ export default function OnboardingPage() {
 
             <div className="flex gap-3 items-center mt-6">
               <button
-                onClick={() => setStep(2)}
+                onClick={() => { setError(null); setStep(2) }}
                 className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Zurück
@@ -534,7 +521,7 @@ export default function OnboardingPage() {
             </div>
             <div className="text-center mt-3">
               <button
-                onClick={() => setStep(4)}
+                onClick={() => { setError(null); setStep(4) }}
                 className="text-sm text-gray-400 hover:text-amber-500 transition-colors"
               >
                 Überspringen →
@@ -574,7 +561,7 @@ export default function OnboardingPage() {
 
             <div className="flex gap-3 items-center mt-4">
               <button
-                onClick={() => setStep(3)}
+                onClick={() => { setError(null); setStep(3) }}
                 className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Zurück
@@ -632,7 +619,7 @@ export default function OnboardingPage() {
 
             <div className="flex gap-3">
               <button
-                onClick={() => setStep(4)}
+                onClick={() => { setError(null); setStep(4) }}
                 className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
                 Zurück
