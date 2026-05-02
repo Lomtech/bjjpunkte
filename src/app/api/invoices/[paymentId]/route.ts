@@ -129,6 +129,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   .print-btn { position: fixed; top: 20px; right: 20px; background: #0f172a; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
   @media print { .print-btn { display: none; } body { padding: 20px; } }
 </style>
+<script>
+  if (new URLSearchParams(window.location.search).get('print') === '1') {
+    window.addEventListener('load', function() { setTimeout(function() { window.print() }, 400) })
+  }
+</script>
 </head>
 <body>
 <button class="print-btn" onclick="window.print()">Drucken / PDF</button>

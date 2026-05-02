@@ -116,6 +116,15 @@ export async function POST(req: Request) {
     }
   }
 
+  // ── charge.refunded ─────────────────────────────────────────────────────────
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object as Stripe.Charge
+    const piId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null
+    if (piId) {
+      await supabase.from('payments').update({ status: 'refunded' }).eq('stripe_payment_intent_id', piId)
+    }
+  }
+
   // ── payment_intent.payment_failed ───────────────────────────────────────────
   if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as Stripe.PaymentIntent

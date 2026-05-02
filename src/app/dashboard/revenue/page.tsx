@@ -405,7 +405,7 @@ export default function RevenuePage() {
                 </Link>
                 <span className="text-sm font-semibold text-zinc-800 flex-shrink-0">{formatCents(p.amount_cents)}</span>
                 {p.status === 'paid' && (
-                  <a href={`/api/invoices/${p.id}`} target="_blank" rel="noopener noreferrer"
+                  <a href={`/api/invoices/${p.id}?print=1`} target="_blank" rel="noopener noreferrer"
                     className="flex-shrink-0 p-1.5 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 transition-colors opacity-0 group-hover:opacity-100"
                     title="Rechnung herunterladen">
                     <Download size={13} />

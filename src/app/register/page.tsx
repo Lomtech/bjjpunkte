@@ -33,16 +33,26 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
-    const supabase = createClient()
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
-    if (signUpError || !data.user) {
-      setError(signUpError?.message ?? 'Registrierung fehlgeschlagen')
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gymName, email, password }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      setError(json.error ?? 'Registrierung fehlgeschlagen')
       setLoading(false); return
     }
 
-    const { error: gymError } = await supabase.from('gyms').insert({ owner_id: data.user.id, name: gymName })
-    if (gymError) { setError(gymError.message); setLoading(false); return }
+    const supabase = createClient()
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      setError('Konto erstellt — bitte melde dich an.')
+      setLoading(false)
+      router.push('/login')
+      return
+    }
 
     router.push('/dashboard')
     router.refresh()

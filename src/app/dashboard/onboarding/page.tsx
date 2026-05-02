@@ -270,7 +270,7 @@ export default function OnboardingPage() {
   }
 
   function copySignupLink() {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
     const link = `${appUrl}/signup/${gym?.signup_token ?? ''}`
     navigator.clipboard.writeText(link)
     setCopied(true)
@@ -598,7 +598,7 @@ export default function OnboardingPage() {
                 <label className="text-sm font-semibold text-gray-700 block mb-2">Dein Anmelde-Link</label>
                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
                   <span className="flex-1 text-sm text-gray-700 font-mono truncate">
-                    {(process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app')}/signup/{gym.signup_token}
+                    {(process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== 'undefined' ? window.location.origin : ''))}/signup/{gym.signup_token}
                   </span>
                   <button
                     onClick={copySignupLink}
