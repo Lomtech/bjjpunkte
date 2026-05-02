@@ -266,9 +266,11 @@ export default function WebsitePage() {
   const [loading, setLoading] = useState(true)
 
   // Section states
-  const [tagline,   setTagline]   = useState('')
-  const [about,     setAbout]     = useState('')
+  const [tagline,     setTagline]     = useState('')
+  const [about,       setAbout]       = useState('')
   const [foundedYear, setFoundedYear] = useState('')
+  const [gymSlug,     setGymSlug]     = useState('')
+  const [slugError,   setSlugError]   = useState('')
 
   const [heroImageUrl, setHeroImageUrl] = useState('')
   const [heroPos,      setHeroPos]      = useState(50)
@@ -294,13 +296,14 @@ export default function WebsitePage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase as any)
         .from('gyms')
-        .select(`slug, name, logo_url, sport_type,
-          tagline, about, hero_image_url, gallery_urls, video_url,
+        .select(`id, slug, name, logo_url, sport_type,
+          tagline, about, hero_image_url, hero_image_position, gallery_urls, video_url,
           whatsapp_number, instagram_url, facebook_url, website_url,
           founded_year, opening_hours, impressum_text`)
         .single()
       if (data) {
         setGym(data)
+        setGymSlug(data.slug ?? '')
         setTagline(data.tagline ?? '')
         setAbout(data.about ?? '')
         setFoundedYear(data.founded_year?.toString() ?? '')
@@ -315,13 +318,33 @@ export default function WebsitePage() {
         setHours(data.opening_hours ?? DEFAULT_HOURS)
         setImpressum(data.impressum_text ?? '')
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: gymRow } = await (supabase as any).from('gyms').select('id').single()
-      if (gymRow) setGymId(gymRow.id)
+      if (data?.id) setGymId(data.id)
       setLoading(false)
     }
     load()
   }, [])
+
+  async function saveSlug() {
+    setSlugError('')
+    const clean = gymSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    if (!clean) { setSlugError('URL-Kürzel darf nicht leer sein.'); return }
+    setGymSlug(clean)
+    setSaving(s => ({ ...s, slug: true }))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = createClient() as any
+    // Check uniqueness (exclude own gym)
+    const { data: existing } = await supabase.from('gyms').select('id').eq('slug', clean).neq('id', gymId).maybeSingle()
+    if (existing) {
+      setSlugError('Dieses URL-Kürzel ist bereits vergeben. Bitte wähle ein anderes.')
+      setSaving(s => ({ ...s, slug: false }))
+      return
+    }
+    await supabase.from('gyms').update({ slug: clean }).eq('id', gymId)
+    setGym((g: typeof gym) => g ? { ...g, slug: clean } : g)
+    setSaving(s => ({ ...s, slug: false }))
+    setSaved(s => ({ ...s, slug: true }))
+    setTimeout(() => setSaved(s => ({ ...s, slug: false })), 2500)
+  }
 
   async function saveSection(key: string, fields: Record<string, unknown>) {
     setSaving(s => ({ ...s, [key]: true }))
@@ -398,7 +421,7 @@ export default function WebsitePage() {
 
         {/* 1 — Grundlagen */}
         <Section num="1" title="Grundlagen" icon={<Info size={14} />}
-          subtitle="Name, Tagline und Gründungsjahr"
+          subtitle="Name, URL-Kürzel, Tagline und Gründungsjahr"
           done={!!tagline}>
           <div className="space-y-4 pt-4">
             <div>
@@ -407,7 +430,32 @@ export default function WebsitePage() {
                 className={INPUT + ' opacity-60 cursor-not-allowed'} />
               <p className="text-xs text-zinc-400 mt-1">Ändere den Namen unter Einstellungen → Allgemein.</p>
             </div>
+
+            {/* Slug */}
             <div>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">URL-Kürzel (Slug)</label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400 whitespace-nowrap flex-shrink-0">osss.pro/gym/</span>
+                <input
+                  value={gymSlug}
+                  onChange={e => { setGymSlug(e.target.value); setSlugError('') }}
+                  placeholder="mein-gym"
+                  className={INPUT + ' flex-1'}
+                />
+              </div>
+              {gymSlug && (
+                <p className="text-[11px] text-zinc-400 mt-1 font-mono">
+                  → osss.pro/gym/{gymSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}
+                </p>
+              )}
+              {slugError && <p className="text-xs text-red-500 mt-1">{slugError}</p>}
+              <p className="text-xs text-zinc-400 mt-1">Nur Kleinbuchstaben, Zahlen und Bindestriche. Ändere den Slug nur bewusst — bestehende Links werden ungültig.</p>
+              <div className="flex justify-end mt-3">
+                <SaveBtn onClick={saveSlug} saving={!!saving.slug} saved={!!saved.slug} />
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-100 pt-4">
               <label className="block text-xs font-semibold text-zinc-600 mb-1.5">Tagline *</label>
               <input value={tagline} onChange={e => setTagline(e.target.value)}
                 placeholder="z.B. Kampfsport für alle Levels im Herzen von München"
