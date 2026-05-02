@@ -219,6 +219,11 @@ function QRScanner({ cls, gymId }: { cls: ClassEvent; gymId: string }) {
       class_type: cls.class_type, class_id: cls.id,
     })
 
+    // Sync to class_bookings so check-in appears as confirmed in Stundenplan
+    await (supabase as any).from('class_bookings').upsert({
+      gym_id: gymId, class_id: cls.id, member_id: member.id, status: 'confirmed',
+    }, { onConflict: 'class_id,member_id' })
+
     // Haptic feedback (iOS PWA)
     try { navigator.vibrate?.(60) } catch {}
 

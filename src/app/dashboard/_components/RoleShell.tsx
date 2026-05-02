@@ -80,7 +80,15 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
   if (!ready) return null
 
   return (
-    <div className="flex flex-col h-dvh bg-zinc-50 safe-area-top">
+    <div className="flex flex-col bg-zinc-50 safe-area-top" style={{ height: '100dvh' }}
+      ref={el => {
+        if (!el) return
+        // iOS fix: dvh can be 0 on initial PWA render — override with window.innerHeight
+        const set = () => { el.style.height = window.innerHeight + 'px' }
+        set()
+        window.addEventListener('resize', set, { passive: true })
+      }}
+    >
 
       {/* ── Main row: sidebar + content ── */}
       <div className="flex flex-1 overflow-hidden">
