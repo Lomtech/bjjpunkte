@@ -74,18 +74,21 @@ const MARQUEE_ITEMS = [
 
 // ── Variants ──────────────────────────────────────────────────────────────────
 
+// Schärfere Kurve: schneller rein, präzises Easing, leichter Blur für Tiefe
+const EASE = [0.16, 1, 0.3, 1] as const
 const fadeUp = {
-  hidden: { opacity: 0, y: 24, scale: 0.97 },
-  show:   { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
+  hidden: { opacity: 0, y: 16, scale: 0.985, filter: 'blur(3px)' },
+  show:   { opacity: 1, y: 0,  scale: 1,     filter: 'blur(0px)',
+    transition: { duration: 0.48, ease: EASE } },
 }
 const stagger = {
   hidden: {},
-  show:   { transition: { staggerChildren: 0.08 } },
+  show:   { transition: { staggerChildren: 0.055 } },
 }
 
 function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
+  const inView = useInView(ref, { once: true, margin: '-80px' })
   return (
     <motion.section ref={ref} variants={stagger} initial="hidden" animate={inView ? 'show' : 'hidden'} className={className}>
       {children}

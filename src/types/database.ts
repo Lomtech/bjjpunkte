@@ -1,5 +1,7 @@
 export type Belt = 'white' | 'blue' | 'purple' | 'brown' | 'black'
 export type ClassType = 'gi' | 'no-gi' | 'open mat' | 'kids' | 'competition'
+export type SubscriptionStatus = 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'
+export type GymPlan = 'free' | 'starter' | 'grow' | 'pro'
 
 type Rel = { foreignKeyName: string; columns: string[]; isOneToOne?: boolean; referencedRelation: string; referencedColumns: string[] }
 
@@ -8,15 +10,205 @@ export interface Database {
   public: {
     Tables: {
       gyms: {
-        Row: { id: string; owner_id: string; name: string; address: string | null; phone: string | null; email: string | null; logo_url: string | null; stripe_account_id: string | null; monthly_fee_cents: number | null; created_at: string }
-        Insert: { owner_id: string; name: string; address?: string | null; phone?: string | null; email?: string | null; logo_url?: string | null; stripe_account_id?: string | null; monthly_fee_cents?: number | null }
-        Update: { name?: string; address?: string | null; phone?: string | null; email?: string | null; logo_url?: string | null; stripe_account_id?: string | null; monthly_fee_cents?: number | null }
+        Row: {
+          id: string
+          owner_id: string
+          name: string
+          address: string | null
+          phone: string | null
+          email: string | null
+          logo_url: string | null
+          monthly_fee_cents: number | null
+          created_at: string
+          // Stripe Connect (gym receives member payments)
+          stripe_account_id: string | null
+          stripe_charges_enabled: boolean | null
+          // Osss platform subscription (gym pays Osss)
+          osss_stripe_customer_id: string | null
+          osss_stripe_subscription_id: string | null
+          // Plan & limits
+          plan: GymPlan | null
+          plan_member_limit: number | null
+          // Invoice settings
+          invoice_prefix: string | null
+          invoice_counter: number | null
+          tax_number: string | null
+          ustid: string | null
+          is_kleinunternehmer: boolean | null
+          bank_iban: string | null
+          bank_bic: string | null
+          bank_name: string | null
+          legal_name: string | null
+          legal_address: string | null
+          legal_email: string | null
+          // Belt system config
+          belt_system: string | null
+          class_types: string[] | null
+        }
+        Insert: {
+          owner_id: string
+          name: string
+          address?: string | null
+          phone?: string | null
+          email?: string | null
+          logo_url?: string | null
+          monthly_fee_cents?: number | null
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean | null
+          osss_stripe_customer_id?: string | null
+          osss_stripe_subscription_id?: string | null
+          plan?: GymPlan | null
+          plan_member_limit?: number | null
+          invoice_prefix?: string | null
+          invoice_counter?: number | null
+          tax_number?: string | null
+          ustid?: string | null
+          is_kleinunternehmer?: boolean | null
+          bank_iban?: string | null
+          bank_bic?: string | null
+          bank_name?: string | null
+          legal_name?: string | null
+          legal_address?: string | null
+          legal_email?: string | null
+          belt_system?: string | null
+          class_types?: string[] | null
+        }
+        Update: {
+          name?: string
+          address?: string | null
+          phone?: string | null
+          email?: string | null
+          logo_url?: string | null
+          monthly_fee_cents?: number | null
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean | null
+          osss_stripe_customer_id?: string | null
+          osss_stripe_subscription_id?: string | null
+          plan?: GymPlan | null
+          plan_member_limit?: number | null
+          invoice_prefix?: string | null
+          invoice_counter?: number | null
+          tax_number?: string | null
+          ustid?: string | null
+          is_kleinunternehmer?: boolean | null
+          bank_iban?: string | null
+          bank_bic?: string | null
+          bank_name?: string | null
+          legal_name?: string | null
+          legal_address?: string | null
+          legal_email?: string | null
+          belt_system?: string | null
+          class_types?: string[] | null
+        }
         Relationships: Rel[]
       }
       members: {
-        Row: { id: string; gym_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; date_of_birth: string | null; join_date: string; belt: Belt; stripes: number; is_active: boolean; notes: string | null; stripe_customer_id: string | null; subscription_status: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'; contract_end_date: string | null; monthly_fee_override_cents: number | null; portal_token: string | null; created_at: string }
-        Insert: { gym_id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; date_of_birth?: string | null; join_date?: string; belt?: Belt; stripes?: number; is_active?: boolean; notes?: string | null; stripe_customer_id?: string | null; subscription_status?: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'; contract_end_date?: string | null; monthly_fee_override_cents?: number | null; portal_token?: string | null }
-        Update: { first_name?: string; last_name?: string; email?: string | null; phone?: string | null; date_of_birth?: string | null; join_date?: string; belt?: Belt; stripes?: number; is_active?: boolean; notes?: string | null; stripe_customer_id?: string | null; subscription_status?: 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'; contract_end_date?: string | null; monthly_fee_override_cents?: number | null; portal_token?: string | null }
+        Row: {
+          id: string
+          gym_id: string
+          first_name: string
+          last_name: string
+          email: string | null
+          phone: string | null
+          date_of_birth: string | null
+          join_date: string
+          belt: Belt
+          stripes: number
+          is_active: boolean
+          notes: string | null
+          portal_token: string | null
+          contract_end_date: string | null
+          monthly_fee_override_cents: number | null
+          created_at: string
+          // Stripe
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: SubscriptionStatus
+          // Plans
+          plan_id: string | null
+          requested_plan_id: string | null
+          onboarding_status: string | null
+        }
+        Insert: {
+          gym_id: string
+          first_name: string
+          last_name: string
+          email?: string | null
+          phone?: string | null
+          date_of_birth?: string | null
+          join_date?: string
+          belt?: Belt
+          stripes?: number
+          is_active?: boolean
+          notes?: string | null
+          portal_token?: string | null
+          contract_end_date?: string | null
+          monthly_fee_override_cents?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: SubscriptionStatus
+          plan_id?: string | null
+          requested_plan_id?: string | null
+          onboarding_status?: string | null
+        }
+        Update: {
+          first_name?: string
+          last_name?: string
+          email?: string | null
+          phone?: string | null
+          date_of_birth?: string | null
+          join_date?: string
+          belt?: Belt
+          stripes?: number
+          is_active?: boolean
+          notes?: string | null
+          portal_token?: string | null
+          contract_end_date?: string | null
+          monthly_fee_override_cents?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: SubscriptionStatus
+          plan_id?: string | null
+          requested_plan_id?: string | null
+          onboarding_status?: string | null
+        }
+        Relationships: Rel[]
+      }
+      payments: {
+        Row: {
+          id: string
+          gym_id: string
+          member_id: string
+          amount_cents: number
+          status: string
+          paid_at: string | null
+          created_at: string
+          // Stripe identifiers — session ID is the reliable match key
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          // Metadata
+          checkout_url: string | null
+          invoice_number: string | null
+        }
+        Insert: {
+          gym_id: string
+          member_id: string
+          amount_cents: number
+          status?: string
+          paid_at?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          checkout_url?: string | null
+          invoice_number?: string | null
+        }
+        Update: {
+          status?: string
+          paid_at?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          checkout_url?: string | null
+          invoice_number?: string | null
+        }
         Relationships: Rel[]
       }
       belt_promotions: {
@@ -43,14 +235,18 @@ export interface Database {
         Update: { status?: 'confirmed' | 'waitlist' | 'cancelled' }
         Relationships: Rel[]
       }
-      payments: {
-        Row: { id: string; gym_id: string; member_id: string; stripe_payment_intent_id: string | null; amount_cents: number; status: string; paid_at: string | null; created_at: string }
-        Insert: { gym_id: string; member_id: string; stripe_payment_intent_id?: string | null; amount_cents: number; status?: string; paid_at?: string | null }
-        Update: { status?: string; paid_at?: string | null }
+      membership_plans: {
+        Row: { id: string; gym_id: string; name: string; price_cents: number; billing_interval: string; stripe_price_id: string | null; created_at: string }
+        Insert: { gym_id: string; name: string; price_cents: number; billing_interval?: string; stripe_price_id?: string | null }
+        Update: { name?: string; price_cents?: number; billing_interval?: string; stripe_price_id?: string | null }
         Relationships: Rel[]
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      save_stripe_account: { Args: { p_gym_id: string; p_stripe_account_id: string }; Returns: void }
+      increment_invoice_counter: { Args: { p_gym_id: string }; Returns: number }
+      get_classes_for_gym: { Args: { p_gym_id: string; p_from: string }; Returns: unknown[] }
+    }
   }
 }

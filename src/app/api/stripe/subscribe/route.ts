@@ -2,23 +2,27 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
+import type { Database } from '@/types/database'
 
 const PLATFORM_FEE_PERCENT = 0.02
 
-export async function POST(req: Request) {
-  const stripeKey = process.env.STRIPE_SECRET_KEY
-  if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert.' }, { status: 400 })
-
-  const authHeader  = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = createClient(
+function authClient(accessToken: string) {
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
   )
+}
 
+// Create subscription checkout
+export async function POST(req: Request) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY
+  if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert.' }, { status: 400 })
+
+  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
+  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
@@ -29,13 +33,11 @@ export async function POST(req: Request) {
 
   const stripe = new Stripe(stripeKey)
 
-  // Get gym Stripe account
   const { data: gymData } = await supabase.from('gyms').select('stripe_account_id').eq('id', gymId).single()
-  const connectedAccountId = (gymData as { stripe_account_id: string | null } | null)?.stripe_account_id
+  const connectedAccountId = gymData?.stripe_account_id
 
-  // Get or create Stripe customer
-  const { data: memberRaw } = await supabase.from('members').select('stripe_customer_id').eq('id', memberId).single()
-  let customerId = (memberRaw as { stripe_customer_id: string | null } | null)?.stripe_customer_id
+  const { data: memberData } = await supabase.from('members').select('stripe_customer_id').eq('id', memberId).single()
+  let customerId = memberData?.stripe_customer_id
 
   if (!customerId) {
     const customer = await stripe.customers.create({
@@ -44,13 +46,12 @@ export async function POST(req: Request) {
       metadata: { memberId, gymId },
     })
     customerId = customer.id
-    await (supabase.from('members') as any).update({ stripe_customer_id: customerId }).eq('id', memberId)
+    await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', memberId)
   }
 
   const appUrl = getAppUrl()
 
   try {
-    // Create a recurring Price for this amount (€/month)
     const price = await stripe.prices.create({
       currency: 'eur',
       unit_amount: amountCents,
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      payment_method_types: ['card'], // sepa_debit nicht für Subscriptions verfügbar ohne extra Stripe-Aktivierung
+      payment_method_types: ['card'],
       line_items: [{ price: price.id, quantity: 1 }],
       mode: 'subscription',
       success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
@@ -81,9 +82,10 @@ export async function POST(req: Request) {
 
     const session = await stripe.checkout.sessions.create(sessionParams)
     return NextResponse.json({ url: session.url })
-  } catch (err: any) {
-    console.error('Stripe subscribe error:', err?.message)
-    return NextResponse.json({ error: err?.message ?? 'Stripe-Fehler beim Erstellen des Abonnements' }, { status: 500 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Stripe-Fehler beim Erstellen des Abonnements'
+    console.error('Stripe subscribe error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
 
@@ -92,35 +94,28 @@ export async function DELETE(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
   if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert.' }, { status: 400 })
 
-  const authHeader  = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
+  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
-  )
-
+  const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { memberId } = await req.json()
 
-  // Gym-Ownership: Member muss zum Gym des Users gehören
+  // Verify member belongs to the caller's gym
   const { data: gym } = await supabase.from('gyms').select('id').single()
   if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: memberCheck } = await supabase.from('members').select('gym_id').eq('id', memberId).single()
+  const { data: memberCheck } = await supabase.from('members').select('gym_id, stripe_subscription_id').eq('id', memberId).single()
   if (!memberCheck || memberCheck.gym_id !== gym.id) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
 
-  const { data: memberRaw } = await supabase.from('members').select('stripe_subscription_id').eq('id', memberId).single()
-  const subId = (memberRaw as any)?.stripe_subscription_id
-  if (!subId) return NextResponse.json({ error: 'Kein Abonnement gefunden' }, { status: 404 })
+  const subId = memberCheck.stripe_subscription_id
+  if (!subId) return NextResponse.json({ error: 'Kein aktives Abonnement gefunden' }, { status: 404 })
 
   const stripe = new Stripe(stripeKey)
   await stripe.subscriptions.cancel(subId)
-  await (supabase.from('members') as any).update({ stripe_subscription_id: null, subscription_status: 'cancelled' }).eq('id', memberId)
+  await supabase.from('members').update({ stripe_subscription_id: null, subscription_status: 'cancelled' }).eq('id', memberId)
 
   return NextResponse.json({ success: true })
 }

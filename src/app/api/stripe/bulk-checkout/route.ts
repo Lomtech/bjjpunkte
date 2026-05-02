@@ -2,25 +2,26 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
+import type { Database } from '@/types/database'
 
 const PLATFORM_FEE_PERCENT = 0.02
 
-export async function POST(req: Request) {
-  const stripeKey = process.env.STRIPE_SECRET_KEY
-  if (!stripeKey) {
-    return NextResponse.json({ error: 'Stripe nicht konfiguriert.' }, { status: 400 })
-  }
-
-  const authHeader = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = createClient(
+function authClient(accessToken: string) {
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
   )
+}
 
+export async function POST(req: Request) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY
+  if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert.' }, { status: 400 })
+
+  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
+  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
@@ -29,15 +30,13 @@ export async function POST(req: Request) {
 
   const stripe = new Stripe(stripeKey)
 
-  // Get gym's connected Stripe account
-  const { data: gymData } = await supabase
-    .from('gyms').select('stripe_account_id').eq('id', gymId).single()
-  const connectedAccountId = (gymData as { stripe_account_id: string | null } | null)?.stripe_account_id
+  const { data: gymData } = await supabase.from('gyms').select('stripe_account_id').eq('id', gymId).single()
+  const connectedAccountId = gymData?.stripe_account_id
 
-  // Fetch all active members with email (also check subscription status)
+  // Active members with email, no active subscription
   const { data: members } = await supabase
     .from('members')
-    .select('id, first_name, last_name, email, stripe_customer_id, monthly_fee_override_cents, stripe_subscription_id')
+    .select('id, first_name, last_name, email, stripe_customer_id, stripe_subscription_id, monthly_fee_override_cents')
     .eq('gym_id', gymId)
     .eq('is_active', true)
     .not('email', 'is', null)
@@ -46,25 +45,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ count: 0, message: 'Keine aktiven Mitglieder mit E-Mail gefunden.' })
   }
 
-  // Find members who already have a paid payment this month
-  // Must handle: paid_at may be NULL (webhook didn't fire), fallback to created_at
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  // Members who already paid or have pending link this month
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
   const [{ data: paidWithDate }, { data: paidNullDate }, { data: pendingThisMonth }] = await Promise.all([
     supabase.from('payments').select('member_id').eq('gym_id', gymId).eq('status', 'paid').gte('paid_at', monthStart),
     supabase.from('payments').select('member_id').eq('gym_id', gymId).eq('status', 'paid').is('paid_at', null).gte('created_at', monthStart),
-    // Also fetch existing pending payments this month so we can reuse their links
     supabase.from('payments').select('member_id, checkout_url, amount_cents').eq('gym_id', gymId).eq('status', 'pending').gte('created_at', monthStart),
   ])
+
   const paidMemberIds = new Set([
-    ...(paidWithDate ?? []).map((p: { member_id: string }) => p.member_id),
-    ...(paidNullDate ?? []).map((p: { member_id: string }) => p.member_id),
+    ...(paidWithDate  ?? []).map(p => p.member_id),
+    ...(paidNullDate  ?? []).map(p => p.member_id),
   ])
-  // Map: memberId → existing pending checkout_url
-  const pendingMap = new Map<string, { checkout_url: string | null; amount_cents: number }>(
-    (pendingThisMonth ?? []).map((p: { member_id: string; checkout_url: string | null; amount_cents: number }) =>
-      [p.member_id, { checkout_url: p.checkout_url, amount_cents: p.amount_cents }]
-    )
+  const pendingMap = new Map(
+    (pendingThisMonth ?? []).map(p => [p.member_id, { checkout_url: p.checkout_url, amount_cents: p.amount_cents }])
   )
 
   const appUrl = getAppUrl()
@@ -73,21 +67,14 @@ export async function POST(req: Request) {
 
   for (const member of members) {
     try {
-      // Skip members who already paid this month
       if (paidMemberIds.has(member.id)) continue
-      // Skip members with active subscription (they're billed automatically)
-      if ((member as { stripe_subscription_id?: string | null }).stripe_subscription_id) continue
+      // Skip members billed via active subscription
+      if (member.stripe_subscription_id) continue
 
-      // If member already has a pending payment link this month → reuse it, don't create duplicate
-      const existingPending = pendingMap.get(member.id)
-      if (existingPending) {
-        results.push({
-          memberId: member.id,
-          memberName: `${member.first_name} ${member.last_name}`,
-          memberEmail: member.email as string,
-          checkoutUrl: existingPending.checkout_url,
-          amountCents: existingPending.amount_cents,
-        })
+      // Reuse existing pending link — don't flood member with duplicate checkout URLs
+      const existing = pendingMap.get(member.id)
+      if (existing) {
+        results.push({ memberId: member.id, memberName: `${member.first_name} ${member.last_name}`, memberEmail: member.email!, checkoutUrl: existing.checkout_url, amountCents: existing.amount_cents })
         created++
         continue
       }
@@ -95,10 +82,10 @@ export async function POST(req: Request) {
       const fee = (member.monthly_fee_override_cents ?? amountCents ?? 0) as number
       if (fee < 50) continue
 
-      let customerId = member.stripe_customer_id as string | null
+      let customerId = member.stripe_customer_id
       if (!customerId) {
         const customer = await stripe.customers.create({
-          email: member.email as string,
+          email: member.email!,
           name: `${member.first_name} ${member.last_name}`,
           metadata: { memberId: member.id, gymId },
         })
@@ -107,21 +94,20 @@ export async function POST(req: Request) {
       }
 
       const memberName = `${member.first_name} ${member.last_name}`
-
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
         payment_method_types: ['card'],
         line_items: [{
           price_data: {
             currency: 'eur',
-            product_data: { name: 'Monatlicher Mitgliedsbeitrag', description: `RollCall – ${memberName}` },
+            product_data: { name: 'Monatlicher Mitgliedsbeitrag', description: `Osss – ${memberName}` },
             unit_amount: fee,
           },
           quantity: 1,
         }],
         mode: 'payment',
         success_url: `${appUrl}/dashboard/members/${member.id}?payment=success`,
-        cancel_url: `${appUrl}/dashboard/members/${member.id}`,
+        cancel_url:  `${appUrl}/dashboard/members/${member.id}`,
         metadata: { memberId: member.id, gymId },
       }
 
@@ -135,26 +121,20 @@ export async function POST(req: Request) {
 
       const session = await stripe.checkout.sessions.create(sessionParams)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('payments') as any).insert({
-        gym_id: gymId,
-        member_id: member.id,
-        stripe_payment_intent_id: session.payment_intent as string,
-        amount_cents: fee,
-        status: 'pending',
-        checkout_url: session.url,
+      await supabase.from('payments').insert({
+        gym_id:                    gymId,
+        member_id:                 member.id,
+        stripe_checkout_session_id: session.id,
+        stripe_payment_intent_id:  typeof session.payment_intent === 'string' ? session.payment_intent : null,
+        amount_cents:              fee,
+        status:                    'pending',
+        checkout_url:              session.url,
       })
 
-      results.push({
-        memberId: member.id,
-        memberName,
-        memberEmail: member.email as string,
-        checkoutUrl: session.url,
-        amountCents: fee,
-      })
+      results.push({ memberId: member.id, memberName, memberEmail: member.email!, checkoutUrl: session.url, amountCents: fee })
       created++
-    } catch {
-      // Skip member on error, continue with others
+    } catch (err: unknown) {
+      console.error('Bulk-checkout error for member', member.id, err instanceof Error ? err.message : err)
     }
   }
 
