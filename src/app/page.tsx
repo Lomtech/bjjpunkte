@@ -259,7 +259,7 @@ export default function Home() {
                   className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
                   Preise ansehen <ArrowRight size={15} />
                 </Link>
-                {!appInstalled && (
+                {!appInstalled && installPrompt !== null && (
                   <button onClick={handleInstallClick}
                     className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
                     App herunterladen <ArrowRight size={15} />
