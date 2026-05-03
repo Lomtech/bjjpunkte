@@ -36,7 +36,8 @@ interface Props {
 }
 
 function toDateString(iso: string) {
-  return iso.split('T')[0]
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function toTimeString(iso: string) {
@@ -66,6 +67,12 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
     setSaving(true)
     setError('')
 
+    // Build timezone-aware ISO timestamps so Postgres stores the correct UTC value
+    const tzMin  = new Date().getTimezoneOffset()          // e.g. -120 for UTC+2
+    const sign   = tzMin <= 0 ? '+' : '-'
+    const absMin = Math.abs(tzMin)
+    const tz     = `${sign}${String(Math.floor(absMin / 60)).padStart(2, '0')}:${String(absMin % 60).padStart(2, '0')}`
+
     const res = await fetch(`/api/classes/${cls.id}?scope=${scope}`, {
       method: 'PUT',
       headers: {
@@ -77,9 +84,12 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
         class_type: classType,
         description: description || null,
         instructor: instructor || null,
-        date,
+        starts_at: `${date}T${startTime}:00${tz}`,
+        ends_at:   `${date}T${endTime}:00${tz}`,
+        // also pass raw fields so the server can reconstruct per-date for recurring series
         start_time: startTime,
-        end_time: endTime,
+        end_time:   endTime,
+        tz_offset_min: tzMin,
         max_capacity: maxCapacity ? parseInt(maxCapacity, 10) : null,
       }),
     })

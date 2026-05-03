@@ -25,7 +25,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const body = await req.json()
 
   // For a recurring series update (future or all), we update multiple rows.
-  // We only update the non-time fields + time fields.
   // starts_at / ends_at are recalculated per row (same time, different date).
   if (scope === 'future' || scope === 'all') {
     const { data: cls } = await supabase
@@ -37,8 +36,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const parentId = (cls as { recurrence_parent_id: string | null } | null)?.recurrence_parent_id
 
     if (parentId) {
-      // Fields that apply uniformly across instances (no date change)
-      const { start_time, end_time, ...metaFields } = body
+      // Strip time/tz fields — meta only for bulk update
+      const { start_time, end_time, starts_at: _sa, ends_at: _ea, tz_offset_min, ...metaFields } = body
+      const tzOffsetMin: number = typeof tz_offset_min === 'number' ? tz_offset_min : 0
+
+      // Build timezone suffix (e.g. '+02:00') for reconstructed timestamps
+      const tzSign   = tzOffsetMin <= 0 ? '+' : '-'
+      const tzAbsMin = Math.abs(tzOffsetMin)
+      const tzSuffix = `${tzSign}${String(Math.floor(tzAbsMin / 60)).padStart(2, '0')}:${String(tzAbsMin % 60).padStart(2, '0')}`
 
       // Get all affected rows to recalculate their times
       let query = supabase
@@ -54,12 +59,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       const { data: rows } = await query
 
       if (rows && rows.length > 0) {
-        // If times changed, update each row individually with its own date
+        // If times changed, update each row individually with its correct LOCAL date
         if (start_time || end_time) {
           for (const row of rows as { id: string; starts_at: string; ends_at: string }[]) {
-            const dateStr = row.starts_at.split('T')[0]
-            const newStartsAt = start_time ? `${dateStr}T${start_time}:00` : row.starts_at
-            const newEndsAt   = end_time   ? `${dateStr}T${end_time}:00`   : row.ends_at
+            // Convert stored UTC timestamp → local date using the client's tz offset
+            const utcMs   = new Date(row.starts_at).getTime()
+            const localMs = utcMs - tzOffsetMin * 60 * 1000  // local = UTC - tzOffset
+            const localD  = new Date(localMs)
+            const dateStr = `${localD.getUTCFullYear()}-${String(localD.getUTCMonth() + 1).padStart(2, '0')}-${String(localD.getUTCDate()).padStart(2, '0')}`
+
+            const newStartsAt = start_time ? `${dateStr}T${start_time}:00${tzSuffix}` : row.starts_at
+            const newEndsAt   = end_time   ? `${dateStr}T${end_time}:00${tzSuffix}`   : row.ends_at
             await supabase
               .from('classes')
               .update({ ...metaFields, starts_at: newStartsAt, ends_at: newEndsAt })
@@ -84,11 +94,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   // Default: update single occurrence
-  // Rebuild starts_at / ends_at from date + time fields if provided
-  const { date, start_time, end_time, ...rest } = body
+  // Use timezone-aware starts_at / ends_at sent by the client
+  const { starts_at, ends_at, start_time: _st, end_time: _et, date: _d, tz_offset_min: _tz, ...rest } = body
   const updatePayload: Record<string, unknown> = { ...rest }
-  if (date && start_time) updatePayload.starts_at = `${date}T${start_time}:00`
-  if (date && end_time)   updatePayload.ends_at   = `${date}T${end_time}:00`
+  if (starts_at) updatePayload.starts_at = starts_at
+  if (ends_at)   updatePayload.ends_at   = ends_at
 
   const { data, error } = await supabase
     .from('classes')
