@@ -20,47 +20,197 @@ export async function GET(req: Request) {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  // Verify identity via auth client
   const { data: { user }, error: userErr } = await authClient(accessToken).auth.getUser(accessToken)
   if (!user || userErr) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  // Use service client for data queries (bypasses RLS column issues)
-  const service = serviceClient()
+  const svc = serviceClient()
 
-  const { data: gym, error: gymErr } = await (service.from('gyms') as any)
-    .select('*')
-    .eq('owner_id', user.id)
-    .single()
+  // ── Gym ───────────────────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: gym, error: gymErr } = await (svc.from('gyms') as any)
+    .select('*').eq('owner_id', user.id).single()
 
   if (gymErr || !gym) {
-    return NextResponse.json(
-      { error: 'Gym nicht gefunden', detail: gymErr?.message ?? null },
-      { status: 404 }
-    )
+    return NextResponse.json({ error: 'Gym nicht gefunden', detail: gymErr?.message ?? null }, { status: 404 })
   }
 
-  const [{ data: plans }, { data: announcements }, { data: posts }] = await Promise.all([
-    (service.from('membership_plans') as any)
+  // ── Fetch all tables in parallel ──────────────────────────────────────────
+  const [
+    { data: plans },
+    { data: announcements },
+    { data: posts },
+    { data: members },
+    { data: classes },
+    { data: leads },
+    { data: staff },
+  ] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (svc.from('membership_plans') as any)
       .select('name, description, price_cents, billing_interval, contract_months, is_active, sort_order')
       .eq('gym_id', gym.id).order('sort_order'),
-    (service.from('gym_announcements') as any)
-      .select('title, body, is_pinned, expires_at')
-      .eq('gym_id', gym.id),
-    (service.from('posts') as any)
-      .select('title, cover_url, blocks, published_at')
-      .eq('gym_id', gym.id)
-      .not('published_at', 'is', null),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (svc.from('gym_announcements') as any)
+      .select('title, body, is_pinned, expires_at').eq('gym_id', gym.id),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (svc.from('posts') as any)
+      .select('title, cover_url, blocks, published_at').eq('gym_id', gym.id).not('published_at', 'is', null),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (svc.from('members') as any)
+      .select('id, first_name, last_name, email, phone, date_of_birth, address, belt, stripes, join_date, is_active, emergency_contact_name, emergency_contact_phone, notes, belt_awarded_at, subscription_status')
+      .eq('gym_id', gym.id).order('created_at'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (svc.from('classes') as any)
+      .select('id, title, class_type, description, instructor, starts_at, ends_at, max_capacity, is_cancelled, recurrence_type, recurrence_until, recurrence_parent_id')
+      .eq('gym_id', gym.id).order('starts_at'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (svc.from('leads') as any)
+      .select('id, first_name, last_name, email, phone, status, source, notes, trial_date, created_at')
+      .eq('gym_id', gym.id).order('created_at'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (svc.from('staff') as any)
+      .select('name, email, role, accepted_at').eq('gym_id', gym.id),
   ])
 
+  // ── Build ID → index maps ─────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const memberIdx: Record<string, number> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(members ?? []).forEach((m: any, i: number) => { memberIdx[m.id] = i })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const classIdx: Record<string, number> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(classes ?? []).forEach((c: any, i: number) => { classIdx[c.id] = i })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leadIdx: Record<string, number> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(leads ?? []).forEach((l: any, i: number) => { leadIdx[l.id] = i })
+
+  const classIds  = (classes  ?? []).map((c: any) => c.id) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const memberIds = (members  ?? []).map((m: any) => m.id) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const leadIds   = (leads    ?? []).map((l: any) => l.id) // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  // ── Fetch relational tables ───────────────────────────────────────────────
+  const [
+    { data: bookings },
+    { data: attendance },
+    { data: beltPromotions },
+    { data: leadBookings },
+  ] = await Promise.all([
+    classIds.length && memberIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (svc.from('class_bookings') as any)
+          .select('member_id, class_id, status, created_at')
+          .in('class_id', classIds).in('member_id', memberIds).neq('status', 'cancelled')
+      : { data: [] },
+    memberIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (svc.from('attendance') as any)
+          .select('member_id, class_id, class_type, checked_in_at')
+          .eq('gym_id', gym.id).in('member_id', memberIds)
+      : { data: [] },
+    memberIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (svc.from('belt_promotions') as any)
+          .select('member_id, previous_belt, new_belt, promoted_at, notes')
+          .eq('gym_id', gym.id).in('member_id', memberIds).order('promoted_at')
+      : { data: [] },
+    leadIds.length && classIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (svc.from('lead_bookings') as any)
+          .select('lead_id, class_id, status, booked_at')
+          .in('lead_id', leadIds).in('class_id', classIds).neq('status', 'cancelled')
+      : { data: [] },
+  ])
+
+  // ── Serialize with index references ───────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const membersExport = (members ?? []).map((m: any) => ({
+    first_name:               m.first_name,
+    last_name:                m.last_name,
+    email:                    m.email,
+    phone:                    m.phone,
+    date_of_birth:            m.date_of_birth,
+    address:                  m.address,
+    belt:                     m.belt,
+    stripes:                  m.stripes,
+    join_date:                m.join_date,
+    is_active:                m.is_active,
+    emergency_contact_name:   m.emergency_contact_name,
+    emergency_contact_phone:  m.emergency_contact_phone,
+    notes:                    m.notes,
+    belt_awarded_at:          m.belt_awarded_at,
+    subscription_status:      m.subscription_status,
+  }))
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const classesExport = (classes ?? []).map((c: any) => ({
+    title:                   c.title,
+    class_type:              c.class_type,
+    description:             c.description,
+    instructor:              c.instructor,
+    starts_at:               c.starts_at,
+    ends_at:                 c.ends_at,
+    max_capacity:            c.max_capacity,
+    is_cancelled:            c.is_cancelled,
+    recurrence_type:         c.recurrence_type,
+    recurrence_until:        c.recurrence_until,
+    recurrence_parent_index: c.recurrence_parent_id != null ? (classIdx[c.recurrence_parent_id] ?? null) : null,
+  }))
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bookingsExport = (bookings ?? []).flatMap((b: any) => {
+    const mi = memberIdx[b.member_id]
+    const ci = classIdx[b.class_id]
+    if (mi === undefined || ci === undefined) return []
+    return [{ member_index: mi, class_index: ci, status: b.status, created_at: b.created_at }]
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const attendanceExport = (attendance ?? []).flatMap((a: any) => {
+    const mi = memberIdx[a.member_id]
+    if (mi === undefined) return []
+    const ci = a.class_id != null ? (classIdx[a.class_id] ?? null) : null
+    return [{ member_index: mi, class_index: ci, class_type: a.class_type, checked_in_at: a.checked_in_at }]
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const beltPromotionsExport = (beltPromotions ?? []).flatMap((p: any) => {
+    const mi = memberIdx[p.member_id]
+    if (mi === undefined) return []
+    return [{ member_index: mi, previous_belt: p.previous_belt, new_belt: p.new_belt, promoted_at: p.promoted_at, notes: p.notes }]
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leadsExport = (leads ?? []).map((l: any) => ({
+    first_name:  l.first_name,
+    last_name:   l.last_name,
+    email:       l.email,
+    phone:       l.phone,
+    status:      l.status,
+    source:      l.source,
+    notes:       l.notes,
+    trial_date:  l.trial_date,
+    created_at:  l.created_at,
+  }))
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leadBookingsExport = (leadBookings ?? []).flatMap((lb: any) => {
+    const li = leadIdx[lb.lead_id]
+    const ci = classIdx[lb.class_id]
+    if (li === undefined || ci === undefined) return []
+    return [{ lead_index: li, class_index: ci, status: lb.status, booked_at: lb.booked_at }]
+  })
+
   return NextResponse.json({
-    version: 2,
+    version: 3,
     exported_at: new Date().toISOString(),
     gym: {
       name:                gym.name,
       address:             gym.address,
       phone:               gym.phone,
       email:               gym.email,
-      monthly_fee_cents:   gym.monthly_fee_cents,
       slug:                gym.slug,
       sport_type:          gym.sport_type,
       belt_system:         gym.belt_system,
@@ -84,8 +234,16 @@ export async function GET(req: Request) {
       video_url:           gym.video_url,
       video_urls:          gym.video_urls,
     },
-    membership_plans: plans ?? [],
-    announcements:    announcements ?? [],
-    posts:            posts ?? [],
+    membership_plans:  plans              ?? [],
+    announcements:     announcements      ?? [],
+    posts:             posts              ?? [],
+    members:           membersExport,
+    classes:           classesExport,
+    class_bookings:    bookingsExport,
+    attendance:        attendanceExport,
+    belt_promotions:   beltPromotionsExport,
+    leads:             leadsExport,
+    lead_bookings:     leadBookingsExport,
+    staff:             staff              ?? [],
   })
 }
