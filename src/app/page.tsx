@@ -103,6 +103,9 @@ export default function Home() {
   const [checked, setChecked]   = useState(false)
   const [activeSport, setActiveSport] = useState<SportId>('bjj')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState<any>(null)
+  const [showIosHint, setShowIosHint] = useState(false)
+  const [appInstalled, setAppInstalled] = useState(false)
 
   useEffect(() => {
     try {
@@ -111,6 +114,23 @@ export default function Home() {
       })
     } catch { setChecked(true) }
   }, [])
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches) { setAppInstalled(true); return }
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    if (isIos) { setInstallPrompt('ios'); return }
+    function onBeforeInstall(e: Event) { e.preventDefault(); setInstallPrompt(e) }
+    window.addEventListener('beforeinstallprompt', onBeforeInstall)
+    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+  }, [])
+
+  async function handleInstallClick() {
+    if (installPrompt === 'ios') { setShowIosHint(true); return }
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    const choice = await installPrompt.userChoice
+    if (choice.outcome === 'accepted') setAppInstalled(true)
+  }
 
   const { scrollY } = useScroll()
   const mobileImgOpacity  = useTransform(scrollY, [0, 280], [1, 0])
@@ -239,7 +259,41 @@ export default function Home() {
                   className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
                   Preise ansehen <ArrowRight size={15} />
                 </Link>
+                {!appInstalled && installPrompt && (
+                  <button onClick={handleInstallClick}
+                    className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
+                    <Smartphone size={15} />
+                    App installieren
+                  </button>
+                )}
               </motion.div>
+
+              {showIosHint && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowIosHint(false)}>
+                  <div className="bg-white rounded-t-3xl w-full max-w-sm px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
+                    <div className="w-10 h-1 rounded-full bg-zinc-200 mx-auto mb-6" />
+                    <h3 className="text-lg font-bold text-zinc-900 mb-1">Osss App installieren</h3>
+                    <p className="text-zinc-500 text-sm mb-5">So geht's auf dem iPhone:</p>
+                    <ol className="space-y-3 text-sm text-zinc-700">
+                      <li className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                        <span>Tippe auf das <strong>Teilen-Symbol</strong> <span className="inline-block bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-600">⬆</span> in der Browserleiste</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                        <span>Scrolle und tippe auf <strong>„Zum Home-Bildschirm"</strong></span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                        <span>Oben rechts auf <strong>„Hinzufügen"</strong> tippen</span>
+                      </li>
+                    </ol>
+                    <button onClick={() => setShowIosHint(false)} className="mt-6 w-full py-3 rounded-2xl bg-zinc-900 text-white text-sm font-semibold">
+                      Verstanden
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <motion.div variants={fadeUp} className="flex flex-wrap gap-x-7 gap-y-3">
                 {[
