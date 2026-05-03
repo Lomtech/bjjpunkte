@@ -40,9 +40,9 @@ function toDateString(iso: string) {
 }
 
 function toTimeString(iso: string) {
-  // Handles both "2024-01-01T18:00:00" and "2024-01-01T18:00:00+00:00"
+  // Parse directly — toLocaleTimeString injects invisible Unicode chars that break <input type="time">
   const t = new Date(iso)
-  return t.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`
 }
 
 export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
