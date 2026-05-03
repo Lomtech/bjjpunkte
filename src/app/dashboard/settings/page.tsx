@@ -1378,16 +1378,12 @@ export default function SettingsPage() {
                   copied={copiedScheduleLink}
                   onCopy={() => copyWithFeedback(`${window.location.origin}/schedule/${gymId}`, setCopiedScheduleLink)}
                 />
-                {(gymPlan === 'grow' || gymPlan === 'pro') ? (
-                  <CopyRow
-                    label="iFrame Embed-Code"
-                    value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`}
-                    copied={copiedEmbedCode}
-                    onCopy={() => copyWithFeedback(`<iframe src="${window.location.origin}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`, setCopiedEmbedCode)}
-                  />
-                ) : (
-                  <UpgradeGate plan="grow" onUpgrade={handleUpgrade} feature="Website-Embed" />
-                )}
+                <CopyRow
+                  label="iFrame Embed-Code"
+                  value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`}
+                  copied={copiedEmbedCode}
+                  onCopy={() => copyWithFeedback(`<iframe src="${window.location.origin}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`, setCopiedEmbedCode)}
+                />
               </div>
             </div>
           )}
@@ -1704,7 +1700,7 @@ const UPGRADE_PLANS = [
     period: '',
     members: 'Bis zu 30 Mitglieder',
     highlight: false,
-    features: ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & Kiosk-Modus', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite', 'Lead-Management & Pipeline', '2% Plattformgebühr'],
+    features: ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & Kiosk-Modus', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite + Einbettung', 'Lead-Management & Pipeline', '2% Plattformgebühr'],
   },
   {
     name: 'Starter',
@@ -1722,7 +1718,7 @@ const UPGRADE_PLANS = [
     period: '/Monat',
     members: 'Bis zu 150 Mitglieder',
     highlight: true,
-    features: ['Alles aus Starter', 'Ankündigungen & Pinnwand', 'Website-Embed für Stundenplan', 'Unbegrenzte Trainer-Accounts', '2% Plattformgebühr'],
+    features: ['Alles aus Starter', 'Ankündigungen & Pinnwand', 'Unbegrenzte Trainer-Accounts', '2% Plattformgebühr'],
   },
   {
     name: 'Pro',

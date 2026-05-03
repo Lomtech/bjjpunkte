@@ -20,7 +20,7 @@ const PLANS = [
       'Belt-Tracking & Promotions',
       'Anwesenheit & Kiosk-Modus',
       'Stundenplan & iCal-Export',
-      'Öffentliche Gym-Seite (gym.osss.pro/…)',
+      'Öffentliche Gym-Seite + Stundenplan-Einbettung',
       'Digitaler Mitglieder-Anmeldelink',
       'Member-Portal (tokenbasiert)',
       'Lead-Management & Pipeline',
@@ -57,7 +57,6 @@ const PLANS = [
     features: [
       'Alles aus Starter',
       'Ankündigungen & Pinnwand',
-      'Website-Embed für Stundenplan',
       'Unbegrenzte Trainer-Accounts',
       '2% Plattformgebühr',
     ],

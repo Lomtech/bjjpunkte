@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
   MapPin, Phone, Mail, Clock, Users, ChevronRight, Check,
-  Share2, Globe, MessageCircle, Menu, X, CalendarDays, Award,
+  Share2, Globe, MessageCircle, Menu, X, CalendarDays, Award, CheckCircle2, AlertCircle,
 } from 'lucide-react'
 import { LogoMark } from '@/components/Logo'
 import { SectionWave } from '@/components/SectionWave'
@@ -246,6 +246,7 @@ export default function PublicGymPage() {
   const [posts, setPosts]      = useState<GymPost[]>([])
   const [loading, setLoading]  = useState(true)
   const [showImpressum, setShowImpressum] = useState(false)
+  const [bookingClass, setBookingClass]   = useState<GymClass | null>(null)
 
   useScrollReveal()
 
@@ -592,25 +593,33 @@ export default function PublicGymPage() {
                   </div>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {dc.map(cls => (
-                      <div key={cls.id} className="bg-white rounded-2xl border border-zinc-200 p-4 flex items-start gap-3 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all">
-                        <div className="flex-shrink-0">
-                          <p className="text-sm font-bold text-zinc-900 tabular-nums">{fmtTime(cls.starts_at)}</p>
-                          <p className="text-[11px] text-zinc-400 tabular-nums">{fmtTime(cls.ends_at)}</p>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-zinc-900 text-sm leading-tight">{cls.title}</p>
-                          {cls.instructor && <p className="text-xs text-zinc-500 mt-0.5">{cls.instructor}</p>}
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${CLASS_COLORS[cls.class_type] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                              {CLASS_LABELS[cls.class_type] ?? cls.class_type}
-                            </span>
-                            {cls.max_capacity && (
-                              <span className="text-[10px] text-zinc-400 flex items-center gap-0.5">
-                                <Users size={9} /> {cls.max_capacity}
+                      <div key={cls.id} className="bg-white rounded-2xl border border-zinc-200 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0">
+                            <p className="text-sm font-bold text-zinc-900 tabular-nums">{fmtTime(cls.starts_at)}</p>
+                            <p className="text-[11px] text-zinc-400 tabular-nums">{fmtTime(cls.ends_at)}</p>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-zinc-900 text-sm leading-tight">{cls.title}</p>
+                            {cls.instructor && <p className="text-xs text-zinc-500 mt-0.5">{cls.instructor}</p>}
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${CLASS_COLORS[cls.class_type] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                                {CLASS_LABELS[cls.class_type] ?? cls.class_type}
                               </span>
-                            )}
+                              {cls.max_capacity && (
+                                <span className="text-[10px] text-zinc-400 flex items-center gap-0.5">
+                                  <Users size={9} /> {cls.max_capacity}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <button
+                          onClick={() => setBookingClass(cls)}
+                          className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-colors"
+                        >
+                          Jetzt buchen
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -809,6 +818,10 @@ export default function PublicGymPage() {
       </footer>
 
       {/* Impressum modal */}
+      {bookingClass && (
+        <ClassBookingModal cls={bookingClass} gymName={gym.name} onClose={() => setBookingClass(null)} />
+      )}
+
       {showImpressum && gym.impressum_text && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           onClick={() => setShowImpressum(false)}>
@@ -822,6 +835,107 @@ export default function PublicGymPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── ClassBookingModal ─────────────────────────────────────────────────────────
+
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
+}
+
+function ClassBookingModal({ cls, gymName, onClose }: { cls: GymClass; gymName: string; onClose: () => void }) {
+  const [tab, setTab]         = useState<'member' | 'trial'>('member')
+  const [token, setToken]     = useState('')
+  const [status, setStatus]   = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [errMsg, setErrMsg]   = useState('')
+
+  async function bookAsMember() {
+    const t = token.trim().replace(/.*\/portal\//, '').split('/')[0]
+    if (!t) { setErrMsg('Bitte Portal-Token eingeben.'); return }
+    setStatus('loading'); setErrMsg('')
+    try {
+      const res = await fetch(`/api/portal/${encodeURIComponent(t)}/book/${cls.id}`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Fehler')
+      setStatus('success')
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : 'Fehler')
+      setStatus('error')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-zinc-100">
+          <div>
+            <p className="font-bold text-zinc-900 text-sm">{cls.title}</p>
+            <p className="text-xs text-zinc-400 mt-0.5">{fmtDateTime(cls.starts_at)} Uhr · {gymName}</p>
+          </div>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 p-1 transition-colors"><X size={16} /></button>
+        </div>
+
+        {status === 'success' ? (
+          <div className="px-5 py-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 size={28} className="text-amber-500" />
+            </div>
+            <p className="font-bold text-zinc-900 mb-1">Buchung bestätigt!</p>
+            <p className="text-zinc-400 text-sm">Du bist für dieses Training angemeldet.</p>
+            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-sm font-semibold transition-colors">Schließen</button>
+          </div>
+        ) : (
+          <div className="p-5">
+            {/* Tabs */}
+            <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 mb-5">
+              <button onClick={() => setTab('member')} className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'member' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}>
+                Ich bin Mitglied
+              </button>
+              <button onClick={() => setTab('trial')} className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'trial' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}>
+                Probetraining
+              </button>
+            </div>
+
+            {tab === 'member' ? (
+              <div className="space-y-3">
+                <p className="text-xs text-zinc-500">Gib deinen persönlichen Portal-Link oder Token ein (aus deiner Willkommens-E-Mail).</p>
+                <input
+                  value={token}
+                  onChange={e => { setToken(e.target.value); setStatus('idle'); setErrMsg('') }}
+                  placeholder="https://osss.pro/portal/dein-token"
+                  className="w-full px-3 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors"
+                />
+                {errMsg && (
+                  <div className="flex items-center gap-2 text-red-600 text-xs bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    <AlertCircle size={13} className="flex-shrink-0" /> {errMsg}
+                  </div>
+                )}
+                <button
+                  onClick={bookAsMember}
+                  disabled={status === 'loading' || !token.trim()}
+                  className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-bold text-sm transition-colors"
+                >
+                  {status === 'loading' ? 'Wird gebucht…' : 'Training buchen'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-zinc-500">Noch kein Mitglied? Melde dich für ein kostenloses Probetraining an.</p>
+                <a
+                  href={`#contact`}
+                  onClick={onClose}
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-700 text-white font-bold text-sm transition-colors"
+                >
+                  Probetraining anfragen
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
