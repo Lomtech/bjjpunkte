@@ -522,6 +522,27 @@ export default function MemberPortalPage() {
         {/* PWA install */}
         <PWAInstallButton gymName={gym?.name ?? ''} />
 
+        {/* GPS Check-in — always first so members can check in instantly */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+          <h2 className="font-semibold text-slate-900 mb-0.5 flex items-center gap-2 text-sm">
+            <Navigation size={14} className="text-amber-500" /> GPS Check-in
+          </h2>
+          <p className="text-slate-400 text-xs mb-4">Im Gym? Einmal tippen — automatisch eingecheckt.</p>
+          <button
+            onClick={handleGpsCheckin}
+            disabled={gpsState === 'locating'}
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
+          >
+            <Navigation size={14} />
+            {gpsState === 'locating' ? 'Standort wird ermittelt…' : 'GPS Check-in starten'}
+          </button>
+          {gpsMessage && (
+            <p className={`mt-3 text-xs text-center px-3 py-2 rounded-xl ${gpsState === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+              {gpsMessage}
+            </p>
+          )}
+        </div>
+
         {/* Announcements */}
         {announcements.length > 0 && (
           <div className="space-y-2">
@@ -600,27 +621,6 @@ export default function MemberPortalPage() {
           <StatCard icon={<Dumbbell size={15} />} label="Gesamt" value={String(totalSessions ?? 0)} />
           <StatCard icon={<Flame size={15} />} label="Diesen Monat" value={`${sessionsThisMonth}${sessionsThisMonth > 0 ? ' 🔥' : ''}`} />
           <StatCard icon={<Trophy size={15} />} label="Wochen-Streak" value={`${streak}${streak >= 4 ? ' 🏆' : ''}`} />
-        </div>
-
-        {/* GPS Check-in */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-0.5 flex items-center gap-2 text-sm">
-            <Navigation size={14} className="text-amber-500" /> GPS Check-in
-          </h2>
-          <p className="text-slate-400 text-xs mb-4">Im Gym? Einmal tippen — automatisch eingecheckt.</p>
-          <button
-            onClick={handleGpsCheckin}
-            disabled={gpsState === 'locating'}
-            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
-          >
-            <Navigation size={14} />
-            {gpsState === 'locating' ? 'Standort wird ermittelt…' : 'GPS Check-in starten'}
-          </button>
-          {gpsMessage && (
-            <p className={`mt-3 text-xs text-center px-3 py-2 rounded-xl ${gpsState === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-              {gpsMessage}
-            </p>
-          )}
         </div>
 
         {/* Membership plans */}

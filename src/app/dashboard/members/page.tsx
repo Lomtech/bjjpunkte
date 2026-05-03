@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download } from 'lucide-react'
@@ -52,6 +53,7 @@ function formatCents(cents: number) {
 }
 
 export default function MembersPage() {
+  const router = useRouter()
   const [loading, setLoading]               = useState(true)
   const [members, setMembers]               = useState<Member[]>([])
   const [gymId, setGymId]                   = useState('')
@@ -340,7 +342,9 @@ export default function MembersPage() {
                   const feeCents = m.monthly_fee_override_cents ?? monthlyFeeCents
                   const subStatus = m.subscription_status ?? 'none'
                   return (
-                    <tr key={m.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50 transition-colors">
+                    <tr key={m.id}
+                      onClick={() => router.push(`/dashboard/members/${m.id}`)}
+                      className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50 transition-colors cursor-pointer">
                       <td className="px-4 py-3.5 max-w-[180px]">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="font-medium text-zinc-900 text-sm truncate">{m.first_name} {m.last_name}</span>
@@ -367,7 +371,7 @@ export default function MembersPage() {
                           {m.is_active ? 'Aktiv' : 'Inaktiv'}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td className="px-4 py-3.5 text-right" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-3">
                           {m.phone && (
                             <a href={`https://wa.me/${toWaPhone(m.phone)}?text=${encodeURIComponent(`Hallo ${m.first_name}! 👋`)}`}
@@ -377,7 +381,6 @@ export default function MembersPage() {
                               <MessageCircle size={15} />
                             </a>
                           )}
-                          <Link href={`/dashboard/members/${m.id}`} className="text-amber-600 hover:text-amber-500 text-sm font-medium">Details →</Link>
                         </div>
                       </td>
                     </tr>

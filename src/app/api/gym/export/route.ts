@@ -284,46 +284,6 @@ export async function GET(req: Request) {
     return [{ member_index: mi, amount_cents: p.amount_cents, status: p.status, paid_at: p.paid_at, created_at: p.created_at, invoice_number: p.invoice_number }]
   })
 
-  // ── Download all media as base64 for self-contained export ────────────────
-  const [logoData, heroData] = await Promise.all([
-    fetchAsBase64(gym.logo_url),
-    fetchAsBase64(gym.hero_image_url),
-  ])
-
-  const galleryData = await Promise.all(
-    (gym.gallery_urls ?? []).map((url: string) => fetchAsBase64(url))
-  )
-
-  const aboutBlocksWithData = await Promise.all(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (gym.about_blocks ?? []).map(async (block: any) => {
-      if (block?.type === 'image' && block?.url) {
-        const data = await fetchAsBase64(block.url)
-        return data ? { ...block, _data: data } : block
-      }
-      return block
-    })
-  )
-
-  // Download post cover images and block images
-  const postsWithData = await Promise.all(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (posts ?? []).map(async (p: any) => {
-      const coverData = await fetchAsBase64(p.cover_url)
-      const blocksWithData = await Promise.all(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (Array.isArray(p.blocks) ? p.blocks : []).map(async (block: any) => {
-          if (block?.type === 'image' && block?.url) {
-            const data = await fetchAsBase64(block.url)
-            return data ? { ...block, _data: data } : block
-          }
-          return block
-        })
-      )
-      return { ...p, _cover_data: coverData, blocks: blocksWithData }
-    })
-  )
-
   return NextResponse.json({
     version: 5,
     exported_at: new Date().toISOString(),
@@ -358,16 +318,13 @@ export async function GET(req: Request) {
       hero_subtitle:       gym.hero_subtitle ?? null,
       accent_color:        gym.accent_color ?? null,
       hero_image_position: gym.hero_image_position,
-      // Media (embedded as base64 for self-contained export)
+      // Media URLs (re-uploaded via Supabase Storage API on import)
       logo_url:            gym.logo_url,
-      logo_data:           logoData,
       hero_image_url:      gym.hero_image_url,
-      hero_data:           heroData,
       gallery_urls:        gym.gallery_urls ?? [],
-      gallery_data:        galleryData,
       video_url:           gym.video_url,
       video_urls:          gym.video_urls ?? [],
-      about_blocks:        aboutBlocksWithData,
+      about_blocks:        gym.about_blocks ?? [],
       // Billing / legal
       is_kleinunternehmer:  gym.is_kleinunternehmer ?? null,
       invoice_prefix:       gym.invoice_prefix ?? null,
@@ -392,7 +349,7 @@ export async function GET(req: Request) {
     },
     membership_plans:  plans              ?? [],
     announcements:     announcements      ?? [],
-    posts:             postsWithData,
+    posts:             posts              ?? [],
     members:           membersExport,
     classes:           classesExport,
     class_bookings:    bookingsExport,
