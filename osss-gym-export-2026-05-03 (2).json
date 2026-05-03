@@ -1,0 +1,113 @@
+{
+  "version": 2,
+  "exported_at": "2026-05-03T17:06:00.795Z",
+  "gym": {
+    "name": "Easy Jitsu",
+    "address": "Usambarastraße 10 81827 München",
+    "phone": "1234566778",
+    "email": "oss@osss.pro",
+    "monthly_fee_cents": 4900,
+    "slug": "easy-jitsu",
+    "sport_type": "bjj",
+    "belt_system": [
+      {
+        "bg": "#f1f5f9",
+        "key": "white",
+        "text": "#1e293b",
+        "label": "Weiß"
+      },
+      {
+        "bg": "#1d4ed8",
+        "key": "blue",
+        "text": "#ffffff",
+        "label": "Blau"
+      },
+      {
+        "bg": "#7c3aed",
+        "key": "purple",
+        "text": "#ffffff",
+        "label": "Lila"
+      },
+      {
+        "bg": "#92400e",
+        "key": "brown",
+        "text": "#ffffff",
+        "label": "Braun"
+      },
+      {
+        "bg": "#1e293b",
+        "key": "black",
+        "text": "#f59e0b",
+        "label": "Schwarz"
+      }
+    ],
+    "belt_system_enabled": true,
+    "stripes_enabled": true,
+    "class_types": [
+      "gi",
+      "no-gi",
+      "open mat",
+      "kids",
+      "competition"
+    ],
+    "contract_template": "MITGLIEDSCHAFTSVERTRAG\n\n1. VERTRAGSPARTEIEN\nZwischen dem Gym und dem unterzeichnenden Mitglied wird folgender Mitgliedschaftsvertrag geschlossen.\n\n2. MITGLIEDSCHAFT\nDas Mitglied erhält das Recht, an den angebotenen Trainingseinheiten teilzunehmen. Die Nutzung der Trainingseinrichtungen ist eingeschlossen.\n\n3. MITGLIEDSBEITRAG\nDer monatliche Mitgliedsbeitrag ist jeweils am 1. eines Monats fällig. Bei Zahlungsverzug behält sich der Anbieter das Recht vor, die Trainingsteilnahme zu untersagen.\n\n4. VERTRAGSLAUFZEIT UND KÜNDIGUNG\nDie Mitgliedschaft beginnt mit dem Datum der Unterzeichnung. Eine Kündigung ist mit 4 Wochen Frist zum Monatsende schriftlich möglich.\n\n5. TRAININGSREGELN\nDas Mitglied verpflichtet sich: Anweisungen der Trainer zu befolgen, respektvoll mit anderen Mitgliedern umzugehen, saubere Trainingskleidung zu tragen und auf Hygiene zu achten (kurze Fingernägel, Dusche vor dem Training).\n\n6. GESUNDHEIT UND HAFTUNG\nDas Mitglied erklärt, körperlich in der Lage zu sein, an Brazilian Jiu-Jitsu Training teilzunehmen. Die Teilnahme erfolgt auf eigene Gefahr. Der Anbieter haftet nicht für Verletzungen beim Training, sofern diese nicht auf grobe Fahrlässigkeit zurückzuführen sind.\n\n7. FOTOAUFNAHMEN\nDas Mitglied stimmt zu, dass Fotos und Videos beim Training für Marketingzwecke (Website, Social Media) verwendet werden dürfen, sofern dem nicht schriftlich widersprochen wird.\n\n8. DATENSCHUTZ\nDie personenbezogenen Daten werden gemäß der Datenschutzerklärung des Anbieters verarbeitet und nicht ohne Einwilligung an Dritte weitergegeben.\n\n9. SONSTIGES\nDieser Vertrag unterliegt deutschem Recht. Änderungen bedürfen der Schriftform.",
+    "signup_enabled": true,
+    "whatsapp_number": "015127600077",
+    "instagram_url": "https://www.instagram.com/denver.bjj/",
+    "facebook_url": null,
+    "website_url": "https://easy-jitsu.de/",
+    "hero_title": null,
+    "hero_subtitle": null,
+    "accent_color": null,
+    "is_kleinunternehmer": true,
+    "invoice_prefix": "RE",
+    "logo_url": "https://ktwgvuasjezokhsfpfqb.supabase.co/storage/v1/object/public/gym-logos/ca82a7da-3ffa-44bc-bdcb-795b9fcaebe6/logo-1777757202535.png",
+    "hero_image_url": "https://ktwgvuasjezokhsfpfqb.supabase.co/storage/v1/object/public/gym-media/84990643-7159-4261-9aa5-0d097be23d1c/1777755399769.png",
+    "hero_image_position": 30,
+    "video_url": "https://www.youtube.com/shorts/QCMyzM1SD_o",
+    "video_urls": [
+      "https://www.youtube.com/shorts/QCMyzM1SD_o",
+      "https://www.youtube.com/shorts/_74u01l_M60",
+      "https://www.youtube.com/shorts/VXKJJjJplhM",
+      "https://www.youtube.com/shorts/I_iZVbAZUSo"
+    ]
+  },
+  "membership_plans": [
+    {
+      "name": "Standard",
+      "description": null,
+      "price_cents": 4900,
+      "billing_interval": "monthly",
+      "contract_months": 12,
+      "is_active": true,
+      "sort_order": 0
+    },
+    {
+      "name": "Standard",
+      "description": null,
+      "price_cents": 5900,
+      "billing_interval": "monthly",
+      "contract_months": 6,
+      "is_active": true,
+      "sort_order": 0
+    },
+    {
+      "name": "Nicht Standard",
+      "description": null,
+      "price_cents": 6900,
+      "billing_interval": "monthly",
+      "contract_months": 0,
+      "is_active": true,
+      "sort_order": 0
+    }
+  ],
+  "announcements": [],
+  "posts": [
+    {
+      "title": "Blue Belt Graduierung",
+      "cover_url": "https://ktwgvuasjezokhsfpfqb.supabase.co/storage/v1/object/public/gym-media/84990643-7159-4261-9aa5-0d097be23d1c/1777760430911.jpeg",
+      "blocks": [],
+      "published_at": "2026-05-02T22:20:59.932+00:00"
+    }
+  ]
+}
