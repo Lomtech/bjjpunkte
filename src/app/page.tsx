@@ -156,7 +156,7 @@ export default function Home() {
         className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100"
       >
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-          <OsssLogo variant="light" />
+          <OsssLogo variant="dark" />
           <div className="flex items-center gap-6">
             <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">Preise</Link>
             <a href="mailto:oss@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Kontakt</a>
@@ -826,7 +826,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-5 py-14">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-10 mb-12">
             <div className="sm:col-span-2">
-              <OsssLogo variant="light" />
+              <OsssLogo variant="dark" />
               <p className="text-zinc-400 text-sm mt-4 leading-relaxed max-w-xs">
                 Die Gym-Management-Software für Kampfsport — auf Deutsch, DSGVO-konform, ab €0.
               </p>

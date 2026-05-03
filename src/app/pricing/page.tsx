@@ -148,7 +148,7 @@ export default function PricingPage() {
               <span className="hidden sm:inline">Zurück</span>
             </button>
             <span className="text-zinc-200 hidden sm:block">|</span>
-            <OsssLogo variant="light" />
+            <OsssLogo variant="dark" />
           </div>
           <Link
             href="/register"

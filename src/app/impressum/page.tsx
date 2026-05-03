@@ -14,7 +14,7 @@ export default function ImpressumPage() {
       {/* Nav */}
       <nav className="border-b border-zinc-100 bg-white">
         <div className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between">
-          <OsssLogo variant="light" />
+          <OsssLogo variant="dark" />
           <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium">
             Zur Startseite
           </Link>
