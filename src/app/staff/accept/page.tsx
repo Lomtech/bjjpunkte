@@ -85,7 +85,7 @@ function StaffAcceptForm() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ inviteToken: token, userId: signInData.user.id }),
           })
-          router.replace('/dashboard/attendance/kiosk')
+          router.replace('/dashboard/attendance')
           return
         }
       }
@@ -100,7 +100,7 @@ function StaffAcceptForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteToken: token, userId: data.user.id }),
       })
-      router.replace('/dashboard/attendance/kiosk')
+      router.replace('/dashboard/attendance')
     }
   }
 

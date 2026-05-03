@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw, Scan } from 'lucide-react'
-import Link from 'next/link'
+import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw } from 'lucide-react'
 import { NewClassModal } from './NewClassModal'
 import { EditClassModal } from './EditClassModal'
 
@@ -387,17 +386,6 @@ export default function SchedulePage() {
 
 // ─── ClassCard ────────────────────────────────────────────────────────────────
 
-function buildKioskUrl(cls: ClassRow) {
-  const p = new URLSearchParams({
-    class_id:   cls.id,
-    title:      cls.title,
-    class_type: cls.class_type,
-    starts_at:  cls.starts_at,
-    ends_at:    cls.ends_at,
-  })
-  return `/dashboard/attendance/kiosk?${p.toString()}`
-}
-
 function ClassCard({
   cls, expanded, roster, rosterLoading, cancellingId, isToday,
   onToggle, onCancel, onEdit,
@@ -455,19 +443,6 @@ function ClassCard({
           )}
         </div>
       </button>
-
-      {/* QR Check-in button — only for today's non-cancelled classes */}
-      {isToday && !cls.is_cancelled && (
-        <div className="px-3 pb-3">
-          <Link
-            href={buildKioskUrl(cls)}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-bold transition-colors shadow-sm active:scale-[0.98]"
-          >
-            <Scan size={16} strokeWidth={2} />
-            QR Check-in
-          </Link>
-        </div>
-      )}
 
       {/* Expanded panel */}
       {expanded && (

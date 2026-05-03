@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BeltBadge } from '@/components/BeltBadge'
-import { Trash2, Tablet, UserCheck, CalendarDays, Clock } from 'lucide-react'
-import Link from 'next/link'
+import { Trash2, UserCheck, CalendarDays, Clock } from 'lucide-react'
 import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 
@@ -123,10 +122,6 @@ export default function AttendancePage() {
             {todayLog.length > 0 && ` · ${todayLog.length} eingecheckt`}
           </p>
         </div>
-        <Link href="/dashboard/attendance/kiosk"
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-semibold flex-shrink-0 transition-colors shadow-sm">
-          <Tablet size={14} /> Kiosk öffnen
-        </Link>
       </div>
 
       {/* Stat strip */}
@@ -155,10 +150,6 @@ export default function AttendancePage() {
       {groups.length === 0 ? (
         <div className="bg-white rounded-2xl p-8 border border-zinc-100 shadow-sm text-center">
           <p className="text-zinc-400 text-sm">Heute noch niemand eingecheckt.</p>
-          <Link href="/dashboard/attendance/kiosk"
-            className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl bg-zinc-950 text-white text-sm font-semibold hover:bg-zinc-800 transition-colors">
-            <Tablet size={13} /> Kiosk öffnen
-          </Link>
         </div>
       ) : (
         <div className="space-y-4">

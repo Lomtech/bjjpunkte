@@ -18,7 +18,7 @@ const PLANS = [
     features: [
       'Mitgliederverwaltung',
       'Belt-Tracking & Promotions',
-      'Anwesenheit & Kiosk-Modus',
+      'Anwesenheit & GPS Check-in',
       'Stundenplan & iCal-Export',
       'Öffentliche Gym-Seite + Stundenplan-Einbettung',
       'Digitaler Mitglieder-Anmeldelink',
