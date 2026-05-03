@@ -13,10 +13,12 @@ interface ClassRow {
   max_capacity: number | null; is_cancelled: boolean
   confirmed_count: number; waitlist_count: number
   recurrence_parent_id: string | null; recurrence_type: string
+  lead_count?: number
 }
 
 interface BookingMember {
   id: string; status: 'confirmed' | 'waitlist' | 'checked_in'; member_id: string; member_name: string; belt: string
+  type: 'member' | 'lead'
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -81,8 +83,11 @@ export default function SchedulePage() {
       p_gym_id: gId,
       p_from: from.toISOString(),
     })
-    setClasses(data ?? [])
+    const rows: ClassRow[] = data ?? []
+    const leadCounts = await loadLeadCounts(rows.map(c => c.id))
+    setClasses(rows.map(c => ({ ...c, lead_count: leadCounts[c.id] ?? 0 })))
     setLoading(false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Initial load: session + gym + classes + members all in parallel
@@ -100,13 +105,15 @@ export default function SchedulePage() {
       const gId = (gym as { id: string }).id
       gymIdRef.current = gId
       setGymId(gId)
-      // Batch 2: classes and members in parallel
+      // Batch 2: classes and lead counts
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: classesData } = await (supabase as any).rpc('get_classes_for_gym', {
         p_gym_id: gId,
         p_from: startOfWeek(new Date()).toISOString(),
       })
-      setClasses(classesData ?? [])
+      const rows: ClassRow[] = classesData ?? []
+      const leadCounts = await loadLeadCounts(rows.map(c => c.id))
+      setClasses(rows.map(c => ({ ...c, lead_count: leadCounts[c.id] ?? 0 })))
       setLoading(false)
       initializedRef.current = true
     }
@@ -136,11 +143,27 @@ export default function SchedulePage() {
     loadClasses(weekStart)
   }
 
+  async function loadLeadCounts(classIds: string[]): Promise<Record<string, number>> {
+    if (classIds.length === 0) return {}
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from('lead_bookings')
+      .select('class_id')
+      .in('class_id', classIds)
+      .neq('status', 'cancelled')
+    const countMap: Record<string, number> = {}
+    for (const lb of (data ?? []) as { class_id: string }[]) {
+      countMap[lb.class_id] = (countMap[lb.class_id] ?? 0) + 1
+    }
+    return countMap
+  }
+
   async function loadRoster(classId: string) {
     setRosterLoading(true)
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [{ data: bookingsData }, { data: attendanceData }] = await Promise.all([
+    const [{ data: bookingsData }, { data: attendanceData }, { data: leadBookingsData }] = await Promise.all([
       (supabase as any)
         .from('class_bookings')
         .select('id, status, member_id, members(first_name, last_name, belt)')
@@ -149,10 +172,15 @@ export default function SchedulePage() {
         .from('attendance')
         .select('id, member_id, members(first_name, last_name, belt)')
         .eq('class_id', classId),
+      (supabase as any)
+        .from('lead_bookings')
+        .select('id, status, lead_id, leads(first_name, last_name)')
+        .eq('class_id', classId).neq('status', 'cancelled').order('booked_at'),
     ])
 
     type RawBooking = { id: string; status: string; member_id: string; members: { first_name: string; last_name: string; belt: string } | null }
     type RawAttendance = { id: string; member_id: string; members: { first_name: string; last_name: string; belt: string } | null }
+    type RawLeadBooking = { id: string; status: string; lead_id: string; leads: { first_name: string; last_name: string } | null }
 
     const memberMap = new Map<string, BookingMember>()
     for (const b of (bookingsData ?? []) as RawBooking[]) {
@@ -160,6 +188,7 @@ export default function SchedulePage() {
         id: b.id, status: b.status as BookingMember['status'], member_id: b.member_id,
         member_name: b.members ? `${b.members.first_name} ${b.members.last_name}` : 'Unbekannt',
         belt: b.members?.belt ?? 'white',
+        type: 'member',
       })
     }
     for (const a of (attendanceData ?? []) as RawAttendance[]) {
@@ -171,8 +200,19 @@ export default function SchedulePage() {
           id: a.id, status: 'checked_in', member_id: a.member_id,
           member_name: a.members ? `${a.members.first_name} ${a.members.last_name}` : 'Unbekannt',
           belt: a.members?.belt ?? 'white',
+          type: 'member',
         })
       }
+    }
+    for (const lb of (leadBookingsData ?? []) as RawLeadBooking[]) {
+      memberMap.set(`lead_${lb.lead_id}`, {
+        id: lb.id,
+        status: lb.status === 'checked_in' ? 'checked_in' : 'confirmed',
+        member_id: lb.lead_id,
+        member_name: lb.leads ? `${lb.leads.first_name} ${lb.leads.last_name}` : 'Interessent',
+        belt: 'white',
+        type: 'lead',
+      })
     }
     setRoster(Array.from(memberMap.values()))
     setRosterLoading(false)
@@ -410,6 +450,9 @@ function ClassCard({
           {cls.waitlist_count > 0 && (
             <span className="text-amber-600 font-medium">+{cls.waitlist_count} WL</span>
           )}
+          {(cls.lead_count ?? 0) > 0 && (
+            <span className="text-violet-600 font-medium">+{cls.lead_count} Int.</span>
+          )}
         </div>
       </button>
 
@@ -438,17 +481,24 @@ function ClassCard({
               ) : (
                 <div className="space-y-1 max-h-28 overflow-auto">
                   {roster.map(b => (
-                    <div key={b.id} className="flex items-center justify-between">
-                      <p className="text-xs text-zinc-700 truncate">{b.member_name}</p>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
-                        b.status === 'checked_in'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : b.status === 'confirmed'
-                          ? 'bg-zinc-100 text-zinc-600'
-                          : 'bg-amber-50 text-amber-700'
-                      }`}>
-                        {b.status === 'checked_in' ? 'Eingecheckt' : b.status === 'confirmed' ? 'Bestätigt' : 'Warteliste'}
-                      </span>
+                    <div key={b.id} className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-zinc-700 truncate flex-1">{b.member_name}</p>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {b.type === 'lead' && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-violet-50 text-violet-700">
+                            Interessent
+                          </span>
+                        )}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
+                          b.status === 'checked_in'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : b.status === 'confirmed'
+                            ? 'bg-zinc-100 text-zinc-600'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {b.status === 'checked_in' ? 'Eingecheckt' : b.status === 'confirmed' ? 'Angemeldet' : 'Warteliste'}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
