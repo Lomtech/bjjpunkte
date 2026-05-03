@@ -83,7 +83,7 @@ export default function LinksPage() {
 
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://osss.pro'
       if (gym?.signup_token) setSignupUrl(`${origin}/signup/${gym.signup_token}`)
-      if ((gym as any)?.slug) setTrialUrl(`${origin}/gym/${(gym as any).slug}`)
+      if ((gym as any)?.slug) setTrialUrl(`${origin}/trial/${(gym as any).slug}`)
       setLoading(false)
     }
     load()
