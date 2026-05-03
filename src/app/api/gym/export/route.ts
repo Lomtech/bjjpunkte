@@ -56,7 +56,14 @@ export async function GET(req: Request) {
       .select('title, cover_url, blocks, published_at').eq('gym_id', gym.id).not('published_at', 'is', null),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (svc.from('members') as any)
-      .select('id, first_name, last_name, email, phone, date_of_birth, address, belt, stripes, join_date, is_active, emergency_contact_name, emergency_contact_phone, notes, belt_awarded_at, subscription_status')
+      .select([
+        'id, first_name, last_name, email, phone, date_of_birth, address,',
+        'belt, stripes, join_date, is_active, emergency_contact_name, emergency_contact_phone,',
+        'notes, belt_awarded_at, subscription_status, contract_end_date,',
+        'monthly_fee_override_cents, signature_data, contract_signed_at,',
+        'gdpr_consent_at, onboarding_status, consent_ip, consent_user_agent, consent_text,',
+        'cancellation_requested_at, cancellation_note, parent_member_id, plan_id, requested_plan_id',
+      ].join(' '))
       .eq('gym_id', gym.id).order('created_at'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (svc.from('classes') as any)
@@ -64,7 +71,7 @@ export async function GET(req: Request) {
       .eq('gym_id', gym.id).order('starts_at'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (svc.from('leads') as any)
-      .select('id, first_name, last_name, email, phone, status, source, notes, trial_date, created_at')
+      .select('id, first_name, last_name, email, phone, status, source, notes, trial_date, created_at, referred_by, contacted_at, converted_at')
       .eq('gym_id', gym.id).order('created_at'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (svc.from('staff') as any)
@@ -76,6 +83,11 @@ export async function GET(req: Request) {
   const memberIdx: Record<string, number> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(members ?? []).forEach((m: any, i: number) => { memberIdx[m.id] = i })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const planIdx: Record<string, number> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(plans ?? []).forEach((p: any, i: number) => { if (p.id) planIdx[p.id] = i })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const classIdx: Record<string, number> = {}
@@ -97,6 +109,8 @@ export async function GET(req: Request) {
     { data: attendance },
     { data: beltPromotions },
     { data: leadBookings },
+    { data: trainingLogs },
+    { data: payments },
   ] = await Promise.all([
     classIds.length && memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,26 +136,52 @@ export async function GET(req: Request) {
           .select('lead_id, class_id, status, booked_at')
           .in('lead_id', leadIds).in('class_id', classIds).neq('status', 'cancelled')
       : { data: [] },
+    memberIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (svc.from('training_logs') as any)
+          .select('member_id, note, class_type, logged_at')
+          .eq('gym_id', gym.id).in('member_id', memberIds)
+      : { data: [] },
+    memberIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (svc.from('payments') as any)
+          .select('member_id, amount_cents, status, paid_at, created_at, invoice_number')
+          .eq('gym_id', gym.id).in('member_id', memberIds)
+      : { data: [] },
   ])
 
   // ── Serialize with index references ───────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const membersExport = (members ?? []).map((m: any) => ({
-    first_name:               m.first_name,
-    last_name:                m.last_name,
-    email:                    m.email,
-    phone:                    m.phone,
-    date_of_birth:            m.date_of_birth,
-    address:                  m.address,
-    belt:                     m.belt,
-    stripes:                  m.stripes,
-    join_date:                m.join_date,
-    is_active:                m.is_active,
-    emergency_contact_name:   m.emergency_contact_name,
-    emergency_contact_phone:  m.emergency_contact_phone,
-    notes:                    m.notes,
-    belt_awarded_at:          m.belt_awarded_at,
-    subscription_status:      m.subscription_status,
+    first_name:                 m.first_name,
+    last_name:                  m.last_name,
+    email:                      m.email,
+    phone:                      m.phone,
+    date_of_birth:              m.date_of_birth,
+    address:                    m.address,
+    belt:                       m.belt,
+    stripes:                    m.stripes,
+    join_date:                  m.join_date,
+    is_active:                  m.is_active,
+    emergency_contact_name:     m.emergency_contact_name,
+    emergency_contact_phone:    m.emergency_contact_phone,
+    notes:                      m.notes,
+    belt_awarded_at:            m.belt_awarded_at,
+    subscription_status:        m.subscription_status,
+    contract_end_date:          m.contract_end_date,
+    monthly_fee_override_cents: m.monthly_fee_override_cents,
+    signature_data:             m.signature_data,
+    contract_signed_at:         m.contract_signed_at,
+    gdpr_consent_at:            m.gdpr_consent_at,
+    onboarding_status:          m.onboarding_status,
+    consent_ip:                 m.consent_ip,
+    consent_user_agent:         m.consent_user_agent,
+    consent_text:               m.consent_text,
+    cancellation_requested_at:  m.cancellation_requested_at,
+    cancellation_note:          m.cancellation_note,
+    parent_member_index:        m.parent_member_id != null ? (memberIdx[m.parent_member_id] ?? null) : null,
+    plan_index:                 m.plan_id != null ? (planIdx[m.plan_id] ?? null) : null,
+    requested_plan_index:       m.requested_plan_id != null ? (planIdx[m.requested_plan_id] ?? null) : null,
   }))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,15 +224,18 @@ export async function GET(req: Request) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const leadsExport = (leads ?? []).map((l: any) => ({
-    first_name:  l.first_name,
-    last_name:   l.last_name,
-    email:       l.email,
-    phone:       l.phone,
-    status:      l.status,
-    source:      l.source,
-    notes:       l.notes,
-    trial_date:  l.trial_date,
-    created_at:  l.created_at,
+    first_name:   l.first_name,
+    last_name:    l.last_name,
+    email:        l.email,
+    phone:        l.phone,
+    status:       l.status,
+    source:       l.source,
+    notes:        l.notes,
+    trial_date:   l.trial_date,
+    created_at:   l.created_at,
+    referred_by:  l.referred_by,
+    contacted_at: l.contacted_at,
+    converted_at: l.converted_at,
   }))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,8 +246,22 @@ export async function GET(req: Request) {
     return [{ lead_index: li, class_index: ci, status: lb.status, booked_at: lb.booked_at }]
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const trainingLogsExport = (trainingLogs ?? []).flatMap((tl: any) => {
+    const mi = memberIdx[tl.member_id]
+    if (mi === undefined) return []
+    return [{ member_index: mi, note: tl.note, class_type: tl.class_type, logged_at: tl.logged_at }]
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const paymentsExport = (payments ?? []).flatMap((p: any) => {
+    const mi = memberIdx[p.member_id]
+    if (mi === undefined) return []
+    return [{ member_index: mi, amount_cents: p.amount_cents, status: p.status, paid_at: p.paid_at, created_at: p.created_at, invoice_number: p.invoice_number }]
+  })
+
   return NextResponse.json({
-    version: 3,
+    version: 4,
     exported_at: new Date().toISOString(),
     gym: {
       // Identity
@@ -277,5 +334,7 @@ export async function GET(req: Request) {
     leads:             leadsExport,
     lead_bookings:     leadBookingsExport,
     staff:             staff              ?? [],
+    training_logs:     trainingLogsExport,
+    payments:          paymentsExport,
   })
 }
