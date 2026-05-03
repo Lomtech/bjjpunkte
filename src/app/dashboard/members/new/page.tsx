@@ -23,6 +23,8 @@ function NewMemberForm() {
   const [error, setError] = useState('')
   const [parentMemberId, setParentMemberId] = useState('')
   const [allMembers, setAllMembers] = useState<{ id: string; first_name: string; last_name: string }[]>([])
+  const [beltEnabled, setBeltEnabled] = useState(true)
+  const [stripesEnabled, setStripesEnabled] = useState(true)
   const [form, setForm] = useState({
     first_name: searchParams.get('firstName') ?? '',
     last_name: searchParams.get('lastName') ?? '',
@@ -40,9 +42,11 @@ function NewMemberForm() {
   useEffect(() => {
     async function loadMembers() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, plan_member_limit').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, plan_member_limit, belt_system_enabled, stripes_enabled').single()
       if (!gym) return
       const gymId = gym.id
+      setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
+      setStripesEnabled((gym as any)?.stripes_enabled ?? true)
       const { data: membersData } = await supabase.from('members').select('id, first_name, last_name').eq('gym_id', gymId).eq('is_active', true).order('first_name')
       if (membersData) setAllMembers(membersData)
       // Check plan limit
@@ -134,17 +138,19 @@ function NewMemberForm() {
               ))}
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Stripes: <span className="text-amber-600 font-bold">{form.stripes}</span></label>
-            <input
-              type="range" min={0} max={4} value={form.stripes}
-              onChange={e => set('stripes', Number(e.target.value))}
-              className="w-full accent-amber-500"
-            />
-            <div className="flex justify-between text-xs text-slate-400 mt-1">
-              {[0,1,2,3,4].map(n => <span key={n}>{n}</span>)}
+          {stripesEnabled && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Stripes: <span className="text-amber-600 font-bold">{form.stripes}</span></label>
+              <input
+                type="range" min={0} max={4} value={form.stripes}
+                onChange={e => set('stripes', Number(e.target.value))}
+                className="w-full accent-amber-500"
+              />
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                {[0,1,2,3,4].map(n => <span key={n}>{n}</span>)}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">

@@ -8,7 +8,7 @@ import {
   Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle,
   Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
   Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
-  Package, Megaphone, Pin, Edit2, FileSpreadsheet,
+  Package, Megaphone, Pin, Edit2, FileSpreadsheet, Download, Upload,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 
@@ -98,6 +98,7 @@ export default function SettingsPage() {
   const [beltSaved, setBeltSaved]         = useState(false)
   const [sportType, setSportType]         = useState<SportType>('bjj')
   const [beltEnabled, setBeltEnabled]     = useState(true)
+  const [stripesEnabled, setStripesEnabled] = useState(true)
 
   // Membership plans
   type Plan = { id: string; name: string; description: string | null; price_cents: number; billing_interval: string; contract_months: number; is_active: boolean; sort_order: number }
@@ -130,6 +131,11 @@ export default function SettingsPage() {
   const [datevMandantennummer, setDatevMandantennummer] = useState('')
   const [datevSaving, setDatevSaving]                   = useState(false)
   const [datevSaved, setDatevSaved]                     = useState(false)
+
+  // Export / Import
+  const [importFile, setImportFile]     = useState<File | null>(null)
+  const [importing, setImporting]       = useState(false)
+  const [importResult, setImportResult] = useState<string | null>(null)
 
   // Plan
   const [gymPlan, setGymPlan]           = useState<string>('free')
@@ -198,6 +204,7 @@ export default function SettingsPage() {
         const savedSport = (data as any)?.sport_type as SportType | undefined
         if (savedSport) setSportType(savedSport)
         setBeltEnabled((data as any)?.belt_system_enabled ?? true)
+        setStripesEnabled((data as any)?.stripes_enabled ?? true)
         setBeltSlots(resolveBeltSystem((data as any)?.belt_system))
         setGymPlan((data as any)?.plan ?? 'free')
         setPlanLimit((data as any)?.plan_member_limit ?? 30)
@@ -356,6 +363,48 @@ export default function SettingsPage() {
     setInvoiceSaving(false); setInvoiceSaved(true); setTimeout(() => setInvoiceSaved(false), 2000)
   }
 
+  async function handleExport() {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const res = await fetch('/api/gym/export', { headers: { Authorization: `Bearer ${session.access_token}` } })
+    const data = await res.json()
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `osss-gym-export-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  async function handleImport() {
+    if (!importFile) return
+    setImporting(true)
+    setImportResult(null)
+    try {
+      const text = await importFile.text()
+      const data = JSON.parse(text)
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setImportResult('Nicht autorisiert'); setImporting(false); return }
+      const res = await fetch('/api/gym/import', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      const result = await res.json()
+      if (result.success) {
+        setImportResult(`✓ Importiert: Einstellungen, ${result.imported.plans} Tarife, ${result.imported.announcements} Ankündigungen, ${result.imported.posts} Posts`)
+        setImportFile(null)
+      } else {
+        setImportResult(`Fehler: ${result.error}`)
+      }
+    } catch (e) {
+      setImportResult('Fehler: Ungültige JSON-Datei')
+    }
+    setImporting(false)
+  }
+
   async function handleDatevSave() {
     setDatevSaving(true)
     const supabase = createClient()
@@ -380,7 +429,7 @@ export default function SettingsPage() {
     setBeltSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({ belt_system: beltSlots, sport_type: sportType, belt_system_enabled: beltEnabled }).eq('owner_id', user?.id ?? '')
+    await (supabase.from('gyms') as any).update({ belt_system: beltSlots, sport_type: sportType, belt_system_enabled: beltEnabled, stripes_enabled: stripesEnabled }).eq('owner_id', user?.id ?? '')
     setBeltSaving(false); setBeltSaved(true); setTimeout(() => setBeltSaved(false), 2000)
   }
 
@@ -944,6 +993,52 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Export / Import */}
+          <div className={sectionCls}>
+            <div className={sectionHeaderCls}>
+              <SectionHeader icon={<Download size={12} />} title="Gym-Einstellungen exportieren / importieren" />
+            </div>
+            <div className="p-5 space-y-5">
+              <p className="text-xs text-zinc-500">
+                Exportiere alle Einstellungen, Tarife, Ankündigungen und Posts als JSON — und importiere sie auf einem anderen Osss-Account. Ideal für Franchise-Gyms oder Demo-Setups.
+              </p>
+
+              {/* Export */}
+              <div>
+                <p className="text-sm font-medium text-zinc-800 mb-2">Exportieren</p>
+                <button type="button" onClick={handleExport} className={saveBtnCls}>
+                  <Download size={14} /> Einstellungen als JSON herunterladen
+                </button>
+              </div>
+
+              {/* Import */}
+              <div>
+                <p className="text-sm font-medium text-zinc-800 mb-2">Importieren</p>
+                <p className="text-xs text-zinc-400 mb-3">Bestehende Mitglieder & Zahlungen bleiben unberührt. Tarife & Posts werden hinzugefügt (nicht überschrieben).</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-sm font-medium transition-colors`}>
+                    <Upload size={14} />
+                    {importFile ? importFile.name : 'JSON-Datei auswählen'}
+                  </div>
+                  <input type="file" accept=".json" className="hidden"
+                    onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null) }} />
+                </label>
+                {importFile && (
+                  <button type="button" onClick={handleImport} disabled={importing}
+                    className={`mt-2 ${saveBtnCls}`}>
+                    <Upload size={14} />
+                    {importing ? 'Wird importiert…' : 'Import starten'}
+                  </button>
+                )}
+                {importResult && (
+                  <p className={`mt-2 text-xs rounded-lg px-3 py-2 ${importResult.startsWith('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    {importResult}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Datenschutz / Impressum */}
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
@@ -1071,6 +1166,20 @@ export default function SettingsPage() {
                 <button type="button" onClick={() => setBeltEnabled(v => !v)}
                   className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${beltEnabled ? 'bg-amber-500' : 'bg-gray-300'}`}>
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${beltEnabled ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+
+              {/* Stripes toggle */}
+              <div className={`flex items-center justify-between gap-4 ${!beltEnabled ? 'opacity-30 pointer-events-none' : ''}`}>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-zinc-800">Stripes anzeigen</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {stripesEnabled ? 'Stripes (0–4) werden bei Gürteln angezeigt.' : 'Keine Stripes — nur Gürtelfarben ohne Stufen.'}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setStripesEnabled(v => !v)}
+                  className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${stripesEnabled ? 'bg-amber-500' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${stripesEnabled ? 'translate-x-4' : ''}`} />
                 </button>
               </div>
 

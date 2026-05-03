@@ -8,24 +8,35 @@ import type { BeltSystem } from '@/lib/belt-system'
 import { DEFAULT_BELT_SYSTEM, getBeltSlot } from '@/lib/belt-system'
 
 export function PromoteButton({
-  memberId, gymId, currentBelt, currentStripes, onPromoted, beltSystem,
+  memberId, gymId, currentBelt, currentStripes, onPromoted, beltSystem, stripesEnabled = true,
 }: {
   memberId: string; gymId: string; currentBelt: string; currentStripes: number
   onPromoted?: (belt: string, stripes: number) => void
   beltSystem?: BeltSystem
+  stripesEnabled?: boolean
 }) {
   const system = beltSystem ?? DEFAULT_BELT_SYSTEM
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
   const currentIdx = system.findIndex(s => s.key === currentBelt)
-  const isMax = currentIdx === system.length - 1 && currentStripes === 4
+  // When stripes disabled: max = last belt (no stripe concept)
+  const isMax = stripesEnabled
+    ? currentIdx === system.length - 1 && currentStripes === 4
+    : currentIdx === system.length - 1
 
   function nextPromotion(): { belt: string; stripes: number } {
-    if (currentStripes < 4) return { belt: currentBelt, stripes: currentStripes + 1 }
-    const nextIdx = currentIdx + 1
-    if (nextIdx >= system.length) return { belt: currentBelt, stripes: currentStripes }
-    return { belt: system[nextIdx].key, stripes: 0 }
+    if (stripesEnabled) {
+      if (currentStripes < 4) return { belt: currentBelt, stripes: currentStripes + 1 }
+      const nextIdx = currentIdx + 1
+      if (nextIdx >= system.length) return { belt: currentBelt, stripes: currentStripes }
+      return { belt: system[nextIdx].key, stripes: 0 }
+    } else {
+      // Without stripes: only belt changes
+      const nextIdx = currentIdx + 1
+      if (nextIdx >= system.length) return { belt: currentBelt, stripes: 0 }
+      return { belt: system[nextIdx].key, stripes: 0 }
+    }
   }
 
   const next = nextPromotion()
@@ -49,7 +60,10 @@ export function PromoteButton({
   }
 
   if (isMax) {
-    return <p className="text-slate-400 text-sm">{getBeltSlot(system, currentBelt).label} Belt, 4 Stripes – maximales Level erreicht.</p>
+    const maxLabel = stripesEnabled
+      ? `${getBeltSlot(system, currentBelt).label} Belt, 4 Stripes – maximales Level erreicht.`
+      : `${getBeltSlot(system, currentBelt).label} Belt – maximales Level erreicht.`
+    return <p className="text-slate-400 text-sm">{maxLabel}</p>
   }
 
   return (
@@ -57,14 +71,14 @@ export function PromoteButton({
       <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Aktuell</p>
-          <BeltBadge belt={currentBelt} stripes={currentStripes} beltSystem={system} />
+          <BeltBadge belt={currentBelt} stripes={stripesEnabled ? currentStripes : 0} beltSystem={system} />
         </div>
         <ArrowRight size={16} className="text-slate-300 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
             {isBeltChange ? 'Aufsteigen zu' : 'Nächste Stufe'}
           </p>
-          <BeltBadge belt={next.belt} stripes={next.stripes} beltSystem={system} />
+          <BeltBadge belt={next.belt} stripes={stripesEnabled ? next.stripes : 0} beltSystem={system} />
         </div>
       </div>
 

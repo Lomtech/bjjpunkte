@@ -8,11 +8,12 @@ import type { BeltSystem } from '@/lib/belt-system'
 import { DEFAULT_BELT_SYSTEM, getBeltSlot } from '@/lib/belt-system'
 
 export function DemoteButton({
-  memberId, gymId, currentBelt, currentStripes, onDemoted, beltSystem,
+  memberId, gymId, currentBelt, currentStripes, onDemoted, beltSystem, stripesEnabled = true,
 }: {
   memberId: string; gymId: string; currentBelt: string; currentStripes: number
   onDemoted?: (belt: string, stripes: number) => void
   beltSystem?: BeltSystem
+  stripesEnabled?: boolean
 }) {
   const system = beltSystem ?? DEFAULT_BELT_SYSTEM
   const [open, setOpen] = useState(false)
@@ -22,11 +23,17 @@ export function DemoteButton({
   const currentIdx = system.findIndex(s => s.key === currentBelt)
 
   function prevPromotion(): { belt: string; stripes: number } | null {
-    if (currentIdx === 0 && currentStripes === 0) return null
-    if (currentStripes > 0) return { belt: currentBelt, stripes: currentStripes - 1 }
-    const prevIdx = currentIdx - 1
-    if (prevIdx < 0) return null
-    return { belt: system[prevIdx].key, stripes: 4 }
+    if (stripesEnabled) {
+      if (currentIdx === 0 && currentStripes === 0) return null
+      if (currentStripes > 0) return { belt: currentBelt, stripes: currentStripes - 1 }
+      const prevIdx = currentIdx - 1
+      if (prevIdx < 0) return null
+      return { belt: system[prevIdx].key, stripes: 4 }
+    } else {
+      if (currentIdx === 0) return null
+      const prevIdx = currentIdx - 1
+      return { belt: system[prevIdx].key, stripes: 0 }
+    }
   }
 
   const prev = prevPromotion()
@@ -71,14 +78,14 @@ export function DemoteButton({
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 mb-4">
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Aktuell</p>
-              <BeltBadge belt={currentBelt} stripes={currentStripes} beltSystem={system} />
+              <BeltBadge belt={currentBelt} stripes={stripesEnabled ? currentStripes : 0} beltSystem={system} />
             </div>
             <ArrowLeft size={16} className="text-slate-300 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                 {isBeltChange ? 'Zurück zu' : 'Neue Stufe'}
               </p>
-              <BeltBadge belt={prev.belt} stripes={prev.stripes} beltSystem={system} />
+              <BeltBadge belt={prev.belt} stripes={stripesEnabled ? prev.stripes : 0} beltSystem={system} />
             </div>
           </div>
 

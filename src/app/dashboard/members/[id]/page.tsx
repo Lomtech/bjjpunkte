@@ -92,19 +92,21 @@ export default function MemberDetailPage() {
   const [deletingMember, setDeletingMember]   = useState(false)
   const [parentInfo, setParentInfo] = useState<{ id: string; first_name: string; last_name: string } | null>(null)
   const [children, setChildren] = useState<{ id: string; first_name: string; last_name: string }[]>([])
-  const [beltSystem, setBeltSystem]   = useState<BeltSystem | undefined>(undefined)
-  const [beltEnabled, setBeltEnabled] = useState(true)
+  const [beltSystem, setBeltSystem]       = useState<BeltSystem | undefined>(undefined)
+  const [beltEnabled, setBeltEnabled]     = useState(true)
+  const [stripesEnabled, setStripesEnabled] = useState(true)
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system, belt_system_enabled').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system, belt_system_enabled, stripes_enabled').single()
       if (!gym) { setLoading(false); return }
 
       setGymId(gym.id)
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
+      setStripesEnabled((gym as any)?.stripes_enabled ?? true)
 
       const { data: memberData } = await supabase
         .from('members').select('*').eq('id', id).eq('gym_id', gym.id).single()
@@ -272,7 +274,7 @@ export default function MemberDetailPage() {
 
         {/* Status badges */}
         <div className="flex items-center gap-2 flex-wrap">
-          {beltEnabled && <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />}
+          {beltEnabled && <BeltBadge belt={member.belt as Belt} stripes={stripesEnabled ? member.stripes : 0} beltSystem={beltSystem} />}
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
             member.is_active ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-100 text-zinc-400 border-zinc-200'
           }`}>
@@ -435,13 +437,13 @@ export default function MemberDetailPage() {
             <DemoteButton
               memberId={member.id} gymId={gymId}
               currentBelt={member.belt as Belt} currentStripes={member.stripes}
-              onDemoted={handleDemoted} beltSystem={beltSystem}
+              onDemoted={handleDemoted} beltSystem={beltSystem} stripesEnabled={stripesEnabled}
             />
           </div>
           <PromoteButton
             memberId={member.id} gymId={gymId}
             currentBelt={member.belt as Belt} currentStripes={member.stripes}
-            onPromoted={handlePromoted} beltSystem={beltSystem}
+            onPromoted={handlePromoted} beltSystem={beltSystem} stripesEnabled={stripesEnabled}
           />
         </div>
       )}
