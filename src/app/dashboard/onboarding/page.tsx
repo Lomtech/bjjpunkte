@@ -211,14 +211,18 @@ export default function OnboardingPage() {
     if (!gym) return
     setSaving(true)
     clearError()
-    const { error: err } = await supabase
-      .from('gyms')
+    // Auto-generate slug from gym name (used for the public gym page URL)
+    const slug = gymName.trim().toLowerCase()
+      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const { error: err } = await (supabase.from('gyms') as any)
       .update({
         name: gymName,
         address,
         phone,
         email,
         monthly_fee_cents: monthlyFee ? Math.round(parseFloat(monthlyFee) * 100) : null,
+        ...(slug ? { slug } : {}),
       })
       .eq('id', gym.id)
     setSaving(false)
@@ -251,15 +255,24 @@ export default function OnboardingPage() {
     setSaving(true)
     clearError()
     if (plans.length > 0) {
-      const rows = plans.map(p => ({
-        gym_id: gym.id,
-        name: p.name,
-        price_cents: Math.round(parseFloat(p.price) * 100),
-        billing_interval: p.interval,
-        contract_months: p.contract_months,
-      }))
-      const { error: err } = await (supabase.from('membership_plans') as any).insert(rows)
-      if (err) { setSaving(false); setError(err.message); return }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setSaving(false); setError('Nicht eingeloggt'); return }
+      for (const p of plans) {
+        const res = await fetch('/api/plans', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: p.name,
+            price_cents: Math.round(parseFloat(p.price) * 100),
+            billing_interval: p.interval,
+            contract_months: p.contract_months,
+          }),
+        })
+        if (!res.ok) {
+          const json = await res.json()
+          setSaving(false); setError(json.error ?? 'Tarif konnte nicht gespeichert werden'); return
+        }
+      }
     }
     setSaving(false)
     setStep(4)
