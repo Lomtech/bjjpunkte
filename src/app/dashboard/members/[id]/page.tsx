@@ -13,13 +13,7 @@ import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
 import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2 } from 'lucide-react'
 
-/** Normalize German phone to wa.me format (no +, no spaces) */
-function toWaPhone(raw: string): string {
-  let p = raw.replace(/[\s\-().]/g, '')
-  if (p.startsWith('00')) p = '+' + p.slice(2)
-  if (p.startsWith('0'))  p = '+49' + p.slice(1)
-  return p.replace(/^\+/, '')
-}
+import { toWaPhone } from '@/lib/phone'
 
 const WA_TEMPLATES = [
   { id: 'greeting', label: 'Allgemeine Begrüßung',       text: (n: string) => `Hallo ${n}! 👋 Kurze Nachricht von uns aus dem Gym.` },

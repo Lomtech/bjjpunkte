@@ -72,6 +72,17 @@ export interface Database {
           callmebot_api_key: string | null
           // Signup
           signup_token: string | null
+          signup_enabled: boolean | null
+          contract_template: string | null
+          // Belt (extended)
+          stripes_enabled: boolean | null
+          // Public page (extended)
+          hero_title: string | null
+          hero_subtitle: string | null
+          accent_color: string | null
+          // DATEV
+          datev_beraternummer: string | null
+          datev_mandantennummer: string | null
         }
         Insert: {
           owner_id: string
@@ -120,6 +131,14 @@ export interface Database {
           website_url?: string | null
           callmebot_api_key?: string | null
           signup_token?: string | null
+          signup_enabled?: boolean | null
+          contract_template?: string | null
+          stripes_enabled?: boolean | null
+          hero_title?: string | null
+          hero_subtitle?: string | null
+          accent_color?: string | null
+          datev_beraternummer?: string | null
+          datev_mandantennummer?: string | null
         }
         Update: {
           name?: string
@@ -167,6 +186,14 @@ export interface Database {
           website_url?: string | null
           callmebot_api_key?: string | null
           signup_token?: string | null
+          signup_enabled?: boolean | null
+          contract_template?: string | null
+          stripes_enabled?: boolean | null
+          hero_title?: string | null
+          hero_subtitle?: string | null
+          accent_color?: string | null
+          datev_beraternummer?: string | null
+          datev_mandantennummer?: string | null
         }
         Relationships: Rel[]
       }
@@ -195,6 +222,17 @@ export interface Database {
           requested_plan_id: string | null
           onboarding_status: string | null
           cancellation_requested_at: string | null
+          cancellation_note: string | null
+          parent_member_id: string | null
+          address: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          signature_data: string | null
+          consent_ip: string | null
+          consent_user_agent: string | null
+          consent_text: string | null
+          contract_signed_at: string | null
+          gdpr_consent_at: string | null
         }
         Insert: {
           gym_id: string
@@ -218,6 +256,17 @@ export interface Database {
           requested_plan_id?: string | null
           onboarding_status?: string | null
           cancellation_requested_at?: string | null
+          cancellation_note?: string | null
+          parent_member_id?: string | null
+          address?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          signature_data?: string | null
+          consent_ip?: string | null
+          consent_user_agent?: string | null
+          consent_text?: string | null
+          contract_signed_at?: string | null
+          gdpr_consent_at?: string | null
         }
         Update: {
           first_name?: string
@@ -240,6 +289,17 @@ export interface Database {
           requested_plan_id?: string | null
           onboarding_status?: string | null
           cancellation_requested_at?: string | null
+          cancellation_note?: string | null
+          parent_member_id?: string | null
+          address?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          signature_data?: string | null
+          consent_ip?: string | null
+          consent_user_agent?: string | null
+          consent_text?: string | null
+          contract_signed_at?: string | null
+          gdpr_consent_at?: string | null
         }
         Relationships: Rel[]
       }
@@ -324,6 +384,18 @@ export interface Database {
         Row: { id: string; gym_id: string; title: string; cover_url: string | null; blocks: unknown[]; published_at: string | null; created_at: string; updated_at: string }
         Insert: { gym_id: string; title: string; cover_url?: string | null; blocks?: unknown[]; published_at?: string | null }
         Update: { title?: string; cover_url?: string | null; blocks?: unknown[]; published_at?: string | null }
+        Relationships: Rel[]
+      }
+      gym_announcements: {
+        Row: { id: string; gym_id: string; title: string; body: string | null; is_pinned: boolean; expires_at: string | null; created_at: string }
+        Insert: { gym_id: string; title: string; body?: string | null; is_pinned?: boolean; expires_at?: string | null }
+        Update: { title?: string; body?: string | null; is_pinned?: boolean; expires_at?: string | null }
+        Relationships: Rel[]
+      }
+      staff: {
+        Row: { id: string; gym_id: string; name: string; email: string; role: string; accepted_at: string | null; invite_token: string; created_at: string }
+        Insert: { gym_id: string; name: string; email: string; role?: string; invite_token: string }
+        Update: { name?: string; email?: string; role?: string; accepted_at?: string | null }
         Relationships: Rel[]
       }
     }

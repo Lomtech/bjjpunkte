@@ -4,13 +4,10 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download } from 'lucide-react'
-
-function toWaPhone(raw: string): string {
-  let p = raw.replace(/[\s\-().]/g, '')
-  if (p.startsWith('00')) p = '+' + p.slice(2)
-  if (p.startsWith('0'))  p = '+49' + p.slice(1)
-  return p.replace(/^\+/, '')
-}
+import { BeltBadge } from '@/components/BeltBadge'
+import type { Belt } from '@/types/database'
+import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
+import { toWaPhone } from '@/lib/phone'
 
 const BULK_TEMPLATES = [
   { id: 'info',    label: '📢 Allgemeine Info',        text: () => `Hallo! Kurze Nachricht von eurem Gym. 👋` },
@@ -19,9 +16,6 @@ const BULK_TEMPLATES = [
   { id: 'comp',    label: '🏆 Wettkampf-Ankündigung', text: () => `Hey Leute! Wir nehmen am nächsten Wettkampf teil. Wer Interesse hat – meldet euch! Details folgen. Oss! 🏆` },
   { id: 'custom',  label: '✏️ Eigene Nachricht',       text: () => `` },
 ]
-import { BeltBadge } from '@/components/BeltBadge'
-import type { Belt } from '@/types/database'
-import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 
 const SUB_COLORS: Record<string, string> = {
   active:    'bg-amber-50 text-amber-700 border border-amber-200',

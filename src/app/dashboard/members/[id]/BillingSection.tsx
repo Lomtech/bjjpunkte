@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X, FileText, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { toWaPhone } from '@/lib/phone'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
 
@@ -14,13 +15,6 @@ const STATUS_COLORS: Record<string, string> = {
 }
 const STATUS_LABELS: Record<string, string> = {
   paid: 'Bezahlt', pending: 'Ausstehend', failed: 'Fehlgeschlagen', refunded: 'Erstattet',
-}
-
-function toWaPhone(raw: string): string {
-  let p = raw.replace(/[\s\-().]/g, '')
-  if (p.startsWith('00')) p = '+' + p.slice(2)
-  if (p.startsWith('0'))  p = '+49' + p.slice(1)
-  return p.replace(/^\+/, '')
 }
 
 export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memberName, subscriptionStatus, stripeCustomerId, monthlyFeeCents, payments: initialPayments, stripeSubscriptionId }: {

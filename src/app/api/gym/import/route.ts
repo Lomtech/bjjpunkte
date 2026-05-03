@@ -16,6 +16,18 @@ function serviceClient() {
   )
 }
 
+function isAllowedImageUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url)
+    if (protocol !== 'https:') return false
+    const h = hostname.toLowerCase()
+    if (h === 'localhost' || h === '127.0.0.1' || h === '::1') return false
+    if (/^10\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h) || /^192\.168\./.test(h)) return false
+    if (h.endsWith('.internal') || h.endsWith('.local')) return false
+    return true
+  } catch { return false }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function reuploadImage(
   originalUrl: string | null | undefined,
@@ -24,6 +36,7 @@ async function reuploadImage(
   supabase: any
 ): Promise<string | null> {
   if (!originalUrl) return null
+  if (!isAllowedImageUrl(originalUrl)) return null
   try {
     const res = await fetch(originalUrl, { signal: AbortSignal.timeout(10_000) })
     if (!res.ok) return null

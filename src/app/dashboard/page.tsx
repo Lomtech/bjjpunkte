@@ -75,6 +75,7 @@ export default function DashboardPage() {
       const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
       const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
 
       const [
         { count: total },
@@ -101,9 +102,9 @@ export default function DashboardPage() {
         supabase.from('payments').select('amount_cents').eq('gym_id', gym.id).eq('status', 'paid').gte('paid_at', startOfMonth),
         supabase.from('payments').select('id, member_id, amount_cents, paid_at, status').eq('gym_id', gym.id).order('paid_at', { ascending: false }).limit(20),
         supabase.from('attendance').select('member_id').eq('gym_id', gym.id).gte('checked_in_at', startOfMonth),
-        // Last attendance per active member (for churn detection)
+        // Last attendance per active member (for churn detection) — date-filtered, no row limit
         supabase.from('attendance').select('member_id, checked_in_at').eq('gym_id', gym.id)
-          .order('checked_in_at', { ascending: false }).limit(500),
+          .gte('checked_in_at', ninetyDaysAgo).order('checked_in_at', { ascending: false }),
       ])
 
       setTotalMembers(total ?? 0)
@@ -469,13 +470,13 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
                   <p className="text-xs text-zinc-400">
-                    {m.days_ago >= 999 ? 'Noch nie eingecheckt' : `${m.days_ago} Tage nicht da`}
+                    {m.days_ago >= 999 ? '90+ Tage nicht gesehen' : `${m.days_ago} Tage nicht da`}
                   </p>
                 </div>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
                   m.days_ago >= 30 ? 'bg-zinc-100 text-zinc-500' : 'bg-amber-50 text-amber-700'
                 }`}>
-                  {m.days_ago >= 999 ? 'Neu' : `${m.days_ago}d`}
+                  {m.days_ago >= 999 ? '90+d' : `${m.days_ago}d`}
                 </span>
               </Link>
             ))}

@@ -5,12 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { UserPlus, Trash2, MessageCircle, Phone, Mail, Pencil, Link2 } from 'lucide-react'
 import Link from 'next/link'
 
-function toWaPhone(raw: string): string {
-  let p = raw.replace(/[\s\-().]/g, '')
-  if (p.startsWith('00')) p = '+' + p.slice(2)
-  if (p.startsWith('0'))  p = '+49' + p.slice(1)
-  return p.replace(/^\+/, '')
-}
+import { toWaPhone } from '@/lib/phone'
 
 type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
 type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page'
