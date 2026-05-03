@@ -16,13 +16,12 @@ function serviceClient() {
   )
 }
 
-type SupabaseClient = ReturnType<typeof createClient>
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function reuploadImage(
   originalUrl: string | null | undefined,
   bucket: string,
   storagePath: string,
-  supabase: SupabaseClient
+  supabase: any
 ): Promise<string | null> {
   if (!originalUrl) return null
   try {
