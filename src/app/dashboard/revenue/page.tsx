@@ -58,14 +58,16 @@ export default function RevenuePage() {
   const [allPayments, setAllPayments]   = useState<(PaymentFull & { member_name: string })[]>([])
   const [months, setMonths]             = useState<MonthGroup[]>([])
   const [expectedMonthlyCents, setExpectedMonthlyCents] = useState(0)
+  const [datevMeta, setDatevMeta] = useState<{ beraternummer: string; mandantennummer: string; gymName: string }>({ beraternummer: '', mandantennummer: '', gymName: '' })
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id, monthly_fee_cents').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, name, datev_beraternummer, datev_mandantennummer').single()
       if (!gym) { setLoading(false); return }
 
-      const gymData = gym as { id: string; monthly_fee_cents: number }
+      const gymData = gym as { id: string; monthly_fee_cents: number; name: string; datev_beraternummer: string | null; datev_mandantennummer: string | null }
+      setDatevMeta({ beraternummer: gymData.datev_beraternummer ?? '', mandantennummer: gymData.datev_mandantennummer ?? '', gymName: gymData.name ?? 'Osss' })
 
       const startOfMonth  = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
       const startOfPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
@@ -190,12 +192,17 @@ export default function RevenuePage() {
     const fromDate = ymd(new Date(Math.min(...dates.map(d => d.getTime()))))
     const toDate   = ymd(new Date(Math.max(...dates.map(d => d.getTime()))))
 
-    // DATEV EXTF Vorlaufsatz (Zeile 1)
+    // DATEV EXTF Vorlaufsatz (Zeile 1) — Format 700, Datenkategorie 21, Version 9
+    const berater   = datevMeta.beraternummer  || '0'
+    const mandant   = datevMeta.mandantennummer || '0'
+    const wjBeginn  = `${now.getFullYear()}0101`
+    const label     = `"${datevMeta.gymName} Zahlungen"`.replace(/[;]/g, ' ')
     const vorlauf = [
-      '"EXTF"','700','21','"Buchungsstapel"','4',
-      ts,'','','','',
-      '0', fromDate, toDate, '"Osss Zahlungen"', '',
-      '1','0','','','','','','',
+      '"EXTF"', '700', '21', '"Buchungsstapel"', '9',
+      ts, '', '"Osss"', '', '',
+      berater, mandant, wjBeginn, '4',
+      fromDate, toDate, label, '',
+      '1', '0', '"EUR"', '', '', '', '', '', '', '', '', '', '', '',
     ].join(';')
 
     // Spaltenüberschriften (Zeile 2)

@@ -8,7 +8,7 @@ import {
   Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle,
   Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
   Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
-  Package, Megaphone, Pin, Edit2,
+  Package, Megaphone, Pin, Edit2, FileSpreadsheet,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 
@@ -125,6 +125,12 @@ export default function SettingsPage() {
   const [invoiceSaving, setInvoiceSaving]           = useState(false)
   const [invoiceSaved, setInvoiceSaved]             = useState(false)
 
+  // DATEV
+  const [datevBeraternummer, setDatevBeraternummer]     = useState('')
+  const [datevMandantennummer, setDatevMandantennummer] = useState('')
+  const [datevSaving, setDatevSaving]                   = useState(false)
+  const [datevSaved, setDatevSaved]                     = useState(false)
+
   // Plan
   const [gymPlan, setGymPlan]           = useState<string>('free')
   const [memberCount, setMemberCount]   = useState(0)
@@ -185,6 +191,8 @@ export default function SettingsPage() {
         setBankIban((data as any).bank_iban ?? '')
         setBankBic((data as any).bank_bic ?? '')
         setBankName((data as any).bank_name ?? '')
+        setDatevBeraternummer((data as any).datev_beraternummer ?? '')
+        setDatevMandantennummer((data as any).datev_mandantennummer ?? '')
         const rawClassTypes = (data as any)?.class_types
         if (Array.isArray(rawClassTypes)) setClassTypesInput(rawClassTypes.join(', '))
         const savedSport = (data as any)?.sport_type as SportType | undefined
@@ -346,6 +354,17 @@ export default function SettingsPage() {
       invoice_prefix: invoicePrefix||'RE', bank_iban: bankIban||null, bank_bic: bankBic||null, bank_name: bankName||null,
     }).eq('owner_id', user?.id ?? '')
     setInvoiceSaving(false); setInvoiceSaved(true); setTimeout(() => setInvoiceSaved(false), 2000)
+  }
+
+  async function handleDatevSave() {
+    setDatevSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await (supabase.from('gyms') as any).update({
+      datev_beraternummer: datevBeraternummer || null,
+      datev_mandantennummer: datevMandantennummer || null,
+    }).eq('owner_id', user?.id ?? '')
+    setDatevSaving(false); setDatevSaved(true); setTimeout(() => setDatevSaved(false), 2000)
   }
 
   async function handleClassTypesSave() {
@@ -891,6 +910,36 @@ export default function SettingsPage() {
               <button type="button" onClick={handleInvoiceSave} disabled={invoiceSaving} className={saveBtnCls}>
                 <Save size={14} />
                 {invoiceSaved ? 'Gespeichert ✓' : invoiceSaving ? 'Wird gespeichert…' : 'Rechnungseinstellungen speichern'}
+              </button>
+            </div>
+          </div>
+
+          {/* DATEV */}
+          <div className={sectionCls}>
+            <div className={sectionHeaderCls}>
+              <SectionHeader icon={<FileSpreadsheet size={12} />} title="DATEV-Export" />
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-zinc-500">
+                Diese Nummern bekommst du von deinem Steuerberater. Sie werden in den DATEV Buchungsstapel-Export eingebettet, damit dein Steuerberater die Datei direkt importieren kann.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">Beraternummer</label>
+                  <input value={datevBeraternummer} onChange={e => setDatevBeraternummer(e.target.value)}
+                    placeholder="z. B. 12345" className={inputCls} maxLength={7} />
+                  <p className="text-xs text-zinc-400 mt-1">5–7-stellig, vom Steuerberater</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">Mandantennummer</label>
+                  <input value={datevMandantennummer} onChange={e => setDatevMandantennummer(e.target.value)}
+                    placeholder="z. B. 1001" className={inputCls} maxLength={5} />
+                  <p className="text-xs text-zinc-400 mt-1">1–5-stellig, vom Steuerberater</p>
+                </div>
+              </div>
+              <button type="button" onClick={handleDatevSave} disabled={datevSaving} className={saveBtnCls}>
+                <Save size={14} />
+                {datevSaved ? 'Gespeichert ✓' : datevSaving ? 'Wird gespeichert…' : 'DATEV-Einstellungen speichern'}
               </button>
             </div>
           </div>
