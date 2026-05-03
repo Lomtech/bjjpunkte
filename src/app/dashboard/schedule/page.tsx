@@ -447,49 +447,54 @@ function ClassCard({
       {/* Expanded panel */}
       {expanded && (
         <div className="border-t border-zinc-100">
+
           {/* Roster */}
-          {(rosterLoading || roster.length > 0) && (
-            <div className="px-3 pt-2.5 pb-2">
-              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Teilnehmer</p>
-              {rosterLoading ? (
-                <p className="text-xs text-zinc-400">Lädt…</p>
-              ) : (
-                <div className="space-y-1 max-h-28 overflow-auto">
-                  {roster.map(b => (
-                    <div key={b.id} className="flex items-center justify-between gap-2">
-                      <p className="text-xs text-zinc-700 truncate flex-1">{b.member_name}</p>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {b.type === 'lead' && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-violet-50 text-violet-700">
-                            Interessent
-                          </span>
-                        )}
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
-                          b.status === 'checked_in'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : b.status === 'confirmed'
-                            ? 'bg-zinc-100 text-zinc-600'
-                            : 'bg-amber-50 text-amber-700'
-                        }`}>
-                          {b.status === 'checked_in' ? 'Eingecheckt' : b.status === 'confirmed' ? 'Angemeldet' : 'Warteliste'}
+          <div className="px-3 pt-3 pb-2">
+            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              Teilnehmer
+            </p>
+            {rosterLoading ? (
+              <p className="text-xs text-zinc-400 py-1">Lädt…</p>
+            ) : roster.length === 0 ? (
+              <p className="text-xs text-zinc-300 py-1">Noch niemand angemeldet.</p>
+            ) : (
+              <div className="space-y-2">
+                {roster.map(b => (
+                  <div key={b.id} className="flex flex-col gap-0.5">
+                    <p className="text-xs font-semibold text-zinc-800 leading-tight break-words">
+                      {b.member_name}
+                    </p>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {b.type === 'lead' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-violet-50 text-violet-700 border border-violet-100">
+                          Interessent
                         </span>
-                      </div>
+                      )}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
+                        b.status === 'checked_in'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                          : b.status === 'confirmed'
+                          ? 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-100'
+                      }`}>
+                        {b.status === 'checked_in' ? 'Eingecheckt' : b.status === 'confirmed' ? 'Angemeldet' : 'Warteliste'}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between px-3 py-2 border-t border-zinc-100">
+          <div className="px-3 pb-3 pt-2 border-t border-zinc-100 space-y-1.5 mt-1">
             <button onClick={onEdit}
-              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 transition-colors font-medium">
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 transition-colors border border-zinc-200">
               <Pencil size={11} /> Bearbeiten
             </button>
             {!cls.is_cancelled && (
               <button onClick={onCancel} disabled={cancellingId === cls.id}
-                className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors disabled:opacity-50 font-medium">
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 transition-colors border border-red-100 disabled:opacity-50">
                 <X size={11} /> Absagen
               </button>
             )}
