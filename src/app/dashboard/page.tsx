@@ -588,7 +588,7 @@ function AccessLinkRow({ label, description, value, copied, onCopy }: {
 }) {
   const display = value.replace(/^https?:\/\/[^/]+/, '')
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50 hover:bg-zinc-100 transition-colors group">
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50 hover:bg-zinc-100 transition-colors group overflow-hidden">
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-zinc-700">{label}</p>
         <p className="text-[11px] text-zinc-400 truncate">{description}</p>

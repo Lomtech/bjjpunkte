@@ -196,7 +196,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
         <div className="space-y-2 mb-4">
           <p className="text-xs text-zinc-400 mb-3 flex items-center gap-1">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-            Kartenzahlung wird akzeptiert
+            Karte & SEPA-Lastschrift werden akzeptiert
           </p>
           {/* Subscription status */}
           {stripeSubscriptionId ? (

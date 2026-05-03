@@ -109,7 +109,8 @@ function Nav({ gym, hasVideos }: { gym: GymInfo; hasVideos: boolean }) {
     { href: '#contact', label: 'Kontakt' },
   ]
   return (
-    <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-zinc-100' : 'bg-transparent'}`}>
+    <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-zinc-100' : 'bg-transparent'}`}
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
         <a href="#" className="flex items-center gap-2.5">
           {gym.logo_url

@@ -204,6 +204,19 @@ export async function POST(req: Request) {
     }
   }
 
+  // ── payment_intent.succeeded (SEPA async confirmation) ──────────────────────
+  // Card payments are confirmed synchronously at checkout.session.completed.
+  // SEPA debit settles days later — this event is the authoritative "paid" signal.
+  if (event.type === 'payment_intent.succeeded') {
+    const pi  = event.data.object as Stripe.PaymentIntent
+    const now = new Date().toISOString()
+    await supabase
+      .from('payments')
+      .update({ status: 'paid', paid_at: now })
+      .eq('stripe_payment_intent_id', pi.id)
+      .eq('status', 'pending')
+  }
+
   // ── invoice.payment_failed ───────────────────────────────────────────────────
   if (event.type === 'invoice.payment_failed') {
     const inv      = event.data.object as Stripe.Invoice

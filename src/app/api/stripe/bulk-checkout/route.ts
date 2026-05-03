@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       const memberName = `${member.first_name} ${member.last_name}`
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
-        payment_method_types: ['card'],
+        payment_method_types: ['card', 'sepa_debit'],
         line_items: [{
           price_data: {
             currency: 'eur',
