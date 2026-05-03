@@ -185,18 +185,18 @@ export default function LeadPortalPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-zinc-400 text-sm">Lädt…</div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-400 text-sm">Lädt…</div>
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-zinc-500 text-sm">{error || 'Nicht gefunden'}</p>
-          <p className="text-zinc-400 text-xs mt-2">Bitte kontaktiere dein Gym.</p>
+          <p className="text-slate-500 text-sm">{error || 'Nicht gefunden'}</p>
+          <p className="text-slate-400 text-xs mt-2">Bitte kontaktiere dein Gym.</p>
         </div>
       </div>
     )
@@ -214,13 +214,13 @@ export default function LeadPortalPage() {
   const statusColor = LEAD_STATUS_COLORS[lead.status] ?? LEAD_STATUS_COLORS.new
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-zinc-100 sticky top-0 z-10">
-        <div className="max-w-xl mx-auto px-5 py-4 flex items-center gap-3">
+      <div className="bg-white border-b border-slate-100 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
           {gym?.logo_url ? (
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-zinc-100">
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
               <Image
                 src={gym.logo_url}
                 alt={gym.name || 'Logo'}
@@ -235,31 +235,31 @@ export default function LeadPortalPage() {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-zinc-900 text-sm leading-tight truncate">
+            <p className="font-bold text-slate-900 text-sm leading-tight truncate">
               {gym?.name ?? 'Gym'}
             </p>
-            <p className="text-xs text-zinc-400">Interessenten-Portal</p>
+            <p className="text-xs text-slate-400">Interessenten-Portal</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-5 py-6 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-3">
 
         {/* Welcome card */}
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-zinc-900 font-bold text-lg leading-tight">
+              <p className="text-slate-900 font-bold text-lg leading-tight">
                 Hallo {lead.first_name}!
               </p>
-              <p className="text-zinc-500 text-sm mt-1">
+              <p className="text-slate-600 text-sm mt-1">
                 Du bist als Interessent registriert.
               </p>
               {gym?.address && (
                 <a
                   href={`https://maps.google.com/?q=${encodeURIComponent(gym.address)}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="text-zinc-400 hover:text-amber-600 text-xs mt-2 flex items-center gap-1 transition-colors"
+                  className="text-slate-400 hover:text-amber-600 text-xs mt-2 flex items-center gap-1 transition-colors"
                 >
                   <MapPin size={11} />
                   {gym.address}
@@ -295,7 +295,7 @@ export default function LeadPortalPage() {
 
         {/* Map */}
         {gym?.address && (
-          <div className="rounded-2xl overflow-hidden border border-zinc-100 shadow-sm">
+          <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
             <iframe
               src={`https://maps.google.com/maps?q=${encodeURIComponent(gym.address)}&output=embed&z=15`}
               width="100%"
@@ -308,9 +308,9 @@ export default function LeadPortalPage() {
             <a
               href={`https://maps.google.com/?q=${encodeURIComponent(gym.address)}`}
               target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-between px-4 py-3 bg-white hover:bg-zinc-50 transition-colors"
+              className="flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
             >
-              <span className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+              <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 <MapPin size={14} className="text-amber-500" />
                 {gym.address}
               </span>
@@ -321,14 +321,14 @@ export default function LeadPortalPage() {
 
         {/* Upcoming classes */}
         <div>
-          <h2 className="font-bold text-zinc-900 text-base mb-3 flex items-center gap-2">
+          <h2 className="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
             <Calendar size={15} className="text-amber-500" />
             Kommende Trainings
           </h2>
 
           {classes.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-5 py-8 text-center">
-              <p className="text-zinc-400 text-sm">Keine Trainings in den nächsten 14 Tagen.</p>
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-8 text-center">
+              <p className="text-slate-400 text-sm">Keine Trainings in den nächsten 14 Tagen.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -346,7 +346,7 @@ export default function LeadPortalPage() {
                 const typeLabel = CLASS_LABELS[cls.class_type] ?? cls.class_type
 
                 return (
-                  <div key={cls.id} className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
+                  <div key={cls.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1.5">
@@ -354,16 +354,16 @@ export default function LeadPortalPage() {
                             {typeLabel}
                           </span>
                         </div>
-                        <p className="font-semibold text-zinc-900 text-sm">{cls.title}</p>
-                        <p className="text-zinc-500 text-xs mt-0.5 flex items-center gap-1">
+                        <p className="font-semibold text-slate-900 text-sm">{cls.title}</p>
+                        <p className="text-slate-500 text-xs mt-0.5 flex items-center gap-1">
                           <Clock size={10} />
                           {date} · {time}–{endTime}
                         </p>
                         {cls.instructor && (
-                          <p className="text-zinc-400 text-xs mt-0.5">{cls.instructor}</p>
+                          <p className="text-slate-400 text-xs mt-0.5">{cls.instructor}</p>
                         )}
                         {cls.max_capacity != null && (
-                          <p className="text-zinc-400 text-xs mt-0.5">
+                          <p className="text-slate-400 text-xs mt-0.5">
                             max. {cls.max_capacity} Plätze
                           </p>
                         )}
@@ -384,7 +384,7 @@ export default function LeadPortalPage() {
                             <button
                               onClick={() => handleCancel(cls.id)}
                               disabled={!!isCancelling}
-                              className="text-[11px] text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                              className="text-[11px] text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
                             >
                               {isCancelling ? '…' : 'Abmelden'}
                             </button>
@@ -403,11 +403,11 @@ export default function LeadPortalPage() {
 
                     {/* Checkin row */}
                     {showCheckin && (
-                      <div className="mt-3 pt-3 border-t border-zinc-100">
+                      <div className="mt-3 pt-3 border-t border-slate-100">
                         <button
                           onClick={() => handleCheckin(cls.id)}
                           disabled={!!isCheckingIn}
-                          className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                           <CheckCircle size={14} />
                           {isCheckingIn ? 'Einchecken…' : 'Einchecken'}
@@ -424,7 +424,7 @@ export default function LeadPortalPage() {
         {/* My bookings */}
         {bookings.filter(b => b.status !== 'cancelled').length > 0 && (
           <div>
-            <h2 className="font-bold text-zinc-900 text-base mb-3 flex items-center gap-2">
+            <h2 className="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
               <CheckCircle size={15} className="text-amber-500" />
               Meine Anmeldungen
             </h2>
@@ -442,13 +442,13 @@ export default function LeadPortalPage() {
                   return (
                     <div
                       key={b.id}
-                      className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-3 flex items-center justify-between gap-3"
+                      className="rounded-2xl border border-slate-100 bg-white px-4 py-3 flex items-center justify-between gap-3 shadow-sm"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-zinc-900 truncate">
+                        <p className="text-sm font-semibold text-slate-900 truncate">
                           {cls?.title ?? 'Training'}
                         </p>
-                        <p className="text-xs text-zinc-400 mt-0.5">
+                        <p className="text-xs text-slate-400 mt-0.5">
                           {dateShort} · {time}
                         </p>
                       </div>
@@ -467,7 +467,7 @@ export default function LeadPortalPage() {
         )}
 
         {/* Footer */}
-        <p className="text-center text-zinc-300 text-xs pb-4">
+        <p className="text-center text-slate-300 text-xs pb-4">
           Betrieben mit <span className="font-bold italic">Osss</span>
         </p>
       </div>

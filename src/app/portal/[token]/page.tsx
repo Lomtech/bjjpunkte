@@ -224,7 +224,7 @@ function PWAInstallButton({ gymName }: { gymName: string }) {
     <>
       <button
         onClick={handleInstall}
-        className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-white text-sm font-semibold rounded-2xl py-3.5 transition-colors shadow-sm"
+        className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold rounded-2xl py-3.5 transition-colors shadow-sm"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2v13M7 9l5 6 5-6"/>
@@ -241,19 +241,19 @@ function PWAInstallButton({ gymName }: { gymName: string }) {
             <p className="text-slate-500 text-sm mb-5">So funktioniert es auf dem iPhone:</p>
             <ol className="space-y-3 text-sm text-slate-700">
               <li className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
                 <span>Tippe auf das <strong>Teilen-Symbol</strong> <span className="inline-block bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">⬆</span> unten in der Browserleiste</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
                 <span>Scrolle nach unten und tippe auf <strong>„Zum Home-Bildschirm"</strong></span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
                 <span>Tippe oben rechts auf <strong>„Hinzufügen"</strong></span>
               </li>
             </ol>
-            <button onClick={() => setShowIosHint(false)} className="mt-6 w-full py-3 rounded-2xl bg-slate-900 text-white text-sm font-semibold">
+            <button onClick={() => setShowIosHint(false)} className="mt-6 w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold transition-colors">
               Verstanden
             </button>
           </div>
@@ -276,7 +276,7 @@ function ContractBanner({ contractEndDate }: { contractEndDate: string }) {
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+    <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm text-center">
       <div className="flex justify-center text-slate-400 mb-1">{icon}</div>
       <p className="text-slate-900 font-bold text-base">{value}</p>
       <p className="text-slate-400 text-xs mt-0.5">{label}</p>
@@ -492,7 +492,7 @@ export default function MemberPortalPage() {
 
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {gym?.logo_url ? (
               <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
@@ -508,6 +508,7 @@ export default function MemberPortalPage() {
               <p className="text-xs text-slate-400">Mitglieder-Portal</p>
             </div>
           </div>
+
           <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${
             member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-400 border-slate-200'
           }`}>
@@ -516,7 +517,7 @@ export default function MemberPortalPage() {
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-5 py-6 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-3">
 
         {/* PWA install */}
         <PWAInstallButton gymName={gym?.name ?? ''} />
@@ -525,7 +526,7 @@ export default function MemberPortalPage() {
         {announcements.length > 0 && (
           <div className="space-y-2">
             {announcements.map(a => (
-              <div key={a.id} className={`rounded-2xl p-4 border ${a.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
+              <div key={a.id} className={`rounded-2xl p-4 border ${a.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'}`}>
                 <div className="flex items-start gap-2.5">
                   <div className="flex-shrink-0 mt-0.5">
                     {a.is_pinned ? <Pin size={13} className="text-amber-500" /> : <Megaphone size={13} className="text-slate-400" />}
@@ -546,9 +547,9 @@ export default function MemberPortalPage() {
         {/* Posts */}
         {(posts ?? []).length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">News vom Gym</h2>
+            <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-1 mb-2">News vom Gym</h2>
             {(posts ?? []).map(post => (
-              <div key={post.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div key={post.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                 {post.cover_url && (
                   <img src={post.cover_url} alt={post.title} className="w-full h-40 object-cover" />
                 )}
@@ -570,10 +571,10 @@ export default function MemberPortalPage() {
         )}
 
         {/* Profile card */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
           <div className="flex items-center gap-4">
             <div
-              className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shadow-sm flex-shrink-0"
+              className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
               style={{ backgroundColor: beltEnabled ? beltSlot.bg : '#e2e8f0', color: beltEnabled ? beltSlot.text : '#94a3b8' }}
             >
               {member.first_name[0]}{member.last_name[0]}
@@ -594,7 +595,7 @@ export default function MemberPortalPage() {
         {member.contract_end_date && <ContractBanner contractEndDate={member.contract_end_date} />}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard icon={<Calendar size={15} />} label="Mitglied seit" value={new Date(member.join_date).toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })} />
           <StatCard icon={<Dumbbell size={15} />} label="Gesamt" value={String(totalSessions ?? 0)} />
           <StatCard icon={<Flame size={15} />} label="Diesen Monat" value={`${sessionsThisMonth}${sessionsThisMonth > 0 ? ' 🔥' : ''}`} />
@@ -602,7 +603,7 @@ export default function MemberPortalPage() {
         </div>
 
         {/* GPS Check-in */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
           <h2 className="font-semibold text-slate-900 mb-0.5 flex items-center gap-2 text-sm">
             <Navigation size={14} className="text-amber-500" /> GPS Check-in
           </h2>
@@ -624,7 +625,7 @@ export default function MemberPortalPage() {
 
         {/* Membership plans */}
         {plans.length > 0 && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
             <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
               <Package size={15} className="text-slate-400" /> Mitgliedschaft
             </h2>
@@ -690,7 +691,7 @@ export default function MemberPortalPage() {
                         <button
                           onClick={() => handleRequestPlan(plan.id)}
                           disabled={!!isLoading}
-                          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
                         >
                           {isLoading ? '…' : 'Wählen'}
                         </button>
@@ -704,12 +705,12 @@ export default function MemberPortalPage() {
         )}
 
         {/* ── Stundenplan / Kalender ─────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <h2 className="font-semibold text-slate-900 flex items-center gap-2 text-sm">
-              <Calendar size={14} className="text-slate-400" /> Stundenplan
+              <Calendar size={14} className="text-amber-500" /> Stundenplan
             </h2>
             <div className="flex items-center gap-1">
               <button
@@ -865,8 +866,6 @@ export default function MemberPortalPage() {
                         )}
 
                         {/* Action row */}
-
-                        {/* Action row */}
                         {!attState && (
                           <div className="px-4 pb-4">
                             {showCheckin ? (
@@ -877,22 +876,23 @@ export default function MemberPortalPage() {
                               </button>
                             ) : isBooked ? (
                               <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
-                                className="w-full py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-sm font-semibold transition-colors disabled:opacity-50">
+                                className="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors disabled:opacity-50">
                                 {isLoading ? '…' : 'Abmelden'}
                               </button>
                             ) : isWaitlist ? (
                               <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
-                                className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-semibold transition-colors disabled:opacity-50">
+                                className="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors disabled:opacity-50">
                                 {isLoading ? '…' : 'Von Warteliste abmelden'}
+                              </button>
+                            ) : isFull ? (
+                              <button onClick={() => handleBook(cls.id)} disabled={isLoading}
+                                className="w-full py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-sm font-medium transition-colors disabled:opacity-50">
+                                {isLoading ? '…' : 'Auf Warteliste'}
                               </button>
                             ) : (
                               <button onClick={() => handleBook(cls.id)} disabled={isLoading}
-                                className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 ${
-                                  isFull
-                                    ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                                    : 'bg-amber-500 hover:bg-amber-400 text-white'
-                                }`}>
-                                {isLoading ? '…' : isFull ? 'Auf Warteliste' : 'Anmelden'}
+                                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold transition-colors disabled:opacity-50">
+                                {isLoading ? '…' : 'Anmelden'}
                               </button>
                             )}
                           </div>
@@ -907,7 +907,7 @@ export default function MemberPortalPage() {
         </div>
 
         {/* Payments */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
           <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <CreditCard size={15} className="text-slate-400" /> Zahlungshistorie
           </h2>
@@ -945,7 +945,7 @@ export default function MemberPortalPage() {
         </div>
 
         {/* Attendance history */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
           <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <Dumbbell size={15} className="text-slate-400" /> Trainingsverlauf
             <span className="text-sm font-normal text-slate-400">({totalSessions ?? 0} gesamt)</span>
@@ -972,7 +972,7 @@ export default function MemberPortalPage() {
         </div>
 
         {/* Training log */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
           <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <BookOpen size={15} className="text-slate-400" /> Technik-Logbuch
           </h2>
@@ -1017,7 +1017,7 @@ export default function MemberPortalPage() {
         </div>
 
         {/* Cancellation */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
           <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
             <AlertTriangle size={15} className="text-slate-400" /> Mitgliedschaft kündigen
           </h2>
