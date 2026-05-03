@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
+  const [oauthLoading, setOauthLoading] = useState(false)
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault()
@@ -29,6 +30,16 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError(error.message); setLoading(false) }
     else { router.push('/dashboard'); router.refresh() }
+  }
+
+  async function handleGoogle() {
+    setOauthLoading(true); setError('')
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+    if (error) { setError(error.message); setOauthLoading(false) }
   }
 
   return (
@@ -118,6 +129,28 @@ export default function LoginPage() {
             <div className="mb-8">
               <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-1">Willkommen zurück</h1>
               <p className="text-zinc-400 text-sm">Meld dich in deinem Gym-Account an.</p>
+            </div>
+
+            {/* Google OAuth */}
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={oauthLoading || loading}
+              className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-800 font-semibold text-sm transition-all disabled:opacity-50 shadow-sm mb-4"
+            >
+              <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                <path d="M47.532 24.552c0-1.636-.132-3.196-.388-4.692H24.48v9.13h12.985c-.572 2.992-2.244 5.524-4.764 7.22v5.996h7.708c4.508-4.156 7.123-10.28 7.123-17.654z" fill="#4285F4"/>
+                <path d="M24.48 48c6.48 0 11.92-2.148 15.893-5.82l-7.708-5.996c-2.148 1.44-4.896 2.288-8.185 2.288-6.296 0-11.628-4.252-13.532-9.972H3.044v6.192C7.004 42.58 15.116 48 24.48 48z" fill="#34A853"/>
+                <path d="M10.948 28.5A14.52 14.52 0 0 1 10.16 24c0-1.564.272-3.08.788-4.5V13.308H3.044A23.988 23.988 0 0 0 .48 24c0 3.876.924 7.548 2.564 10.692L10.948 28.5z" fill="#FBBC05"/>
+                <path d="M24.48 9.528c3.548 0 6.728 1.22 9.232 3.62l6.908-6.908C36.392 2.38 30.96 0 24.48 0 15.116 0 7.004 5.42 3.044 13.308l7.904 6.192c1.904-5.72 7.236-9.972 13.532-9.972z" fill="#EA4335"/>
+              </svg>
+              {oauthLoading ? 'Weiterleitung…' : 'Mit Google anmelden'}
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 h-px bg-zinc-100" />
+              <span className="text-xs text-zinc-400 font-medium">oder</span>
+              <div className="flex-1 h-px bg-zinc-100" />
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
