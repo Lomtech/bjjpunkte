@@ -70,6 +70,7 @@ export default function SettingsPage() {
   const [gymSlug, setGymSlug]                 = useState('')
   const [slugSaving, setSlugSaving]           = useState(false)
   const [slugSaved, setSlugSaved]             = useState(false)
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const [copiedGymPage, setCopiedGymPage]     = useState(false)
   const [copiedScheduleLink, setCopiedScheduleLink] = useState(false)
   const [copiedEmbedCode, setCopiedEmbedCode]       = useState(false)
@@ -191,8 +192,19 @@ export default function SettingsPage() {
     supabase.from('gyms').select('*').single().then(async ({ data }) => {
       if (data) {
         setGymId(data.id ?? null)
-        setGymSlug((data as any).slug ?? '')
-        setName(data.name ?? '')
+        const existingSlug = (data as any).slug ?? ''
+        const existingName = data.name ?? ''
+        setName(existingName)
+        if (existingSlug) {
+          setGymSlug(existingSlug)
+          setSlugManuallyEdited(true) // treat saved slug as intentional
+        } else if (existingName) {
+          // Auto-generate slug from existing name if none saved yet
+          const auto = existingName.trim().toLowerCase()
+            .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+          setGymSlug(auto)
+        }
         setAddress(data.address ?? '')
         setPhone(data.phone ?? '')
         setEmail(data.email ?? '')
@@ -265,8 +277,18 @@ export default function SettingsPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const feeCents = monthlyFee ? Math.round(parseFloat(monthlyFee.replace(',', '.')) * 100) : 0
-    await supabase.from('gyms').update({ name, address: address||null, phone: phone||null, email: email||null, monthly_fee_cents: feeCents })
-      .eq('owner_id', user?.id ?? '')
+    // Clean and save slug together with gym name so it's never empty after first save
+    const cleanSlug = gymSlug.trim().toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    if (cleanSlug) setGymSlug(cleanSlug)
+    await supabase.from('gyms').update({
+      name,
+      address: address || null,
+      phone: phone || null,
+      email: email || null,
+      monthly_fee_cents: feeCents,
+      ...(cleanSlug ? { slug: cleanSlug } : {}),
+    }).eq('owner_id', user?.id ?? '')
     setLoading(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
 
@@ -846,7 +868,22 @@ export default function SettingsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1.5">Gym-Name *</label>
-                <input value={name} onChange={e => setName(e.target.value)} required className={inputCls} />
+                <input
+                  value={name}
+                  onChange={e => {
+                    const newName = e.target.value
+                    setName(newName)
+                    // Auto-generate slug from name unless user has manually edited it
+                    if (!slugManuallyEdited) {
+                      const auto = newName.trim().toLowerCase()
+                        .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+                        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                      setGymSlug(auto)
+                    }
+                  }}
+                  required
+                  className={inputCls}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-1.5">Adresse</label>
@@ -1555,7 +1592,7 @@ export default function SettingsPage() {
                   <span className="text-xs text-zinc-400 shrink-0">osss.pro/gym/</span>
                   <input
                     value={gymSlug}
-                    onChange={e => setGymSlug(e.target.value)}
+                    onChange={e => { setGymSlug(e.target.value); setSlugManuallyEdited(true) }}
                     placeholder="mein-gym"
                     className={inputCls + ' flex-1'}
                   />
