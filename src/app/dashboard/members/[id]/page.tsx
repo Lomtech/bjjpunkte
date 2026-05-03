@@ -11,7 +11,7 @@ import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
-import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2 } from 'lucide-react'
+import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck } from 'lucide-react'
 
 import { toWaPhone } from '@/lib/phone'
 
@@ -89,6 +89,8 @@ export default function MemberDetailPage() {
   const [beltSystem, setBeltSystem]       = useState<BeltSystem | undefined>(undefined)
   const [beltEnabled, setBeltEnabled]     = useState(true)
   const [stripesEnabled, setStripesEnabled] = useState(true)
+  const [checkingIn, setCheckingIn]       = useState(false)
+  const [checkedInNow, setCheckedInNow]   = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -235,6 +237,26 @@ export default function MemberDetailPage() {
     }
   }
 
+  async function handleCheckIn() {
+    if (checkingIn) return
+    setCheckingIn(true)
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/attendance', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ member_id: id, class_type: 'gi' }),
+    })
+    setCheckingIn(false)
+    if (res.ok) {
+      const { entry } = await res.json()
+      setAttendance(prev => [entry, ...prev])
+      setTotalSessions(n => n + 1)
+      setCheckedInNow(true)
+      setTimeout(() => setCheckedInNow(false), 3000)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-full">
@@ -255,14 +277,34 @@ export default function MemberDetailPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl">
-      {/* Header */}
-      <div className="mb-6">
-        <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">
+    <div className="max-w-3xl">
+      {/* Sticky check-in bar — always visible at top */}
+      <div className="sticky top-0 z-20 bg-slate-50 border-b border-zinc-100 px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+        <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors flex-shrink-0">
           ← Mitglieder
         </Link>
+        <button
+          onClick={handleCheckIn}
+          disabled={checkingIn}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all shadow-sm flex-shrink-0 ${
+            checkedInNow
+              ? 'bg-green-500 text-white'
+              : 'bg-amber-400 hover:bg-amber-300 text-zinc-950'
+          } disabled:opacity-60`}
+        >
+          {checkedInNow
+            ? <><Check size={14} /> Eingecheckt!</>
+            : checkingIn
+              ? '…'
+              : <><UserCheck size={14} /> Einchecken</>
+          }
+        </button>
+      </div>
 
-        <h1 className="text-2xl font-black text-zinc-950 tracking-tight mt-3 mb-2">
+      <div className="p-4 md:p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-2">
           {member.first_name} {member.last_name}
         </h1>
 
@@ -534,6 +576,7 @@ export default function MemberDetailPage() {
           <p className="text-xs text-zinc-400 mt-2">Nur für inaktive Mitglieder. Alle Daten werden unwiderruflich gelöscht.</p>
         </div>
       )}
+      </div>{/* /p-4 md:p-6 */}
     </div>
   )
 }
