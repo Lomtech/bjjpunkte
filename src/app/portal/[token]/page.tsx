@@ -44,6 +44,7 @@ interface UpcomingClass {
   id: string; title: string; class_type: string; instructor: string | null
   starts_at: string; ends_at: string; max_capacity: number | null
   confirmed_count: number; waitlist_count: number; my_status: string | null
+  participants: { name: string; status: string }[]
 }
 
 interface TrainingLog {
@@ -298,6 +299,7 @@ export default function MemberPortalPage() {
   const [bookingId, setBookingId]           = useState<string | null>(null)
   const [attendanceMap, setAttendanceMap]   = useState<Record<string, { attendanceId: string; checkedOut: boolean }>>({})
   const [checkinLoading, setCheckinLoading] = useState<string | null>(null)
+  const [expandedClassId, setExpandedClassId] = useState<string | null>(null)
 
   // Calendar navigation
   const todayDate = (() => { const d = new Date(); d.setHours(0,0,0,0); return d })()
@@ -784,10 +786,16 @@ export default function MemberPortalPage() {
                     const attState   = attendanceMap[cls.id]
                     const showCheckin = (isBooked || !!attState) && canCheckin(cls.starts_at, cls.ends_at) && !attState
 
+                    const isExpanded = expandedClassId === cls.id
+                    const hasParticipants = cls.participants.length > 0
+
                     return (
                       <div key={cls.id} className="rounded-xl border border-slate-100 overflow-hidden shadow-sm">
-                        {/* Card top */}
-                        <div className="p-4">
+                        {/* Card top — tappable to expand participants */}
+                        <button
+                          className="w-full text-left p-4 hover:bg-slate-50/60 transition-colors"
+                          onClick={() => setExpandedClassId(isExpanded ? null : cls.id)}
+                        >
                           <div className="flex items-start gap-3">
                             {/* Type dot */}
                             <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${TYPE_DOT[cls.class_type] ?? 'bg-slate-300'}`} />
@@ -819,17 +827,44 @@ export default function MemberPortalPage() {
                               {cls.instructor && (
                                 <p className="text-slate-400 text-xs truncate">{cls.instructor}</p>
                               )}
-                              <div className="flex items-center gap-1.5 mt-1.5 text-slate-400 text-[11px]">
-                                <Users size={10} />
-                                <span>{cls.confirmed_count}{cls.max_capacity ? `/${cls.max_capacity}` : ''}</span>
-                                {cls.waitlist_count > 0 && <span className="text-amber-600 font-medium">+{cls.waitlist_count} WL</span>}
-                                {isFull && !isBooked && !isWaitlist && (
-                                  <span className="text-red-500 font-medium">· Ausgebucht</span>
+                              <div className="flex items-center justify-between mt-1.5">
+                                <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                                  <Users size={10} />
+                                  <span>{cls.confirmed_count}{cls.max_capacity ? `/${cls.max_capacity}` : ''}</span>
+                                  {cls.waitlist_count > 0 && <span className="text-amber-600 font-medium">+{cls.waitlist_count} WL</span>}
+                                  {isFull && !isBooked && !isWaitlist && (
+                                    <span className="text-red-500 font-medium">· Ausgebucht</span>
+                                  )}
+                                </div>
+                                {hasParticipants && (
+                                  <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
+                                    {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                  </span>
                                 )}
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </button>
+
+                        {/* Participant list */}
+                        {isExpanded && (
+                          <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/50">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Wer kommt</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {cls.participants.map((p, i) => (
+                                <span key={i} className={`text-xs px-2 py-1 rounded-lg font-medium ${
+                                  p.status === 'checked_in'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                    : 'bg-white text-slate-700 border border-slate-200'
+                                }`}>
+                                  {p.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action row */}
 
                         {/* Action row */}
                         {!attState && (

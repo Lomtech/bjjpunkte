@@ -53,33 +53,35 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
 
   const classIds = classes.map((c: { id: string }) => c.id)
 
-  // Confirmed counts per class
+  // All bookings with member names
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: bookings } = await (supabase as any)
     .from('class_bookings')
-    .select('class_id, status')
+    .select('class_id, status, member_id, members(first_name, last_name)')
     .in('class_id', classIds)
-    .neq('status', 'cancelled')
-
-  // This member's bookings
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: myBookings } = await (supabase as any)
-    .from('class_bookings')
-    .select('class_id, status')
-    .in('class_id', classIds)
-    .eq('member_id', member.id)
     .neq('status', 'cancelled')
 
   const confirmedCount: Record<string, number> = {}
-  const waitlistCount: Record<string, number>  = {}
-  const myStatus: Record<string, string>        = {}
+  const waitlistCount:  Record<string, number> = {}
+  const myStatus:       Record<string, string> = {}
+  const participants:   Record<string, { name: string; status: string }[]> = {}
 
-  for (const b of (bookings ?? []) as { class_id: string; status: string }[]) {
-    if (b.status === 'confirmed')  confirmedCount[b.class_id] = (confirmedCount[b.class_id] ?? 0) + 1
-    if (b.status === 'waitlist')   waitlistCount[b.class_id]  = (waitlistCount[b.class_id]  ?? 0) + 1
+  type RawBooking = {
+    class_id: string; status: string; member_id: string
+    members: { first_name: string; last_name: string } | null
   }
-  for (const b of (myBookings ?? []) as { class_id: string; status: string }[]) {
-    myStatus[b.class_id] = b.status
+
+  for (const b of (bookings ?? []) as RawBooking[]) {
+    if (b.status === 'confirmed') confirmedCount[b.class_id] = (confirmedCount[b.class_id] ?? 0) + 1
+    if (b.status === 'waitlist')  waitlistCount[b.class_id]  = (waitlistCount[b.class_id]  ?? 0) + 1
+    if (b.member_id === member.id) myStatus[b.class_id] = b.status
+
+    // Build participant list (first name + last initial)
+    if (b.members && (b.status === 'confirmed' || b.status === 'checked_in')) {
+      const name = `${b.members.first_name} ${b.members.last_name[0]}.`
+      if (!participants[b.class_id]) participants[b.class_id] = []
+      participants[b.class_id].push({ name, status: b.status })
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,6 +96,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
     confirmed_count: confirmedCount[c.id] ?? 0,
     waitlist_count:  waitlistCount[c.id]  ?? 0,
     my_status:       myStatus[c.id] ?? null,
+    participants:    participants[c.id]   ?? [],
   }))
 
   return NextResponse.json(result)
