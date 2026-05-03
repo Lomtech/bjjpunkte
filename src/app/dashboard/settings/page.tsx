@@ -144,6 +144,7 @@ export default function SettingsPage() {
   const [loadingPlan, setLoadingPlan]   = useState<string | null>(null)
   const [portalLoading, setPortalLoading] = useState(false)
   const [upgradedBanner, setUpgradedBanner] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   const webhookUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/stripe/webhook`
@@ -656,26 +657,23 @@ export default function SettingsPage() {
                 )}
               </div>
               <div className="flex flex-col gap-2 flex-shrink-0">
-                {gymPlan === 'free' ? (
-                  <button onClick={() => handleUpgrade('starter')} disabled={loadingPlan !== null}
-                    className="px-4 py-2 rounded-xl text-sm font-semibold bg-zinc-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
-                    {loadingPlan ? 'Wird geladen…' : 'Upgraden →'}
-                  </button>
-                ) : gymPlan === 'pro' ? (
+                {gymPlan === 'pro' ? (
                   <button onClick={handlePortal} disabled={portalLoading}
                     className="px-4 py-2 rounded-xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-400 disabled:opacity-50 transition-colors">
                     {portalLoading ? 'Wird geladen…' : 'Abo verwalten'}
                   </button>
                 ) : (
                   <>
-                    <button onClick={() => handleUpgrade(gymPlan === 'starter' ? 'grow' : 'pro')} disabled={loadingPlan !== null}
+                    <button onClick={() => setShowUpgradeModal(true)} disabled={loadingPlan !== null}
                       className="px-4 py-2 rounded-xl text-sm font-semibold bg-zinc-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
-                      {loadingPlan ? 'Wird geladen…' : 'Plan ändern →'}
+                      {gymPlan === 'free' ? 'Upgraden →' : 'Plan ändern →'}
                     </button>
-                    <button onClick={handlePortal} disabled={portalLoading}
-                      className="px-4 py-2 rounded-xl text-sm font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors">
-                      {portalLoading ? 'Wird geladen…' : 'Abo verwalten'}
-                    </button>
+                    {gymPlan !== 'free' && (
+                      <button onClick={handlePortal} disabled={portalLoading}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors">
+                        {portalLoading ? 'Wird geladen…' : 'Abo verwalten'}
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -1693,6 +1691,149 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {showUpgradeModal && (
+        <UpgradeModal
+          currentPlan={gymPlan}
+          loadingPlan={loadingPlan}
+          onUpgrade={async (plan) => { setShowUpgradeModal(false); await handleUpgrade(plan) }}
+          onClose={() => setShowUpgradeModal(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ─── UpgradeModal ───────────────────────────────────────────────────────── */
+const UPGRADE_PLANS = [
+  {
+    name: 'Free',
+    planKey: 'free',
+    price: '0',
+    period: '',
+    members: 'Bis zu 30 Mitglieder',
+    highlight: false,
+    features: ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & Kiosk-Modus', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite', 'Lead-Management & Pipeline', '2% Plattformgebühr'],
+  },
+  {
+    name: 'Starter',
+    planKey: 'starter',
+    price: '29',
+    period: '/Monat',
+    members: 'Bis zu 50 Mitglieder',
+    highlight: false,
+    features: ['Alles aus Free', 'Automatische Zahlungserinnerungen', 'Geburtstags-E-Mails', '1 Trainer-Account', '2% Plattformgebühr'],
+  },
+  {
+    name: 'Grow',
+    planKey: 'grow',
+    price: '59',
+    period: '/Monat',
+    members: 'Bis zu 150 Mitglieder',
+    highlight: true,
+    features: ['Alles aus Starter', 'Ankündigungen & Pinnwand', 'Website-Embed für Stundenplan', 'Unbegrenzte Trainer-Accounts', '2% Plattformgebühr'],
+  },
+  {
+    name: 'Pro',
+    planKey: 'pro',
+    price: '99',
+    period: '/Monat',
+    members: 'Unbegrenzte Mitglieder',
+    highlight: false,
+    features: ['Alles aus Grow', 'Unbegrenzte Mitglieder', 'Prioritäts-Support', 'Frühzeitiger Zugang zu neuen Features', '2% Plattformgebühr'],
+  },
+]
+
+const PLAN_ORDER: Record<string, number> = { free: 0, starter: 1, grow: 2, pro: 3 }
+
+function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
+  currentPlan: string
+  loadingPlan: string | null
+  onUpgrade: (plan: string) => void
+  onClose: () => void
+}) {
+  const currentRank = PLAN_ORDER[currentPlan] ?? 0
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-zinc-100">
+          <div>
+            <h2 className="text-lg font-black text-zinc-900 tracking-tight">Plan auswählen</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">Wähle den passenden Plan für dein Gym</p>
+          </div>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 transition-colors p-1">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Plans grid */}
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {UPGRADE_PLANS.map(plan => {
+            const rank = PLAN_ORDER[plan.planKey] ?? 0
+            const isCurrent = plan.planKey === currentPlan
+            const isLower = rank < currentRank
+            const isUpgrade = rank > currentRank
+            return (
+              <div key={plan.planKey} className={`rounded-2xl border-2 p-5 flex flex-col relative transition-all ${
+                plan.highlight && isUpgrade ? 'border-amber-400 shadow-amber-100/80 shadow-lg' :
+                isCurrent ? 'border-amber-300 bg-amber-50/50' :
+                isLower ? 'border-zinc-100 opacity-50' : 'border-zinc-100'
+              }`}>
+                {plan.highlight && isUpgrade && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-zinc-950 text-[10px] font-black px-3 py-1 rounded-full tracking-wide whitespace-nowrap">
+                    BELIEBT
+                  </div>
+                )}
+                {isCurrent && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-700 text-white text-[10px] font-black px-3 py-1 rounded-full tracking-wide whitespace-nowrap">
+                    AKTUELL
+                  </div>
+                )}
+                <div className="mb-4">
+                  <p className="font-bold text-zinc-400 text-[10px] uppercase tracking-widest mb-1">{plan.name}</p>
+                  <div className="flex items-end gap-0.5 mb-0.5">
+                    <span className="text-3xl font-black text-zinc-900 tracking-tight">€{plan.price}</span>
+                    <span className="text-zinc-400 text-xs pb-1.5">{plan.period}</span>
+                  </div>
+                  <p className="text-zinc-400 text-[11px]">{plan.members}</p>
+                </div>
+                <ul className="space-y-2 flex-1 mb-5">
+                  {plan.features.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-zinc-600">
+                      <Check size={11} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                {isCurrent ? (
+                  <div className="w-full text-center py-2 rounded-xl text-xs font-bold text-zinc-400 bg-zinc-100">
+                    Aktueller Plan
+                  </div>
+                ) : isLower ? (
+                  <div className="w-full text-center py-2 rounded-xl text-xs font-bold text-zinc-300 bg-zinc-50">
+                    Downgrade
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => onUpgrade(plan.planKey)}
+                    disabled={loadingPlan === plan.planKey}
+                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-60 ${
+                      plan.highlight
+                        ? 'bg-amber-400 hover:bg-amber-300 text-zinc-950'
+                        : 'bg-zinc-900 hover:bg-zinc-700 text-white'
+                    }`}
+                  >
+                    {loadingPlan === plan.planKey ? 'Wird geladen…' : `${plan.name} wählen`}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <p className="text-center text-xs text-zinc-400 pb-6">Jederzeit kündbar · DSGVO-konform · Daten in der EU</p>
+      </div>
     </div>
   )
 }
