@@ -8,8 +8,9 @@ import { LogoMark } from '@/components/Logo'
 import Image from 'next/image'
 
 type Role = 'owner' | 'trainer' | null
-interface RoleCache { role: Role; gymName: string; logoUrl: string | null; onboardingDone: boolean }
+interface RoleCache { role: Role; gymName: string; logoUrl: string | null; onboardingDone: boolean; cachedAt: number }
 const CACHE_KEY = 'osss_role_v2'
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes — skip refresh if cache is fresh
 
 export function RoleShell({ children }: { children: React.ReactNode }) {
   const [role, setRole]                   = useState<Role>(null)
@@ -24,35 +25,34 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
     const supabase = createClient()
 
     // ── Instant render from cache ──────────────────────────────────────────
-    // Show UI immediately if we have cached role data — no network wait
+    let cacheIsFresh = false
     try {
       const raw = localStorage.getItem(CACHE_KEY)
       if (raw) {
         const c: RoleCache = JSON.parse(raw)
-        setRole(c.role)
-        setGymName(c.gymName ?? '')
-        setLogoUrl(c.logoUrl ?? null)
-        setOnboardingDone(c.onboardingDone ?? true)
-        setReady(true)   // ← render NOW, refresh in background
+        setRole(c.role); setGymName(c.gymName ?? ''); setLogoUrl(c.logoUrl ?? null); setOnboardingDone(c.onboardingDone ?? true)
+        setReady(true)
+        cacheIsFresh = !!c.cachedAt && (Date.now() - c.cachedAt) < CACHE_TTL
       }
-    } catch { /* ignore parse errors */ }
+    } catch { /* ignore */ }
+
+    // ── Background refresh — skip if cache is still fresh ─────────────────
+    if (cacheIsFresh) return  // ← no network call, free up bandwidth for page data
 
     async function detectRole() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { setReady(true); return }
-
       const userId = session.user.id
 
-      // Query gym + staff in parallel to avoid waterfall
-      const [{ data: gym }, { data: staff }] = await Promise.all([
-        supabase.from('gyms').select('id, name, logo_url, onboarding_completed_at').eq('owner_id', userId).maybeSingle(),
-        supabase.from('gym_staff').select('id, gym_id').eq('user_id', userId).maybeSingle(),
-      ])
+      // Owners are the common case — query gym first, staff only as fallback
+      const { data: gym } = await supabase
+        .from('gyms').select('id, name, logo_url, onboarding_completed_at')
+        .eq('owner_id', userId).maybeSingle()
 
       if (gym) {
         const g = gym as any
         const done = !!g.onboarding_completed_at
-        const cache: RoleCache = { role: 'owner', gymName: g.name ?? '', logoUrl: g.logo_url ?? null, onboardingDone: done }
+        const cache: RoleCache = { role: 'owner', gymName: g.name ?? '', logoUrl: g.logo_url ?? null, onboardingDone: done, cachedAt: Date.now() }
         localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
         setRole('owner'); setGymName(g.name ?? ''); setLogoUrl(g.logo_url ?? null); setOnboardingDone(done)
         setReady(true)
@@ -60,21 +60,22 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
         return
       }
 
+      // Only reach here for trainers or brand-new Google OAuth users
+      const { data: staff } = await supabase
+        .from('gym_staff').select('id, gym_id').eq('user_id', userId).maybeSingle()
+
       if (staff) {
         const { data: staffGym } = await supabase.from('gyms').select('name, logo_url').eq('id', (staff as any).gym_id).maybeSingle()
-        const gName = (staffGym as any)?.name ?? ''
-        const gLogo = (staffGym as any)?.logo_url ?? null
-        const cache: RoleCache = { role: 'trainer', gymName: gName, logoUrl: gLogo, onboardingDone: true }
+        const gName = (staffGym as any)?.name ?? ''; const gLogo = (staffGym as any)?.logo_url ?? null
+        const cache: RoleCache = { role: 'trainer', gymName: gName, logoUrl: gLogo, onboardingDone: true, cachedAt: Date.now() }
         localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
         setRole('trainer'); setGymName(gName); setLogoUrl(gLogo); setOnboardingDone(true)
       } else {
-        // New owner with no gym yet (e.g. Google OAuth first login)
-        const cache: RoleCache = { role: 'owner', gymName: '', logoUrl: null, onboardingDone: false }
+        const cache: RoleCache = { role: 'owner', gymName: '', logoUrl: null, onboardingDone: false, cachedAt: Date.now() }
         localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
         setRole('owner'); setOnboardingDone(false)
         if (pathname !== '/dashboard/onboarding') router.push('/dashboard/onboarding')
       }
-
       setReady(true)
     }
 

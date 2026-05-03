@@ -7,29 +7,26 @@ import { LogoMark } from '@/components/Logo'
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const [ready, setReady] = useState(false)
+  // Assume logged in immediately if Supabase has a cached session token in localStorage
+  // RoleShell handles the actual session verification and redirects if invalid
+  const [ready, setReady] = useState(() => {
+    if (typeof window === 'undefined') return false
+    // Check for any Supabase session token in localStorage (fast, synchronous)
+    try {
+      const keys = Object.keys(localStorage)
+      return keys.some(k => k.includes('supabase') && k.includes('auth-token'))
+    } catch { return false }
+  })
 
   useEffect(() => {
     const supabase = createClient()
-
-    // getSession() awaits internal initialization before reading from storage
-    // — this is reliable regardless of when the effect runs
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        router.replace('/login')
-      } else {
-        setReady(true)
-      }
+      if (!session) { router.replace('/login'); return }
+      setReady(true)
     })
-
-    // Handle future sign-outs
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        setReady(false)
-        router.replace('/login')
-      }
+      if (event === 'SIGNED_OUT') { setReady(false); router.replace('/login') }
     })
-
     return () => subscription.unsubscribe()
   }, [router])
 
