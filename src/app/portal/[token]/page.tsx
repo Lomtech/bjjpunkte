@@ -8,7 +8,7 @@ import { resolveBeltSystem } from '@/lib/belt-system'
 import type { Belt } from '@/types/database'
 import {
   Calendar, CreditCard, Dumbbell, Clock, CheckCircle, BookOpen, Flame,
-  Trophy, QrCode, Megaphone, Pin, Package, ChevronDown, ChevronUp, X, AlertTriangle,
+  Trophy, QrCode, Megaphone, Pin, Package, ChevronDown, ChevronUp, X, AlertTriangle, Navigation,
 } from 'lucide-react'
 
 // ── types ────────────────────────────────────────────────────────────────────
@@ -267,6 +267,10 @@ export default function MemberPortalPage() {
   const [attendanceMap, setAttendanceMap]   = useState<Record<string, { attendanceId: string; checkedOut: boolean }>>({})
   const [checkinLoading, setCheckinLoading] = useState<string | null>(null)
 
+  // GPS Check-in
+  const [gpsState, setGpsState] = useState<'idle' | 'locating' | 'success' | 'error'>('idle')
+  const [gpsMessage, setGpsMessage] = useState<string | null>(null)
+
   const [logs, setLogs]             = useState<TrainingLog[]>([])
   const [logNote, setLogNote]       = useState('')
   const [logClassType, setLogClassType] = useState('')
@@ -349,6 +353,33 @@ export default function MemberPortalPage() {
     if (result.success && result.attendance_id)
       setAttendanceMap(prev => ({ ...prev, [classId]: { attendanceId: result.attendance_id, checkedOut: false } }))
     setCheckinLoading(null)
+  }
+
+  async function handleGpsCheckin() {
+    if (!navigator.geolocation) {
+      setGpsMessage('GPS nicht verfügbar'); setGpsState('error'); return
+    }
+    setGpsState('locating'); setGpsMessage(null)
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const res = await fetch(`/api/portal/${token}/gps-checkin`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          const clsName = data.class?.title ? ` · ${data.class.title}` : ''
+          setGpsMessage(`Eingecheckt ✓${clsName}`)
+          setGpsState('success')
+          loadPortal(); loadClasses()
+        } else {
+          setGpsMessage(data.error ?? 'Fehler beim GPS-Check-in')
+          setGpsState('error')
+        }
+      },
+      err => { setGpsMessage(err.message); setGpsState('error') },
+      { enableHighAccuracy: true, timeout: 10_000 }
+    )
   }
 
   async function handleRequestPlan(planId: string) {
@@ -545,6 +576,27 @@ export default function MemberPortalPage() {
               <QrCode size={14} /> Karte öffnen & speichern
             </a>
           </div>
+        </div>
+
+        {/* GPS Check-in */}
+        <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 shadow-sm">
+          <h2 className="font-semibold text-white mb-1 flex items-center gap-2">
+            <Navigation size={15} className="text-slate-400" /> GPS Check-in
+          </h2>
+          <p className="text-slate-400 text-xs mb-4">Im Gym? Einmal tippen — automatisch eingecheckt.</p>
+          <button
+            onClick={handleGpsCheckin}
+            disabled={gpsState === 'locating'}
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
+          >
+            <Navigation size={15} />
+            {gpsState === 'locating' ? 'Standort wird ermittelt…' : 'GPS Check-in starten'}
+          </button>
+          {gpsMessage && (
+            <p className={`mt-3 text-xs text-center px-3 py-2 rounded-xl ${gpsState === 'success' ? 'bg-green-900/40 text-green-300' : 'bg-red-900/40 text-red-300'}`}>
+              {gpsMessage}
+            </p>
+          )}
         </div>
 
         {/* Membership plans */}

@@ -8,7 +8,7 @@ import {
   Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle,
   Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
   Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
-  Package, Megaphone, Pin, Edit2, FileSpreadsheet, Download, Upload,
+  Package, Megaphone, Pin, Edit2, FileSpreadsheet, Download, Upload, MapPin, Navigation,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 
@@ -137,6 +137,15 @@ export default function SettingsPage() {
   const [importing, setImporting]       = useState(false)
   const [importResult, setImportResult] = useState<string | null>(null)
 
+  // GPS Check-in
+  const [gpsLat, setGpsLat]                     = useState<number | null>(null)
+  const [gpsLng, setGpsLng]                     = useState<number | null>(null)
+  const [gpsRadius, setGpsRadius]               = useState(300)
+  const [gpsSaving, setGpsSaving]               = useState(false)
+  const [gpsSaved, setGpsSaved]                 = useState(false)
+  const [gpsLocating, setGpsLocating]           = useState(false)
+  const [gpsError, setGpsError]                 = useState<string | null>(null)
+
   // Plan
   const [gymPlan, setGymPlan]           = useState<string>('free')
   const [memberCount, setMemberCount]   = useState(0)
@@ -207,6 +216,9 @@ export default function SettingsPage() {
         setBeltEnabled((data as any)?.belt_system_enabled ?? true)
         setStripesEnabled((data as any)?.stripes_enabled ?? true)
         setBeltSlots(resolveBeltSystem((data as any)?.belt_system))
+        if ((data as any)?.latitude)  setGpsLat((data as any).latitude)
+        if ((data as any)?.longitude) setGpsLng((data as any).longitude)
+        setGpsRadius((data as any)?.gps_radius_meters ?? 300)
         setGymPlan((data as any)?.plan ?? 'free')
         setPlanLimit((data as any)?.plan_member_limit ?? 30)
         const { count } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', data.id).eq('is_active', true)
@@ -419,6 +431,30 @@ export default function SettingsPage() {
       datev_mandantennummer: datevMandantennummer || null,
     }).eq('owner_id', user?.id ?? '')
     setDatevSaving(false); setDatevSaved(true); setTimeout(() => setDatevSaved(false), 2000)
+  }
+
+  async function handleGpsLocate() {
+    setGpsLocating(true); setGpsError(null)
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setGpsLat(pos.coords.latitude)
+        setGpsLng(pos.coords.longitude)
+        setGpsLocating(false)
+      },
+      err => { setGpsError(err.message); setGpsLocating(false) },
+      { enableHighAccuracy: true, timeout: 10_000 }
+    )
+  }
+
+  async function handleGpsSave() {
+    if (gpsLat === null || gpsLng === null) return
+    setGpsSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    await (supabase.from('gyms') as any).update({
+      latitude: gpsLat, longitude: gpsLng, gps_radius_meters: gpsRadius,
+    }).eq('owner_id', user?.id ?? '')
+    setGpsSaving(false); setGpsSaved(true); setTimeout(() => setGpsSaved(false), 2500)
   }
 
   async function handleClassTypesSave() {
@@ -805,6 +841,46 @@ export default function SettingsPage() {
             </div>
           </div>
           {/* Export / Import */}
+          {/* ── GPS Check-in ─────────────────────────────────────────────── */}
+          <div className={sectionCls}>
+            <div className={sectionHeaderCls}>
+              <SectionHeader icon={<MapPin size={12} />} title="GPS Check-in" />
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-zinc-500">
+                Lege den Standort deines Gyms fest. Mitglieder und Interessenten können sich dann per GPS automatisch einchecken, wenn sie sich im Radius befinden.
+              </p>
+              {gpsLat !== null && gpsLng !== null && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-800 text-xs font-mono">
+                  <MapPin size={12} className="shrink-0" />
+                  {gpsLat.toFixed(6)}, {gpsLng.toFixed(6)}
+                </div>
+              )}
+              {gpsError && (
+                <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{gpsError}</p>
+              )}
+              <div className="flex items-center gap-3 flex-wrap">
+                <button type="button" onClick={handleGpsLocate} disabled={gpsLocating}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-60 transition-colors">
+                  <Navigation size={14} />
+                  {gpsLocating ? 'Wird ermittelt…' : 'Standort jetzt ermitteln'}
+                </button>
+                {gpsLat !== null && (
+                  <button type="button" onClick={handleGpsSave} disabled={gpsSaving}
+                    className={saveBtnCls}>
+                    {gpsSaved ? <><Check size={14} /> Gespeichert</> : <><Save size={14} /> Standort speichern</>}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-zinc-600 whitespace-nowrap">Radius (Meter)</label>
+                <input type="number" min={50} max={2000} step={50} value={gpsRadius}
+                  onChange={e => setGpsRadius(Number(e.target.value))}
+                  className="w-28 px-3 py-1.5 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400" />
+              </div>
+            </div>
+          </div>
+
           <div className={sectionCls}>
             <div className={sectionHeaderCls}>
               <SectionHeader icon={<Download size={12} />} title="Gym-Einstellungen exportieren / importieren" />
