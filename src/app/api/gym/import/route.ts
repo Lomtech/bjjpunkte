@@ -56,12 +56,26 @@ export async function POST(req: Request) {
 
   const svc = serviceClient()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: gym } = await (svc.from('gyms') as any).select('id').eq('owner_id', user.id).single()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
-
   const body = await req.json()
   if (!body?.version || !body?.gym) return NextResponse.json({ error: 'Ungültiges Import-Format' }, { status: 400 })
+
+  // Look up existing gym — maybeSingle() returns null without error if none found
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let { data: gym } = await (svc.from('gyms') as any).select('id').eq('owner_id', user.id).maybeSingle()
+
+  // New Google/OAuth users have no gym yet — create one from the import data
+  if (!gym) {
+    const gymData = body.gym as Record<string, unknown>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: newGym, error: insertErr } = await (svc.from('gyms') as any)
+      .insert({ owner_id: user.id, name: gymData.name ?? 'Importiertes Gym' })
+      .select('id')
+      .single()
+    if (insertErr || !newGym) {
+      return NextResponse.json({ error: 'Gym konnte nicht erstellt werden' }, { status: 500 })
+    }
+    gym = newGym
+  }
 
   const {
     gym: gymData,

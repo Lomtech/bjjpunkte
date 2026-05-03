@@ -135,11 +135,12 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
+      // maybeSingle() instead of single() — Google OAuth users won't have a gym yet
       const { data } = await supabase
         .from('gyms')
         .select('id, name, address, phone, email, monthly_fee_cents, stripe_account_id, signup_token, sport_type')
         .eq('owner_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (data) {
         const g = data as unknown as GymData
@@ -147,9 +148,12 @@ export default function OnboardingPage() {
         setGymName(g.name ?? '')
         setAddress(g.address ?? '')
         setPhone(g.phone ?? '')
-        setEmail(g.email ?? '')
+        setEmail(g.email ?? user.email ?? '')
         setMonthlyFee(g.monthly_fee_cents ? String(g.monthly_fee_cents / 100) : '')
         if (g.sport_type) setActiveSport(g.sport_type as SportType)
+      } else {
+        // New Google/OAuth user — pre-fill email from auth profile
+        setEmail(user.email ?? '')
       }
     }
     load()
@@ -161,9 +165,32 @@ export default function OnboardingPage() {
 
   // ── Step 1: Save sport ───────────────────────────────────────────────────────
   async function saveStep1() {
-    if (!activeSport || !gym) return
+    if (!activeSport) return
     setSaving(true)
     clearError()
+
+    let gymId = gym?.id
+
+    // Google / OAuth users have no gym yet — create one now
+    if (!gymId) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setSaving(false); setError('Nicht eingeloggt'); return }
+
+      const { data: newGym, error: insertErr } = await supabase
+        .from('gyms')
+        .insert({ owner_id: user.id, name: 'Mein Gym' })
+        .select('id, name, address, phone, email, monthly_fee_cents, stripe_account_id, signup_token, sport_type')
+        .single()
+
+      if (insertErr || !newGym) {
+        setSaving(false)
+        setError(insertErr?.message ?? 'Gym konnte nicht erstellt werden')
+        return
+      }
+      setGym(newGym as unknown as GymData)
+      gymId = (newGym as unknown as GymData).id
+    }
+
     const beltFree = isBeltFreeSport(activeSport)
     const preset = beltFree ? null : (SPORT_PRESETS as Record<string, unknown>)[activeSport] ?? null
     const { error: err } = await (supabase
@@ -173,7 +200,7 @@ export default function OnboardingPage() {
         belt_system_enabled: !beltFree,
         belt_system: preset,
       })
-      .eq('id', gym.id)
+      .eq('id', gymId)
     setSaving(false)
     if (err) { setError(err.message); return }
     setStep(2)
