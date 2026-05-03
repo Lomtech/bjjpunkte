@@ -73,6 +73,13 @@ export default function MembersPage() {
   const [activatingId, setActivatingId]     = useState<string | null>(null)
   const [activatedMember, setActivatedMember] = useState<Member | null>(null)
   const [showWaModal, setShowWaModal]       = useState(false)
+  const [copiedId, setCopiedId]             = useState<string | null>(null)
+
+  function handleCopy(text: string, key: string) {
+    navigator.clipboard.writeText(text)
+    setCopiedId(key)
+    setTimeout(() => setCopiedId(prev => prev === key ? null : prev), 2000)
+  }
 
   useEffect(() => {
     async function load() {
@@ -491,9 +498,10 @@ export default function MembersPage() {
                             <ExternalLink size={14} />
                           </a>
                           <button
-                            onClick={() => { navigator.clipboard.writeText(m.checkoutUrl!) }}
-                            className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 transition-colors" title="Link kopieren">
-                            <Copy size={14} />
+                            onClick={() => handleCopy(m.checkoutUrl!, `checkout-${m.memberId}`)}
+                            className={`p-1.5 rounded-lg transition-colors ${copiedId === `checkout-${m.memberId}` ? 'text-green-600 bg-green-50' : 'text-zinc-500 hover:bg-zinc-100'}`}
+                            title="Link kopieren">
+                            {copiedId === `checkout-${m.memberId}` ? <Check size={14} /> : <Copy size={14} />}
                           </button>
                         </>
                       )}
@@ -505,11 +513,11 @@ export default function MembersPage() {
                         </a>
                       ) : (
                         <button
-                          onClick={() => { navigator.clipboard.writeText(waText) }}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-slate-200 text-zinc-700 text-xs font-semibold transition-colors"
+                          onClick={() => handleCopy(waText, `wa-${m.memberId}`)}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${copiedId === `wa-${m.memberId}` ? 'bg-green-100 text-green-700' : 'bg-zinc-100 hover:bg-slate-200 text-zinc-700'}`}
                           title="Nachricht + Link kopieren">
-                          <Copy size={12} />
-                          Kopieren
+                          {copiedId === `wa-${m.memberId}` ? <Check size={12} /> : <Copy size={12} />}
+                          {copiedId === `wa-${m.memberId}` ? 'Kopiert!' : 'Kopieren'}
                         </button>
                       )}
                     </div>
@@ -525,6 +533,7 @@ export default function MembersPage() {
 }
 
 function ActivationModal({ member, onClose }: { member: Member; onClose: () => void }) {
+  const [copiedPortal, setCopiedPortal] = useState(false)
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const portalUrl = member.portal_token ? `${origin}/portal/${member.portal_token}` : null
   const waText = `Hallo ${member.first_name}! 🥋 Willkommen im Gym – dein Profil ist jetzt aktiv.\n\nHier findest du deine Trainings, Zahlungen und Statistiken:\n${portalUrl ?? origin}`
@@ -564,12 +573,16 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
             </a>
           )}
           {portalUrl && (
-            <button onClick={() => { navigator.clipboard.writeText(portalUrl); onClose() }}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-semibold text-sm transition-colors">
-              <Copy size={18} />
+            <button onClick={() => {
+                navigator.clipboard.writeText(portalUrl!)
+                setCopiedPortal(true)
+                setTimeout(() => { setCopiedPortal(false); onClose() }, 1200)
+              }}
+              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border font-semibold text-sm transition-colors ${copiedPortal ? 'border-green-200 bg-green-50 text-green-700' : 'border-zinc-200 hover:bg-zinc-50 text-zinc-700'}`}>
+              {copiedPortal ? <Check size={18} /> : <Copy size={18} />}
               <div className="text-left">
-                <p>Profillink kopieren</p>
-                <p className="text-zinc-400 text-xs font-normal truncate max-w-[200px]">{portalUrl}</p>
+                <p>{copiedPortal ? 'Kopiert!' : 'Profillink kopieren'}</p>
+                <p className="text-xs font-normal truncate max-w-[200px] opacity-60">{portalUrl}</p>
               </div>
             </button>
           )}

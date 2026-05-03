@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X, FileText } from 'lucide-react'
+import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X, FileText, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
@@ -35,6 +35,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
   const [linkType, setLinkType] = useState<'onetime' | 'subscription'>('onetime')
   const [payments, setPayments] = useState<Payment[]>(initialPayments)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [copiedLink, setCopiedLink] = useState(false)
 
   async function sendPaymentLink() {
     if (!memberEmail) { setError('Mitglied hat keine E-Mail-Adresse.'); return }
@@ -181,9 +182,14 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-xs font-medium transition-colors">
                 <ExternalLink size={12} /> Öffnen
               </a>
-              <button onClick={() => navigator.clipboard.writeText(checkoutUrl)}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-xs font-medium transition-colors">
-                <Copy size={12} /> Kopieren
+              <button onClick={() => {
+                  navigator.clipboard.writeText(checkoutUrl)
+                  setCopiedLink(true)
+                  setTimeout(() => setCopiedLink(false), 2000)
+                }}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${copiedLink ? 'border-green-200 bg-green-50 text-green-700' : 'border-zinc-200 hover:bg-zinc-50 text-zinc-600'}`}>
+                {copiedLink ? <Check size={12} /> : <Copy size={12} />}
+                {copiedLink ? 'Kopiert!' : 'Kopieren'}
               </button>
               <button onClick={() => { setCheckoutUrl(''); setLinkType('onetime') }}
                 className="flex-1 flex items-center justify-center px-3 py-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-400 text-xs transition-colors">
