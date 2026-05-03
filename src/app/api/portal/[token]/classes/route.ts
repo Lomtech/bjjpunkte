@@ -8,7 +8,7 @@ function serviceClient() {
   )
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   if (!token || token.length < 10) {
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
@@ -26,8 +26,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
 
   if (!member) return NextResponse.json({ error: 'Ungültiger Token' }, { status: 401 })
 
-  const now    = new Date().toISOString()
-  const in14d  = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+  // Support ?from=ISO for week navigation; default = start of current week
+  const url      = new URL(req.url)
+  const fromParam = url.searchParams.get('from')
+  const fromDate  = fromParam ? new Date(fromParam) : (() => {
+    const d = new Date(); const day = d.getDay()
+    d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day)); d.setHours(0,0,0,0); return d
+  })()
+  const toDate = new Date(fromDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+
+  const now    = fromDate.toISOString()
+  const in14d  = toDate.toISOString()
 
   // Fetch upcoming classes for this gym (14 days)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

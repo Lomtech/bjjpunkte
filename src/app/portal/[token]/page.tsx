@@ -9,6 +9,7 @@ import type { Belt } from '@/types/database'
 import {
   Calendar, CreditCard, Dumbbell, Clock, CheckCircle, BookOpen, Flame,
   Trophy, QrCode, Megaphone, Pin, Package, ChevronDown, ChevronUp, X, AlertTriangle, Navigation,
+  ChevronLeft, ChevronRight, Users,
 } from 'lucide-react'
 
 // ── types ────────────────────────────────────────────────────────────────────
@@ -152,6 +153,37 @@ function isCheckoutExpired(p: { created_at: string; status: string }) {
   return p.status === 'pending' && (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60) > 23
 }
 
+// ── Calendar helpers ─────────────────────────────────────────────────────────
+
+const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+
+function startOfWeek(d: Date): Date {
+  const r = new Date(d); const day = r.getDay()
+  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day)); r.setHours(0, 0, 0, 0); return r
+}
+function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate() + n); return r }
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+}
+
+const TYPE_BADGE: Record<string, string> = {
+  gi:          'bg-zinc-100 text-zinc-700 border-zinc-200',
+  'no-gi':     'bg-zinc-200 text-zinc-700 border-zinc-300',
+  'open mat':  'bg-amber-50 text-amber-700 border-amber-200',
+  kids:        'bg-green-50 text-green-700 border-green-200',
+  competition: 'bg-zinc-900 text-white border-zinc-900',
+}
+const TYPE_DOT: Record<string, string> = {
+  gi: 'bg-zinc-400', 'no-gi': 'bg-zinc-500', 'open mat': 'bg-amber-500',
+  kids: 'bg-green-400', competition: 'bg-zinc-900',
+}
+const TYPE_LABEL: Record<string, string> = {
+  gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat', kids: 'Kids', competition: 'Competition',
+}
+
 // ── PWA install button ────────────────────────────────────────────────────────
 
 function PWAInstallButton({ gymName }: { gymName: string }) {
@@ -267,6 +299,11 @@ export default function MemberPortalPage() {
   const [attendanceMap, setAttendanceMap]   = useState<Record<string, { attendanceId: string; checkedOut: boolean }>>({})
   const [checkinLoading, setCheckinLoading] = useState<string | null>(null)
 
+  // Calendar navigation
+  const todayDate = (() => { const d = new Date(); d.setHours(0,0,0,0); return d })()
+  const [weekStart, setWeekStart]   = useState<Date>(() => startOfWeek(new Date()))
+  const [selectedDay, setSelectedDay] = useState<Date>(todayDate)
+
   // GPS Check-in
   const [gpsState, setGpsState] = useState<'idle' | 'locating' | 'success' | 'error'>('idle')
   const [gpsMessage, setGpsMessage] = useState<string | null>(null)
@@ -301,13 +338,15 @@ export default function MemberPortalPage() {
       .finally(() => setLoading(false))
   }, [token])
 
-  const loadClasses = useCallback(() => {
+  const loadClasses = useCallback((from?: Date) => {
     setClassesLoading(true)
-    fetch(`/api/portal/${token}/classes`)
+    const fromParam = (from ?? weekStart).toISOString()
+    fetch(`/api/portal/${token}/classes?from=${encodeURIComponent(fromParam)}`)
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setClasses(d) })
       .catch(() => {})
       .finally(() => setClassesLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const loadLogs = useCallback(() => {
@@ -318,6 +357,9 @@ export default function MemberPortalPage() {
   }, [token])
 
   useEffect(() => { loadPortal(); loadClasses(); loadLogs() }, [loadPortal, loadClasses, loadLogs])
+
+  // Reload classes when week changes
+  useEffect(() => { loadClasses(weekStart) }, [weekStart]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSaveLog() {
     if (!logNote.trim()) return
@@ -680,85 +722,174 @@ export default function MemberPortalPage() {
           </div>
         )}
 
-        {/* Upcoming classes */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <Clock size={15} className="text-slate-400" /> Nächste Trainings
-          </h2>
-          {classesLoading ? (
-            <p className="text-slate-400 text-sm">Lädt…</p>
-          ) : classes.length === 0 ? (
-            <p className="text-slate-400 text-sm">Keine Trainings in den nächsten Tagen.</p>
-          ) : (
-            <div className="space-y-3">
-              {classes.map(cls => {
-                const { date, time } = formatDateTime(cls.starts_at)
-                const endTime     = new Date(cls.ends_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-                const spotsLeft   = cls.max_capacity != null ? cls.max_capacity - cls.confirmed_count : null
-                const isBooked    = cls.my_status === 'confirmed'
-                const isWaitlist  = cls.my_status === 'waitlist'
-                const isLoading   = bookingId === cls.id
-                const attendanceState = attendanceMap[cls.id]
-                const showCheckin = isBooked && canCheckin(cls.starts_at, cls.ends_at) && !attendanceState
+        {/* ── Stundenplan / Kalender ─────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <h2 className="font-semibold text-slate-900 flex items-center gap-2 text-sm">
+              <Calendar size={14} className="text-slate-400" /> Stundenplan
+            </h2>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  const prev = addDays(weekStart, -7)
+                  setWeekStart(prev); setSelectedDay(addDays(selectedDay, -7)); loadClasses(prev)
+                }}
+                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                onClick={() => {
+                  const w = startOfWeek(new Date())
+                  setWeekStart(w); setSelectedDay(todayDate); loadClasses(w)
+                }}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
+                Heute
+              </button>
+              <button
+                onClick={() => {
+                  const next = addDays(weekStart, 7)
+                  setWeekStart(next); setSelectedDay(addDays(selectedDay, 7)); loadClasses(next)
+                }}
+                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Day strip */}
+          <div className="border-b border-slate-100 bg-white overflow-x-auto">
+            <div className="flex min-w-max px-2 gap-1 py-2">
+              {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, idx) => {
+                const isToday = isSameDay(day, todayDate)
+                const isSel   = isSameDay(day, selectedDay)
+                const hasCls  = classes.some(c => isSameDay(new Date(c.starts_at), day))
                 return (
-                  <div key={cls.id} className="rounded-xl border border-slate-100 p-4 bg-slate-50">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${TYPE_COLORS[cls.class_type] ?? TYPE_COLORS.gi}`}>
-                            {CLASS_LABELS[cls.class_type] ?? cls.class_type}
-                          </span>
-                          {isWaitlist && <span className="text-xs px-2 py-0.5 rounded-md font-medium bg-amber-50 text-amber-600">Warteliste</span>}
-                        </div>
-                        <p className="text-slate-900 text-sm font-semibold">{cls.title}</p>
-                        <p className="text-slate-500 text-xs mt-0.5">{date} · {time}–{endTime}</p>
-                        {cls.instructor && <p className="text-slate-400 text-xs">{cls.instructor}</p>}
-                        <p className="text-slate-400 text-xs mt-0.5">
-                          {spotsLeft != null ? spotsLeft > 0 ? `${spotsLeft} Plätze frei` : 'Ausgebucht' : `${cls.confirmed_count} Anmeldungen`}
-                          {cls.waitlist_count > 0 && ` · ${cls.waitlist_count} auf Warteliste`}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        {isBooked ? (
-                          <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
-                            className="text-xs px-3 min-h-[44px] rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-medium transition-colors disabled:opacity-50">
-                            {isLoading ? '…' : 'Absagen'}
-                          </button>
-                        ) : isWaitlist ? (
-                          <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
-                            className="text-xs px-3 min-h-[44px] rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition-colors disabled:opacity-50">
-                            {isLoading ? '…' : 'Abmelden'}
-                          </button>
-                        ) : (
-                          <button onClick={() => handleBook(cls.id)} disabled={isLoading}
-                            className="text-xs px-3 min-h-[44px] rounded-lg bg-green-500 hover:bg-green-400 text-white font-medium transition-colors disabled:opacity-50">
-                            {isLoading ? '…' : 'Zusagen'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {showCheckin && (
-                      <div className="mt-3 pt-3 border-t border-slate-200">
-                        <button onClick={() => handleCheckin(cls.id)} disabled={checkinLoading === cls.id}
-                          className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                          <CheckCircle size={14} />
-                          {checkinLoading === cls.id ? 'Einchecken…' : 'Einchecken'}
-                        </button>
-                      </div>
-                    )}
-                    {attendanceState && (
-                      <div className="mt-3 pt-3 border-t border-slate-200">
-                        <span className="text-sm text-green-600 font-medium flex items-center gap-1.5">
-                          <CheckCircle size={14} /> Eingecheckt
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  <button key={idx} onClick={() => setSelectedDay(day)}
+                    className={`flex flex-col items-center px-4 py-2 rounded-xl transition-colors min-w-[52px] ${
+                      isSel ? 'bg-amber-500 text-white' : isToday ? 'bg-amber-50 text-amber-700' : 'text-slate-500 hover:bg-slate-50'
+                    }`}>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide">{WEEKDAYS[idx]}</span>
+                    <span className="text-sm font-bold mt-0.5">{day.getDate()}</span>
+                    {hasCls && !isSel && <span className="w-1 h-1 rounded-full bg-amber-400 mt-1" />}
+                  </button>
                 )
               })}
             </div>
-          )}
+          </div>
+
+          {/* Class list for selected day */}
+          <div className="p-4">
+            {classesLoading ? (
+              <p className="text-slate-400 text-sm text-center py-8">Lädt…</p>
+            ) : (() => {
+              const dayClasses = classes.filter(c => isSameDay(new Date(c.starts_at), selectedDay))
+              if (dayClasses.length === 0) {
+                return (
+                  <p className="text-slate-400 text-sm text-center py-8">
+                    Kein Training an diesem Tag.
+                  </p>
+                )
+              }
+              return (
+                <div className="space-y-3">
+                  {dayClasses.map(cls => {
+                    const now        = new Date()
+                    const isLive     = new Date(cls.starts_at) <= now && new Date(cls.ends_at) >= now
+                    const spotsLeft  = cls.max_capacity != null ? cls.max_capacity - cls.confirmed_count : null
+                    const isFull     = spotsLeft != null && spotsLeft <= 0
+                    const isBooked   = cls.my_status === 'confirmed'
+                    const isWaitlist = cls.my_status === 'waitlist'
+                    const isLoading  = bookingId === cls.id
+                    const attState   = attendanceMap[cls.id]
+                    const showCheckin = (isBooked || !!attState) && canCheckin(cls.starts_at, cls.ends_at) && !attState
+
+                    return (
+                      <div key={cls.id} className="rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                        {/* Card top */}
+                        <div className="p-4">
+                          <div className="flex items-start gap-3">
+                            {/* Type dot */}
+                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${TYPE_DOT[cls.class_type] ?? 'bg-slate-300'}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border font-semibold tracking-wide ${TYPE_BADGE[cls.class_type] ?? TYPE_BADGE.gi}`}>
+                                  {TYPE_LABEL[cls.class_type] ?? cls.class_type}
+                                </span>
+                                {isLive && (
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    LIVE
+                                  </span>
+                                )}
+                                {isBooked && !attState && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-green-50 text-green-700 border border-green-200">Angemeldet</span>
+                                )}
+                                {isWaitlist && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-700 border border-amber-200">Warteliste</span>
+                                )}
+                                {attState && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Eingecheckt ✓</span>
+                                )}
+                              </div>
+                              <p className="text-slate-900 text-sm font-bold leading-tight">{cls.title}</p>
+                              <p className="text-slate-500 text-xs mt-0.5 tabular-nums">
+                                {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
+                              </p>
+                              {cls.instructor && (
+                                <p className="text-slate-400 text-xs truncate">{cls.instructor}</p>
+                              )}
+                              <div className="flex items-center gap-1.5 mt-1.5 text-slate-400 text-[11px]">
+                                <Users size={10} />
+                                <span>{cls.confirmed_count}{cls.max_capacity ? `/${cls.max_capacity}` : ''}</span>
+                                {cls.waitlist_count > 0 && <span className="text-amber-600 font-medium">+{cls.waitlist_count} WL</span>}
+                                {isFull && !isBooked && !isWaitlist && (
+                                  <span className="text-red-500 font-medium">· Ausgebucht</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action row */}
+                        {!attState && (
+                          <div className="px-4 pb-4">
+                            {showCheckin ? (
+                              <button onClick={() => handleCheckin(cls.id)} disabled={checkinLoading === cls.id}
+                                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                                <CheckCircle size={14} />
+                                {checkinLoading === cls.id ? 'Einchecken…' : 'Jetzt einchecken'}
+                              </button>
+                            ) : isBooked ? (
+                              <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
+                                className="w-full py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 text-sm font-semibold transition-colors disabled:opacity-50">
+                                {isLoading ? '…' : 'Abmelden'}
+                              </button>
+                            ) : isWaitlist ? (
+                              <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
+                                className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 text-sm font-semibold transition-colors disabled:opacity-50">
+                                {isLoading ? '…' : 'Von Warteliste abmelden'}
+                              </button>
+                            ) : (
+                              <button onClick={() => handleBook(cls.id)} disabled={isLoading}
+                                className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 ${
+                                  isFull
+                                    ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                    : 'bg-slate-900 hover:bg-slate-700 text-white'
+                                }`}>
+                                {isLoading ? '…' : isFull ? 'Auf Warteliste' : 'Anmelden'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </div>
         </div>
 
         {/* Payments */}
