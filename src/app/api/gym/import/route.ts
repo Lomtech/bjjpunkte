@@ -96,17 +96,48 @@ export async function POST(req: Request) {
   const ts = Date.now()
 
   // ── Gym settings ───────────────────────────────────────────────────────────
+  // Re-upload main images in parallel, then handle gallery + about_blocks
   const [newLogoUrl, newHeroUrl] = await Promise.all([
     reuploadImage(gymData.logo_url,       'gym-logos', `${user.id}/logo`,      svc),
     reuploadImage(gymData.hero_image_url, 'gym-media', `${gym.id}/hero-${ts}`, svc),
   ])
 
+  // Re-upload gallery images
+  const rawGallery: string[] = Array.isArray(gymData.gallery_urls) ? gymData.gallery_urls : []
+  const newGalleryUrls = await Promise.all(
+    rawGallery.map((url: string, i: number) =>
+      reuploadImage(url, 'gym-media', `${gym.id}/gallery-${ts}-${i}`, svc).then(u => u ?? url)
+    )
+  )
+
+  // Re-upload images inside about_blocks
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawAboutBlocks: any[] = Array.isArray(gymData.about_blocks) ? gymData.about_blocks : []
+  const newAboutBlocks = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rawAboutBlocks.map(async (block: any, i: number) => {
+      if (block?.type === 'image' && block?.url) {
+        const newUrl = await reuploadImage(block.url, 'gym-media', `${gym.id}/about-block-${ts}-${i}`, svc)
+        return newUrl ? { ...block, url: newUrl } : block
+      }
+      return block
+    })
+  )
+
   const gymAllowed = [
-    'name', 'address', 'phone', 'email', 'sport_type',
-    'belt_system', 'belt_system_enabled', 'stripes_enabled', 'class_types',
-    'contract_template', 'signup_enabled', 'whatsapp_number', 'instagram_url',
-    'facebook_url', 'website_url', 'hero_title', 'hero_subtitle', 'accent_color',
-    'is_kleinunternehmer', 'invoice_prefix', 'hero_image_position', 'video_url', 'video_urls',
+    'name', 'address', 'phone', 'email', 'slug', 'founded_year',
+    'sport_type', 'belt_system', 'belt_system_enabled', 'stripes_enabled', 'class_types',
+    'contract_template', 'signup_enabled',
+    'whatsapp_number', 'instagram_url', 'facebook_url', 'website_url',
+    'tagline', 'about', 'opening_hours', 'impressum_text',
+    'hero_title', 'hero_subtitle', 'accent_color', 'hero_image_position',
+    'video_url', 'video_urls',
+    'is_kleinunternehmer', 'invoice_prefix',
+    'legal_name', 'legal_address', 'legal_email', 'tax_number', 'ustid',
+    'bank_iban', 'bank_bic', 'bank_name',
+    'datev_beraternummer', 'datev_mandantennummer', 'datev_sachkontenlänge',
+    'latitude', 'longitude', 'gps_radius_meters',
+    'callmebot_api_key',
   ]
   const gymUpdate: Record<string, unknown> = {}
   for (const key of gymAllowed) {
@@ -114,6 +145,8 @@ export async function POST(req: Request) {
   }
   if (newLogoUrl) gymUpdate.logo_url       = newLogoUrl
   if (newHeroUrl) gymUpdate.hero_image_url = newHeroUrl
+  if (newGalleryUrls.length > 0) gymUpdate.gallery_urls = newGalleryUrls
+  if (newAboutBlocks.length > 0) gymUpdate.about_blocks = newAboutBlocks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (svc.from('gyms') as any).update(gymUpdate).eq('id', gym.id)
 
@@ -334,6 +367,8 @@ export async function POST(req: Request) {
       gym_settings:       true,
       logo_uploaded:      !!newLogoUrl,
       hero_uploaded:      !!newHeroUrl,
+      gallery_images:     newGalleryUrls.filter(Boolean).length,
+      about_blocks:       newAboutBlocks.filter((b: any) => b?.type === 'image').length, // eslint-disable-line @typescript-eslint/no-explicit-any
       plans:              membership_plans?.length ?? 0,
       announcements:      announcements?.length    ?? 0,
       posts:              postsImported,

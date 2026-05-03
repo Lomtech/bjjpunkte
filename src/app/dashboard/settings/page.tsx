@@ -133,9 +133,18 @@ export default function SettingsPage() {
   const [datevSaved, setDatevSaved]                     = useState(false)
 
   // Export / Import
-  const [importFile, setImportFile]     = useState<File | null>(null)
-  const [importing, setImporting]       = useState(false)
-  const [importResult, setImportResult] = useState<string | null>(null)
+  const [importFile, setImportFile]         = useState<File | null>(null)
+  const [importing, setImporting]           = useState(false)
+  const [importProgress, setImportProgress] = useState(0)
+  const [importStage, setImportStage]       = useState('')
+  const [importResult, setImportResult]     = useState<string | null>(null)
+
+  // Account deletion
+  const [showDeleteAccount, setShowDeleteAccount]         = useState(false)
+  const [deleteConfirmEmail, setDeleteConfirmEmail]       = useState('')
+  const [deletingAccount, setDeletingAccount]             = useState(false)
+  const [deleteAccountError, setDeleteAccountError]       = useState<string | null>(null)
+  const [userAuthEmail, setUserAuthEmail]                 = useState('')
 
   // GPS Check-in
   const [gpsLat, setGpsLat]                     = useState<number | null>(null)
@@ -238,6 +247,7 @@ export default function SettingsPage() {
     })
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
+      setUserAuthEmail(session.user.email ?? '')
       const res = await fetch('/api/staff', { headers: { Authorization: `Bearer ${session.access_token}` } })
       if (res.ok) setStaffList(await res.json())
       // Check Stripe Connect account completion status
@@ -394,32 +404,97 @@ export default function SettingsPage() {
     if (!importFile) return
     setImporting(true)
     setImportResult(null)
+    setImportProgress(0)
+
+    // Animate progress through realistic stages while the server works
+    const STAGES = [
+      { pct: 5,  label: 'Datei wird geprüft…' },
+      { pct: 15, label: 'Gym-Einstellungen…' },
+      { pct: 30, label: 'Mitglieder werden importiert…' },
+      { pct: 50, label: 'Klassen & Buchungen…' },
+      { pct: 65, label: 'Anwesenheit & Gürtelpromotionen…' },
+      { pct: 78, label: 'Medien & Fotos werden hochgeladen…' },
+      { pct: 88, label: 'Tarife & Inhalte…' },
+      { pct: 93, label: 'Abschluss…' },
+    ]
+    let stageIdx = 0
+    setImportStage(STAGES[0].label)
+    setImportProgress(STAGES[0].pct)
+    const ticker = setInterval(() => {
+      stageIdx = Math.min(stageIdx + 1, STAGES.length - 1)
+      setImportStage(STAGES[stageIdx].label)
+      setImportProgress(STAGES[stageIdx].pct)
+    }, 1800)
+
     try {
       const text = await importFile.text()
       const data = JSON.parse(text)
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setImportResult('Nicht autorisiert'); setImporting(false); return }
+      if (!session) {
+        clearInterval(ticker)
+        setImportResult('Nicht autorisiert')
+        setImporting(false)
+        return
+      }
       const res = await fetch('/api/gym/import', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
+      clearInterval(ticker)
+      setImportProgress(100)
+      setImportStage('Fertig!')
+
       const result = await res.json()
       if (result.success) {
-        const mediaParts = []
-        if (result.imported.logo_uploaded) mediaParts.push('Logo')
-        if (result.imported.hero_uploaded) mediaParts.push('Hero-Bild')
-        const mediaStr = mediaParts.length > 0 ? `, Medien: ${mediaParts.join(' + ')}` : ''
-        setImportResult(`✓ Importiert: Einstellungen${mediaStr}, ${result.imported.plans} Tarife, ${result.imported.announcements} Ankündigungen, ${result.imported.posts} Posts`)
+        const imp = result.imported
+        const parts: string[] = []
+        if (imp.members)         parts.push(`${imp.members} Mitglieder`)
+        if (imp.classes)         parts.push(`${imp.classes} Klassen`)
+        if (imp.plans)           parts.push(`${imp.plans} Tarife`)
+        if (imp.attendance)      parts.push(`${imp.attendance} Check-ins`)
+        if (imp.belt_promotions) parts.push(`${imp.belt_promotions} Gürtelpromotionen`)
+        if (imp.leads)           parts.push(`${imp.leads} Interessenten`)
+        if (imp.posts)           parts.push(`${imp.posts} Posts`)
+        const mediaCount = (imp.gallery_images ?? 0) + (imp.about_blocks ?? 0) +
+          (imp.logo_uploaded ? 1 : 0) + (imp.hero_uploaded ? 1 : 0)
+        if (mediaCount > 0)      parts.push(`${mediaCount} Medien`)
+        setImportResult(`✓ Import erfolgreich: ${parts.join(', ')}`)
         setImportFile(null)
       } else {
         setImportResult(`Fehler: ${result.error}`)
       }
-    } catch (e) {
+    } catch {
+      clearInterval(ticker)
       setImportResult('Fehler: Ungültige JSON-Datei')
     }
-    setImporting(false)
+    setTimeout(() => { setImporting(false); setImportProgress(0); setImportStage('') }, 800)
+  }
+
+  async function handleDeleteAccount() {
+    setDeletingAccount(true)
+    setDeleteAccountError(null)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setDeleteAccountError('Nicht eingeloggt'); setDeletingAccount(false); return }
+      const res = await fetch('/api/auth/delete-account', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const json = await res.json()
+      if (json.success) {
+        await supabase.auth.signOut()
+        window.location.href = '/'
+      } else {
+        setDeleteAccountError(json.error ?? 'Unbekannter Fehler')
+        setDeletingAccount(false)
+      }
+    } catch {
+      setDeleteAccountError('Netzwerkfehler — bitte erneut versuchen')
+      setDeletingAccount(false)
+    }
   }
 
   async function handleDatevSave() {
@@ -897,29 +972,100 @@ export default function SettingsPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-zinc-800 mb-2">Importieren</p>
-                <p className="text-xs text-zinc-400 mb-3">Bestehende Mitglieder & Zahlungen bleiben unberührt. Tarife & Posts werden hinzugefügt (nicht überschrieben).</p>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <p className="text-xs text-zinc-400 mb-3">Alle Daten (Mitglieder, Klassen, Medien, Einstellungen) werden übernommen. Bestehende Datensätze bleiben unberührt.</p>
+                <label className={`flex items-center gap-2 cursor-pointer ${importing ? 'pointer-events-none opacity-50' : ''}`}>
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-sm font-medium transition-colors">
                     <Upload size={14} />
                     {importFile ? importFile.name : 'JSON-Datei auswählen'}
                   </div>
                   <input type="file" accept=".json" className="hidden"
-                    onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null) }} />
+                    onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null); setImportProgress(0) }} />
                 </label>
-                {importFile && (
-                  <button type="button" onClick={handleImport} disabled={importing} className={`mt-2 ${saveBtnCls}`}>
-                    <Upload size={14} />
-                    {importing ? 'Wird importiert…' : 'Import starten'}
+                {importFile && !importing && (
+                  <button type="button" onClick={handleImport} className={`mt-2 ${saveBtnCls}`}>
+                    <Upload size={14} /> Import starten
                   </button>
                 )}
-                {importResult && (
-                  <p className={`mt-2 text-xs rounded-lg px-3 py-2 ${importResult.startsWith('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {/* Progress bar */}
+                {importing && (
+                  <div className="mt-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs text-zinc-500">
+                      <span>{importStage}</span>
+                      <span className="tabular-nums font-semibold text-amber-600">{importProgress}%</span>
+                    </div>
+                    <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-400 rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${importProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {importResult && !importing && (
+                  <p className={`mt-2 text-xs rounded-lg px-3 py-2 ${importResult.startsWith('✓') ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
                     {importResult}
                   </p>
                 )}
               </div>
             </div>
           </div>
+
+          {/* ── Account deletion ─────────────────────────────────────────── */}
+          <div className="rounded-2xl border border-red-100 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
+              <Trash2 size={12} className="text-red-500" />
+              <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Konto löschen</span>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-zinc-600 mb-4">
+                Löscht dein Konto und <strong>alle Daten unwiderruflich</strong> — Mitglieder, Klassen, Zahlungen, Medien. Diese Aktion kann nicht rückgängig gemacht werden.
+              </p>
+              {!showDeleteAccount ? (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteAccount(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={14} /> Konto löschen…
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
+                    ⚠️ Gib deine Login-E-Mail zur Bestätigung ein: <span className="font-mono">{userAuthEmail}</span>
+                  </div>
+                  <input
+                    type="email"
+                    value={deleteConfirmEmail}
+                    onChange={e => setDeleteConfirmEmail(e.target.value)}
+                    placeholder={userAuthEmail || 'deine@email.de'}
+                    className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-red-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all text-sm"
+                  />
+                  {deleteAccountError && (
+                    <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{deleteAccountError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setShowDeleteAccount(false); setDeleteConfirmEmail(''); setDeleteAccountError(null) }}
+                      className="px-4 py-2 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-semibold hover:bg-zinc-50 transition-colors"
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deleteConfirmEmail !== userAuthEmail || deletingAccount}
+                      onClick={handleDeleteAccount}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-bold transition-colors"
+                    >
+                      <Trash2 size={14} />
+                      {deletingAccount ? 'Wird gelöscht…' : 'Endgültig löschen'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       )}
 
