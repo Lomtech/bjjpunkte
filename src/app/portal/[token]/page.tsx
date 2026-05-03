@@ -465,6 +465,32 @@ export default function MemberPortalPage() {
           </div>
         )}
 
+        {/* Posts */}
+        {(posts ?? []).length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">News vom Gym</h2>
+            {(posts ?? []).map(post => (
+              <div key={post.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                {post.cover_url && (
+                  <img src={post.cover_url} alt={post.title} className="w-full h-40 object-cover" />
+                )}
+                <div className="p-4">
+                  <p className="text-xs text-slate-400 mb-1">
+                    {new Date(post.published_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                  <h3 className="font-bold text-slate-900 text-base leading-snug mb-2">{post.title}</h3>
+                  {post.blocks.slice(0, 2).map((block, i) => {
+                    if (block.type === 'paragraph' && block.content) {
+                      return <p key={i} className="text-sm text-slate-600 leading-relaxed line-clamp-3">{block.content}</p>
+                    }
+                    return null
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Profile card */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <div className="flex items-center gap-4">
