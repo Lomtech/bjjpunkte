@@ -9,35 +9,44 @@ function authClient(accessToken: string) {
   )
 }
 
+function serviceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
 export async function GET(req: Request) {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+  // Verify identity via auth client
+  const { data: { user }, error: userErr } = await authClient(accessToken).auth.getUser(accessToken)
+  if (!user || userErr) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: gym } = await (supabase.from('gyms') as any)
-    .select(`id, name, address, phone, email, monthly_fee_cents, slug, sport_type,
-             belt_system, belt_system_enabled, stripes_enabled, class_types,
-             contract_template, signup_enabled, whatsapp_number,
-             instagram_url, facebook_url, website_url,
-             hero_title, hero_subtitle, accent_color,
-             is_kleinunternehmer, invoice_prefix,
-             logo_url, hero_image_url, hero_image_position, video_url, video_urls`)
+  // Use service client for data queries (bypasses RLS column issues)
+  const service = serviceClient()
+
+  const { data: gym, error: gymErr } = await (service.from('gyms') as any)
+    .select('*')
     .eq('owner_id', user.id)
     .single()
 
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  if (gymErr || !gym) {
+    return NextResponse.json(
+      { error: 'Gym nicht gefunden', detail: gymErr?.message ?? null },
+      { status: 404 }
+    )
+  }
 
   const [{ data: plans }, { data: announcements }, { data: posts }] = await Promise.all([
-    (supabase.from('membership_plans') as any)
+    (service.from('membership_plans') as any)
       .select('name, description, price_cents, billing_interval, contract_months, is_active, sort_order')
       .eq('gym_id', gym.id).order('sort_order'),
-    (supabase.from('gym_announcements') as any)
+    (service.from('gym_announcements') as any)
       .select('title, body, is_pinned, expires_at')
       .eq('gym_id', gym.id),
-    (supabase.from('posts') as any)
+    (service.from('posts') as any)
       .select('title, cover_url, blocks, published_at')
       .eq('gym_id', gym.id)
       .not('published_at', 'is', null),
@@ -56,7 +65,7 @@ export async function GET(req: Request) {
       sport_type:          gym.sport_type,
       belt_system:         gym.belt_system,
       belt_system_enabled: gym.belt_system_enabled,
-      stripes_enabled:     gym.stripes_enabled,
+      stripes_enabled:     gym.stripes_enabled ?? null,
       class_types:         gym.class_types,
       contract_template:   gym.contract_template,
       signup_enabled:      gym.signup_enabled,
@@ -64,12 +73,11 @@ export async function GET(req: Request) {
       instagram_url:       gym.instagram_url,
       facebook_url:        gym.facebook_url,
       website_url:         gym.website_url,
-      hero_title:          gym.hero_title,
-      hero_subtitle:       gym.hero_subtitle,
-      accent_color:        gym.accent_color,
-      is_kleinunternehmer: gym.is_kleinunternehmer,
-      invoice_prefix:      gym.invoice_prefix,
-      // Media
+      hero_title:          gym.hero_title ?? null,
+      hero_subtitle:       gym.hero_subtitle ?? null,
+      accent_color:        gym.accent_color ?? null,
+      is_kleinunternehmer: gym.is_kleinunternehmer ?? null,
+      invoice_prefix:      gym.invoice_prefix ?? null,
       logo_url:            gym.logo_url,
       hero_image_url:      gym.hero_image_url,
       hero_image_position: gym.hero_image_position,
