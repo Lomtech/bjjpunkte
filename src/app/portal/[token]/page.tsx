@@ -610,7 +610,7 @@ export default function MemberPortalPage() {
           <button
             onClick={handleGpsCheckin}
             disabled={gpsState === 'locating'}
-            className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
           >
             <Navigation size={14} />
             {gpsState === 'locating' ? 'Standort wird ermittelt…' : 'GPS Check-in starten'}
@@ -890,7 +890,7 @@ export default function MemberPortalPage() {
                                 className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 ${
                                   isFull
                                     ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                                    : 'bg-slate-900 hover:bg-slate-700 text-white'
+                                    : 'bg-amber-500 hover:bg-amber-400 text-white'
                                 }`}>
                                 {isLoading ? '…' : isFull ? 'Auf Warteliste' : 'Anmelden'}
                               </button>

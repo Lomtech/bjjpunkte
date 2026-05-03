@@ -281,7 +281,7 @@ export default function LeadPortalPage() {
           <button
             onClick={handleGpsCheckin}
             disabled={gpsState === 'locating'}
-            className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
           >
             <Navigation size={14} />
             {gpsState === 'locating' ? 'Standort wird ermittelt…' : 'GPS Check-in starten'}
