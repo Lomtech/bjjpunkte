@@ -2,66 +2,42 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Copy, Check, ExternalLink, QrCode, ArrowRight, UserPlus } from 'lucide-react'
+import { Copy, Check, ExternalLink, QrCode, ArrowRight, UserPlus, Dumbbell } from 'lucide-react'
 
-export default function LinksPage() {
-  const [signupUrl, setSignupUrl] = useState<string | null>(null)
-  const [loading,   setLoading]   = useState(true)
-  const [copied,    setCopied]    = useState(false)
+interface LinkCardProps {
+  icon: React.ReactNode
+  iconBg: string
+  iconColor: string
+  title: string
+  description: string
+  url: string | null
+  emptyText: string
+  copied: boolean
+  onCopy: () => void
+}
 
-  useEffect(() => {
-    async function load() {
-      const supabase = createClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: gym } = await (supabase as any)
-        .from('gyms')
-        .select('signup_token')
-        .single()
-
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://osss.pro'
-      if (gym?.signup_token) setSignupUrl(`${origin}/signup/${gym.signup_token}`)
-      setLoading(false)
-    }
-    load()
-  }, [])
-
-  function copy() {
-    if (!signupUrl) return
-    navigator.clipboard.writeText(signupUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
-    )
-  }
-
+function LinkCard({ icon, iconBg, iconColor, title, description, url, emptyText, copied, onCopy }: LinkCardProps) {
   return (
-    <div className="p-4 md:p-6 max-w-2xl">
-
+    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-          <UserPlus size={18} className="text-amber-600" />
+      <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-zinc-100">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+          <span className={iconColor}>{icon}</span>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-zinc-900">Mitglieder-Anmeldelink</h1>
-          <p className="text-zinc-400 text-xs mt-0.5">Teile diesen Link — neue Mitglieder registrieren sich selbst</p>
+          <p className="font-bold text-zinc-900 text-sm">{title}</p>
+          <p className="text-zinc-400 text-xs mt-0.5">{description}</p>
         </div>
       </div>
 
-      {/* Link card */}
-      {signupUrl ? (
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden mb-6">
-          <div className="px-5 pt-5 pb-4 border-b border-zinc-100">
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Dein Link</p>
-            <p className="text-sm text-zinc-700 font-mono break-all leading-relaxed">{signupUrl}</p>
+      {url ? (
+        <>
+          <div className="px-5 py-3 border-b border-zinc-100 bg-zinc-50">
+            <p className="text-xs text-zinc-500 font-mono break-all leading-relaxed">{url}</p>
           </div>
           <div className="flex gap-3 p-4">
             <button
-              onClick={copy}
+              onClick={onCopy}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${
                 copied
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -71,7 +47,7 @@ export default function LinksPage() {
               {copied ? <><Check size={15} /> Kopiert!</> : <><Copy size={15} /> Link kopieren</>}
             </button>
             <a
-              href={signupUrl}
+              href={url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 text-sm font-medium transition-colors"
@@ -79,34 +55,141 @@ export default function LinksPage() {
               <ExternalLink size={14} /> Öffnen
             </a>
           </div>
-        </div>
+        </>
       ) : (
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-8 text-center mb-6">
-          <QrCode size={32} className="text-zinc-300 mx-auto mb-3" />
-          <p className="text-zinc-500 text-sm">Kein Link verfügbar. Bitte Onboarding abschließen.</p>
+        <div className="px-5 py-8 text-center">
+          <QrCode size={28} className="text-zinc-200 mx-auto mb-2" />
+          <p className="text-zinc-400 text-sm">{emptyText}</p>
         </div>
       )}
+    </div>
+  )
+}
 
-      {/* How it works */}
-      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5 mb-5">
-        <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">So funktioniert es</p>
-        <div className="space-y-4">
-          {[
-            { n: '01', title: 'Link teilen', desc: 'Per WhatsApp, Instagram oder als QR-Code im Gym aufhängen.' },
-            { n: '02', title: 'Formular ausfüllen', desc: 'Name, Adresse, Geburtsdatum — alles digital, kein Papierkram.' },
-            { n: '03', title: 'Vertrag unterschreiben', desc: 'Mitglied liest deinen Vertrag und unterschreibt per Finger oder Maus.' },
-            { n: '04', title: 'Du aktivierst', desc: 'Erscheint in deiner Mitgliederliste — du aktivierst mit einem Klick.' },
-          ].map(step => (
-            <div key={step.n} className="flex gap-3 items-start">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-amber-600 text-xs font-black">{step.n}</span>
-              </div>
-              <div className="pt-1">
-                <p className="font-semibold text-zinc-900 text-sm">{step.title}</p>
-                <p className="text-zinc-400 text-xs mt-0.5 leading-relaxed">{step.desc}</p>
-              </div>
+export default function LinksPage() {
+  const [signupUrl,  setSignupUrl]  = useState<string | null>(null)
+  const [trialUrl,   setTrialUrl]   = useState<string | null>(null)
+  const [loading,    setLoading]    = useState(true)
+  const [copiedSignup, setCopiedSignup] = useState(false)
+  const [copiedTrial,  setCopiedTrial]  = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient()
+      const { data: gym } = await supabase
+        .from('gyms')
+        .select('signup_token, slug')
+        .single()
+
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://osss.pro'
+      if (gym?.signup_token) setSignupUrl(`${origin}/signup/${gym.signup_token}`)
+      if ((gym as any)?.slug) setTrialUrl(`${origin}/gym/${(gym as any).slug}`)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  function copy(url: string, which: 'signup' | 'trial') {
+    navigator.clipboard.writeText(url)
+    if (which === 'signup') {
+      setCopiedSignup(true)
+      setTimeout(() => setCopiedSignup(false), 2000)
+    } else {
+      setCopiedTrial(true)
+      setTimeout(() => setCopiedTrial(false), 2000)
+    }
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
+  }
+
+  return (
+    <div className="p-4 md:p-6 max-w-2xl">
+
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Zugänge & Links</h1>
+        <p className="text-zinc-400 text-xs mt-0.5 font-medium">Teile diese Links — für neue Mitglieder und Interessenten</p>
+      </div>
+
+      {/* Two link cards */}
+      <div className="space-y-4 mb-8">
+        <LinkCard
+          icon={<UserPlus size={17} />}
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
+          title="Anmeldelink"
+          description="Neue Mitglieder registrieren sich selbst — mit Vertrag & Unterschrift"
+          url={signupUrl}
+          emptyText="Kein Link verfügbar. Bitte Onboarding abschließen."
+          copied={copiedSignup}
+          onCopy={() => signupUrl && copy(signupUrl, 'signup')}
+        />
+
+        <LinkCard
+          icon={<Dumbbell size={17} />}
+          iconBg="bg-zinc-100"
+          iconColor="text-zinc-600"
+          title="Probetraining-Link"
+          description="Interessenten sehen dein Gym und buchen ein Probetraining"
+          url={trialUrl}
+          emptyText="Noch kein Gym-Slug eingerichtet. Unter Einstellungen → Zugänge konfigurieren."
+          copied={copiedTrial}
+          onCopy={() => trialUrl && copy(trialUrl, 'trial')}
+        />
+      </div>
+
+      {/* How it works — two columns */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <UserPlus size={14} className="text-amber-600" />
             </div>
-          ))}
+            <p className="text-xs font-semibold text-zinc-700">Anmeldelink — Ablauf</p>
+          </div>
+          <div className="space-y-3">
+            {[
+              { n: '01', title: 'Link teilen', desc: 'Per WhatsApp, Instagram oder als Aushang.' },
+              { n: '02', title: 'Formular ausfüllen', desc: 'Name, Adresse, Geburtsdatum — komplett digital.' },
+              { n: '03', title: 'Vertrag unterschreiben', desc: 'Mitglied liest Vertrag und unterschreibt.' },
+              { n: '04', title: 'Du aktivierst', desc: 'Erscheint in der Mitgliederliste — ein Klick.' },
+            ].map(s => (
+              <div key={s.n} className="flex gap-2.5 items-start">
+                <span className="w-5 h-5 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0 text-amber-600 text-[10px] font-black mt-0.5">{s.n}</span>
+                <div>
+                  <p className="font-semibold text-zinc-900 text-xs">{s.title}</p>
+                  <p className="text-zinc-400 text-[11px] mt-0.5 leading-relaxed">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0">
+              <Dumbbell size={14} className="text-zinc-600" />
+            </div>
+            <p className="text-xs font-semibold text-zinc-700">Probetraining — Ablauf</p>
+          </div>
+          <div className="space-y-3">
+            {[
+              { n: '01', title: 'Link teilen', desc: 'Instagram-Bio, Stories oder direkt per WhatsApp.' },
+              { n: '02', title: 'Gym entdecken', desc: 'Interessent sieht dein Gym, Stundenplan & Preise.' },
+              { n: '03', title: 'Klasse buchen', desc: 'Interessent trägt sich für ein Probetraining ein.' },
+              { n: '04', title: 'Du siehst es', desc: 'Neuer Lead erscheint automatisch unter Interessenten.' },
+            ].map(s => (
+              <div key={s.n} className="flex gap-2.5 items-start">
+                <span className="w-5 h-5 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center flex-shrink-0 text-zinc-600 text-[10px] font-black mt-0.5">{s.n}</span>
+                <div>
+                  <p className="font-semibold text-zinc-900 text-xs">{s.title}</p>
+                  <p className="text-zinc-400 text-[11px] mt-0.5 leading-relaxed">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -117,11 +200,11 @@ export default function LinksPage() {
           <div>
             <p className="text-amber-800 font-semibold text-sm mb-1">QR-Code erstellen</p>
             <p className="text-amber-700 text-xs leading-relaxed">
-              Kopiere deinen Link und erstelle kostenlos einen QR-Code auf{' '}
+              Kopiere einen der Links und erstelle kostenlos einen QR-Code auf{' '}
               <a href="https://www.qr-code-generator.com" target="_blank" rel="noopener noreferrer" className="underline font-medium">
                 qr-code-generator.com
               </a>
-              {' '}— ausdrucken und am Empfang aufhängen.
+              {' '}— ausdrucken und am Empfang oder auf Social Media teilen.
             </p>
             <a href="https://www.qr-code-generator.com" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 mt-2 text-amber-700 hover:text-amber-900 text-xs font-semibold transition-colors">
