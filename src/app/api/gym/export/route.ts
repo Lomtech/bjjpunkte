@@ -16,6 +16,30 @@ function serviceClient() {
   )
 }
 
+function isAllowedImageUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url)
+    if (protocol !== 'https:') return false
+    const h = hostname.toLowerCase()
+    if (h === 'localhost' || h === '127.0.0.1' || h === '::1') return false
+    if (/^10\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h) || /^192\.168\./.test(h)) return false
+    if (h.endsWith('.internal') || h.endsWith('.local')) return false
+    return true
+  } catch { return false }
+}
+
+async function fetchAsBase64(url: string | null | undefined): Promise<string | null> {
+  if (!url) return null
+  if (!isAllowedImageUrl(url)) return null
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(20_000) })
+    if (!res.ok) return null
+    const ct = res.headers.get('content-type') ?? 'image/jpeg'
+    const buf = await res.arrayBuffer()
+    return `data:${ct};base64,${Buffer.from(buf).toString('base64')}`
+  } catch { return null }
+}
+
 export async function GET(req: Request) {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
@@ -260,8 +284,48 @@ export async function GET(req: Request) {
     return [{ member_index: mi, amount_cents: p.amount_cents, status: p.status, paid_at: p.paid_at, created_at: p.created_at, invoice_number: p.invoice_number }]
   })
 
+  // ── Download all media as base64 for self-contained export ────────────────
+  const [logoData, heroData] = await Promise.all([
+    fetchAsBase64(gym.logo_url),
+    fetchAsBase64(gym.hero_image_url),
+  ])
+
+  const galleryData = await Promise.all(
+    (gym.gallery_urls ?? []).map((url: string) => fetchAsBase64(url))
+  )
+
+  const aboutBlocksWithData = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (gym.about_blocks ?? []).map(async (block: any) => {
+      if (block?.type === 'image' && block?.url) {
+        const data = await fetchAsBase64(block.url)
+        return data ? { ...block, _data: data } : block
+      }
+      return block
+    })
+  )
+
+  // Download post cover images and block images
+  const postsWithData = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (posts ?? []).map(async (p: any) => {
+      const coverData = await fetchAsBase64(p.cover_url)
+      const blocksWithData = await Promise.all(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (Array.isArray(p.blocks) ? p.blocks : []).map(async (block: any) => {
+          if (block?.type === 'image' && block?.url) {
+            const data = await fetchAsBase64(block.url)
+            return data ? { ...block, _data: data } : block
+          }
+          return block
+        })
+      )
+      return { ...p, _cover_data: coverData, blocks: blocksWithData }
+    })
+  )
+
   return NextResponse.json({
-    version: 4,
+    version: 5,
     exported_at: new Date().toISOString(),
     gym: {
       // Identity
@@ -288,19 +352,22 @@ export async function GET(req: Request) {
       // Website builder
       tagline:             gym.tagline ?? null,
       about:               gym.about ?? null,
-      about_blocks:        gym.about_blocks ?? [],
       opening_hours:       gym.opening_hours ?? null,
       impressum_text:      gym.impressum_text ?? null,
       hero_title:          gym.hero_title ?? null,
       hero_subtitle:       gym.hero_subtitle ?? null,
       accent_color:        gym.accent_color ?? null,
       hero_image_position: gym.hero_image_position,
-      // Media (URLs — re-uploaded on import)
+      // Media (embedded as base64 for self-contained export)
       logo_url:            gym.logo_url,
+      logo_data:           logoData,
       hero_image_url:      gym.hero_image_url,
+      hero_data:           heroData,
       gallery_urls:        gym.gallery_urls ?? [],
+      gallery_data:        galleryData,
       video_url:           gym.video_url,
       video_urls:          gym.video_urls ?? [],
+      about_blocks:        aboutBlocksWithData,
       // Billing / legal
       is_kleinunternehmer:  gym.is_kleinunternehmer ?? null,
       invoice_prefix:       gym.invoice_prefix ?? null,
@@ -325,7 +392,7 @@ export async function GET(req: Request) {
     },
     membership_plans:  plans              ?? [],
     announcements:     announcements      ?? [],
-    posts:             posts              ?? [],
+    posts:             postsWithData,
     members:           membersExport,
     classes:           classesExport,
     class_bookings:    bookingsExport,

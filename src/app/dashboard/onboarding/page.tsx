@@ -324,7 +324,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-[#F0F2F5] flex flex-col items-center py-10 px-4">
       {/* Header */}
       <div className="w-full max-w-xl mb-6 flex items-center">
-        <OsssLogo variant="light" href="/" />
+        <OsssLogo variant="dark" href="/" />
         <span className="ml-auto text-sm text-gray-400">Einrichtung</span>
       </div>
 

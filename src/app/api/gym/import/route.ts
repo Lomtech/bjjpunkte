@@ -28,16 +28,37 @@ function isAllowedImageUrl(url: string): boolean {
   } catch { return false }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function reuploadImage(originalUrl: string | null | undefined, bucket: string, storagePath: string, supabase: any): Promise<string | null> {
-  if (!originalUrl) return null
-  if (!isAllowedImageUrl(originalUrl)) return null
+async function reuploadImage(
+  src: string | null | undefined,
+  bucket: string,
+  storagePath: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any
+): Promise<string | null> {
+  if (!src) return null
   try {
-    const res = await fetch(originalUrl, { signal: AbortSignal.timeout(10_000) })
-    if (!res.ok) return null
-    const blob = await res.blob()
-    const contentType = blob.type || res.headers.get('content-type') || 'image/jpeg'
-    const ext = contentType.split('/')[1]?.split(';')[0]?.replace('jpeg', 'jpg') ?? 'jpg'
+    let blob: Blob
+    let contentType: string
+
+    if (src.startsWith('data:')) {
+      // Base64 data URI — decode directly
+      const commaIdx = src.indexOf(',')
+      if (commaIdx === -1) return null
+      const header = src.slice(0, commaIdx)          // "data:image/jpeg;base64"
+      const b64    = src.slice(commaIdx + 1)
+      contentType  = header.split(':')[1]?.split(';')[0] ?? 'image/jpeg'
+      const buffer = Buffer.from(b64, 'base64')
+      blob = new Blob([buffer], { type: contentType })
+    } else {
+      // Plain HTTPS URL — fetch it
+      if (!isAllowedImageUrl(src)) return null
+      const res = await fetch(src, { signal: AbortSignal.timeout(20_000) })
+      if (!res.ok) return null
+      blob = await res.blob()
+      contentType = blob.type || res.headers.get('content-type') || 'image/jpeg'
+    }
+
+    const ext      = contentType.split('/')[1]?.split(';')[0]?.replace('jpeg', 'jpg') ?? 'jpg'
     const fullPath = `${storagePath}.${ext}`
     const { error } = await supabase.storage.from(bucket).upload(fullPath, blob, { contentType, upsert: true })
     if (error) return null
@@ -97,29 +118,34 @@ export async function POST(req: Request) {
   const ts = Date.now()
 
   // ── Gym settings ───────────────────────────────────────────────────────────
-  // Re-upload main images in parallel, then handle gallery + about_blocks
+  // Re-upload main images in parallel, prefer base64 _data over URLs
   const [newLogoUrl, newHeroUrl] = await Promise.all([
-    reuploadImage(gymData.logo_url,       'gym-logos', `${user.id}/logo`,      svc),
-    reuploadImage(gymData.hero_image_url, 'gym-media', `${gym.id}/hero-${ts}`, svc),
+    reuploadImage(gymData.logo_data ?? gymData.logo_url, 'gym-logos', `${user.id}/logo`, svc),
+    reuploadImage(gymData.hero_data ?? gymData.hero_image_url, 'gym-media', `${gym.id}/hero-${ts}`, svc),
   ])
 
-  // Re-upload gallery images
-  const rawGallery: string[] = Array.isArray(gymData.gallery_urls) ? gymData.gallery_urls : []
+  // Gallery: prefer _data over URL
+  const rawGalleryData: (string|null)[] = Array.isArray(gymData.gallery_data) ? gymData.gallery_data : []
+  const rawGalleryUrls: string[] = Array.isArray(gymData.gallery_urls) ? gymData.gallery_urls : []
+  const galleryCount = Math.max(rawGalleryData.length, rawGalleryUrls.length)
   const newGalleryUrls = await Promise.all(
-    rawGallery.map((url: string, i: number) =>
-      reuploadImage(url, 'gym-media', `${gym.id}/gallery-${ts}-${i}`, svc).then(u => u ?? url)
+    Array.from({ length: galleryCount }, (_, i) =>
+      reuploadImage(rawGalleryData[i] ?? rawGalleryUrls[i], 'gym-media', `${gym.id}/gallery-${ts}-${i}`, svc)
+        .then(u => u ?? rawGalleryUrls[i] ?? null)
     )
   )
 
-  // Re-upload images inside about_blocks
+  // about_blocks: prefer block._data over block.url
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawAboutBlocks: any[] = Array.isArray(gymData.about_blocks) ? gymData.about_blocks : []
   const newAboutBlocks = await Promise.all(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rawAboutBlocks.map(async (block: any, i: number) => {
-      if (block?.type === 'image' && block?.url) {
-        const newUrl = await reuploadImage(block.url, 'gym-media', `${gym.id}/about-block-${ts}-${i}`, svc)
-        return newUrl ? { ...block, url: newUrl } : block
+      if (block?.type === 'image') {
+        const src = block._data ?? block.url
+        const newUrl = await reuploadImage(src, 'gym-media', `${gym.id}/about-block-${ts}-${i}`, svc)
+        const { _data: _, ...rest } = block
+        return newUrl ? { ...rest, url: newUrl } : rest
       }
       return block
     })
@@ -146,7 +172,7 @@ export async function POST(req: Request) {
   }
   if (newLogoUrl) gymUpdate.logo_url       = newLogoUrl
   if (newHeroUrl) gymUpdate.hero_image_url = newHeroUrl
-  if (newGalleryUrls.length > 0) gymUpdate.gallery_urls = newGalleryUrls
+  if (newGalleryUrls.length > 0) gymUpdate.gallery_urls = newGalleryUrls.filter(Boolean)
   if (newAboutBlocks.length > 0) gymUpdate.about_blocks = newAboutBlocks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (svc.from('gyms') as any).update(gymUpdate).eq('id', gym.id)
@@ -186,13 +212,15 @@ export async function POST(req: Request) {
     for (let i = 0; i < posts.length; i++) {
       const p = posts[i]
       const postTs = ts + i
-      const newCoverUrl = await reuploadImage(p.cover_url, 'gym-media', `${gym.id}/post-${postTs}-cover`, svc)
+      const newCoverUrl = await reuploadImage(p._cover_data ?? p.cover_url, 'gym-media', `${gym.id}/post-${postTs}-cover`, svc)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let newBlocks = Array.isArray(p.blocks) ? [...p.blocks] : []
       newBlocks = await Promise.all(newBlocks.map(async (block: any, j: number) => {
-        if (block?.type === 'image' && block?.url) {
-          const newUrl = await reuploadImage(block.url, 'gym-media', `${gym.id}/post-${postTs}-block-${j}`, svc)
-          return newUrl ? { ...block, url: newUrl } : block
+        if (block?.type === 'image') {
+          const src = block._data ?? block.url
+          const newUrl = await reuploadImage(src, 'gym-media', `${gym.id}/post-${postTs}-block-${j}`, svc)
+          const { _data: _, ...rest } = block
+          return newUrl ? { ...rest, url: newUrl } : rest
         }
         return block
       }))

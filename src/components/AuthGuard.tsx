@@ -36,8 +36,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!ready) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-6">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center shadow-lg">
-          <LogoMark className="w-7 h-5 text-amber-400" />
+        <div className="w-14 h-14 rounded-2xl bg-amber-400 flex items-center justify-center shadow-lg">
+          <LogoMark className="w-7 h-5 text-zinc-950" />
         </div>
         <span className="font-black text-xl tracking-tight text-zinc-900">Osss</span>
       </div>
