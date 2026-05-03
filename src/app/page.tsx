@@ -259,11 +259,10 @@ export default function Home() {
                   className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
                   Preise ansehen <ArrowRight size={15} />
                 </Link>
-                {!appInstalled && installPrompt && (
+                {!appInstalled && (
                   <button onClick={handleInstallClick}
                     className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
-                    <Smartphone size={15} />
-                    App installieren
+                    App herunterladen <ArrowRight size={15} />
                   </button>
                 )}
               </motion.div>
