@@ -36,6 +36,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     { data: payments },
     { data: plans },
     { data: announcements },
+    { data: posts },
   ] = await Promise.all([
     (supabase.from('gyms') as any).select('name, belt_system, belt_system_enabled, logo_url').eq('id', gymId).single(),
     supabase.from('attendance').select('id, checked_in_at, class_type').eq('member_id', memberId).order('checked_in_at', { ascending: false }).limit(50),
@@ -43,6 +44,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     supabase.from('payments').select('id, amount_cents, status, paid_at, created_at, checkout_url').eq('member_id', memberId).order('created_at', { ascending: false }).limit(24),
     (supabase.from('membership_plans') as any).select('id, name, description, price_cents, billing_interval, contract_months, sort_order').eq('gym_id', gymId).eq('is_active', true).order('sort_order'),
     (supabase.from('gym_announcements') as any).select('id, title, body, is_pinned, expires_at, created_at').eq('gym_id', gymId).order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(10),
+    (supabase.from('posts') as any).select('id, title, cover_url, blocks, published_at').eq('gym_id', gymId).not('published_at', 'is', null).order('published_at', { ascending: false }).limit(10),
   ])
 
   const totalPaidCents = (payments ?? [])
@@ -87,6 +89,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     totalPaidCents,
     plans:              plans ?? [],
     announcements:      activeAnnouncements,
+    posts:              posts ?? [],
     upcoming_bookings: (bookings ?? []).map((b: any) => ({
       class_id:       b.classes?.id,
       title:          b.classes?.title,

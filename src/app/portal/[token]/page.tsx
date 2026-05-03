@@ -31,6 +31,14 @@ interface Announcement {
   created_at: string
 }
 
+interface Post {
+  id: string
+  title: string
+  cover_url: string | null
+  blocks: { type: string; content?: string; url?: string; alt?: string; level?: number }[]
+  published_at: string
+}
+
 interface UpcomingClass {
   id: string; title: string; class_type: string; instructor: string | null
   starts_at: string; ends_at: string; max_capacity: number | null
@@ -58,6 +66,7 @@ interface MemberData {
   totalPaidCents: number
   plans: Plan[]
   announcements: Announcement[]
+  posts: Post[]
   upcoming_bookings: null
 }
 
@@ -141,6 +150,84 @@ function canCheckin(startsAt: string, endsAt: string) {
 
 function isCheckoutExpired(p: { created_at: string; status: string }) {
   return p.status === 'pending' && (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60) > 23
+}
+
+// ── PWA install button ────────────────────────────────────────────────────────
+
+function PWAInstallButton({ gymName }: { gymName: string }) {
+  const [prompt, setPrompt] = useState<any>(null)
+  const [showIosHint, setShowIosHint] = useState(false)
+  const [installed, setInstalled] = useState(false)
+
+  useEffect(() => {
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+
+    if (isStandalone) { setInstalled(true); return }
+
+    if (isIos) {
+      setPrompt('ios')
+      return
+    }
+
+    function onBeforeInstall(e: Event) {
+      e.preventDefault()
+      setPrompt(e)
+    }
+    window.addEventListener('beforeinstallprompt', onBeforeInstall)
+    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+  }, [])
+
+  if (installed || prompt === null) return null
+
+  async function handleInstall() {
+    if (prompt === 'ios') { setShowIosHint(true); return }
+    await prompt.prompt()
+    const choice = await prompt.userChoice
+    if (choice.outcome === 'accepted') setInstalled(true)
+  }
+
+  return (
+    <>
+      <button
+        onClick={handleInstall}
+        className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-white text-sm font-semibold rounded-2xl py-3.5 transition-colors shadow-sm"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v13M7 9l5 6 5-6"/>
+          <path d="M5 19h14"/>
+        </svg>
+        {gymName ? `${gymName} App installieren` : 'App installieren'}
+      </button>
+
+      {showIosHint && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowIosHint(false)}>
+          <div className="bg-white rounded-t-3xl w-full max-w-sm px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-6" />
+            <h3 className="text-lg font-bold text-slate-900 mb-1">App zum Homescreen hinzufügen</h3>
+            <p className="text-slate-500 text-sm mb-5">So funktioniert es auf dem iPhone:</p>
+            <ol className="space-y-3 text-sm text-slate-700">
+              <li className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                <span>Tippe auf das <strong>Teilen-Symbol</strong> <span className="inline-block bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">⬆</span> unten in der Browserleiste</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                <span>Scrolle nach unten und tippe auf <strong>„Zum Home-Bildschirm"</strong></span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                <span>Tippe oben rechts auf <strong>„Hinzufügen"</strong></span>
+              </li>
+            </ol>
+            <button onClick={() => setShowIosHint(false)} className="mt-6 w-full py-3 rounded-2xl bg-slate-900 text-white text-sm font-semibold">
+              Verstanden
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────
@@ -311,7 +398,7 @@ export default function MemberPortalPage() {
     </div>
   )
 
-  const { member, gym, attendance, totalSessions, payments, plans, announcements } = data
+  const { member, gym, attendance, totalSessions, payments, plans, announcements, posts } = data
   const { sessionsThisMonth, streak } = calcStats(attendance ?? [])
 
   const beltSystem    = resolveBeltSystem((gym as any)?.belt_system)
@@ -352,6 +439,9 @@ export default function MemberPortalPage() {
       </div>
 
       <div className="max-w-xl mx-auto px-5 py-6 space-y-4">
+
+        {/* PWA install */}
+        <PWAInstallButton gymName={gym?.name ?? ''} />
 
         {/* Announcements */}
         {announcements.length > 0 && (
