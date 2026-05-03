@@ -1700,7 +1700,7 @@ const UPGRADE_PLANS = [
     period: '',
     members: 'Bis zu 30 Mitglieder',
     highlight: false,
-    features: ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & Kiosk-Modus', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite + Einbettung', 'Lead-Management & Pipeline', '2% Plattformgebühr'],
+    features: ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & Kiosk-Modus', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite + Einbettung', 'Member-Portal: Buchung & Check-in', 'Lead-Management & Pipeline', '2% Plattformgebühr'],
   },
   {
     name: 'Starter',

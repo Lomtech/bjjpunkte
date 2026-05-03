@@ -22,7 +22,7 @@ const PLANS = [
       'Stundenplan & iCal-Export',
       'Öffentliche Gym-Seite + Stundenplan-Einbettung',
       'Digitaler Mitglieder-Anmeldelink',
-      'Member-Portal (tokenbasiert)',
+      'Member-Portal: Buchung & Check-in per Klasse',
       'Lead-Management & Pipeline',
       'Rechnungsgenerierung & CSV-Export',
       '2% Plattformgebühr bei Zahlungen',
