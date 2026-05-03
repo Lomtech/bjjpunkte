@@ -42,8 +42,8 @@ export default function ImpressumPage() {
             <div className="space-y-1 text-zinc-600">
               <p>
                 E-Mail:{' '}
-                <a href="mailto:lomaliimadaev@gmail.com" className="text-amber-600 hover:underline">
-                  lomaliimadaev@gmail.com
+                <a href="mailto:oss@osss.pro" className="text-amber-600 hover:underline">
+                  oss@osss.pro
                 </a>
               </p>
               <p>
