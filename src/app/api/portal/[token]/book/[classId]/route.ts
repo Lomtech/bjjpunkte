@@ -63,6 +63,16 @@ export async function DELETE(
     .limit(1)
     .single()
 
+  // Auto-promote first waitlisted member to confirmed
+  if (waitlisted) {
+    await supabaseService
+      .from('class_bookings')
+      .update({ status: 'confirmed' })
+      .eq('class_id', classId)
+      .eq('member_id', waitlisted.member_id)
+      .eq('status', 'waitlist')
+  }
+
   if (waitlisted && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
     const { data: wlMember } = await supabaseService
       .from('members')
@@ -87,8 +97,8 @@ export async function DELETE(
         body: JSON.stringify({
           from: process.env.RESEND_FROM_EMAIL,
           to: wlMember.email,
-          subject: `Platz frei: ${cls.title} 🥋`,
-          html: `<p>Hallo ${wlMember.first_name}!<br><br>Ein Platz im Kurs <strong>${cls.title}</strong> ist jetzt frei.<br><a href="${appUrl}/portal/${wlMember.portal_token}">Jetzt buchen →</a></p>`,
+          subject: `Du bist drin: ${cls.title} 🥋`,
+          html: `<p>Hallo ${wlMember.first_name}!<br><br>Ein Platz im Kurs <strong>${cls.title}</strong> ist frei geworden — du wurdest automatisch von der Warteliste übernommen und bist jetzt <strong>bestätigt</strong>.<br><br><a href="${appUrl}/portal/${wlMember.portal_token}">Zum Mitgliederbereich →</a></p>`,
         }),
       }).catch(() => {})
     }

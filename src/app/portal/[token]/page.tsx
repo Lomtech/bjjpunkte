@@ -407,7 +407,10 @@ export default function MemberPortalPage() {
   const currentPlan   = plans.find(p => p.id === member.plan_id)
   const requestedPlan = plans.find(p => p.id === localRequestedPlanId)
 
-  const CLASS_TYPE_OPTIONS = ['gi', 'no-gi', 'open mat', 'kids', 'competition']
+  const gymClassTypes = (gym as any)?.class_types
+  const CLASS_TYPE_OPTIONS: string[] = Array.isArray(gymClassTypes) && gymClassTypes.length > 0
+    ? gymClassTypes
+    : ['gi', 'no-gi', 'open mat', 'kids', 'competition']
 
   return (
     <div className="min-h-screen bg-slate-50 safe-area-top">
