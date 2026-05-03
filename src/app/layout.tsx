@@ -52,6 +52,9 @@ export default function RootLayout({
   return (
     <html lang="de" className={`${geistSans.variable} h-full antialiased`}>
       <head>
+        {/* Preconnect to critical origins for faster cold start */}
+        <link rel="preconnect" href="https://ktwgvuasjezokhsfpfqb.supabase.co" />
+        <link rel="dns-prefetch" href="https://ktwgvuasjezokhsfpfqb.supabase.co" />
         {/* PWA: "Add to Home Screen" support */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

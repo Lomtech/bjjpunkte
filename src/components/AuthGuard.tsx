@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { LogoMark } from '@/components/Logo'
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -33,8 +34,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [router])
 
   if (!ready) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="w-7 h-7 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-6">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center shadow-lg">
+          <LogoMark className="w-7 h-5 text-amber-400" />
+        </div>
+        <span className="font-black text-xl tracking-tight text-zinc-900">Osss</span>
+      </div>
+      <div className="w-6 h-6 border-2 border-slate-200 border-t-amber-400 rounded-full animate-spin" />
     </div>
   )
 

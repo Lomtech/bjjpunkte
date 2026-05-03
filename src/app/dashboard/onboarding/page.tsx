@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { SPORT_PRESETS, isBeltFreeSport, type SportType } from '@/lib/belt-system'
 import { Check, Copy, ChevronRight, X, Plus, Zap } from 'lucide-react'
+import { OsssLogo } from '@/components/Logo'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -322,14 +323,8 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-[#F0F2F5] flex flex-col items-center py-10 px-4">
       {/* Header */}
-      <div className="w-full max-w-xl mb-6 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-[#0f172a] border border-amber-500/30 flex flex-col items-center justify-center gap-0.5 flex-shrink-0">
-          <span className="text-[10px] font-black text-amber-400 italic leading-none tracking-tight">oss</span>
-          <div className="flex gap-0.5">
-            {[0, 1, 2].map(i => <div key={i} className="w-1 h-1 rounded-full bg-amber-500 opacity-70" />)}
-          </div>
-        </div>
-        <span className="font-black text-gray-800 text-lg italic tracking-tight">Osss</span>
+      <div className="w-full max-w-xl mb-6 flex items-center">
+        <OsssLogo variant="light" href="/" />
         <span className="ml-auto text-sm text-gray-400">Einrichtung</span>
       </div>
 
