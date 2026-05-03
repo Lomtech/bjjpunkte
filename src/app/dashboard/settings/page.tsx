@@ -804,6 +804,46 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+          {/* Export / Import */}
+          <div className={sectionCls}>
+            <div className={sectionHeaderCls}>
+              <SectionHeader icon={<Download size={12} />} title="Gym-Einstellungen exportieren / importieren" />
+            </div>
+            <div className="p-5 space-y-5">
+              <p className="text-xs text-zinc-500">
+                Exportiere alle Einstellungen, Tarife, Ankündigungen und Posts als JSON — und importiere sie auf einem anderen Osss-Account. Ideal für Franchise-Gyms oder Demo-Setups.
+              </p>
+              <div>
+                <p className="text-sm font-medium text-zinc-800 mb-2">Exportieren</p>
+                <button type="button" onClick={handleExport} className={saveBtnCls}>
+                  <Download size={14} /> Einstellungen als JSON herunterladen
+                </button>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-zinc-800 mb-2">Importieren</p>
+                <p className="text-xs text-zinc-400 mb-3">Bestehende Mitglieder & Zahlungen bleiben unberührt. Tarife & Posts werden hinzugefügt (nicht überschrieben).</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-sm font-medium transition-colors">
+                    <Upload size={14} />
+                    {importFile ? importFile.name : 'JSON-Datei auswählen'}
+                  </div>
+                  <input type="file" accept=".json" className="hidden"
+                    onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null) }} />
+                </label>
+                {importFile && (
+                  <button type="button" onClick={handleImport} disabled={importing} className={`mt-2 ${saveBtnCls}`}>
+                    <Upload size={14} />
+                    {importing ? 'Wird importiert…' : 'Import starten'}
+                  </button>
+                )}
+                {importResult && (
+                  <p className={`mt-2 text-xs rounded-lg px-3 py-2 ${importResult.startsWith('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    {importResult}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -986,51 +1026,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Export / Import */}
-          <div className={sectionCls}>
-            <div className={sectionHeaderCls}>
-              <SectionHeader icon={<Download size={12} />} title="Gym-Einstellungen exportieren / importieren" />
-            </div>
-            <div className="p-5 space-y-5">
-              <p className="text-xs text-zinc-500">
-                Exportiere alle Einstellungen, Tarife, Ankündigungen und Posts als JSON — und importiere sie auf einem anderen Osss-Account. Ideal für Franchise-Gyms oder Demo-Setups.
-              </p>
-
-              {/* Export */}
-              <div>
-                <p className="text-sm font-medium text-zinc-800 mb-2">Exportieren</p>
-                <button type="button" onClick={handleExport} className={saveBtnCls}>
-                  <Download size={14} /> Einstellungen als JSON herunterladen
-                </button>
-              </div>
-
-              {/* Import */}
-              <div>
-                <p className="text-sm font-medium text-zinc-800 mb-2">Importieren</p>
-                <p className="text-xs text-zinc-400 mb-3">Bestehende Mitglieder & Zahlungen bleiben unberührt. Tarife & Posts werden hinzugefügt (nicht überschrieben).</p>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-sm font-medium transition-colors`}>
-                    <Upload size={14} />
-                    {importFile ? importFile.name : 'JSON-Datei auswählen'}
-                  </div>
-                  <input type="file" accept=".json" className="hidden"
-                    onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null) }} />
-                </label>
-                {importFile && (
-                  <button type="button" onClick={handleImport} disabled={importing}
-                    className={`mt-2 ${saveBtnCls}`}>
-                    <Upload size={14} />
-                    {importing ? 'Wird importiert…' : 'Import starten'}
-                  </button>
-                )}
-                {importResult && (
-                  <p className={`mt-2 text-xs rounded-lg px-3 py-2 ${importResult.startsWith('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                    {importResult}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
 
           {/* Datenschutz / Impressum */}
           <div className={sectionCls}>
