@@ -176,6 +176,61 @@ export default function RevenuePage() {
     a.click(); URL.revokeObjectURL(url)
   }
 
+  function downloadDATEV() {
+    const paid = allPayments.filter(p => p.paid_at)
+    if (paid.length === 0) return
+
+    const now  = new Date()
+    const p2   = (n: number) => String(n).padStart(2, '0')
+    const p3   = (n: number) => String(n).padStart(3, '0')
+    const ts   = `${now.getFullYear()}${p2(now.getMonth()+1)}${p2(now.getDate())}${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}${p3(now.getMilliseconds())}`
+    const ymd  = (d: Date) => `${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}`
+
+    const dates   = paid.map(p => new Date(p.paid_at!))
+    const fromDate = ymd(new Date(Math.min(...dates.map(d => d.getTime()))))
+    const toDate   = ymd(new Date(Math.max(...dates.map(d => d.getTime()))))
+
+    // DATEV EXTF Vorlaufsatz (Zeile 1)
+    const vorlauf = [
+      '"EXTF"','700','21','"Buchungsstapel"','4',
+      ts,'','','','',
+      '0', fromDate, toDate, '"Osss Zahlungen"', '',
+      '1','0','','','','','','',
+    ].join(';')
+
+    // Spaltenüberschriften (Zeile 2)
+    const headers = [
+      'Umsatz (ohne Soll/Haben-Kz)','Soll/Haben-Kennzeichen','WKZ Umsatz',
+      'Kurs','Basis-Umsatz','WKZ Basis-Umsatz',
+      'Konto','Gegenkonto (ohne BU-Schlüssel)','BU-Schlüssel',
+      'Belegdatum','Belegfeld 1','Belegfeld 2','Skonto','Buchungstext',
+    ].join(';')
+
+    // Buchungszeilen
+    const rows = paid.map(p => {
+      const d          = new Date(p.paid_at!)
+      const belegdatum = `${p2(d.getDate())}${p2(d.getMonth()+1)}`
+      const betrag     = (p.amount_cents / 100).toFixed(2).replace('.', ',')
+      const text       = `Mitgliedsbeitrag ${p.member_name}`.substring(0, 60).replace(/[";]/g, ' ')
+      const beleg1     = (p.invoice_number ?? p.id.substring(0, 20)).replace(/[";]/g, '')
+      return [
+        betrag, 'H', 'EUR', '', '', '',
+        '10000',  // Debitorenkonto (generisch)
+        '8400',   // Erlöse Kleinunternehmer (SKR03) — ggf. anpassen
+        '',       // BU-Schlüssel leer = keine USt (§19 UStG)
+        belegdatum, beleg1, '', '', `"${text}"`,
+      ].join(';')
+    })
+
+    const content = [vorlauf, headers, ...rows].join('\r\n')
+    const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `datev-buchungsstapel-${now.toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
   if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
 
   const paidCount    = members.filter(m => m.status === 'paid').length
@@ -378,11 +433,18 @@ export default function RevenuePage() {
             <div className="flex items-center gap-3">
               <span className="text-xs text-zinc-400">{allPayments.length} Transaktionen · {formatCents(allTimeCents)}</span>
               {allPayments.length > 0 && (
-                <button onClick={downloadPaymentsCSV}
-                  className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
-                  title="CSV exportieren">
-                  <Download size={12} /> CSV
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={downloadPaymentsCSV}
+                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
+                    title="CSV exportieren">
+                    <Download size={12} /> CSV
+                  </button>
+                  <button onClick={downloadDATEV}
+                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
+                    title="DATEV Buchungsstapel exportieren">
+                    <Download size={12} /> DATEV
+                  </button>
+                </div>
               )}
             </div>
           </div>

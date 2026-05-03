@@ -36,8 +36,24 @@ export async function POST(req: Request) {
   const { data: gymData } = await supabase.from('gyms').select('stripe_account_id').eq('id', gymId).single()
   const connectedAccountId = gymData?.stripe_account_id
 
-  const { data: memberData } = await supabase.from('members').select('stripe_customer_id').eq('id', memberId).single()
+  const { data: memberData } = await supabase.from('members').select('stripe_customer_id, plan_id').eq('id', memberId).single()
   let customerId = memberData?.stripe_customer_id
+  const planId   = (memberData as any)?.plan_id as string | null
+
+  // Look up contract_months from the member's current plan
+  let cancelAt: number | undefined
+  if (planId) {
+    const { data: planData } = await (supabase.from('membership_plans') as any)
+      .select('contract_months')
+      .eq('id', planId)
+      .single()
+    const months = (planData as any)?.contract_months as number | null
+    if (months && months > 0) {
+      const end = new Date()
+      end.setMonth(end.getMonth() + months)
+      cancelAt = Math.floor(end.getTime() / 1000)
+    }
+  }
 
   if (!customerId) {
     const customer = await stripe.customers.create({
@@ -69,6 +85,7 @@ export async function POST(req: Request) {
       metadata: { memberId, gymId },
       subscription_data: {
         metadata: { memberId, gymId },
+        ...(cancelAt ? { cancel_at: cancelAt } : {}),
       },
     }
 

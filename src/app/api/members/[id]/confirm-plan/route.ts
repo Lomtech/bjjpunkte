@@ -58,7 +58,7 @@ export async function POST(
 
   // Get the requested plan
   const { data: planRaw } = await (supabase.from('membership_plans') as any)
-    .select('id, name, price_cents, billing_interval, stripe_price_id')
+    .select('id, name, price_cents, billing_interval, stripe_price_id, contract_months')
     .eq('id', member.requested_plan_id)
     .eq('gym_id', gymData.id)
     .single()
@@ -70,6 +70,7 @@ export async function POST(
     price_cents: number
     billing_interval: string
     stripe_price_id: string | null
+    contract_months: number | null
   }
 
   // Assign the plan and clear the request
@@ -89,6 +90,14 @@ export async function POST(
       const stripe = new Stripe(stripeKey)
       const appUrl = getAppUrl()
 
+      // If contract has a fixed duration, auto-cancel the subscription at the end
+      let cancelAt: number | undefined
+      if (plan.contract_months && plan.contract_months > 0) {
+        const end = new Date()
+        end.setMonth(end.getMonth() + plan.contract_months)
+        cancelAt = Math.floor(end.getTime() / 1000)
+      }
+
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: member.stripe_customer_id,
         payment_method_types: ['card', 'sepa_debit'],
@@ -99,6 +108,7 @@ export async function POST(
         metadata: { memberId, gymId: gymData.id },
         subscription_data: {
           metadata: { memberId, gymId: gymData.id },
+          ...(cancelAt ? { cancel_at: cancelAt } : {}),
         },
       }
 
