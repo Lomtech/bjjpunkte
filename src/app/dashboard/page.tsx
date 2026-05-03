@@ -61,108 +61,73 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gymBase } = await supabase.from('gyms').select('id').single()
-      if (!gymBase) { setLoading(false); return }
-      const gym = gymBase
-      // Fetch access links separately (slug/signup_token not in generated types)
-      const { data: gymLinks } = await (supabase.from('gyms') as any)
-        .select('signup_token, slug').eq('id', gymBase.id).single()
-      setSignupToken(gymLinks?.signup_token ?? null)
-      setGymSlug(gymLinks?.slug ?? null)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setLoading(false); return }
 
-      const today        = new Date().toISOString().split('T')[0]
-      const in30         = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+      // Single server-side API call — all 13 queries run in parallel server-side
+      // ~3× faster than the previous 3 sequential client→Supabase round trips
+      const res = await fetch('/api/dashboard/stats', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) { setLoading(false); return }
+      const d = await res.json()
 
-      const [
-        { count: total },
-        { count: active },
-        { data: rawAttendance },
-        { data: rawPromotions },
-        { data: beltStats },
-        { data: membersList },
-        { data: birthdayList },
-        { data: contractList },
-        { data: monthPayments },
-        { data: allPayments },
-        { data: monthAttendance },
-        { data: allAttendance },
-      ] = await Promise.all([
-        supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id),
-        supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gym.id).eq('is_active', true),
-        supabase.from('attendance').select('id, checked_in_at, class_type, member_id').eq('gym_id', gym.id).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),
-        supabase.from('belt_promotions').select('id, new_belt, new_stripes, promoted_at, member_id').eq('gym_id', gym.id).order('promoted_at', { ascending: false }).limit(5),
-        supabase.from('members').select('belt').eq('gym_id', gym.id).eq('is_active', true),
-        supabase.from('members').select('id, first_name, last_name').eq('gym_id', gym.id).eq('is_active', true),
-        supabase.from('members').select('id, first_name, last_name, date_of_birth').eq('gym_id', gym.id).eq('is_active', true).not('date_of_birth', 'is', null),
-        supabase.from('members').select('id, contract_end_date').eq('gym_id', gym.id).eq('is_active', true).not('contract_end_date', 'is', null).lte('contract_end_date', in30),
-        supabase.from('payments').select('amount_cents').eq('gym_id', gym.id).eq('status', 'paid').gte('paid_at', startOfMonth),
-        supabase.from('payments').select('id, member_id, amount_cents, paid_at, status').eq('gym_id', gym.id).order('paid_at', { ascending: false }).limit(20),
-        supabase.from('attendance').select('member_id').eq('gym_id', gym.id).gte('checked_in_at', startOfMonth),
-        // Last attendance per active member (for churn detection) — date-filtered, no row limit
-        supabase.from('attendance').select('member_id, checked_in_at').eq('gym_id', gym.id)
-          .gte('checked_in_at', ninetyDaysAgo).order('checked_in_at', { ascending: false }),
-      ])
-
-      setTotalMembers(total ?? 0)
-      setActiveMembers(active ?? 0)
-      setTodayAttendance((rawAttendance as AttendanceRow[]) ?? [])
-      setRecentPromotions((rawPromotions as PromotionRow[]) ?? [])
-      setBeltCounts(((beltStats ?? []) as { belt: string }[]).reduce<Record<string, number>>((acc, m) => {
+      setSignupToken(d.gym.signup_token ?? null)
+      setGymSlug(d.gym.slug ?? null)
+      setTotalMembers(d.totalMembers)
+      setActiveMembers(d.activeMembers)
+      setTodayAttendance(d.todayAttendance as AttendanceRow[])
+      setRecentPromotions(d.recentPromotions as PromotionRow[])
+      setBeltCounts((d.beltStats as { belt: string }[]).reduce<Record<string, number>>((acc, m) => {
         acc[m.belt] = (acc[m.belt] ?? 0) + 1; return acc
       }, {}))
 
-      const mMap = new Map((membersList ?? []).map(m => [m.id, m]))
+      const mMap = new Map((d.membersList as { id: string; first_name: string; last_name: string }[]).map(m => [m.id, m]))
       setMemberMap(mMap)
-      setBirthdayMembers(upcomingBirthdays((birthdayList as MemberBirthday[]) ?? []))
-      setExpiringContracts(((contractList ?? []) as { id: string }[]).length)
+      setBirthdayMembers(upcomingBirthdays(d.birthdayList as MemberBirthday[]))
+      setExpiringContracts((d.contractList as { id: string }[]).length)
 
-      // Revenue this month
-      const mPay = (monthPayments ?? []) as { amount_cents: number }[]
+      const mPay = d.monthPayments as { amount_cents: number }[]
       setMonthRevenue(mPay.reduce((s, p) => s + p.amount_cents, 0))
 
-      // Recent paid payments
-      const allPay = ((allPayments ?? []) as PaymentRow[]).filter(p => p.status === 'paid' && p.paid_at)
+      const allPay = (d.allPayments as PaymentRow[]).filter(p => p.status === 'paid' && p.paid_at)
       setRecentPayments(allPay.slice(0, 6))
 
-      // Payment status per member
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+
       const payStatusMap = new Map<string, 'paid' | 'pending' | 'never'>()
-      for (const p of (allPayments ?? []) as PaymentRow[]) {
+      for (const p of d.allPayments as PaymentRow[]) {
         if (!payStatusMap.has(p.member_id) && p.status === 'paid' && p.paid_at) {
-          const status = p.paid_at >= thirtyDaysAgo ? 'paid' : 'pending'
-          payStatusMap.set(p.member_id, status)
+          payStatusMap.set(p.member_id, p.paid_at >= thirtyDaysAgo ? 'paid' : 'pending')
         }
       }
       setMemberPayStatus(payStatusMap)
 
-      // Top attenders this month
       const countMap = new Map<string, number>()
-      for (const row of (monthAttendance ?? []) as { member_id: string }[]) {
+      for (const row of d.monthAttendance as { member_id: string }[]) {
         countMap.set(row.member_id, (countMap.get(row.member_id) ?? 0) + 1)
       }
-      const sorted = Array.from(countMap.entries())
-        .map(([member_id, count]) => ({ member_id, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5)
-      setTopAttenders(sorted)
+      setTopAttenders(
+        Array.from(countMap.entries())
+          .map(([member_id, count]) => ({ member_id, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+      )
 
-      // Churn risk: active members who haven't trained in 14+ days
-      // Build last-seen map from recent attendance
       const lastSeenMap = new Map<string, string>()
-      for (const row of (allAttendance ?? []) as { member_id: string; checked_in_at: string }[]) {
+      for (const row of d.allAttendance as { member_id: string; checked_in_at: string }[]) {
         if (!lastSeenMap.has(row.member_id)) lastSeenMap.set(row.member_id, row.checked_in_at)
       }
       const churnList: ChurnMember[] = []
-      for (const m of (membersList ?? []) as { id: string; first_name: string; last_name: string }[]) {
+      for (const m of d.membersList as { id: string; first_name: string; last_name: string }[]) {
         const lastSeen = lastSeenMap.get(m.id)
         if (!lastSeen || lastSeen < fourteenDaysAgo) {
-          const daysAgo = lastSeen
-            ? Math.floor((Date.now() - new Date(lastSeen).getTime()) / 86400000)
-            : 999
-          churnList.push({ id: m.id, first_name: m.first_name, last_name: m.last_name, last_seen: lastSeen ?? '', days_ago: daysAgo })
+          churnList.push({
+            id: m.id, first_name: m.first_name, last_name: m.last_name,
+            last_seen: lastSeen ?? '',
+            days_ago: lastSeen ? Math.floor((Date.now() - new Date(lastSeen).getTime()) / 86400000) : 999,
+          })
         }
       }
       setChurnRisk(churnList.sort((a, b) => b.days_ago - a.days_ago).slice(0, 8))

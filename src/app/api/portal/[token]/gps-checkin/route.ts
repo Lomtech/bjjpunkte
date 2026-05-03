@@ -89,14 +89,42 @@ export async function POST(
 
   const checkedInAt = now.toISOString()
 
+  // Dedup: if already checked in for this class (or today without a class), return early
+  if (cls) {
+    const { data: existing } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('member_id', member.id)
+      .eq('class_id', cls.id)
+      .maybeSingle()
+    if (existing) {
+      return NextResponse.json({ success: true, attendance: existing, class: cls, distance_m: Math.round(dist), already_checked_in: true })
+    }
+  } else {
+    // No class — dedup by same calendar day
+    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0)
+    const dayEnd   = new Date(now); dayEnd.setHours(23, 59, 59, 999)
+    const { data: existing } = await supabase
+      .from('attendance')
+      .select('id')
+      .eq('member_id', member.id)
+      .is('class_id', null)
+      .gte('checked_in_at', dayStart.toISOString())
+      .lte('checked_in_at', dayEnd.toISOString())
+      .maybeSingle()
+    if (existing) {
+      return NextResponse.json({ success: true, attendance: existing, class: null, distance_m: Math.round(dist), already_checked_in: true })
+    }
+  }
+
   // Insert attendance record
   const { data: att, error: attErr } = await supabase
     .from('attendance')
     .insert({
-      gym_id:       member.gym_id,
-      member_id:    member.id,
-      class_id:     cls?.id ?? null,
-      class_type:   cls?.class_type ?? null,
+      gym_id:        member.gym_id,
+      member_id:     member.id,
+      class_id:      cls?.id ?? null,
+      class_type:    cls?.class_type ?? null,
       checked_in_at: checkedInAt,
     })
     .select()

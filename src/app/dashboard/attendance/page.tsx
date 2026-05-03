@@ -40,33 +40,23 @@ export default function AttendancePage() {
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
-    const { data: gym } = await (supabase.from('gyms') as any).select('id, class_types, belt_system').single()
-    if (!gym) { setLoading(false); return }
-    setGymId(gym.id)
-    setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setLoading(false); return }
 
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
+    // Single server-side call — eliminates sequential client→Supabase trips
+    const res = await fetch('/api/dashboard/attendance-data', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    if (!res.ok) { setLoading(false); return }
+    const d = await res.json()
 
-    const [membersRes, attendanceRes, classesRes] = await Promise.all([
-      supabase.from('members').select('id, first_name, last_name, belt, stripes')
-        .eq('gym_id', gym.id).eq('is_active', true).order('last_name'),
-      supabase.from('attendance').select('id, checked_in_at, class_type, member_id, class_id')
-        .eq('gym_id', gym.id).gte('checked_in_at', today.toISOString())
-        .order('checked_in_at', { ascending: false }),
-      (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: today.toISOString() }),
-    ])
-
-    setMembers((membersRes.data as Member[]) ?? [])
-    setTodayLog((attendanceRes.data as AttendanceEntry[]) ?? [])
-
-    const todayCls = ((classesRes.data ?? []) as ClassEvent[])
-      .filter(c => {
-        const s = new Date(c.starts_at)
-        return s >= today && s < tomorrow && !c.is_cancelled
-      })
-      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
-    setTodayClasses(todayCls)
+    setGymId(d.gym.id)
+    setBeltSystem(resolveBeltSystem(d.gym.belt_system))
+    setMembers(d.members as Member[])
+    setTodayLog(d.attendance as AttendanceEntry[])
+    setTodayClasses(
+      (d.classes as ClassEvent[]).sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
+    )
     setLoading(false)
   }, [])
 
