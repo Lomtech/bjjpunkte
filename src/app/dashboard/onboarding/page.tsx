@@ -178,7 +178,7 @@ export default function OnboardingPage() {
 
       const { data: newGym, error: insertErr } = await supabase
         .from('gyms')
-        .insert({ owner_id: user.id, name: 'Mein Gym' })
+        .insert({ owner_id: user.id, name: 'Mein Gym', signup_enabled: true })
         .select('id, name, address, phone, email, monthly_fee_cents, stripe_account_id, signup_token, sport_type')
         .single()
 

@@ -208,7 +208,7 @@ export default function SettingsPage() {
         if ((data as any).stripe_account_id && (data as any).stripe_charges_enabled !== undefined) {
           setStripeChargesEnabled((data as any).stripe_charges_enabled ?? null)
         }
-        setSignupEnabled((data as any).signup_enabled ?? false)
+        setSignupEnabled((data as any).signup_enabled ?? true)
         setSignupToken((data as any).signup_token ?? null)
         setContractTemplate((data as any).contract_template ?? '')
         setCallmebotKey((data as any).callmebot_api_key ?? '')

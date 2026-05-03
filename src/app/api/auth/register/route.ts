@@ -34,6 +34,7 @@ export async function POST(req: Request) {
   const { error: gymError } = await admin.from('gyms').insert({
     owner_id: userData.user.id,
     name: gymName.trim(),
+    signup_enabled: true,
   })
 
   if (gymError) {
