@@ -4,9 +4,18 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Plus, Eye, EyeOff, Trash2,
-  ImagePlus, Save, X, Edit2, Globe, AlignLeft,
+  ImagePlus, Save, X, Edit2, Globe, AlignLeft, Megaphone, Pin,
 } from 'lucide-react'
 import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
+
+interface Announcement {
+  id:         string
+  title:      string
+  body:       string | null
+  is_pinned:  boolean
+  expires_at: string | null
+  created_at: string
+}
 
 interface Post {
   id:           string
@@ -228,20 +237,69 @@ function PostCard({ post, onEdit, onDelete, onTogglePublish }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ContentPage() {
+  const [activeTab, setActiveTab] = useState<'posts' | 'announcements'>('posts')
+
+  // ── Posts ──────────────────────────────────────────────────────────────────
   const [posts,      setPosts]      = useState<Post[]>([])
-  const [loading,    setLoading]    = useState(true)
+  const [postsLoading, setPostsLoading] = useState(true)
   const [editorPost, setEditorPost] = useState<Partial<Post> | null>(null)
+
+  // ── Announcements ──────────────────────────────────────────────────────────
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [annoLoading,   setAnnoLoading]   = useState(true)
+  const [gymId,         setGymId]         = useState<string | null>(null)
+  const [annoFormOpen,  setAnnoFormOpen]  = useState(false)
+  const [annoSaving,    setAnnoSaving]    = useState(false)
+  const [annoForm, setAnnoForm] = useState({ title: '', body: '', isPinned: false, expiresAt: '' })
 
   useEffect(() => {
     loadPosts()
+    loadAnnouncements()
   }, [])
 
   async function loadPosts() {
-    setLoading(true)
+    setPostsLoading(true)
     const headers = await getAuthHeaders()
     const res = await fetch('/api/posts', { headers })
     if (res.ok) setPosts(await res.json())
-    setLoading(false)
+    setPostsLoading(false)
+  }
+
+  async function loadAnnouncements() {
+    setAnnoLoading(true)
+    const supabase = createClient()
+    const { data: gym } = await supabase.from('gyms').select('id').single()
+    if (!gym) { setAnnoLoading(false); return }
+    setGymId(gym.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from('gym_announcements') as any)
+      .select('*').eq('gym_id', gym.id).order('is_pinned', { ascending: false }).order('created_at', { ascending: false })
+    if (data) setAnnouncements(data)
+    setAnnoLoading(false)
+  }
+
+  async function handleAnnoSave() {
+    if (!annoForm.title.trim() || !gymId) return
+    setAnnoSaving(true)
+    const supabase = createClient()
+    const payload = {
+      gym_id: gymId, title: annoForm.title.trim(), body: annoForm.body || null,
+      is_pinned: annoForm.isPinned,
+      expires_at: annoForm.expiresAt ? new Date(annoForm.expiresAt).toISOString() : null,
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from('gym_announcements') as any).insert(payload).select().single()
+    if (data) setAnnouncements(prev => [data, ...prev])
+    setAnnoForm({ title: '', body: '', isPinned: false, expiresAt: '' })
+    setAnnoFormOpen(false); setAnnoSaving(false)
+  }
+
+  async function handleAnnoDelete(id: string) {
+    if (!confirm('Ankündigung wirklich löschen?')) return
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('gym_announcements') as any).delete().eq('id', id)
+    setAnnouncements(prev => prev.filter(a => a.id !== id))
   }
 
   async function handleTogglePublish(post: Post) {
@@ -276,69 +334,186 @@ export default function ContentPage() {
   const published = posts.filter(p => p.published_at && new Date(p.published_at) <= new Date())
   const drafts    = posts.filter(p => !p.published_at || new Date(p.published_at) > new Date())
 
+  const inputCls = 'w-full px-3 py-2.5 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all'
+
   return (
     <div className="p-4 md:p-6 max-w-3xl">
-      <div className="flex items-center justify-between mb-6">
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-bold text-zinc-900">Inhalte</h1>
-          <p className="text-zinc-400 text-xs mt-0.5">Beiträge & Ankündigungen für deine Gym-Seite</p>
+          <p className="text-zinc-400 text-xs mt-0.5">Beiträge & Ankündigungen für deine Mitglieder</p>
         </div>
-        <button type="button" onClick={() => setEditorPost({})}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors shadow-sm shadow-amber-200">
-          <Plus size={16} /> Neuer Beitrag
-        </button>
+        {activeTab === 'posts' && (
+          <button type="button" onClick={() => setEditorPost({})}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors shadow-sm shadow-amber-200">
+            <Plus size={16} /> Neuer Beitrag
+          </button>
+        )}
+        {activeTab === 'announcements' && !annoFormOpen && (
+          <button type="button" onClick={() => setAnnoFormOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors shadow-sm shadow-amber-200">
+            <Plus size={16} /> Neue Ankündigung
+          </button>
+        )}
       </div>
 
-      {loading ? (
-        <div className="text-zinc-400 text-sm py-12 text-center">Wird geladen…</div>
-      ) : posts.length === 0 ? (
-        <div className="text-center py-16 px-6">
-          <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
-            <AlignLeft size={24} className="text-zinc-300" />
-          </div>
-          <p className="font-semibold text-zinc-700 mb-1">Noch keine Beiträge</p>
-          <p className="text-zinc-400 text-sm mb-5">Erstelle Ankündigungen, Eventinfos oder Neuigkeiten für deine Mitglieder und Besucher.</p>
-          <button type="button" onClick={() => setEditorPost({})}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors">
-            <Plus size={15} /> Ersten Beitrag erstellen
+      {/* Tabs */}
+      <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 mb-6 w-fit">
+        {([
+          { id: 'posts',         label: 'Beiträge',      icon: AlignLeft  },
+          { id: 'announcements', label: 'Ankündigungen', icon: Megaphone  },
+        ] as const).map(({ id, label, icon: Icon }) => (
+          <button key={id} type="button" onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === id ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+            }`}
+          >
+            <Icon size={14} /> {label}
           </button>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {published.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-                Veröffentlicht ({published.length})
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {published.map(post => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onEdit={() => setEditorPost(post)}
-                    onDelete={() => handleDelete(post.id)}
-                    onTogglePublish={() => handleTogglePublish(post)}
-                  />
-                ))}
+        ))}
+      </div>
+
+      {/* ── Tab: Beiträge ── */}
+      {activeTab === 'posts' && (
+        postsLoading ? (
+          <div className="text-zinc-400 text-sm py-12 text-center">Wird geladen…</div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-16 px-6">
+            <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+              <AlignLeft size={24} className="text-zinc-300" />
+            </div>
+            <p className="font-semibold text-zinc-700 mb-1">Noch keine Beiträge</p>
+            <p className="text-zinc-400 text-sm mb-5">Eventinfos, Neuigkeiten oder Ankündigungen für deine Mitglieder und Besucher.</p>
+            <button type="button" onClick={() => setEditorPost({})}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors">
+              <Plus size={15} /> Ersten Beitrag erstellen
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {published.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Veröffentlicht ({published.length})</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {published.map(post => (
+                    <PostCard key={post.id} post={post}
+                      onEdit={() => setEditorPost(post)}
+                      onDelete={() => handleDelete(post.id)}
+                      onTogglePublish={() => handleTogglePublish(post)} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {drafts.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Entwürfe ({drafts.length})</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {drafts.map(post => (
+                    <PostCard key={post.id} post={post}
+                      onEdit={() => setEditorPost(post)}
+                      onDelete={() => handleDelete(post.id)}
+                      onTogglePublish={() => handleTogglePublish(post)} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      )}
+
+      {/* ── Tab: Ankündigungen ── */}
+      {activeTab === 'announcements' && (
+        <div className="space-y-4">
+          <p className="text-xs text-zinc-400">
+            Ankündigungen erscheinen im Mitglieder-Portal. Gepinnte Beiträge erscheinen immer ganz oben.
+          </p>
+
+          {/* New announcement form */}
+          {annoFormOpen && (
+            <div className="bg-white rounded-2xl border border-amber-200 p-5 space-y-3 shadow-sm">
+              <p className="text-sm font-bold text-zinc-900">Neue Ankündigung</p>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">Titel *</label>
+                <input value={annoForm.title} onChange={e => setAnnoForm(a => ({ ...a, title: e.target.value }))}
+                  placeholder="z.B. Neue Öffnungszeiten ab März" className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">Text (optional)</label>
+                <textarea value={annoForm.body} onChange={e => setAnnoForm(a => ({ ...a, body: e.target.value }))}
+                  rows={3} placeholder="Detailliertere Informationen…"
+                  className="w-full px-3 py-2.5 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y" />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-zinc-600 mb-1">Läuft ab am</label>
+                  <input type="date" value={annoForm.expiresAt} onChange={e => setAnnoForm(a => ({ ...a, expiresAt: e.target.value }))}
+                    className={inputCls} />
+                </div>
+                <div className="flex items-center justify-between gap-3 pt-4">
+                  <div>
+                    <p className="text-xs font-medium text-zinc-700">Gepinnt</p>
+                    <p className="text-[10px] text-zinc-400">Immer oben</p>
+                  </div>
+                  <button type="button" onClick={() => setAnnoForm(a => ({ ...a, isPinned: !a.isPinned }))}
+                    className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${annoForm.isPinned ? 'bg-amber-500' : 'bg-zinc-200'}`}>
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${annoForm.isPinned ? 'translate-x-4' : ''}`} />
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => { setAnnoFormOpen(false); setAnnoForm({ title: '', body: '', isPinned: false, expiresAt: '' }) }}
+                  className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-zinc-50 transition-colors">
+                  Abbrechen
+                </button>
+                <button type="button" onClick={handleAnnoSave} disabled={annoSaving || !annoForm.title.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-bold text-sm transition-colors">
+                  {annoSaving ? 'Wird gespeichert…' : 'Veröffentlichen'}
+                </button>
               </div>
             </div>
           )}
-          {drafts.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-                Entwürfe ({drafts.length})
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {drafts.map(post => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onEdit={() => setEditorPost(post)}
-                    onDelete={() => handleDelete(post.id)}
-                    onTogglePublish={() => handleTogglePublish(post)}
-                  />
-                ))}
+
+          {/* List */}
+          {annoLoading ? (
+            <div className="text-zinc-400 text-sm py-8 text-center">Wird geladen…</div>
+          ) : announcements.length === 0 && !annoFormOpen ? (
+            <div className="text-center py-16 px-6">
+              <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+                <Megaphone size={24} className="text-zinc-300" />
               </div>
+              <p className="font-semibold text-zinc-700 mb-1">Noch keine Ankündigungen</p>
+              <p className="text-zinc-400 text-sm mb-5">Informiere deine Mitglieder über Änderungen, Events oder Neuigkeiten.</p>
+              <button type="button" onClick={() => setAnnoFormOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors">
+                <Plus size={15} /> Erste Ankündigung
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {announcements.map(a => (
+                <div key={a.id} className={`flex items-start gap-3 p-4 rounded-2xl border bg-white shadow-sm ${a.is_pinned ? 'border-amber-200' : 'border-zinc-100'}`}>
+                  <div className="flex-shrink-0 mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center bg-amber-50">
+                    {a.is_pinned
+                      ? <Pin size={13} className="text-amber-500" />
+                      : <Megaphone size={13} className="text-amber-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-zinc-900">{a.title}</p>
+                    {a.body && <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{a.body}</p>}
+                    <p className="text-[10px] text-zinc-400 mt-1.5">
+                      {new Date(a.created_at).toLocaleDateString('de-DE')}
+                      {a.expires_at && ` · läuft ab ${new Date(a.expires_at).toLocaleDateString('de-DE')}`}
+                      {a.is_pinned && <span className="ml-1.5 text-amber-500 font-medium">· Gepinnt</span>}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => handleAnnoDelete(a.id)}
+                    className="flex-shrink-0 p-1.5 rounded-lg text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

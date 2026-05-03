@@ -8,7 +8,7 @@ import {
   Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle,
   Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
   Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
-  Package, Megaphone, Pin, Edit2, FileSpreadsheet, Download, Upload, MapPin, Navigation,
+  Package, Megaphone, Edit2, FileSpreadsheet, Download, Upload, MapPin, Navigation,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 
@@ -109,12 +109,6 @@ export default function SettingsPage() {
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
   const [planSaving, setPlanSaving]     = useState(false)
 
-  // Announcements
-  type Announcement = { id: string; title: string; body: string | null; is_pinned: boolean; expires_at: string | null; created_at: string }
-  const [announcements, setAnnouncements]         = useState<Announcement[]>([])
-  const [annoForm, setAnnoForm]                   = useState({ title: '', body: '', isPinned: false, expiresAt: '' })
-  const [annoFormOpen, setAnnoFormOpen]           = useState(false)
-  const [annoSaving, setAnnoSaving]               = useState(false)
 
   // Invoice & Tax
   const [taxNumber, setTaxNumber]                   = useState('')
@@ -244,13 +238,9 @@ export default function SettingsPage() {
         setPlanLimit((data as any)?.plan_member_limit ?? 30)
         const { count } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', data.id).eq('is_active', true)
         setMemberCount(count ?? 0)
-        // Load plans + announcements
-        const [{ data: plansData }, { data: annoData }] = await Promise.all([
-          (supabase.from('membership_plans') as any).select('*').eq('gym_id', data.id).order('sort_order'),
-          (supabase.from('gym_announcements') as any).select('*').eq('gym_id', data.id).order('created_at', { ascending: false }),
-        ])
+        // Load plans
+        const { data: plansData } = await (supabase.from('membership_plans') as any).select('*').eq('gym_id', data.id).order('sort_order')
         if (plansData) setPlans(plansData)
-        if (annoData)  setAnnouncements(annoData)
       }
     })
     fetch('/api/stripe/status').then(r => r.json()).then(d => {
@@ -656,27 +646,6 @@ export default function SettingsPage() {
       contractMonths: String(plan.contract_months),
     })
     setEditingPlanId(plan.id); setPlanFormOpen(true)
-  }
-
-  async function handleAnnoSave() {
-    if (!annoForm.title) return
-    setAnnoSaving(true)
-    const supabase = createClient()
-    const payload = {
-      gym_id: gymId, title: annoForm.title, body: annoForm.body || null,
-      is_pinned: annoForm.isPinned,
-      expires_at: annoForm.expiresAt ? new Date(annoForm.expiresAt).toISOString() : null,
-    }
-    const { data } = await (supabase.from('gym_announcements') as any).insert(payload).select().single()
-    if (data) setAnnouncements(prev => [data, ...prev])
-    setAnnoForm({ title: '', body: '', isPinned: false, expiresAt: '' })
-    setAnnoFormOpen(false); setAnnoSaving(false)
-  }
-
-  async function handleAnnoDelete(id: string) {
-    const supabase = createClient()
-    await (supabase.from('gym_announcements') as any).delete().eq('id', id)
-    setAnnouncements(prev => prev.filter(a => a.id !== id))
   }
 
   function copyWithFeedback(text: string, setter: (v: boolean) => void) {
@@ -1837,99 +1806,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Announcements */}
-          <div className={sectionCls}>
-            <div className={`${sectionHeaderCls} flex items-center justify-between`}>
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                <Megaphone size={12} /> Ankündigungen
-              </p>
-              {!annoFormOpen && (gymPlan === 'grow' || gymPlan === 'pro') && (
-                <button type="button" onClick={() => setAnnoFormOpen(true)}
-                  className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-500 font-medium">
-                  <Plus size={12} /> Neue Ankündigung
-                </button>
-              )}
-            </div>
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-zinc-500">
-                Ankündigungen werden im Mitglieder-Portal angezeigt. Gepinnte Beiträge erscheinen immer oben.
-              </p>
-
-              {(gymPlan !== 'grow' && gymPlan !== 'pro') ? (
-                <UpgradeGate plan="grow" onUpgrade={handleUpgrade} feature="Ankündigungen & Pinnwand" />
-              ) : annoFormOpen && (
-                <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 space-y-3">
-                  <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Neue Ankündigung</p>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">Titel *</label>
-                    <input value={annoForm.title} onChange={e => setAnnoForm(a => ({ ...a, title: e.target.value }))}
-                      placeholder="z.B. Neue Öffnungszeiten ab März" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">Text</label>
-                    <textarea value={annoForm.body} onChange={e => setAnnoForm(a => ({ ...a, body: e.target.value }))}
-                      rows={3} placeholder="Detailliertere Informationen…"
-                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-zinc-600 mb-1">Läuft ab am</label>
-                      <input type="date" value={annoForm.expiresAt} onChange={e => setAnnoForm(a => ({ ...a, expiresAt: e.target.value }))}
-                        className={inputCls} />
-                    </div>
-                    <div className="flex items-center justify-between pt-5">
-                      <div>
-                        <p className="text-xs font-medium text-zinc-600">Gepinnt</p>
-                        <p className="text-[10px] text-zinc-400">Immer oben anzeigen</p>
-                      </div>
-                      <button type="button" onClick={() => setAnnoForm(a => ({ ...a, isPinned: !a.isPinned }))}
-                        className={`relative w-9 h-5 rounded-full transition-colors ${annoForm.isPinned ? 'bg-amber-500' : 'bg-zinc-200'}`}>
-                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${annoForm.isPinned ? 'translate-x-4' : ''}`} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <button type="button" onClick={() => setAnnoFormOpen(false)}
-                      className="flex-1 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-white transition-colors">
-                      Abbrechen
-                    </button>
-                    <button type="button" onClick={handleAnnoSave} disabled={annoSaving || !annoForm.title}
-                      className="flex-1 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors">
-                      {annoSaving ? 'Wird gespeichert…' : 'Veröffentlichen'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {announcements.length === 0 && !annoFormOpen ? (
-                <div className="text-center py-6 text-zinc-400 text-sm">
-                  Noch keine Ankündigungen. Klicke auf „Neue Ankündigung".
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {announcements.map(a => (
-                    <div key={a.id} className={`flex items-start gap-3 p-3 rounded-xl border ${a.is_pinned ? 'border-amber-200 bg-amber-50' : 'border-zinc-200 bg-zinc-50'}`}>
-                      <div className="flex-shrink-0 mt-0.5">
-                        {a.is_pinned ? <Pin size={12} className="text-amber-500" /> : <Megaphone size={12} className="text-zinc-400" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-zinc-800">{a.title}</p>
-                        {a.body && <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{a.body}</p>}
-                        <p className="text-[10px] text-zinc-400 mt-1">
-                          {new Date(a.created_at).toLocaleDateString('de-DE')}
-                          {a.expires_at && ` · läuft ab ${new Date(a.expires_at).toLocaleDateString('de-DE')}`}
-                        </p>
-                      </div>
-                      <button type="button" onClick={() => handleAnnoDelete(a.id)}
-                        className="flex-shrink-0 p-1.5 rounded-lg text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
@@ -1972,7 +1848,7 @@ const UPGRADE_PLANS = [
     period: '/Monat',
     members: 'Bis zu 150 Mitglieder',
     highlight: true,
-    features: ['Alles aus Starter', 'Ankündigungen & Pinnwand', 'Unbegrenzte Trainer-Accounts', '2% Plattformgebühr'],
+    features: ['Alles aus Starter', 'Unbegrenzte Trainer-Accounts', 'Erweiterte Berichte', '2% Plattformgebühr'],
   },
   {
     name: 'Pro',
