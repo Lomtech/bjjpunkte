@@ -394,7 +394,11 @@ export default function SettingsPage() {
       })
       const result = await res.json()
       if (result.success) {
-        setImportResult(`✓ Importiert: Einstellungen, ${result.imported.plans} Tarife, ${result.imported.announcements} Ankündigungen, ${result.imported.posts} Posts`)
+        const mediaParts = []
+        if (result.imported.logo_uploaded) mediaParts.push('Logo')
+        if (result.imported.hero_uploaded) mediaParts.push('Hero-Bild')
+        const mediaStr = mediaParts.length > 0 ? `, Medien: ${mediaParts.join(' + ')}` : ''
+        setImportResult(`✓ Importiert: Einstellungen${mediaStr}, ${result.imported.plans} Tarife, ${result.imported.announcements} Ankündigungen, ${result.imported.posts} Posts`)
         setImportFile(null)
       } else {
         setImportResult(`Fehler: ${result.error}`)
