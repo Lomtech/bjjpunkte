@@ -10,10 +10,11 @@ import Image from 'next/image'
 type Role = 'owner' | 'trainer' | null
 
 export function RoleShell({ children }: { children: React.ReactNode }) {
-  const [role, setRole]       = useState<Role>(null)
-  const [ready, setReady]     = useState(false)
-  const [gymName, setGymName] = useState<string>('')
-  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [role, setRole]                   = useState<Role>(null)
+  const [ready, setReady]                 = useState(false)
+  const [gymName, setGymName]             = useState<string>('')
+  const [logoUrl, setLogoUrl]             = useState<string | null>(null)
+  const [onboardingDone, setOnboardingDone] = useState<boolean>(true)
   const router   = useRouter()
   const pathname = usePathname()
 
@@ -34,12 +35,14 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
 
       if (gym) {
         const g = gym as any
+        const done = !!g.onboarding_completed_at
         setRole('owner')
         setGymName(g.name ?? '')
         setLogoUrl(g.logo_url ?? null)
+        setOnboardingDone(done)
         localStorage.setItem('userRole', 'owner')
         setReady(true)
-        if (!g.onboarding_completed_at && pathname !== '/dashboard/onboarding') {
+        if (!done && pathname !== '/dashboard/onboarding') {
           router.push('/dashboard/onboarding')
         }
         return
@@ -53,6 +56,7 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
 
       if (staff) {
         setRole('trainer')
+        setOnboardingDone(true) // trainers skip onboarding
         localStorage.setItem('userRole', 'trainer')
         const { data: staffGym } = await supabase
           .from('gyms')
@@ -64,8 +68,13 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
           setLogoUrl(staffGym.logo_url ?? null)
         }
       } else {
+        // New owner with no gym yet (e.g. Google OAuth first login)
         setRole('owner')
+        setOnboardingDone(false)
         localStorage.setItem('userRole', 'owner')
+        if (pathname !== '/dashboard/onboarding') {
+          router.push('/dashboard/onboarding')
+        }
       }
 
       setReady(true)
@@ -123,7 +132,7 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
 
         <div className="mx-4 h-px bg-zinc-100" />
 
-        <SidebarNav isTrainer={isTrainer} />
+        <SidebarNav isTrainer={isTrainer} onboardingDone={onboardingDone} />
       </aside>
 
       {/* ── Main content ── */}
@@ -134,7 +143,7 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
       </div>{/* end main row */}
 
       {/* ── Mobile bottom nav — part of flex column, not fixed ── */}
-      <BottomNav isTrainer={isTrainer} />
+      <BottomNav isTrainer={isTrainer} onboardingDone={onboardingDone} />
     </div>
   )
 }

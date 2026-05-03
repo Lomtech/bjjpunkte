@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, Calendar,
-  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2, Globe, FileText,
+  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2, Globe, FileText, Rocket,
 } from 'lucide-react'
 
 const NAV = [
@@ -43,13 +43,34 @@ function isActive(href: string, pathname: string) {
   return pathname.startsWith(href)
 }
 
-export function SidebarNav({ isTrainer = false }: { isTrainer?: boolean }) {
+export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTrainer?: boolean; onboardingDone?: boolean }) {
   const pathname = usePathname()
   const items = isTrainer ? TRAINER_NAV : NAV.filter(n => !n.ownerOnly || !isTrainer)
+  const onboardingActive = pathname === '/dashboard/onboarding'
 
   return (
     <>
       <nav className="flex-1 px-3 py-3 space-y-0.5">
+
+        {/* Onboarding entry — visible until setup is complete */}
+        {!isTrainer && !onboardingDone && (
+          <Link href="/dashboard/onboarding"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 mb-1 ${
+              onboardingActive
+                ? 'bg-amber-50 text-amber-700 font-semibold'
+                : 'bg-amber-50/60 text-amber-700 hover:bg-amber-100'
+            }`}
+          >
+            <div className="relative flex-shrink-0">
+              <Rocket size={16} strokeWidth={onboardingActive ? 2.25 : 1.75} className="text-amber-500" />
+              {!onboardingActive && (
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              )}
+            </div>
+            <span className="font-semibold">Einrichtung</span>
+          </Link>
+        )}
+
         {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
           return (
@@ -82,9 +103,14 @@ export function SidebarNav({ isTrainer = false }: { isTrainer?: boolean }) {
   )
 }
 
-export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
+export function BottomNav({ isTrainer = false, onboardingDone = true }: { isTrainer?: boolean; onboardingDone?: boolean }) {
   const pathname = usePathname()
-  const items = isTrainer ? TRAINER_BOTTOM_NAV : BOTTOM_NAV.filter(n => !n.ownerOnly || !isTrainer)
+  const baseItems = isTrainer ? TRAINER_BOTTOM_NAV : BOTTOM_NAV.filter(n => !n.ownerOnly || !isTrainer)
+
+  // Prepend onboarding tab for owners who haven't finished setup
+  const items = (!isTrainer && !onboardingDone)
+    ? [{ href: '/dashboard/onboarding', label: 'Einrichtung', icon: Rocket, ownerOnly: true }, ...baseItems]
+    : baseItems
 
   return (
     <nav className="md:hidden flex-shrink-0 bg-white/96 backdrop-blur-md border-t border-zinc-100 z-40">
@@ -92,18 +118,26 @@ export function BottomNav({ isTrainer = false }: { isTrainer?: boolean }) {
       <div className="h-[49px] flex items-stretch">
         {items.map(({ href, label, icon: Icon }) => {
           const active = isActive(href, pathname)
+          const isOnboarding = href === '/dashboard/onboarding'
           return (
             <Link key={href} href={href}
-              className={`flex-1 flex flex-col items-center justify-center gap-[2px] transition-colors ${
+              className={`flex-1 flex flex-col items-center justify-center gap-[2px] transition-colors relative ${
                 active ? 'text-zinc-900' : 'text-zinc-400'
               }`}
             >
-              <Icon
-                size={active ? 22 : 21}
-                strokeWidth={active ? 2.3 : 1.6}
-                className={`transition-all ${active ? 'text-amber-500' : 'text-zinc-400'}`}
-              />
-              <span className={`text-[10px] leading-none tracking-tight font-medium ${active ? 'text-amber-500' : 'text-zinc-400'}`}>
+              <div className="relative">
+                <Icon
+                  size={active ? 22 : 21}
+                  strokeWidth={active ? 2.3 : 1.6}
+                  className={`transition-all ${active ? 'text-amber-500' : isOnboarding ? 'text-amber-400' : 'text-zinc-400'}`}
+                />
+                {isOnboarding && !active && (
+                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                )}
+              </div>
+              <span className={`text-[10px] leading-none tracking-tight font-medium ${
+                active ? 'text-amber-500' : isOnboarding ? 'text-amber-400' : 'text-zinc-400'
+              }`}>
                 {label}
               </span>
             </Link>
