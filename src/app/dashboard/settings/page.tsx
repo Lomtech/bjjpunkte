@@ -45,14 +45,9 @@ export default function SettingsPage() {
 
   // Stripe
   const [stripeConfigured, setStripeConfigured] = useState(false)
-  const [webhookActive, setWebhookActive]       = useState(false)
   const [stripeAccountId, setStripeAccountId]   = useState<string | null>(null)
   const [connectLoading, setConnectLoading]     = useState(false)
-  const [copiedWebhook, setCopiedWebhook]       = useState(false)
   const [stripeChargesEnabled, setStripeChargesEnabled] = useState<boolean | null>(null)
-  const [stripeCapabilities, setStripeCapabilities] = useState<Record<string, string> | null>(null)
-  const [capRequesting, setCapRequesting]           = useState(false)
-  const [capRequested, setCapRequested]             = useState(false)
 
   // Legal
   const [legalName, setLegalName]       = useState('')
@@ -174,9 +169,7 @@ export default function SettingsPage() {
   const [upgradedBanner, setUpgradedBanner] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
-  const webhookUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/api/stripe/webhook`
-    : '/api/stripe/webhook'
+
 
   const signupUrl = typeof window !== 'undefined' && signupToken
     ? `${window.location.origin}/signup/${signupToken}`
@@ -275,10 +268,8 @@ export default function SettingsPage() {
         const statusData = await statusRes.json()
         if (statusData.connected) {
           setStripeChargesEnabled(statusData.charges_enabled ?? false)
-          setStripeCapabilities(statusData.capabilities ?? null)
         } else {
           setStripeChargesEnabled(null)
-          setStripeCapabilities(null)
         }
       }
     })
@@ -344,26 +335,6 @@ export default function SettingsPage() {
     setConnectLoading(false)
   }
 
-  async function handleRequestCapabilities() {
-    setCapRequesting(true)
-    try {
-      const { data: { session } } = await createClient().auth.getSession()
-      const res = await fetch('/api/stripe/capabilities', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
-      })
-      const d = await res.json()
-      if (res.ok && d.capabilities) {
-        setStripeCapabilities(d.capabilities)
-        setCapRequested(true)
-        setTimeout(() => setCapRequested(false), 5000)
-      }
-    } catch (e) {
-      console.error('Capability request failed:', e)
-    } finally {
-      setCapRequesting(false)
-    }
-  }
 
   function handleDisconnect() {
     askConfirm({
@@ -946,18 +917,11 @@ export default function SettingsPage() {
             <div className="divide-y divide-gray-100">
               {[
                 {
-                  ok: !webhookUrl.includes('localhost'),
+                  ok: !window.location.hostname.includes('localhost'),
                   title: t('settings', 'productionUrl'),
-                  desc: webhookUrl.includes('localhost')
+                  desc: window.location.hostname.includes('localhost')
                     ? <span className="text-amber-600">{t('settings', 'productionUrlDesc').replace('NEXT_PUBLIC_APP_URL', '')} <code className="font-mono bg-amber-50 px-1 rounded">NEXT_PUBLIC_APP_URL</code> in Vercel auf deine Domain.</span>
-                    : <span className="text-zinc-400">{webhookUrl.replace('/api/stripe/webhook', '')}</span>,
-                },
-                {
-                  ok: webhookActive,
-                  title: t('settings', 'stripeWebhook'),
-                  desc: webhookActive
-                    ? <span className="text-zinc-400">{t('settings', 'webhookActiveDesc')}</span>
-                    : <span className="text-zinc-400">{t('settings', 'webhookInactiveDesc').replace('Stripe Dashboard', '')} <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> {t('settings', 'webhookInactiveDesc').split('Stripe Dashboard')[1] ?? ''}</span>,
+                    : <span className="text-zinc-400">{window.location.origin}</span>,
                 },
                 {
                   ok: !!stripeAccountId,
@@ -1181,64 +1145,11 @@ export default function SettingsPage() {
                         </div>
                       )}
                       <p className="font-mono text-xs bg-zinc-100 px-2 py-1 rounded text-zinc-500 truncate">{stripeAccountId}</p>
-                      {/* Payment method capabilities */}
-                      {stripeCapabilities && (
-                        <div className="rounded-lg border border-zinc-100 overflow-hidden">
-                          <div className="px-3 py-2 bg-zinc-50 border-b border-zinc-100">
-                            <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-                              {lang === 'en' ? 'Payment methods' : 'Zahlungsmethoden'}
-                            </p>
-                          </div>
-                          <div className="divide-y divide-zinc-100">
-                            {[
-                              { key: 'card',   label: lang === 'en' ? 'Card + Apple/Google Pay' : 'Karte + Apple/Google Pay', icon: '💳' },
-                              { key: 'sepa',   label: 'SEPA Direct Debit', icon: '🏦' },
-                            ].map(({ key, label, icon }) => {
-                              const status = stripeCapabilities[key] ?? 'inactive'
-                              const isActive = status === 'active'
-                              const isPending = status === 'pending'
-                              return (
-                                <div key={key} className="flex items-center justify-between px-3 py-2.5">
-                                  <span className="text-sm text-zinc-700 flex items-center gap-2">
-                                    <span>{icon}</span>{label}
-                                  </span>
-                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                    isActive  ? 'bg-green-100 text-green-700' :
-                                    isPending ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                                                'bg-zinc-100 text-zinc-400'
-                                  }`}>
-                                    {isActive ? (lang === 'en' ? 'Active' : 'Aktiv') :
-                                     isPending ? (lang === 'en' ? 'Pending' : 'Ausstehend') :
-                                                 (lang === 'en' ? 'Inactive' : 'Inaktiv')}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                          {Object.values(stripeCapabilities).some(s => s !== 'active') && (
-                            <div className="px-3 py-2.5 border-t border-zinc-100 bg-zinc-50 space-y-2">
-                              <p className="text-[11px] text-zinc-500 leading-relaxed">
-                                {lang === 'en'
-                                  ? 'Request additional payment methods. Stripe will review and activate them (usually within minutes).'
-                                  : 'Weitere Zahlungsmethoden anfordern. Stripe prüft und aktiviert sie (meist innerhalb von Minuten).'}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={handleRequestCapabilities}
-                                disabled={capRequesting || capRequested}
-                                className="w-full py-2 rounded-lg bg-zinc-900 hover:bg-zinc-700 disabled:opacity-50 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
-                              >
-                                {capRequested
-                                  ? <><CheckCircle2 size={12} /> {lang === 'en' ? 'Requested!' : 'Angefragt!'}</>
-                                  : capRequesting
-                                  ? (lang === 'en' ? 'Requesting…' : 'Wird angefragt…')
-                                  : <><Zap size={12} /> {lang === 'en' ? 'Request SEPA & Klarna' : 'SEPA & Klarna anfordern'}</>
-                                }
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      <p className="text-xs text-zinc-500 leading-relaxed">
+                        {lang === 'en'
+                          ? 'Payments go directly to your Stripe account. Stripe automatically offers card, Apple Pay, Google Pay and SEPA based on your account status.'
+                          : 'Zahlungen gehen direkt auf dein Stripe-Konto. Stripe bietet automatisch Karte, Apple Pay, Google Pay und SEPA an – je nach Freischaltungsstatus deines Kontos.'}
+                      </p>
 
                       <div className="flex gap-2 flex-wrap">
                         {stripeChargesEnabled === false ? (
