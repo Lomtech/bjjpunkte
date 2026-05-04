@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
+import { getAppUrl } from '@/lib/app-url'
 
 function authClient(accessToken: string) {
   return createClient(
@@ -51,7 +52,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
       if (plan?.stripe_price_id) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+        const appUrl = getAppUrl()
 
         // Get or create Stripe customer
         let customerId = member.stripe_customer_id
@@ -69,7 +70,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
-          payment_method_types: ['card'],
+          payment_method_types: ['card', 'sepa_debit'],
           line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
           mode: 'subscription',
           success_url: `${appUrl}/portal/${member.portal_token ?? ''}?payment=success`,
