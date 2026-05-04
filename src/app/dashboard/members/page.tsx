@@ -242,7 +242,7 @@ export default function MembersPage() {
       (m as { subscription_status?: string }).subscription_status ?? '',
       m.contract_end_date ?? '',
       (() => {
-        const cents = m.monthly_fee_override_cents ?? (m.plan_id ? (planPriceMap[m.plan_id] ?? monthlyFeeCents) : monthlyFeeCents)
+        const cents = m.monthly_fee_override_cents ?? (m.plan_id ? (planPriceMap[m.plan_id] ?? 0) : 0)
         return cents > 0 ? (cents / 100).toFixed(2).replace('.', ',') : ''
       })(),
     ])
@@ -534,7 +534,7 @@ export default function MembersPage() {
               <tbody>
                 {filtered.map(m => {
                   const cs = contractStatus(m.contract_end_date)
-                  const feeCents = m.monthly_fee_override_cents ?? (m.plan_id ? (planPriceMap[m.plan_id] ?? monthlyFeeCents) : monthlyFeeCents)
+                  const feeCents = m.monthly_fee_override_cents ?? (m.plan_id ? (planPriceMap[m.plan_id] ?? 0) : 0)
                   const subStatus = m.subscription_status ?? 'none'
                   return (
                     <tr key={m.id}

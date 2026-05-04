@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 
@@ -16,6 +16,19 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [current, setCurrent]         = useState(isActive)
   const [feedback, setFeedback]       = useState(false)
+  const confirmBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Enter = confirm, Escape = cancel
+  useEffect(() => {
+    if (!showConfirm) return
+    confirmBtnRef.current?.focus()
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Enter')  { e.preventDefault(); toggle() }
+      if (e.key === 'Escape') { e.preventDefault(); setShowConfirm(false) }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [showConfirm])
 
   async function toggle() {
     setLoading(true)
@@ -82,15 +95,17 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
                 {t('promotion', 'cancel')}
               </button>
               <button
+                ref={confirmBtnRef}
                 onClick={toggle}
                 disabled={loading}
-                className={`flex-1 py-3 rounded-xl text-white font-semibold text-sm transition-colors disabled:opacity-50 ${
-                  current ? 'bg-red-500 hover:bg-red-400' : 'bg-green-500 hover:bg-green-400'
+                className={`flex-1 py-3 rounded-xl text-white font-semibold text-sm transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  current ? 'bg-red-500 hover:bg-red-400 focus:ring-red-400' : 'bg-green-500 hover:bg-green-400 focus:ring-green-400'
                 }`}
               >
                 {loading ? t('promotion', 'toggleSaving') : current ? t('promotion', 'deactivateBtn') : t('promotion', 'activateBtn')}
               </button>
             </div>
+            <p className="text-[10px] text-zinc-300 text-center mt-2">Enter ↵ zum Bestätigen · Esc zum Abbrechen</p>
           </div>
         </div>
       )}

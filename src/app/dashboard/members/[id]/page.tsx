@@ -129,15 +129,15 @@ export default function MemberDetailPage() {
       const m = memberData as unknown as Member
       setMember(m)
 
-      // Prefer: member override → assigned plan price → gym default
+      // Prefer: member override → assigned plan price → 0 (never fall back to gym default)
       if (m.monthly_fee_override_cents != null) {
         setMonthlyFeeCents(m.monthly_fee_override_cents)
       } else if (m.plan_id) {
         const { data: plan } = await (supabase.from('membership_plans') as any)
           .select('price_cents').eq('id', m.plan_id).single()
-        setMonthlyFeeCents((plan as any)?.price_cents ?? gym.monthly_fee_cents ?? 0)
+        setMonthlyFeeCents((plan as any)?.price_cents ?? 0)
       } else {
-        setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
+        setMonthlyFeeCents(0)
       }
 
       // Load parent and children for family section
