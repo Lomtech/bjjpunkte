@@ -344,23 +344,23 @@ export default function SettingsPage() {
 
   async function handleRequestCapabilities() {
     setCapRequesting(true)
-    const { data: { session } } = await createClient().auth.getSession()
-    // Re-POST to connect route: for existing accounts it updates capabilities
-    const res = await fetch('/api/stripe/connect', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
-    })
-    if (res.ok) {
-      // Refresh capability status
-      const statusRes = await fetch('/api/stripe/connect', { headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
-      if (statusRes.ok) {
-        const d = await statusRes.json()
-        if (d.connected) setStripeCapabilities(d.capabilities ?? null)
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      const res = await fetch('/api/stripe/capabilities', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+      })
+      const d = await res.json()
+      if (res.ok && d.capabilities) {
+        setStripeCapabilities(d.capabilities)
+        setCapRequested(true)
+        setTimeout(() => setCapRequested(false), 5000)
       }
-      setCapRequested(true)
-      setTimeout(() => setCapRequested(false), 4000)
+    } catch (e) {
+      console.error('Capability request failed:', e)
+    } finally {
+      setCapRequesting(false)
     }
-    setCapRequesting(false)
   }
 
   function handleDisconnect() {

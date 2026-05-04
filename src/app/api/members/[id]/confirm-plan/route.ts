@@ -100,7 +100,7 @@ export async function POST(
         customer: member.stripe_customer_id,
         line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
         mode: 'subscription',
-          billing_address_collection: 'auto',
+          billing_address_collection: 'required',
         success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
         cancel_url: `${appUrl}/dashboard/members/${memberId}`,
         metadata: { memberId, gymId: gymData.id },
