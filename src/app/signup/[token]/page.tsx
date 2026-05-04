@@ -433,33 +433,34 @@ export default function SignupPage() {
         {step === 3 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-zinc-900 mb-1">Digitale Unterschrift</h2>
+              <h2 className="text-lg font-bold text-zinc-900 mb-1">{lang === 'en' ? 'Digital signature' : 'Digitale Unterschrift'}</h2>
               <p className="text-zinc-500 text-sm">
-                Unterschreibe mit dem Finger (Handy) oder der Maus (PC) im Feld unten.
+                {lang === 'en' ? 'Sign with your finger (mobile) or mouse (PC) in the field below.' : 'Unterschreibe mit dem Finger (Handy) oder der Maus (PC) im Feld unten.'}
               </p>
             </div>
 
             <div className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-sm">
               <p className="text-xs text-zinc-400 mb-3">
-                {firstName} {lastName} — {new Date().toLocaleDateString('de-DE')}
+                {firstName} {lastName} — {new Date().toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-DE')}
               </p>
-              <SignaturePad onChange={setSignatureData} />
+              <SignaturePad onChange={setSignatureData} lang={lang} />
             </div>
 
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Mit deiner Unterschrift bestätigst du, dass du den Mitgliedsvertrag von{' '}
-              <strong>{gymInfo?.gymName}</strong> gelesen hast und damit einverstanden bist.
-              Die digitale Unterschrift ist rechtlich bindend gemäß eIDAS-Verordnung.
+              {lang === 'en'
+                ? <>By signing you confirm that you have read and agreed to the membership contract of <strong>{gymInfo?.gymName}</strong>. Your digital signature is legally binding under the eIDAS Regulation.</>
+                : <>Mit deiner Unterschrift bestätigst du, dass du den Mitgliedsvertrag von <strong>{gymInfo?.gymName}</strong> gelesen hast und damit einverstanden bist. Die digitale Unterschrift ist rechtlich bindend gemäß eIDAS-Verordnung.</>
+              }
             </p>
 
             <div className="flex gap-3">
               <button onClick={() => setStep(2)}
                 className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
-                <ChevronLeft size={16} /> Zurück
+                <ChevronLeft size={16} /> {lang === 'en' ? 'Back' : 'Zurück'}
               </button>
               <button disabled={!step3Valid} onClick={() => setStep(4)}
                 className="flex-1 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold transition-colors flex items-center justify-center gap-2">
-                Weiter <ChevronRight size={18} />
+                {lang === 'en' ? 'Next' : 'Weiter'} <ChevronRight size={18} />
               </button>
             </div>
           </div>

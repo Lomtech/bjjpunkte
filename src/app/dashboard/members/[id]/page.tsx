@@ -682,13 +682,13 @@ function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; pho
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#25D366]">
           <div className="flex items-center gap-2 text-white">
             <MessageCircle size={18} />
-            <span className="font-bold">WhatsApp an {firstName}</span>
+            <span className="font-bold">{tl('memberDetailExtra', 'waTo')} {firstName}</span>
           </div>
           <button onClick={onClose} className="text-white/80 hover:text-white text-lg leading-none">✕</button>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Vorlage</p>
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{tl('memberDetailExtra', 'waTemplate')}</p>
             <div className="grid grid-cols-1 gap-1.5">
               {WA_TEMPLATES.map(t => (
                 <button key={t.id} onClick={() => { setSelected(t.id); setCustomText('') }}
@@ -701,7 +701,7 @@ function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; pho
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Nachricht bearbeiten</p>
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{tl('memberDetailExtra', 'waEditMessage')}</p>
             <textarea
               value={customText || template.text(firstName)}
               onChange={e => setCustomText(e.target.value)}
@@ -711,7 +711,7 @@ function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; pho
           </div>
           <a href={waUrl} target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] text-white font-bold text-sm transition-colors">
-            <MessageCircle size={16} /> In WhatsApp öffnen
+            <MessageCircle size={16} /> {tl('memberDetailExtra', 'waOpenButton')}
           </a>
         </div>
       </div>
