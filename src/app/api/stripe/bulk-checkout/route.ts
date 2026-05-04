@@ -28,7 +28,12 @@ export async function POST(req: Request) {
 
   const stripe = new Stripe(stripeKey)
 
-  const { data: gymData } = await (supabase.from('gyms') as any).select('stripe_account_id, payment_method_types').eq('id', gymId).single()
+  const { data: gymData } = await (supabase.from('gyms') as any)
+    .select('id, stripe_account_id, payment_method_types')
+    .eq('id', gymId)
+    .eq('owner_id', user.id)  // ownership guard
+    .single()
+  if (!gymData) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
   const connectedAccountId = gymData?.stripe_account_id
   const paymentMethodTypes = (gymData as any)?.payment_method_types as string[] | null
 

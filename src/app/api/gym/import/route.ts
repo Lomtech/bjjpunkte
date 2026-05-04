@@ -97,6 +97,20 @@ export async function POST(req: Request) {
   const body = await req.json()
   if (!body?.version || !body?.gym) return NextResponse.json({ error: 'Ungültiges Import-Format' }, { status: 400 })
 
+  // ── Array size caps to prevent DoS / quota exhaustion ─────────────────────
+  const LIMITS: Record<string, number> = {
+    membership_plans: 50, announcements: 200, posts: 500,
+    members: 2000, classes: 5000, class_bookings: 20000,
+    attendance: 50000, belt_promotions: 5000,
+    leads: 2000, lead_bookings: 10000, staff: 100,
+    training_logs: 50000, payments: 20000,
+  }
+  for (const [key, max] of Object.entries(LIMITS)) {
+    if (Array.isArray(body[key]) && body[key].length > max) {
+      return NextResponse.json({ error: `Zu viele Einträge in "${key}" (Maximum: ${max})` }, { status: 400 })
+    }
+  }
+
   // Look up existing gym — maybeSingle() returns null without error if none found
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let { data: gym } = await (svc.from('gyms') as any).select('id').eq('owner_id', user.id).maybeSingle()
@@ -478,7 +492,10 @@ export async function POST(req: Request) {
     const toInsert = payments_data.flatMap((p: any) => {
       const memberId = memberIds[p.member_index]
       if (!memberId) return []
-      return [{ gym_id: gym.id, member_id: memberId, amount_cents: p.amount_cents, status: p.status ?? 'paid', paid_at: p.paid_at ?? null, created_at: p.created_at ?? null, invoice_number: p.invoice_number ?? null }]
+      // Force status to 'imported' — never trust caller-supplied status.
+      // This prevents fabricating 'paid' records without actual Stripe payments.
+      const amountCents = typeof p.amount_cents === 'number' && p.amount_cents >= 0 ? Math.round(p.amount_cents) : 0
+      return [{ gym_id: gym.id, member_id: memberId, amount_cents: amountCents, status: 'imported', paid_at: p.paid_at ?? null, created_at: p.created_at ?? null, invoice_number: p.invoice_number ?? null }]
     })
     if (toInsert.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

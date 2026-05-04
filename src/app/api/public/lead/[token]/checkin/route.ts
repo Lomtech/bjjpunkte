@@ -35,6 +35,16 @@ export async function POST(
     return NextResponse.json({ error: 'Interessent nicht gefunden' }, { status: 404 })
   }
 
+  // Cross-gym guard: class must belong to the lead's gym
+  const { data: cls } = await supabase
+    .from('classes')
+    .select('gym_id')
+    .eq('id', class_id)
+    .single()
+  if (!cls || cls.gym_id !== lead.gym_id) {
+    return NextResponse.json({ error: 'Kurs nicht gefunden' }, { status: 404 })
+  }
+
   const now = new Date().toISOString()
 
   const { data: booking, error } = await supabase

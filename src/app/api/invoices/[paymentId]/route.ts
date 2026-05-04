@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 
+/** Escape HTML special characters to prevent XSS in HTML templates. */
+function escHtml(s: unknown): string {
+  if (s === null || s === undefined) return ''
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
@@ -86,8 +97,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   const rawCents = typeof pmt.amount_cents === 'number' ? pmt.amount_cents : 0
   const amountEur = (rawCents / 100).toFixed(2).replace('.', ',')
 
-  const gymName = gym.legal_name || gym.name || ''
-  const gymAddress = gym.legal_address || gym.address || ''
+  const gymName    = escHtml(gym.legal_name || gym.name || '')
+  const gymAddress = escHtml(gym.legal_address || gym.address || '').replace(/\n/g, '<br>')
 
   let taxSection = ''
   if (gym.is_kleinunternehmer) {
@@ -159,8 +170,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   <div>
     <div class="invoice-title">Rechnung</div>
     <div class="invoice-meta">
-      ${invoiceNumber ? `<div>Nr. <strong>${invoiceNumber}</strong></div>` : ''}
-      <div>Datum: <strong>${formattedDate}</strong></div>
+      ${invoiceNumber ? `<div>Nr. <strong>${escHtml(invoiceNumber)}</strong></div>` : ''}
+      <div>Datum: <strong>${escHtml(formattedDate)}</strong></div>
       <div>Status: <span class="status-badge">${pmt.status === 'paid' ? 'Bezahlt' : 'Ausstehend'}</span></div>
     </div>
   </div>
@@ -170,17 +181,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   <div class="party">
     <h3>Rechnungssteller</h3>
     <p class="name">${gymName}</p>
-    <p>${gymAddress.replace(/\n/g, '<br>')}</p>
-    ${gym.phone ? `<p>${gym.phone}</p>` : ''}
-    ${gym.legal_email || gym.email ? `<p>${gym.legal_email || gym.email}</p>` : ''}
-    ${gym.tax_number ? `<p>St.-Nr.: ${gym.tax_number}</p>` : ''}
-    ${gym.ustid ? `<p>USt-IdNr.: ${gym.ustid}</p>` : ''}
+    <p>${gymAddress}</p>
+    ${gym.phone ? `<p>${escHtml(gym.phone)}</p>` : ''}
+    ${gym.legal_email || gym.email ? `<p>${escHtml(gym.legal_email || gym.email)}</p>` : ''}
+    ${gym.tax_number ? `<p>St.-Nr.: ${escHtml(gym.tax_number)}</p>` : ''}
+    ${gym.ustid ? `<p>USt-IdNr.: ${escHtml(gym.ustid)}</p>` : ''}
   </div>
   <div class="party">
     <h3>Rechnungsempfänger</h3>
-    <p class="name">${member.first_name} ${member.last_name}</p>
-    ${member.email ? `<p>${member.email}</p>` : ''}
-    ${member.address ? `<p>${member.address.replace(/\n/g, '<br>')}</p>` : ''}
+    <p class="name">${escHtml(member.first_name)} ${escHtml(member.last_name)}</p>
+    ${member.email ? `<p>${escHtml(member.email)}</p>` : ''}
+    ${member.address ? `<p>${escHtml(member.address).replace(/\n/g, '<br>')}</p>` : ''}
   </div>
 </div>
 
@@ -210,9 +221,9 @@ ${gym.bank_iban ? `
 <div class="bank-section">
   <h3>Bankverbindung</h3>
   <div class="bank-grid">
-    ${gym.bank_name ? `<div><div class="label">Bank</div><div>${gym.bank_name}</div></div>` : ''}
-    <div><div class="label">IBAN</div><div>${gym.bank_iban}</div></div>
-    ${gym.bank_bic ? `<div><div class="label">BIC</div><div>${gym.bank_bic}</div></div>` : ''}
+    ${gym.bank_name ? `<div><div class="label">Bank</div><div>${escHtml(gym.bank_name)}</div></div>` : ''}
+    <div><div class="label">IBAN</div><div>${escHtml(gym.bank_iban)}</div></div>
+    ${gym.bank_bic ? `<div><div class="label">BIC</div><div>${escHtml(gym.bank_bic)}</div></div>` : ''}
   </div>
 </div>` : ''}
 

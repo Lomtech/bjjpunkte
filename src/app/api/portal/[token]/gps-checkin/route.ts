@@ -31,9 +31,14 @@ export async function POST(
   }
 
   const body = await req.json().catch(() => ({}))
-  const { lat, lng } = body as { lat?: number; lng?: number }
-  if (lat === undefined || lng === undefined) {
-    return NextResponse.json({ error: 'GPS-Koordinaten fehlen' }, { status: 400 })
+  const { lat, lng } = body as { lat?: unknown; lng?: unknown }
+  // Strict coordinate validation — NaN/Infinity would silently bypass the distance check
+  if (
+    typeof lat !== 'number' || typeof lng !== 'number' ||
+    !Number.isFinite(lat) || !Number.isFinite(lng) ||
+    lat < -90 || lat > 90 || lng < -180 || lng > 180
+  ) {
+    return NextResponse.json({ error: 'Ungültige GPS-Koordinaten' }, { status: 400 })
   }
 
   const supabase = serviceClient()

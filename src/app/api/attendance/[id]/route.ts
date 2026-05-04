@@ -17,6 +17,24 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
+  // Ownership guard: verify the attendance record belongs to the caller's gym
+  const { data: gym } = await supabase
+    .from('gyms')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+  if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
+
+  const { data: record } = await supabase
+    .from('attendance')
+    .select('gym_id')
+    .eq('id', id)
+    .single()
+
+  if (!record || (record as any).gym_id !== gym.id) {
+    return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
+  }
+
   await supabase.from('attendance').delete().eq('id', id)
 
   return NextResponse.json({ success: true })

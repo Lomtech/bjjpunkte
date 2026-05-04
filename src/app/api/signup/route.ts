@@ -163,6 +163,7 @@ export async function POST(req: Request) {
         .from('membership_plans')
         .select('id, name, price_cents, stripe_price_id')
         .eq('id', plan_id)
+        .eq('gym_id', gymId)  // cross-gym plan injection guard
         .single()
 
       const { data: gymStripe } = await (supabase.from('gyms') as any)

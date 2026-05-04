@@ -30,7 +30,20 @@ export async function POST(req: Request) {
   const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
   const body = await req.json()
-  const { data, error } = await supabase.from('leads').insert({ ...body, gym_id: gym.id }).select().single()
+  // Explicit allowlist — never spread untrusted body directly into insert
+  const { first_name, last_name, email, phone, notes, source, status, trial_date, referred_by } = body
+  const { data, error } = await supabase.from('leads').insert({
+    first_name: first_name ?? null,
+    last_name:  last_name  ?? null,
+    email:      email      ?? null,
+    phone:      phone      ?? null,
+    notes:      notes      ?? null,
+    source:     source     ?? 'other',
+    status:     status     ?? 'new',
+    trial_date: trial_date ?? null,
+    referred_by: referred_by ?? null,
+    gym_id:     gym.id,
+  }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }

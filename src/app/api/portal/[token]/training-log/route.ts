@@ -27,6 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   const { token } = await params
   const { note, class_type } = await req.json()
   if (!note?.trim()) return NextResponse.json({ error: 'Notiz fehlt' }, { status: 400 })
+  if (note.trim().length > 2000) return NextResponse.json({ error: 'Notiz zu lang (max. 2000 Zeichen)' }, { status: 400 })
 
   const supabase = serviceClient()
   const { data: member } = await supabase.from('members').select('id, gym_id').eq('portal_token', token).single()

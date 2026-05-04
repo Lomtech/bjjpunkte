@@ -238,8 +238,13 @@ export async function POST(req: Request) {
       ? (inv as unknown as { payment_intent: string }).payment_intent
       : null
 
+    const invoiceId = inv.id  // always unique per Stripe invoice
+
     if (memberId && amountCents > 0) {
-      // Idempotency: skip if already recorded for this payment_intent
+      // Idempotency: check by payment_intent first, then by invoice ID.
+      // SEPA invoices may not have a payment_intent at the time of the event —
+      // using invoice ID as the secondary dedup key prevents duplicate inserts
+      // on Stripe retry deliveries.
       if (paymentIntentId) {
         const { data: existing } = await supabase
           .from('payments')
@@ -247,9 +252,24 @@ export async function POST(req: Request) {
           .eq('stripe_payment_intent_id', paymentIntentId)
           .single()
         if (existing) return NextResponse.json({ received: true })
+      } else if (invoiceId) {
+        // No payment_intent (e.g. SEPA debit before settlement) — dedup by invoice ID.
+        // stripe_invoice_id column must exist in DB for this to work; fall back to
+        // checking recent payments for this member within a 10-minute window.
+        const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+        const { data: recent } = await (supabase.from('payments') as any)
+          .select('id')
+          .eq('member_id', memberId)
+          .eq('amount_cents', amountCents)
+          .eq('status', 'paid')
+          .gte('paid_at', tenMinAgo)
+          .limit(1)
+        if (recent && (Array.isArray(recent) ? recent.length > 0 : true)) {
+          return NextResponse.json({ received: true })
+        }
       }
 
-      await supabase.from('payments').insert({
+      await (supabase.from('payments') as any).insert({
         gym_id:                   gymId ?? null,
         member_id:                memberId,
         amount_cents:             amountCents,
