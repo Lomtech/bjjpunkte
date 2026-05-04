@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { getAppUrl } from '@/lib/app-url'
+import { sendWhatsApp } from '@/lib/whatsapp'
 
 function authClient(accessToken: string) {
   return createClient(
@@ -27,7 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   // Get member (verify ownership)
   const { data: member } = await (supabase.from('members') as any)
-    .select('id, first_name, last_name, email, gym_id, plan_id, stripe_customer_id, portal_token')
+    .select('id, first_name, last_name, email, phone, gym_id, plan_id, stripe_customer_id, portal_token')
     .eq('id', memberId)
     .eq('gym_id', gym.id)
     .single()
@@ -105,11 +106,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             }),
           })
         }
+
+        // WhatsApp welcome + checkout link
+        if (member.phone) {
+          await sendWhatsApp({
+            to: member.phone,
+            body: `Hallo ${member.first_name}! 🥋 Willkommen bei ${gym.name}!\n\nDeine Mitgliedschaft wurde bestätigt. Bitte schließe jetzt die Zahlung für *${plan.name}* ab:\n${checkoutUrl}\n\nOss!`,
+          })
+        }
       }
     } catch (err) {
       console.error('Stripe/email error during activation:', err)
       // Don't fail — member is already activated
     }
+  }
+
+  // WhatsApp welcome without checkout (no plan or Stripe not configured)
+  if (!checkoutUrl && member.phone) {
+    const portalUrl = member.portal_token ? `${getAppUrl()}/portal/${member.portal_token}` : null
+    await sendWhatsApp({
+      to: member.phone,
+      body: `Hallo ${member.first_name}! 🥋 Willkommen bei ${gym.name}!\n\nDeine Mitgliedschaft wurde bestätigt.${portalUrl ? `\n\nZum Mitgliederportal: ${portalUrl}` : ''}\n\nOss!`,
+    }).catch(() => {/* best-effort */})
   }
 
   return NextResponse.json({ success: true, checkout_url: checkoutUrl })

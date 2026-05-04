@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
+import { sendWhatsApp } from '@/lib/whatsapp'
 
 function serviceClient() {
   return createClient(
@@ -117,7 +118,7 @@ export async function GET(req: Request) {
   for (const gym of gyms ?? []) {
     const { data: members } = await supabase
       .from('members')
-      .select('id, first_name, last_name, email, monthly_fee_override_cents, stripe_subscription_id, portal_token')
+      .select('id, first_name, last_name, email, phone, monthly_fee_override_cents, stripe_subscription_id, portal_token')
       .eq('gym_id', gym.id)
       .eq('is_active', true)
 
@@ -160,27 +161,41 @@ export async function GET(req: Request) {
       first_name: string
       last_name: string
       email: string | null
+      phone: string | null
       monthly_fee_override_cents: number | null
       portal_token: string | null
     }[]) {
-      if (!member.email) { emailsSkipped++; continue }
+      if (!member.email && !member.phone) { emailsSkipped++; continue }
 
       const amountCents = member.monthly_fee_override_cents ?? gym.monthly_fee_cents ?? 0
       const portalUrl   = member.portal_token ? `${appUrl}/portal/${member.portal_token}` : null
       const checkoutUrl = pendingByMember.get(member.id) ?? null
+      const amount      = (amountCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+      const ctaUrl      = checkoutUrl ?? portalUrl ?? ''
 
-      const sent = await sendEmail(
-        member.email,
-        `Erinnerung: Mitgliedsbeitrag ${now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })} — ${gym.name}`,
-        reminderEmailHtml({
-          firstName:   member.first_name,
-          gymName:     gym.name,
-          amountCents,
-          portalUrl,
-          checkoutUrl,
-        })
-      )
-      sent ? emailsSent++ : emailsSkipped++
+      // Email
+      if (member.email) {
+        const sent = await sendEmail(
+          member.email,
+          `Erinnerung: Mitgliedsbeitrag ${now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })} — ${gym.name}`,
+          reminderEmailHtml({
+            firstName:   member.first_name,
+            gymName:     gym.name,
+            amountCents,
+            portalUrl,
+            checkoutUrl,
+          })
+        )
+        sent ? emailsSent++ : emailsSkipped++
+      }
+
+      // WhatsApp
+      if (member.phone) {
+        const waBody = checkoutUrl
+          ? `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).\n\nJetzt bezahlen: ${ctaUrl}\n\nOss! 🥋`
+          : `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).${ctaUrl ? `\n\nZum Portal: ${ctaUrl}` : ''}\n\nBei Fragen melde dich bei deinem Gym. Oss! 🥋`
+        await sendWhatsApp({ to: member.phone, body: waBody }).catch(() => {/* best-effort */})
+      }
     }
   }
 
