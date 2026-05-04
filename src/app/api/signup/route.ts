@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyGym } from '@/lib/notify'
+import { sendWhatsApp } from '@/lib/whatsapp'
+import { getAppUrl } from '@/lib/app-url'
 
 // Uses service role to bypass RLS — safe because we validate the signup_token
 function serviceClient() {
@@ -123,7 +125,7 @@ export async function POST(req: Request) {
       is_active:               false,          // pending until gym activates
       onboarding_status:       'pending',
     })
-    .select('id')
+    .select('id, portal_token')
     .single()
 
   if (error) {
@@ -146,8 +148,55 @@ export async function POST(req: Request) {
     { onConflict: 'gym_id,email', ignoreDuplicates: true }
   )
 
-  // Notify gym owner via email + WhatsApp
-  const fullName = `${firstName.trim()} ${lastName.trim()}`
+  const fullName    = `${firstName.trim()} ${lastName.trim()}`
+  const portalToken = (member as { id: string; portal_token: string | null }).portal_token
+  const appUrl      = getAppUrl()
+  const portalUrl   = portalToken ? `${appUrl}/portal/${portalToken}` : null
+  const gymName     = gymWithName?.name ?? 'deinem Gym'
+
+  // ── 1. Bestätigungs-Email → Mitglied ──────────────────────────────────────
+  if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization:  `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from:    process.env.RESEND_FROM_EMAIL,
+        to:      email.toLowerCase().trim(),
+        subject: `Deine Anmeldung bei ${gymName} – Bestätigung`,
+        html: `
+          <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+            <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0f172a">Hallo ${firstName.trim()}! 🥋</p>
+            <p style="margin:0 0 20px;font-size:15px;color:#64748b;line-height:1.6">
+              Deine Anmeldung bei <strong>${gymName}</strong> ist eingegangen!
+              Das Team wird deine Mitgliedschaft in Kürze freischalten.
+            </p>
+            ${portalUrl ? `
+            <p style="margin:0 0 16px;font-size:14px;color:#374151">
+              Du kannst deinen persönlichen Mitglieder-Bereich bereits aufrufen:
+            </p>
+            <a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#0f172a;font-weight:700;font-size:14px;border-radius:12px;text-decoration:none">
+              Mein Mitglieder-Portal →
+            </a>
+            ` : ''}
+            <p style="margin:24px 0 0;font-size:12px;color:#94a3b8">Oss!</p>
+          </div>
+        `,
+      }),
+    }).catch(() => {})
+  }
+
+  // ── 2. Bestätigungs-WhatsApp → Mitglied (Twilio) ─────────────────────────
+  if (phone?.trim()) {
+    await sendWhatsApp({
+      to:   phone.trim(),
+      body: `Hallo ${firstName.trim()}! 🥋\n\nDeine Anmeldung bei *${gymName}* ist eingegangen. Das Team schaltet dich in Kürze frei.${portalUrl ? `\n\nDein Portal: ${portalUrl}` : ''}\n\nOss!`,
+    }).catch(() => {})
+  }
+
+  // ── 3. Notify gym owner via email + WhatsApp ──────────────────────────────
   await notifyGym({
     gymId,
     subject: `Neue Mitglieder-Anmeldung: ${fullName}`,
