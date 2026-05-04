@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Copy, Check, ExternalLink, QrCode, ArrowRight, UserPlus, Dumbbell } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface LinkCardProps {
   icon: React.ReactNode
@@ -67,6 +68,7 @@ function LinkCard({ icon, iconBg, iconColor, title, description, url, emptyText,
 }
 
 export default function LinksPage() {
+  const { t } = useLanguage()
   const [signupUrl,  setSignupUrl]  = useState<string | null>(null)
   const [trialUrl,   setTrialUrl]   = useState<string | null>(null)
   const [loading,    setLoading]    = useState(true)
@@ -101,7 +103,7 @@ export default function LinksPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
+    return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">{t('common', 'loading')}</div>
   }
 
   return (
@@ -109,8 +111,8 @@ export default function LinksPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Zugänge & Links</h1>
-        <p className="text-zinc-400 text-xs mt-0.5 font-medium">Teile diese Links — für neue Mitglieder und Interessenten</p>
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('links', 'title')}</h1>
+        <p className="text-zinc-400 text-xs mt-0.5 font-medium">{t('links', 'subtitle')}</p>
       </div>
 
       {/* Two link cards */}
@@ -119,10 +121,10 @@ export default function LinksPage() {
           icon={<UserPlus size={17} />}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
-          title="Anmeldelink"
-          description="Neue Mitglieder registrieren sich selbst — mit Vertrag & Unterschrift"
+          title={t('links', 'signupTitle')}
+          description={t('links', 'signupDesc')}
           url={signupUrl}
-          emptyText="Kein Link verfügbar. Bitte Onboarding abschließen."
+          emptyText={t('links', 'noLink')}
           copied={copiedSignup}
           onCopy={() => signupUrl && copy(signupUrl, 'signup')}
         />
@@ -131,10 +133,10 @@ export default function LinksPage() {
           icon={<Dumbbell size={17} />}
           iconBg="bg-zinc-100"
           iconColor="text-zinc-600"
-          title="Probetraining-Link"
-          description="Interessenten sehen dein Gym und buchen ein Probetraining"
+          title={t('links', 'trialTitle')}
+          description={t('links', 'trialDesc')}
           url={trialUrl}
-          emptyText="Noch kein Gym-Slug eingerichtet. Unter Einstellungen → Zugänge konfigurieren."
+          emptyText={t('links', 'noSlug')}
           copied={copiedTrial}
           onCopy={() => trialUrl && copy(trialUrl, 'trial')}
         />

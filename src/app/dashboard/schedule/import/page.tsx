@@ -445,14 +445,14 @@ export default function ScheduleImportPage() {
         <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-3">
             <X size={20} className="text-red-500" />
-            <p className="font-bold text-zinc-900 text-sm">Import fehlgeschlagen</p>
+            <p className="font-bold text-zinc-900 text-sm">{lang === 'en' ? 'Import failed' : 'Import fehlgeschlagen'}</p>
           </div>
           <div className="space-y-1 mb-4">
             {progress.errors.map((e, i) => <p key={i} className="text-xs text-red-600">{e}</p>)}
           </div>
           <button onClick={() => setStatus('idle')}
             className="text-sm text-zinc-500 hover:text-zinc-800 underline">
-            Erneut versuchen
+            {lang === 'en' ? 'Try again' : 'Erneut versuchen'}
           </button>
         </div>
       )}
