@@ -1182,10 +1182,10 @@ export default function SettingsPage() {
                             <span className="text-base">🏦</span>
                             <div>
                               <p className="text-xs font-semibold text-zinc-800">
-                                {lang === 'en' ? 'How to activate SEPA Direct Debit' : 'SEPA Lastschrift aktivieren'}
+                                {lang === 'en' ? 'SEPA Direct Debit — how it works' : 'SEPA Lastschrift — so funktioniert es'}
                               </p>
                               <p className="text-[11px] text-zinc-500">
-                                {lang === 'en' ? 'Step-by-step guide for your Stripe Express account' : 'Schritt-für-Schritt im Stripe Express Dashboard'}
+                                {lang === 'en' ? 'Automatic monthly bank debits for your members' : 'Automatische monatliche Abbuchung vom Bankkonto'}
                               </p>
                             </div>
                           </div>
@@ -1194,51 +1194,47 @@ export default function SettingsPage() {
 
                         {showSepaGuide && (
                           <div className="px-4 py-4 space-y-4 text-xs text-zinc-600 border-t border-zinc-100">
-
-                            {/* Intro */}
                             <p className="text-zinc-500 leading-relaxed">
                               {lang === 'en'
-                                ? 'SEPA Direct Debit allows automatic monthly bank transfers from your members — no credit card needed. Members enter their IBAN once and Stripe handles the rest.'
-                                : 'Mit SEPA Lastschrift werden Mitgliedsbeiträge automatisch monatlich vom Bankkonto abgebucht — ohne Kreditkarte. Das Mitglied gibt einmalig seine IBAN ein, alles weitere läuft automatisch.'}
+                                ? 'SEPA Direct Debit lets members pay by entering their IBAN once — Stripe then debits the monthly fee automatically. No credit card needed.'
+                                : 'Mit SEPA Lastschrift gibt das Mitglied einmalig seine IBAN ein — Stripe bucht den Monatsbeitrag dann automatisch ab. Keine Kreditkarte nötig.'}
                             </p>
 
-                            {/* Steps */}
+                            {/* How SEPA gets activated */}
+                            <div className="bg-zinc-50 rounded-lg p-3 space-y-2">
+                              <p className="font-semibold text-zinc-700">
+                                {lang === 'en' ? 'How SEPA gets activated' : 'Wie SEPA freigeschaltet wird'}
+                              </p>
+                              <p className="text-zinc-500 leading-relaxed">
+                                {lang === 'en'
+                                  ? 'Stripe activates SEPA automatically for verified European accounts — no manual setup needed in your dashboard. Once your Stripe account is fully verified, SEPA will appear as a payment option in your members\' checkout.'
+                                  : 'Stripe schaltet SEPA automatisch für verifizierte europäische Konten frei — kein manuelles Einrichten im Dashboard nötig. Sobald dein Stripe-Konto vollständig verifiziert ist, erscheint SEPA automatisch als Zahlungsoption im Checkout deiner Mitglieder.'}
+                              </p>
+                            </div>
+
+                            {/* Checklist */}
                             <ol className="space-y-3">
                               {[
                                 {
                                   n: '1',
-                                  title: lang === 'en' ? 'Open your Stripe Express Dashboard' : 'Stripe Express Dashboard öffnen',
+                                  title: lang === 'en' ? 'Complete your Stripe onboarding' : 'Stripe-Onboarding abschließen',
                                   desc: lang === 'en'
-                                    ? 'Click the "Stripe Dashboard" button above. You\'ll land directly in your Express view.'
-                                    : 'Klicke oben auf „Stripe Dashboard". Du landest direkt in deiner Express-Ansicht.',
+                                    ? 'Open your Stripe Express Dashboard (button above) and make sure all required information is submitted — ID verification, address, bank account for payouts.'
+                                    : 'Öffne dein Stripe Express Dashboard (Button oben) und stelle sicher, dass alle Pflichtangaben vollständig sind — Ausweisverifikation, Adresse, Bankverbindung für Auszahlungen.',
                                 },
                                 {
                                   n: '2',
-                                  title: lang === 'en' ? 'Go to Payment Methods' : 'Zahlungsmethoden aufrufen',
+                                  title: lang === 'en' ? 'Wait for Stripe approval' : 'Stripe-Freischaltung abwarten',
                                   desc: lang === 'en'
-                                    ? 'In the left menu: Settings (gear icon) → Payment Methods'
-                                    : 'Im linken Menü: Einstellungen (Zahnrad) → Zahlungsmethoden',
+                                    ? 'After full verification, Stripe activates SEPA within 1–2 business days. You\'ll receive a confirmation email from Stripe.'
+                                    : 'Nach vollständiger Verifikation schaltet Stripe SEPA innerhalb von 1–2 Werktagen frei. Du erhältst eine Bestätigungs-E-Mail von Stripe.',
                                 },
                                 {
                                   n: '3',
-                                  title: lang === 'en' ? 'Activate SEPA Direct Debit' : 'SEPA Lastschrift aktivieren',
+                                  title: lang === 'en' ? 'SEPA appears automatically in checkout' : 'SEPA erscheint automatisch im Checkout',
                                   desc: lang === 'en'
-                                    ? 'Find "SEPA Direct Debit" and click "Activate" or "Request". Accept Stripe\'s terms.'
-                                    : 'Finde „SEPA-Lastschriftverfahren" und klicke „Aktivieren" oder „Beantragen". Stripe-Bedingungen bestätigen.',
-                                },
-                                {
-                                  n: '4',
-                                  title: lang === 'en' ? 'Complete verification if required' : 'Verifikation abschließen (falls nötig)',
-                                  desc: lang === 'en'
-                                    ? 'If Stripe shows a "Action required" banner, submit the missing documents (ID, bank account). Stripe reviews within 1–2 business days.'
-                                    : 'Falls Stripe einen „Handlungsbedarf"-Banner zeigt, fehlende Dokumente einreichen (Ausweis, Bankverbindung). Stripe prüft innerhalb von 1–2 Werktagen.',
-                                },
-                                {
-                                  n: '5',
-                                  title: lang === 'en' ? 'Done — SEPA appears in checkout automatically' : 'Fertig — SEPA erscheint automatisch im Checkout',
-                                  desc: lang === 'en'
-                                    ? 'Once active, members can choose SEPA Direct Debit when subscribing. The mandate is saved and billing runs automatically every month.'
-                                    : 'Sobald aktiv, können Mitglieder beim Abo-Abschluss SEPA Lastschrift wählen. Das Mandat wird gespeichert, die Abbuchung läuft automatisch.',
+                                    ? 'No further action needed. Members will see SEPA Direct Debit as a payment option when subscribing. They enter their IBAN once — Stripe handles all future monthly debits.'
+                                    : 'Kein weiterer Schritt nötig. Mitglieder sehen beim Abo-Abschluss SEPA Lastschrift als Option. Sie geben einmalig ihre IBAN ein — Stripe übernimmt alle weiteren monatlichen Abbuchungen.',
                                 },
                               ].map(step => (
                                 <li key={step.n} className="flex gap-3">
@@ -1253,7 +1249,6 @@ export default function SettingsPage() {
                               ))}
                             </ol>
 
-                            {/* Note */}
                             <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 text-[11px] text-amber-800 leading-relaxed">
                               💡 {lang === 'en'
                                 ? 'SEPA payments take 3–5 business days to settle. If a debit fails, Stripe retries automatically and notifies you by email.'
