@@ -28,6 +28,7 @@ interface Member {
   onboarding_status: string | null; portal_token: string | null
   cancellation_requested_at: string | null
   requested_plan_id: string | null
+  plan_id: string | null
   created_at: string
 }
 
@@ -60,6 +61,7 @@ export default function MembersPage() {
   const [members, setMembers]               = useState<Member[]>([])
   const [gymId, setGymId]                   = useState('')
   const [monthlyFeeCents, setMonthlyFeeCents] = useState(0)
+  const [planPriceMap, setPlanPriceMap]     = useState<Record<string, number>>({})
   const [beltSystem, setBeltSystem]         = useState<BeltSystem | undefined>(undefined)
   const [beltEnabled, setBeltEnabled]       = useState(true)
   const [showBulkConfirm, setShowBulkConfirm] = useState(false)
@@ -171,15 +173,23 @@ export default function MembersPage() {
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
       // Load members + classes in parallel (look back 3 h for retroactive check-in)
       const now = new Date()
-      const [membersRes, classesRes] = await Promise.all([
+      const [membersRes, classesRes, plansRes] = await Promise.all([
         supabase
           .from('members')
-          .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id, created_at')
+          .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id, plan_id, created_at')
           .eq('gym_id', gym.id).order('last_name').limit(1000),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() }),
+        supabase.from('membership_plans').select('id, price_cents').eq('gym_id', gym.id),
       ])
       setMembers((membersRes.data as unknown as Member[]) ?? [])
+
+      // Build plan price lookup map
+      const map: Record<string, number> = {}
+      for (const p of (plansRes.data ?? []) as { id: string; price_cents: number }[]) {
+        map[p.id] = p.price_cents
+      }
+      setPlanPriceMap(map)
 
       // Eligible = not cancelled, ends at most 3 h ago, starts ≤ now + 30 min
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -231,9 +241,10 @@ export default function MembersPage() {
       m.is_active ? t('members', 'active') : t('members', 'inactive'),
       (m as { subscription_status?: string }).subscription_status ?? '',
       m.contract_end_date ?? '',
-      ((m as { monthly_fee_override_cents?: number | null }).monthly_fee_override_cents ?? 0) > 0
-        ? (((m as { monthly_fee_override_cents?: number | null }).monthly_fee_override_cents ?? 0) / 100).toFixed(2).replace('.', ',')
-        : '',
+      (() => {
+        const cents = m.monthly_fee_override_cents ?? (m.plan_id ? (planPriceMap[m.plan_id] ?? monthlyFeeCents) : monthlyFeeCents)
+        return cents > 0 ? (cents / 100).toFixed(2).replace('.', ',') : ''
+      })(),
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -523,7 +534,7 @@ export default function MembersPage() {
               <tbody>
                 {filtered.map(m => {
                   const cs = contractStatus(m.contract_end_date)
-                  const feeCents = m.monthly_fee_override_cents ?? monthlyFeeCents
+                  const feeCents = m.monthly_fee_override_cents ?? (m.plan_id ? (planPriceMap[m.plan_id] ?? monthlyFeeCents) : monthlyFeeCents)
                   const subStatus = m.subscription_status ?? 'none'
                   return (
                     <tr key={m.id}
