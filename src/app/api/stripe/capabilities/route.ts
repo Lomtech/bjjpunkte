@@ -37,7 +37,6 @@ export async function POST(req: Request) {
         card_payments:       { requested: true },
         transfers:           { requested: true },
         sepa_debit_payments: { requested: true },
-        klarna_payments:     { requested: true },
       },
     })
   } catch (err: any) {
@@ -52,7 +51,6 @@ export async function POST(req: Request) {
     capabilities: {
       card:      caps.card_payments       ?? 'inactive',
       sepa:      caps.sepa_debit_payments ?? 'inactive',
-      klarna:    caps.klarna_payments     ?? 'inactive',
       transfers: caps.transfers           ?? 'inactive',
     },
   })

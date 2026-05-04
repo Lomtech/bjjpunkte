@@ -1193,7 +1193,6 @@ export default function SettingsPage() {
                             {[
                               { key: 'card',   label: lang === 'en' ? 'Card + Apple/Google Pay' : 'Karte + Apple/Google Pay', icon: '💳' },
                               { key: 'sepa',   label: 'SEPA Direct Debit', icon: '🏦' },
-                              { key: 'klarna', label: 'Klarna',            icon: '🟣' },
                             ].map(({ key, label, icon }) => {
                               const status = stripeCapabilities[key] ?? 'inactive'
                               const isActive = status === 'active'
