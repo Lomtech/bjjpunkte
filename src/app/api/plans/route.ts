@@ -34,6 +34,9 @@ export async function POST(req: Request) {
   if (stripeKey) {
     try {
       const stripe = new Stripe(stripeKey)
+      // Create product/price on connected account if available (direct charges model)
+      const connectedAccountId = gymData.stripe_account_id as string | null
+      const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : {}
 
       let recurringInterval: Stripe.PriceCreateParams.Recurring
       if (billing_interval === 'monthly') {
@@ -44,17 +47,21 @@ export async function POST(req: Request) {
         recurringInterval = { interval: 'year' }
       }
 
-      const product = await stripe.products.create({
-        name: `${name} – ${gymData.name}`,
-      })
+      const product = await stripe.products.create(
+        { name: `${name} – ${gymData.name}` },
+        stripeOpts,
+      )
       stripe_product_id = product.id
 
-      const price = await stripe.prices.create({
-        currency: 'eur',
-        unit_amount: price_cents,
-        recurring: recurringInterval,
-        product: product.id,
-      })
+      const price = await stripe.prices.create(
+        {
+          currency: 'eur',
+          unit_amount: price_cents,
+          recurring: recurringInterval,
+          product: product.id,
+        },
+        stripeOpts,
+      )
       stripe_price_id = price.id
     } catch (err: any) {
       console.error('Stripe product/price creation error:', err?.message)

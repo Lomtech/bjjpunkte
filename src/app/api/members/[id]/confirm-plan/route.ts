@@ -76,11 +76,11 @@ export async function POST(
     .update({ plan_id: plan.id, requested_plan_id: null })
     .eq('id', memberId)
 
-  // If plan has a stripe_price_id and member does NOT already have a subscription
+  // If plan has price_cents and member does NOT already have a subscription
   const stripeKey = process.env.STRIPE_SECRET_KEY
   if (
     stripeKey &&
-    plan.stripe_price_id &&
+    plan.price_cents &&
     !member.stripe_subscription_id
   ) {
     try {
@@ -117,11 +117,25 @@ export async function POST(
         cancelAt = Math.floor(end.getTime() / 1000)
       }
 
+      // Use price_data inline (avoids platform vs connected account price mismatch)
+      const billingInterval = plan.billing_interval === 'biannual'
+        ? { interval: 'month' as const, interval_count: 6 }
+        : plan.billing_interval === 'annual'
+          ? { interval: 'year' as const }
+          : { interval: 'month' as const }
+
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
-        line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
+        line_items: [{
+          price_data: {
+            currency: 'eur',
+            unit_amount: plan.price_cents,
+            recurring: billingInterval,
+            product_data: { name: plan.name },
+          },
+          quantity: 1,
+        }],
         mode: 'subscription',
-        payment_method_types: ['card', 'sepa_debit'],
         billing_address_collection: 'required',
         success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
         cancel_url: `${appUrl}/dashboard/members/${memberId}`,
@@ -130,18 +144,12 @@ export async function POST(
           // cancel_at is NOT supported in subscription_data for checkout sessions.
           // Pass cancel_at_ts in metadata; the webhook sets it via subscriptions.update.
           metadata: { memberId, gymId: gymData.id, ...(cancelAt ? { cancel_at_ts: String(cancelAt) } : {}) },
+          ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
         },
       }
 
-      if (connectedAccountId) {
-        sessionParams.subscription_data = {
-          ...sessionParams.subscription_data,
-          on_behalf_of: connectedAccountId,
-          ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
-        }
-      }
-
-      const session = await stripe.checkout.sessions.create(sessionParams)
+      // Direct charge: session on connected account so customer is found; no on_behalf_of needed
+      const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
       return NextResponse.json({ success: true, checkout_url: session.url })
     } catch (err: any) {
       console.error('Stripe confirm-plan checkout error:', err?.message)

@@ -69,21 +69,34 @@ export async function POST(
     .eq('gym_id', member.gym_id)
     .single()
 
-  if (!planRaw || !planRaw.stripe_price_id) {
-    return NextResponse.json({ error: 'Tarif hat keine Stripe-Verknüpfung' }, { status: 400 })
+  if (!planRaw || !planRaw.price_cents) {
+    return NextResponse.json({ error: 'Tarif nicht gefunden oder ungültiger Preis' }, { status: 400 })
   }
 
   const stripe = new Stripe(stripeKey)
   const appUrl = getAppUrl()
+  const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
+  const connectedAccountId = gym.stripe_account_id
+  const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
 
-  // Ensure Stripe customer exists
+  // Ensure Stripe customer exists on connected account
   let customerId = member.stripe_customer_id
+  if (customerId && connectedAccountId) {
+    try {
+      await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
+    } catch {
+      customerId = null
+    }
+  }
   if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: member.email ?? undefined,
-      name: `${member.first_name} ${member.last_name}`,
-      metadata: { memberId: member.id, gymId: member.gym_id },
-    })
+    const customer = await stripe.customers.create(
+      {
+        email: member.email ?? undefined,
+        name: `${member.first_name} ${member.last_name}`,
+        metadata: { memberId: member.id, gymId: member.gym_id },
+      },
+      stripeOpts ?? {},
+    )
     customerId = customer.id
     await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
   }
@@ -95,12 +108,26 @@ export async function POST(
     cancelAt = Math.floor(end.getTime() / 1000)
   }
 
+  // Use price_data inline (avoids platform vs connected account price mismatch)
+  const billingInterval = planRaw.billing_interval === 'biannual'
+    ? { interval: 'month' as const, interval_count: 6 }
+    : planRaw.billing_interval === 'annual'
+      ? { interval: 'year' as const }
+      : { interval: 'month' as const }
+
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
-    line_items: [{ price: planRaw.stripe_price_id, quantity: 1 }],
+    line_items: [{
+      price_data: {
+        currency: 'eur',
+        unit_amount: planRaw.price_cents,
+        recurring: billingInterval,
+        product_data: { name: planRaw.name },
+      },
+      quantity: 1,
+    }],
     mode: 'subscription',
     billing_address_collection: 'required',
-    payment_method_types: ['card', 'sepa_debit'],
     success_url: `${appUrl}/portal/${token}?sub=success`,
     cancel_url:  `${appUrl}/portal/${token}`,
     metadata: { memberId: member.id, gymId: member.gym_id },
@@ -110,12 +137,13 @@ export async function POST(
         gymId: member.gym_id,
         ...(cancelAt ? { cancel_at_ts: String(cancelAt) } : {}),
       },
-      ...(gym.stripe_account_id ? { on_behalf_of: gym.stripe_account_id } : {}),
+      ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
     },
   }
 
+  // Direct charge: session on connected account so customer is found; no on_behalf_of needed
   try {
-    const session = await stripe.checkout.sessions.create(sessionParams)
+    const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
     return NextResponse.json({ checkout_url: session.url })
   } catch (err: any) {
     console.error('Portal subscribe error:', err?.message)

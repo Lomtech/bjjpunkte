@@ -49,7 +49,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .eq('id', member.plan_id)
         .single()
 
-      if (plan?.stripe_price_id) {
+      if (plan?.price_cents) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
         const appUrl = getAppUrl()
         const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
@@ -76,29 +76,37 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             .eq('id', memberId)
         }
 
+        // Use price_data inline (avoids platform vs connected account price mismatch)
+        const billingInterval = plan.billing_interval === 'biannual'
+          ? { interval: 'month' as const, interval_count: 6 }
+          : plan.billing_interval === 'annual'
+            ? { interval: 'year' as const }
+            : { interval: 'month' as const }
+
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
-          line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
+          line_items: [{
+            price_data: {
+              currency: 'eur',
+              unit_amount: plan.price_cents,
+              recurring: billingInterval,
+              product_data: { name: plan.name },
+            },
+            quantity: 1,
+          }],
           mode: 'subscription',
-          payment_method_types: ['card', 'sepa_debit'],
           billing_address_collection: 'required',
           success_url: `${appUrl}/portal/${member.portal_token ?? ''}?payment=success`,
           cancel_url: `${appUrl}/portal/${member.portal_token ?? ''}`,
           metadata: { memberId, gymId: gym.id },
           subscription_data: {
             metadata: { memberId, gymId: gym.id },
+            ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
           },
         }
 
-        if (connectedAccountId) {
-          sessionParams.subscription_data = {
-            ...sessionParams.subscription_data,
-            on_behalf_of: connectedAccountId,
-            ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
-          }
-        }
-
-        const session = await stripe.checkout.sessions.create(sessionParams)
+        // Direct charge: session on connected account so customer is found; no on_behalf_of needed
+        const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
         checkoutUrl = session.url
 
         // Send email with checkout link

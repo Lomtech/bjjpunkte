@@ -161,19 +161,17 @@ export async function POST(req: Request) {
     try {
       const { data: plan } = await supabase
         .from('membership_plans')
-        .select('id, name, price_cents, stripe_price_id')
+        .select('id, name, price_cents, billing_interval, stripe_price_id')
         .eq('id', plan_id)
         .eq('gym_id', gymId)  // cross-gym plan injection guard
         .single()
 
       const { data: gymStripe } = await (supabase.from('gyms') as any)
-        .select('stripe_account_id, payment_method_types')
+        .select('stripe_account_id')
         .eq('id', gymId)
         .single()
 
-      const stripePrice = (plan as any)?.stripe_price_id as string | null
-
-      if (stripePrice) {
+      if ((plan as any)?.price_cents) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
         const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
         const connectedAccountId = (gymStripe as any)?.stripe_account_id as string | null
@@ -205,29 +203,37 @@ export async function POST(req: Request) {
           await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
         }
 
+        // Use price_data inline (avoids platform vs connected account price mismatch)
+        const billingInterval = (plan as any)?.billing_interval === 'biannual'
+          ? { interval: 'month' as const, interval_count: 6 }
+          : (plan as any)?.billing_interval === 'annual'
+            ? { interval: 'year' as const }
+            : { interval: 'month' as const }
+
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
-          line_items: [{ price: stripePrice, quantity: 1 }],
+          line_items: [{
+            price_data: {
+              currency: 'eur',
+              unit_amount: (plan as any)?.price_cents,
+              recurring: billingInterval,
+              product_data: { name: (plan as any)?.name ?? 'Mitgliedschaft' },
+            },
+            quantity: 1,
+          }],
           mode: 'subscription',
-          payment_method_types: ['card', 'sepa_debit'],
           billing_address_collection: 'required',
           success_url: `${appUrl}/portal/${portalToken ?? ''}?payment=success`,
           cancel_url:  `${appUrl}/portal/${portalToken ?? ''}`,
           metadata: { memberId: member.id, gymId },
           subscription_data: {
             metadata: { memberId: member.id, gymId },
+            ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
           },
         }
 
-        if (connectedAccountId) {
-          sessionParams.subscription_data = {
-            ...sessionParams.subscription_data,
-            on_behalf_of: connectedAccountId,
-            ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
-          }
-        }
-
-        const session = await stripe.checkout.sessions.create(sessionParams)
+        // Direct charge: session on connected account so customer is found; no on_behalf_of needed
+        const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
         checkoutUrl = session.url
       }
     } catch (err) {

@@ -101,7 +101,6 @@ export async function POST(req: Request) {
       customer: customerId,
       line_items: [{ price: price.id, quantity: 1 }],
       mode: 'subscription',
-      payment_method_types: ['card', 'sepa_debit'],
       billing_address_collection: 'required',
       success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
       cancel_url:  `${appUrl}/dashboard/members/${memberId}`,
@@ -110,18 +109,12 @@ export async function POST(req: Request) {
         // cancel_at is NOT supported in subscription_data for checkout sessions.
         // Instead, we pass cancel_at_ts in metadata and set it via webhook after creation.
         metadata: { memberId, gymId, ...(cancelAt ? { cancel_at_ts: String(cancelAt) } : {}) },
+        ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
       },
     }
 
-    if (connectedAccountId) {
-      sessionParams.subscription_data = {
-        ...sessionParams.subscription_data,
-        on_behalf_of: connectedAccountId,
-        ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
-      }
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams)
+    // Direct charge: session on connected account so customer is found; no on_behalf_of needed
+    const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
     return NextResponse.json({ url: session.url })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Stripe-Fehler beim Erstellen des Abonnements'

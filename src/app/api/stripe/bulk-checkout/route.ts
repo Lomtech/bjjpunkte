@@ -126,12 +126,12 @@ export async function POST(req: Request) {
       if (connectedAccountId) {
         const platformFee = Math.round(fee * platformFeePercent / 100)
         sessionParams.payment_intent_data = {
-          transfer_data: { destination: connectedAccountId },
           ...(platformFee > 0 ? { application_fee_amount: platformFee } : {}),
         }
       }
 
-      const session = await stripe.checkout.sessions.create(sessionParams)
+      // Direct charge: session on connected account so customer is found
+      const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
 
       await supabase.from('payments').insert({
         gym_id:                    gymId,
