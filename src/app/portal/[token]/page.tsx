@@ -11,6 +11,9 @@ import {
   Trophy, Megaphone, Pin, Package, ChevronDown, ChevronUp, X, AlertTriangle, Navigation,
   ChevronLeft, ChevronRight, Users, User,
 } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { translations } from '@/lib/i18n/translations'
 
 // ── types ────────────────────────────────────────────────────────────────────
 
@@ -332,6 +335,9 @@ export default function MemberPortalPage() {
   const [cancelRequesting, setCancelRequesting] = useState(false)
   const [localCancelledAt, setLocalCancelledAt] = useState<string | null>(null)
 
+  const { lang, t } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
+
   const loadPortal = useCallback(() => {
     fetch(`/api/portal/${token}`)
       .then(r => r.json())
@@ -383,16 +389,29 @@ export default function MemberPortalPage() {
 
   async function handleBook(classId: string) {
     setBookingId(classId)
-    await fetch(`/api/portal/${token}/book/${classId}`, { method: 'POST' })
+    const res = await fetch(`/api/portal/${token}/book/${classId}`, { method: 'POST' })
     setBookingId(null)
-    loadClasses() // only reload classes — loadPortal() would risk wiping the page on transient errors
+    if (res.ok) {
+      // Optimistic update — no reload needed, avoids classesLoading blanking the view
+      setClasses(prev => prev.map(c =>
+        c.id === classId
+          ? { ...c, my_status: 'confirmed', confirmed_count: c.confirmed_count + 1 }
+          : c
+      ))
+    }
   }
 
   async function handleCancelBooking(classId: string) {
     setBookingId(classId)
-    await fetch(`/api/portal/${token}/book/${classId}`, { method: 'DELETE' })
+    const res = await fetch(`/api/portal/${token}/book/${classId}`, { method: 'DELETE' })
     setBookingId(null)
-    loadClasses()
+    if (res.ok) {
+      setClasses(prev => prev.map(c =>
+        c.id === classId
+          ? { ...c, my_status: null, confirmed_count: Math.max(0, c.confirmed_count - 1) }
+          : c
+      ))
+    }
   }
 
   async function handleCheckin(classId: string) {
@@ -468,7 +487,7 @@ export default function MemberPortalPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="text-slate-400 text-sm">Lädt...</div>
+      <div className="text-slate-400 text-sm">{t('common', 'loading')}</div>
     </div>
   )
 
@@ -523,15 +542,18 @@ export default function MemberPortalPage() {
             )}
             <div>
               <p className="font-bold text-slate-900 text-sm leading-tight">{gym?.name || 'Osss'}</p>
-              <p className="text-xs text-slate-400">Mitglieder-Portal</p>
+              <p className="text-xs text-slate-400">{t('portal', 'memberPortal')}</p>
             </div>
           </div>
 
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${
-            member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-400 border-slate-200'
-          }`}>
-            {member.is_active ? 'Aktiv' : 'Inaktiv'}
-          </span>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher variant="minimal" />
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${
+              member.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-400 border-slate-200'
+            }`}>
+              {member.is_active ? t('common', 'active') : t('common', 'inactive')}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -548,11 +570,11 @@ export default function MemberPortalPage() {
               <CheckCircle size={16} className="text-white" />
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-green-800 text-sm font-semibold">Du wurdest eingecheckt ✓</p>
+              <p className="text-green-800 text-sm font-semibold">{t('portal', 'checkedIn')}</p>
               <p className="text-green-600 text-xs mt-0.5">
                 {CLASS_LABELS[recentCheckin.class_type] ?? recentCheckin.class_type}
                 {' · '}
-                {new Date(recentCheckin.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
+                {new Date(recentCheckin.checked_in_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} Uhr
               </p>
             </div>
             <button onClick={() => setCheckinBannerDismissed(true)} className="text-green-400 hover:text-green-600 transition-colors flex-shrink-0">
@@ -564,19 +586,19 @@ export default function MemberPortalPage() {
         {/* GPS Check-in — always first so members can check in instantly */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
           <h2 className="font-semibold text-slate-900 mb-0.5 flex items-center gap-2 text-sm">
-            <Navigation size={14} className="text-amber-500" /> GPS Check-in
+            <Navigation size={14} className="text-amber-500" /> {t('portal', 'gpsCheckin')}
           </h2>
-          <p className="text-slate-400 text-xs mb-4">Im Gym? Einmal tippen — automatisch eingecheckt.</p>
+          <p className="text-slate-400 text-xs mb-4">{t('portal', 'gpsSubtitle')}</p>
           <button
             onClick={handleGpsCheckin}
             disabled={gpsState === 'locating' || !eligibleForCheckin}
             className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl py-3 transition-colors"
           >
             <Navigation size={14} />
-            {gpsState === 'locating' ? 'Standort wird ermittelt…' : 'GPS Check-in starten'}
+            {gpsState === 'locating' ? t('portal', 'gpsLocating') : t('portal', 'gpsStart')}
           </button>
           {!eligibleForCheckin && gpsState === 'idle' && (
-            <p className="mt-2 text-xs text-center text-slate-400">Kein aktiver Kurs – Check-in ist nur während oder bis zu 3 Std. nach dem Training möglich.</p>
+            <p className="mt-2 text-xs text-center text-slate-400">{t('portal', 'gpsNoClass')}</p>
           )}
           {gpsMessage && (
             <p className={`mt-3 text-xs text-center px-3 py-2 rounded-xl ${gpsState === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
@@ -590,10 +612,10 @@ export default function MemberPortalPage() {
       <div className="sticky top-0 z-10 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-2xl mx-auto flex">
           {[
-            { id: 'schedule',   label: 'Stundenplan', Icon: Calendar },
-            { id: 'profile',    label: 'Profil',       Icon: User },
-            { id: 'verwaltung', label: 'Verwaltung',   Icon: CreditCard },
-            { id: 'logbuch',    label: 'Logbuch',      Icon: BookOpen },
+            { id: 'schedule',   label: t('portal', 'schedule'),   Icon: Calendar },
+            { id: 'profile',    label: t('portal', 'profile'),    Icon: User },
+            { id: 'verwaltung', label: t('portal', 'management'), Icon: CreditCard },
+            { id: 'logbuch',    label: t('portal', 'logbook'),    Icon: BookOpen },
           ].map(({ id, label, Icon }) => (
             <button
               key={id}
@@ -630,7 +652,7 @@ export default function MemberPortalPage() {
                         <p className={`text-sm font-semibold ${a.is_pinned ? 'text-amber-900' : 'text-slate-800'}`}>{a.title}</p>
                         {a.body && <p className={`text-xs mt-1 leading-relaxed ${a.is_pinned ? 'text-amber-800' : 'text-slate-500'}`}>{a.body}</p>}
                         <p className="text-xs text-slate-400 mt-1.5">
-                          {new Date(a.created_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          {new Date(a.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
                         </p>
                       </div>
                     </div>
