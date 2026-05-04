@@ -58,5 +58,14 @@ export async function POST(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // Upsert class_bookings so member shows up in schedule roster
+  if (class_id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (svc.from('class_bookings') as any).upsert(
+      { gym_id: gym.id, member_id, class_id, status: 'checked_in' },
+      { onConflict: 'member_id,class_id' }
+    )
+  }
+
   return NextResponse.json({ ok: true, entry })
 }

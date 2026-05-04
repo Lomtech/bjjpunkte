@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -91,6 +91,9 @@ export default function MemberDetailPage() {
   const [stripesEnabled, setStripesEnabled] = useState(true)
   const [checkingIn, setCheckingIn]       = useState(false)
   const [checkedInNow, setCheckedInNow]   = useState(false)
+  const [gpsError, setGpsError]           = useState<string | null>(null)
+  const cachedGps = useRef<{ lat: number; lng: number; ts: number } | null>(null)
+  const GPS_CACHE_MS = 5 * 60 * 1000
 
   useEffect(() => {
     async function load() {
@@ -240,20 +243,50 @@ export default function MemberDetailPage() {
   async function handleCheckIn() {
     if (checkingIn) return
     setCheckingIn(true)
+    setGpsError(null)
+
+    // Get GPS (cached or fresh)
+    let lat: number, lng: number
+    try {
+      const cached = cachedGps.current
+      if (cached && Date.now() - cached.ts < GPS_CACHE_MS) {
+        lat = cached.lat; lng = cached.lng
+      } else if (navigator.geolocation) {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10_000 })
+        )
+        cachedGps.current = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now() }
+        lat = pos.coords.latitude; lng = pos.coords.longitude
+      } else {
+        throw new Error('GPS nicht verfügbar')
+      }
+    } catch (e: unknown) {
+      setCheckingIn(false)
+      const msg = e instanceof GeolocationPositionError
+        ? (e.code === 1 ? 'GPS-Zugriff verweigert. Bitte Standortfreigabe erlauben.' : 'GPS-Standort konnte nicht ermittelt werden.')
+        : (e instanceof Error ? e.message : 'GPS-Fehler')
+      setGpsError(msg)
+      return
+    }
+
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch('/api/attendance', {
+    const res = await fetch('/api/attendance/gps', {
       method: 'POST',
       headers: { Authorization: `Bearer ${session?.access_token ?? ''}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ member_id: id, class_type: 'gi' }),
+      body: JSON.stringify({ member_id: id, class_type: 'gi', class_id: null, lat, lng }),
     })
     setCheckingIn(false)
+
     if (res.ok) {
       const { entry } = await res.json()
       setAttendance(prev => [entry, ...prev])
       setTotalSessions(n => n + 1)
       setCheckedInNow(true)
       setTimeout(() => setCheckedInNow(false), 3000)
+    } else {
+      const json = await res.json().catch(() => ({}))
+      setGpsError(json.error ?? 'Check-in fehlgeschlagen')
     }
   }
 
@@ -279,26 +312,34 @@ export default function MemberDetailPage() {
   return (
     <div className="max-w-3xl">
       {/* Sticky check-in bar — always visible at top */}
-      <div className="sticky top-0 z-20 bg-slate-50 border-b border-zinc-100 px-4 md:px-6 py-3 flex items-center justify-between gap-3">
-        <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors flex-shrink-0">
-          ← Mitglieder
-        </Link>
-        <button
-          onClick={handleCheckIn}
-          disabled={checkingIn}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all shadow-sm flex-shrink-0 ${
-            checkedInNow
-              ? 'bg-green-500 text-white'
-              : 'bg-amber-400 hover:bg-amber-300 text-zinc-950'
-          } disabled:opacity-60`}
-        >
-          {checkedInNow
-            ? <><Check size={14} /> Eingecheckt!</>
-            : checkingIn
-              ? '…'
-              : <><UserCheck size={14} /> Einchecken</>
-          }
-        </button>
+      <div className="sticky top-0 z-20 bg-slate-50 border-b border-zinc-100 px-4 md:px-6 py-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors flex-shrink-0">
+            ← Mitglieder
+          </Link>
+          <button
+            onClick={handleCheckIn}
+            disabled={checkingIn}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all shadow-sm flex-shrink-0 ${
+              checkedInNow
+                ? 'bg-green-500 text-white'
+                : 'bg-amber-400 hover:bg-amber-300 text-zinc-950'
+            } disabled:opacity-60`}
+          >
+            {checkedInNow
+              ? <><Check size={14} /> Eingecheckt!</>
+              : checkingIn
+                ? 'GPS…'
+                : <><UserCheck size={14} /> Einchecken</>
+            }
+          </button>
+        </div>
+        {gpsError && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">
+            <span className="flex-1">{gpsError}</span>
+            <button onClick={() => setGpsError(null)} className="text-red-300 hover:text-red-500">✕</button>
+          </div>
+        )}
       </div>
 
       <div className="p-4 md:p-6">

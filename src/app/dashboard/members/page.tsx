@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download, UserCheck } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download, UserCheck, Navigation } from 'lucide-react'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
@@ -75,6 +75,11 @@ export default function MembersPage() {
   const [eligibleClasses, setEligibleClasses] = useState<{ id: string; class_type: string; title: string; starts_at: string }[]>([])
   // memberId waiting for class selection (when >1 eligible class)
   const [selectingMemberId, setSelectingMemberId] = useState<string | null>(null)
+  // GPS toast
+  const [gpsError, setGpsError]            = useState<string | null>(null)
+  // Cached GPS position (valid 5 min) — avoids re-prompting for every check-in
+  const cachedGps = useRef<{ lat: number; lng: number; ts: number } | null>(null)
+  const GPS_CACHE_MS = 5 * 60 * 1000
 
   function handleCopy(text: string, key: string) {
     navigator.clipboard.writeText(text)
@@ -82,35 +87,71 @@ export default function MembersPage() {
     setTimeout(() => setCopiedId(prev => prev === key ? null : prev), 2000)
   }
 
+  /** Get GPS — use cache if fresh, otherwise request from browser */
+  function getGps(): Promise<{ lat: number; lng: number }> {
+    return new Promise((resolve, reject) => {
+      const cached = cachedGps.current
+      if (cached && Date.now() - cached.ts < GPS_CACHE_MS) {
+        resolve({ lat: cached.lat, lng: cached.lng }); return
+      }
+      if (!navigator.geolocation) { reject(new Error('GPS nicht verfügbar')); return }
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          cachedGps.current = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now() }
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        },
+        err => reject(new Error(err.code === 1 ? 'GPS-Zugriff verweigert. Bitte Standortfreigabe erlauben.' : 'GPS-Standort konnte nicht ermittelt werden.')),
+        { enableHighAccuracy: true, timeout: 10_000 }
+      )
+    })
+  }
+
   /** Called when user taps Check-in on a member row */
   function handleCheckInClick(memberId: string) {
     if (checkingInId) return
-    if (eligibleClasses.length === 0) return       // button should be disabled anyway
+    if (eligibleClasses.length === 0) return
     if (eligibleClasses.length === 1) {
-      doCheckIn(memberId, eligibleClasses[0])      // only one option → go directly
+      doCheckIn(memberId, eligibleClasses[0])
     } else {
-      setSelectingMemberId(memberId)               // multiple → show picker
+      setSelectingMemberId(memberId)
     }
   }
 
   async function doCheckIn(memberId: string, cls: { id: string; class_type: string }) {
     setSelectingMemberId(null)
+    setGpsError(null)
     setCheckingInId(memberId)
+
+    let coords: { lat: number; lng: number }
+    try {
+      coords = await getGps()
+    } catch (e) {
+      setCheckingInId(null)
+      setGpsError(e instanceof Error ? e.message : 'GPS-Fehler')
+      return
+    }
+
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch('/api/attendance', {
+    const res = await fetch('/api/attendance/gps', {
       method: 'POST',
       headers: { Authorization: `Bearer ${session?.access_token ?? ''}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         member_id:  memberId,
         class_type: cls.class_type ?? 'gi',
         class_id:   cls.id,
+        lat:        coords.lat,
+        lng:        coords.lng,
       }),
     })
     setCheckingInId(null)
+
     if (res.ok) {
       setCheckedInIds(prev => new Set(prev).add(memberId))
       setTimeout(() => setCheckedInIds(prev => { const n = new Set(prev); n.delete(memberId); return n }), 3000)
+    } else {
+      const json = await res.json().catch(() => ({}))
+      setGpsError(json.error ?? 'Check-in fehlgeschlagen')
     }
   }
 
@@ -319,6 +360,15 @@ export default function MembersPage() {
         value={search} onChange={e => setSearch(e.target.value)}
         className="w-full mb-4 px-4 py-2.5 rounded-xl bg-white border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 shadow-sm"
       />
+
+      {/* GPS error toast */}
+      {gpsError && (
+        <div className="mb-4 flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+          <Navigation size={15} className="flex-shrink-0 text-red-400" />
+          <span className="flex-1">{gpsError}</span>
+          <button onClick={() => setGpsError(null)} className="text-red-300 hover:text-red-500 flex-shrink-0"><X size={14} /></button>
+        </div>
+      )}
 
       {bulkResult && (
         <div className="mb-4 p-3 rounded-lg bg-zinc-100 border border-zinc-200 text-zinc-700 text-sm font-medium">{bulkResult}</div>
