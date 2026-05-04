@@ -1,0 +1,124 @@
+import { NextResponse } from 'next/server'
+import Stripe from 'stripe'
+import { createClient } from '@supabase/supabase-js'
+import { getAppUrl } from '@/lib/app-url'
+
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
+// Creates a new Stripe Checkout session for a member's current plan via portal token.
+// Used when the member has a plan_id but no active subscription.
+export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  const { token } = await params
+  if (!token || token.length < 10) {
+    return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
+  }
+
+  const stripeKey = process.env.STRIPE_SECRET_KEY
+  if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert' }, { status: 400 })
+
+  const supabase = adminClient()
+
+  const { data: memberRaw } = await supabase
+    .from('members')
+    .select('id, gym_id, email, first_name, last_name, plan_id, stripe_customer_id, stripe_subscription_id, subscription_status')
+    .eq('portal_token', token)
+    .single()
+
+  if (!memberRaw) return NextResponse.json({ error: 'Ungültiger Token' }, { status: 401 })
+
+  const member = memberRaw as {
+    id: string
+    gym_id: string
+    email: string | null
+    first_name: string
+    last_name: string
+    plan_id: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    subscription_status: string | null
+  }
+
+  if (!member.plan_id) {
+    return NextResponse.json({ error: 'Kein Tarif zugewiesen' }, { status: 400 })
+  }
+
+  if (member.stripe_subscription_id && member.subscription_status === 'active') {
+    return NextResponse.json({ error: 'Abo bereits aktiv' }, { status: 400 })
+  }
+
+  const { data: gymRaw } = await supabase
+    .from('gyms')
+    .select('id, stripe_account_id')
+    .eq('id', member.gym_id)
+    .single()
+
+  const gym = gymRaw as { id: string; stripe_account_id: string | null } | null
+  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+
+  const { data: planRaw } = await (supabase.from('membership_plans') as any)
+    .select('id, name, price_cents, billing_interval, stripe_price_id, contract_months')
+    .eq('id', member.plan_id)
+    .eq('gym_id', member.gym_id)
+    .single()
+
+  if (!planRaw || !planRaw.stripe_price_id) {
+    return NextResponse.json({ error: 'Tarif hat keine Stripe-Verknüpfung' }, { status: 400 })
+  }
+
+  const stripe = new Stripe(stripeKey)
+  const appUrl = getAppUrl()
+
+  // Ensure Stripe customer exists
+  let customerId = member.stripe_customer_id
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: member.email ?? undefined,
+      name: `${member.first_name} ${member.last_name}`,
+      metadata: { memberId: member.id, gymId: member.gym_id },
+    })
+    customerId = customer.id
+    await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
+  }
+
+  let cancelAt: number | undefined
+  if (planRaw.contract_months && planRaw.contract_months > 0) {
+    const end = new Date()
+    end.setMonth(end.getMonth() + planRaw.contract_months)
+    cancelAt = Math.floor(end.getTime() / 1000)
+  }
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    customer: customerId,
+    line_items: [{ price: planRaw.stripe_price_id, quantity: 1 }],
+    mode: 'subscription',
+    billing_address_collection: 'required',
+    payment_method_types: ['card', 'sepa_debit'],
+    success_url: `${appUrl}/portal/${token}?sub=success`,
+    cancel_url:  `${appUrl}/portal/${token}`,
+    metadata: { memberId: member.id, gymId: member.gym_id },
+    subscription_data: {
+      metadata: {
+        memberId: member.id,
+        gymId: member.gym_id,
+        ...(cancelAt ? { cancel_at_ts: String(cancelAt) } : {}),
+      },
+      ...(gym.stripe_account_id ? { on_behalf_of: gym.stripe_account_id } : {}),
+    },
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.create(sessionParams)
+    return NextResponse.json({ checkout_url: session.url })
+  } catch (err: any) {
+    console.error('Portal subscribe error:', err?.message)
+    return NextResponse.json({ error: err?.message ?? 'Checkout konnte nicht erstellt werden' }, { status: 500 })
+  }
+}

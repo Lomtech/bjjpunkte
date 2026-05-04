@@ -10,7 +10,6 @@ function authClient(accessToken: string) {
   )
 }
 
-// Request additional payment method capabilities for the gym's connected Stripe account
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
   if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert' }, { status: 400 })
@@ -39,7 +38,6 @@ export async function POST(req: Request) {
         transfers:           { requested: true },
         sepa_debit_payments: { requested: true },
         klarna_payments:     { requested: true },
-        ...({ paypal_payments: { requested: true } } as any),
       },
     })
   } catch (err: any) {
@@ -47,7 +45,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err?.message ?? 'Fehler beim Anfordern' }, { status: 500 })
   }
 
-  // Return updated capability status
   const account = await stripe.accounts.retrieve(accountId)
   const caps = account.capabilities ?? {}
   return NextResponse.json({
@@ -56,7 +53,6 @@ export async function POST(req: Request) {
       card:      caps.card_payments       ?? 'inactive',
       sepa:      caps.sepa_debit_payments ?? 'inactive',
       klarna:    caps.klarna_payments     ?? 'inactive',
-      paypal:    (caps as any).paypal_payments ?? 'inactive',
       transfers: caps.transfers           ?? 'inactive',
     },
   })

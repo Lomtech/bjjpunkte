@@ -69,7 +69,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
-          // payment_method_types omitted → Stripe uses dashboard defaults automatically
+          payment_method_types: ['card', 'sepa_debit'],
           line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
           mode: 'subscription',
           billing_address_collection: 'required',

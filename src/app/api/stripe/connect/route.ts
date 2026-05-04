@@ -41,7 +41,6 @@ export async function GET(req: Request) {
         card:      caps.card_payments       ?? 'inactive',
         sepa:      caps.sepa_debit_payments ?? 'inactive',
         klarna:    caps.klarna_payments     ?? 'inactive',
-        paypal:    (caps as any).paypal_payments ?? 'inactive',
         transfers: caps.transfers           ?? 'inactive',
       },
     })
@@ -85,7 +84,6 @@ export async function POST(req: Request) {
         transfers:           { requested: true },
         sepa_debit_payments: { requested: true },
         klarna_payments:     { requested: true },
-        ...({ paypal_payments: { requested: true } } as any),
       },
       metadata: { gymId: gymData.id, gymName: gymData.name },
     })
@@ -100,7 +98,6 @@ export async function POST(req: Request) {
           transfers:           { requested: true },
           sepa_debit_payments: { requested: true },
           klarna_payments:     { requested: true },
-          ...({ paypal_payments: { requested: true } } as any),
         },
       })
     } catch { /* non-fatal */ }
