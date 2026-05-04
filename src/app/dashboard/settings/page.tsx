@@ -1156,8 +1156,9 @@ export default function SettingsPage() {
                       <p className="text-zinc-600 text-sm">{t('settings', 'platformFeeDesc')}</p>
                       <div className="text-xs text-zinc-500 bg-zinc-50 rounded-lg p-3 space-y-1">
                         <p>{t('settings', 'feeExample')}</p>
-                        <p>→ <strong className="text-zinc-700">78,40 €</strong> {t('settings', 'feeYourAccount')}</p>
+                        <p>→ <strong className="text-zinc-700">~77,00 €</strong> {t('settings', 'feeYourAccount')}</p>
                         <p>→ <strong className="text-zinc-700">1,60 €</strong> {t('settings', 'feePlatform')}</p>
+                        <p>→ <strong className="text-zinc-700">~1,37 €</strong> {t('settings', 'feeStripe')}</p>
                       </div>
                       <button type="button" onClick={handleConnect} disabled={connectLoading || !stripeConfigured}
                         className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
