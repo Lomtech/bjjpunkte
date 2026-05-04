@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BeltBadge } from '@/components/BeltBadge'
-import { Trash2, UserCheck, CalendarDays, Clock } from 'lucide-react'
+import { Trash2, UserCheck, CalendarDays, Clock, AlertTriangle } from 'lucide-react'
 import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 import { readCachedGymId } from '../_components/RoleShell'
@@ -37,6 +37,7 @@ export default function AttendancePage() {
   const [todayLog, setTodayLog]     = useState<AttendanceEntry[]>([])
   const [todayClasses, setTodayClasses] = useState<ClassEvent[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [beltSystem, setBeltSystem] = useState<BeltSystem | undefined>(undefined)
 
   const loadData = useCallback(async () => {
@@ -91,7 +92,6 @@ export default function AttendancePage() {
   useEffect(() => { loadData() }, [loadData])
 
   async function deleteAttendance(id: string) {
-    if (!confirm('Eintrag wirklich löschen?')) return
     setDeletingId(id)
     const { data: { session } } = await createClient().auth.getSession()
     const res = await fetch(`/api/attendance/${id}`, {
@@ -99,6 +99,7 @@ export default function AttendancePage() {
     })
     if (res.ok) setTodayLog(prev => prev.filter(a => a.id !== id))
     setDeletingId(null)
+    setConfirmDeleteId(null)
   }
 
   const memberMap = new Map(members.map(m => [m.id, m]))
@@ -234,7 +235,7 @@ export default function AttendancePage() {
                             {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                           <button
-                            onClick={() => deleteAttendance(a.id)}
+                            onClick={() => setConfirmDeleteId(a.id)}
                             disabled={deletingId === a.id}
                             className="opacity-0 group-hover:opacity-100 text-zinc-300 hover:text-red-400 transition-all disabled:opacity-30 min-w-[36px] min-h-[36px] flex items-center justify-center"
                           >
@@ -248,6 +249,43 @@ export default function AttendancePage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => { if (!deletingId) setConfirmDeleteId(null) }}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-xs shadow-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 pt-6 pb-5 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle size={20} className="text-red-500" />
+              </div>
+              <h2 className="text-zinc-900 font-bold text-base mb-1">Eintrag löschen?</h2>
+              <p className="text-zinc-400 text-sm">Dieser Check-in wird unwiderruflich entfernt.</p>
+            </div>
+            <div className="flex border-t border-zinc-100">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                disabled={!!deletingId}
+                className="flex-1 py-3.5 text-sm font-medium text-zinc-500 hover:bg-zinc-50 transition-colors border-r border-zinc-100"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => deleteAttendance(confirmDeleteId)}
+                disabled={!!deletingId}
+                className="flex-1 py-3.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                {deletingId === confirmDeleteId ? 'Löschen…' : 'Löschen'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
