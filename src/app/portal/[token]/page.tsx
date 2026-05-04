@@ -293,6 +293,7 @@ export default function MemberPortalPage() {
   const [data, setData]       = useState<MemberData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
+  const [checkinBannerDismissed, setCheckinBannerDismissed] = useState(false)
 
   const [classes, setClasses]               = useState<UpcomingClass[]>([])
   const [classesLoading, setClassesLoading] = useState(false)
@@ -476,6 +477,14 @@ export default function MemberPortalPage() {
   const { member, gym, attendance, totalSessions, payments, plans, announcements, posts } = data
   const { sessionsThisMonth, streak } = calcStats(attendance ?? [])
 
+  // Show banner if most recent check-in was within the last 10 minutes (trainer checked them in)
+  const recentCheckin = (() => {
+    const latest = attendance?.[0]
+    if (!latest) return null
+    const age = Date.now() - new Date(latest.checked_in_at).getTime()
+    return age < 10 * 60 * 1000 ? latest : null
+  })()
+
   const beltSystem    = resolveBeltSystem((gym as any)?.belt_system)
   const beltEnabled   = (gym as any)?.belt_system_enabled ?? true
   const beltSlot      = beltSystem.find(s => s.key === member.belt) ?? beltSystem[0]
@@ -521,6 +530,26 @@ export default function MemberPortalPage() {
 
         {/* PWA install */}
         <PWAInstallButton gymName={gym?.name ?? ''} />
+
+        {/* Trainer check-in notification banner */}
+        {recentCheckin && !checkinBannerDismissed && (
+          <div className="flex items-center gap-3 rounded-2xl bg-green-50 border border-green-200 px-4 py-3.5 shadow-sm">
+            <span className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+              <CheckCircle size={16} className="text-white" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-green-800 text-sm font-semibold">Du wurdest eingecheckt ✓</p>
+              <p className="text-green-600 text-xs mt-0.5">
+                {CLASS_LABELS[recentCheckin.class_type] ?? recentCheckin.class_type}
+                {' · '}
+                {new Date(recentCheckin.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
+              </p>
+            </div>
+            <button onClick={() => setCheckinBannerDismissed(true)} className="text-green-400 hover:text-green-600 transition-colors flex-shrink-0">
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         {/* GPS Check-in — always first so members can check in instantly */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download, UserCheck } from 'lucide-react'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
@@ -70,11 +70,35 @@ export default function MembersPage() {
   const [activatedMember, setActivatedMember] = useState<Member | null>(null)
   const [showWaModal, setShowWaModal]       = useState(false)
   const [copiedId, setCopiedId]             = useState<string | null>(null)
+  const [checkingInId, setCheckingInId]     = useState<string | null>(null)
+  const [checkedInIds, setCheckedInIds]     = useState<Set<string>>(new Set())
+  const [currentClass, setCurrentClass]     = useState<{ id: string; class_type: string; title: string } | null>(null)
 
   function handleCopy(text: string, key: string) {
     navigator.clipboard.writeText(text)
     setCopiedId(key)
     setTimeout(() => setCopiedId(prev => prev === key ? null : prev), 2000)
+  }
+
+  async function handleCheckIn(memberId: string) {
+    if (checkingInId) return
+    setCheckingInId(memberId)
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/attendance', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        member_id:  memberId,
+        class_type: currentClass?.class_type ?? 'gi',
+        class_id:   currentClass?.id ?? null,
+      }),
+    })
+    setCheckingInId(null)
+    if (res.ok) {
+      setCheckedInIds(prev => new Set(prev).add(memberId))
+      setTimeout(() => setCheckedInIds(prev => { const n = new Set(prev); n.delete(memberId); return n }), 3000)
+    }
   }
 
   useEffect(() => {
@@ -86,11 +110,28 @@ export default function MembersPage() {
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
-      const { data } = await supabase
-        .from('members')
-        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id')
-        .eq('gym_id', gym.id).order('last_name').limit(1000)
-      setMembers((data as unknown as Member[]) ?? [])
+      // Load members + current running class in parallel
+      const now = new Date()
+      const [membersRes, classesRes] = await Promise.all([
+        supabase
+          .from('members')
+          .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id')
+          .eq('gym_id', gym.id).order('last_name').limit(1000),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString() }),
+      ])
+      setMembers((membersRes.data as unknown as Member[]) ?? [])
+
+      // Find the class that is currently running (started ≤ now ≤ ends)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const classes = (classesRes.data ?? []) as any[]
+      const running = classes.find(c => {
+        const start = new Date(c.starts_at)
+        const end   = new Date(c.ends_at)
+        return !c.is_cancelled && start <= now && end >= now
+      })
+      if (running) setCurrentClass({ id: running.id, class_type: running.class_type ?? 'gi', title: running.title })
+
       setLoading(false)
     }
     load()
@@ -181,7 +222,31 @@ export default function MembersPage() {
     setActivatingId(null)
   }
 
-  if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
+  if (loading) return (
+    <div className="p-4 md:p-6 animate-pulse">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <div className="h-7 w-32 bg-zinc-200 rounded mb-2" />
+          <div className="h-3 w-48 bg-zinc-100 rounded" />
+        </div>
+        <div className="h-9 w-24 bg-zinc-200 rounded-xl" />
+      </div>
+      <div className="h-10 w-full bg-zinc-100 rounded-xl mb-4" />
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-4 py-4 border-b border-zinc-100 last:border-0">
+            <div className="w-8 h-8 rounded-full bg-zinc-100 flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3.5 w-40 bg-zinc-200 rounded" />
+              <div className="h-2.5 w-24 bg-zinc-100 rounded" />
+            </div>
+            <div className="h-3 w-16 bg-zinc-100 rounded hidden md:block" />
+            <div className="h-6 w-20 bg-zinc-100 rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 
   return (
     <div className="p-4 md:p-6">
@@ -189,7 +254,15 @@ export default function MembersPage() {
       <div className="flex items-center justify-between mb-5 gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Mitglieder</h1>
-          <p className="text-zinc-400 text-xs mt-0.5 font-medium">{active.length} aktiv · {inactive.length} inaktiv</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-zinc-400 text-xs font-medium">{active.length} aktiv · {inactive.length} inaktiv</p>
+            {currentClass && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                {currentClass.title} läuft
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Link href="/dashboard/members/import"
@@ -372,7 +445,7 @@ export default function MembersPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-3">
+                        <div className="flex items-center justify-end gap-2">
                           {m.phone && (
                             <a href={`https://wa.me/${toWaPhone(m.phone)}?text=${encodeURIComponent(`Hallo ${m.first_name}! 👋`)}`}
                               target="_blank" rel="noopener noreferrer"
@@ -380,6 +453,25 @@ export default function MembersPage() {
                               className="text-[#25D366] hover:text-[#1ebe57] transition-colors">
                               <MessageCircle size={15} />
                             </a>
+                          )}
+                          {m.is_active && (
+                            <button
+                              onClick={() => handleCheckIn(m.id)}
+                              disabled={checkingInId === m.id}
+                              title={currentClass ? `Einchecken für ${currentClass.title}` : 'Einchecken'}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                                checkedInIds.has(m.id)
+                                  ? 'bg-green-500 text-white'
+                                  : 'bg-amber-400 hover:bg-amber-300 text-zinc-900'
+                              } disabled:opacity-50`}
+                            >
+                              {checkedInIds.has(m.id)
+                                ? <><Check size={12} /> ✓</>
+                                : checkingInId === m.id
+                                  ? '…'
+                                  : <><UserCheck size={12} /> Check-in</>
+                              }
+                            </button>
                           )}
                         </div>
                       </td>
@@ -397,28 +489,44 @@ export default function MembersPage() {
               const feeCents = m.monthly_fee_override_cents ?? monthlyFeeCents
               const subStatus = m.subscription_status ?? 'none'
               return (
-                <Link key={m.id} href={`/dashboard/members/${m.id}`}
-                  className="flex items-center gap-3 bg-white rounded-xl border border-zinc-200 p-3.5 hover:bg-zinc-50 transition-colors shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-amber-600">{m.first_name[0]}{m.last_name[0]}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-zinc-900 text-sm truncate">{m.first_name} {m.last_name}</span>
-                      {cs === 'expired' && <AlertTriangle size={12} className="text-red-500 flex-shrink-0" />}
-                      {cs === 'expiring' && <AlertTriangle size={12} className="text-amber-500 flex-shrink-0" />}
+                <div key={m.id} className="flex items-center gap-3 bg-white rounded-xl border border-zinc-200 p-3.5 shadow-sm">
+                  <div onClick={() => router.push(`/dashboard/members/${m.id}`)}
+                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+                    <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-amber-600">{m.first_name[0]}{m.last_name[0]}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      {beltEnabled && <BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} />}
-                      {feeCents > 0 && subStatus !== 'none' && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SUB_COLORS[subStatus]}`}>
-                          {SUB_LABELS[subStatus]}
-                        </span>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-zinc-900 text-sm truncate">{m.first_name} {m.last_name}</span>
+                        {cs === 'expired' && <AlertTriangle size={12} className="text-red-500 flex-shrink-0" />}
+                        {cs === 'expiring' && <AlertTriangle size={12} className="text-amber-500 flex-shrink-0" />}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        {beltEnabled && <BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} />}
+                        {feeCents > 0 && subStatus !== 'none' && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SUB_COLORS[subStatus]}`}>
+                            {SUB_LABELS[subStatus]}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
-                </Link>
+                  {m.is_active ? (
+                    <button
+                      onClick={() => handleCheckIn(m.id)}
+                      disabled={checkingInId === m.id}
+                      className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        checkedInIds.has(m.id)
+                          ? 'bg-green-500 text-white'
+                          : 'bg-amber-400 hover:bg-amber-300 text-zinc-900'
+                      } disabled:opacity-50`}
+                    >
+                      {checkedInIds.has(m.id) ? <Check size={13} /> : checkingInId === m.id ? '…' : <UserCheck size={13} />}
+                    </button>
+                  ) : (
+                    <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
+                  )}
+                </div>
               )
             })}
           </div>
