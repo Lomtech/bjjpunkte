@@ -430,30 +430,44 @@ export default function MembersPage() {
 
       {/* Pending member requests (cancellations / plan changes) */}
       {pendingRequests.length > 0 && (
-        <div className="mb-4 bg-zinc-50 rounded-xl border border-zinc-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-200 flex items-center gap-2">
-            <span className="text-xs font-semibold text-zinc-700 uppercase tracking-wider">{lang === 'en' ? 'Open member requests' : 'Offene Mitglieder-Anfragen'}</span>
-            <span className="ml-auto text-xs font-semibold text-zinc-600 bg-zinc-200 px-2 py-0.5 rounded-full border border-zinc-300">{pendingRequests.length}</span>
+        <div className="mb-4 rounded-xl overflow-hidden shadow-sm"
+          style={{ border: '2px solid #fca5a5', background: 'linear-gradient(135deg,#fff1f2 0%,#fff7f7 100%)' }}>
+          <div className="px-4 py-3 border-b border-red-200 flex items-center gap-2 bg-red-50">
+            <span className="text-base">❌</span>
+            <span className="text-xs font-bold text-red-700 uppercase tracking-wider">
+              {lang === 'en' ? 'Cancellation requests' : 'Kündigungen'}
+            </span>
+            <span className="ml-auto text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full border border-red-300">
+              {pendingRequests.length}
+            </span>
           </div>
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-red-100">
             {pendingRequests.map(m => (
               <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-zinc-700">{m.first_name[0]}{m.last_name[0]}</span>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.cancellation_requested_at ? 'bg-red-100' : 'bg-amber-100'}`}>
+                  <span className={`text-xs font-bold ${m.cancellation_requested_at ? 'text-red-700' : 'text-amber-700'}`}>
+                    {m.first_name[0]}{m.last_name[0]}
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
+                  <p className="text-sm font-bold text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
                   <div className="flex gap-2 mt-0.5">
                     {m.cancellation_requested_at && (
-                      <span className="text-xs text-zinc-500 font-medium">{t('members', 'cancellation')}</span>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
+                        ❌ {t('members', 'cancellation')}
+                      </span>
                     )}
                     {m.requested_plan_id && (
-                      <span className="text-xs text-amber-600 font-medium">{t('members', 'planChange')}</span>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                        🔄 {t('members', 'planChange')}
+                      </span>
                     )}
                   </div>
                 </div>
                 <Link href={`/dashboard/members/${m.id}`}
-                  className="text-xs text-zinc-600 hover:text-zinc-900 font-medium flex-shrink-0">{lang === 'en' ? 'Details →' : 'Details →'}</Link>
+                  className="text-xs font-bold text-red-600 hover:text-red-800 flex-shrink-0 underline underline-offset-2">
+                  {lang === 'en' ? 'Details →' : 'Details →'}
+                </Link>
               </div>
             ))}
           </div>
