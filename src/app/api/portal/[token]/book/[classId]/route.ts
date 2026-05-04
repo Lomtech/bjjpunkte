@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-function anonClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
-
 function serviceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +17,7 @@ export async function POST(
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
   }
 
-  const supabase = anonClient()
+  const supabase = serviceClient()
   const { data, error } = await supabase.rpc('book_class_by_token', {
     p_token: token,
     p_class_id: classId,
@@ -43,7 +36,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
   }
 
-  const supabase = anonClient()
+  const supabase = serviceClient()
   const { data, error } = await supabase.rpc('cancel_booking_by_token', {
     p_token: token,
     p_class_id: classId,

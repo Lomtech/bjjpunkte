@@ -25,16 +25,28 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { memberId, gymId, memberEmail, memberName, amountCents } = await req.json()
-  if (!amountCents || amountCents < 100) {
-    return NextResponse.json({ error: 'Mindestbetrag: 1,00 €' }, { status: 400 })
+  if (typeof amountCents !== 'number' || !Number.isInteger(amountCents) || amountCents < 100) {
+    return NextResponse.json({ error: 'Mindestbetrag: 1,00 € (muss eine ganze Zahl in Cent sein)' }, { status: 400 })
   }
 
   const stripe = new Stripe(stripeKey)
 
-  const { data: gymData } = await (supabase.from('gyms') as any).select('stripe_account_id').eq('id', gymId).single()
+  const { data: gymData } = await (supabase.from('gyms') as any)
+    .select('id, stripe_account_id')
+    .eq('id', gymId)
+    .eq('owner_id', user.id)  // ensures caller owns this gym
+    .single()
+  if (!gymData) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
   const connectedAccountId = gymData?.stripe_account_id
 
-  const { data: memberData } = await supabase.from('members').select('stripe_customer_id, plan_id').eq('id', memberId).single()
+  // Cross-gym guard: member must belong to the caller's gym
+  const { data: memberData } = await supabase.from('members')
+    .select('stripe_customer_id, plan_id, gym_id')
+    .eq('id', memberId)
+    .single()
+  if (!memberData || memberData.gym_id !== gymId) {
+    return NextResponse.json({ error: 'Mitglied nicht gefunden' }, { status: 403 })
+  }
   let customerId = memberData?.stripe_customer_id
   const planId   = (memberData as any)?.plan_id as string | null
 

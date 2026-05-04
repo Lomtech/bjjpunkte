@@ -333,6 +333,23 @@ export default function MemberPortalPage() {
   const [planRequesting, setPlanRequesting] = useState<string | null>(null)
   const [localRequestedPlanId, setLocalRequestedPlanId] = useState<string | null>(null)
 
+  // Subscription restart
+  const [subscribeLoading, setSubscribeLoading] = useState(false)
+
+  async function handleRestartSubscription() {
+    setSubscribeLoading(true)
+    try {
+      const res = await fetch(`/api/portal/${token}/subscribe`, { method: 'POST' })
+      const d = await res.json()
+      if (d.checkout_url) window.location.href = d.checkout_url
+      else alert(d.error ?? 'Fehler beim Erstellen des Checkouts')
+    } catch {
+      alert('Verbindungsfehler')
+    } finally {
+      setSubscribeLoading(false)
+    }
+  }
+
   // Cancellation
   const [showCancelForm, setShowCancelForm]     = useState(false)
   const [cancelNote, setCancelNote]             = useState('')
@@ -1024,6 +1041,34 @@ export default function MemberPortalPage() {
                       </div>
                     )
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Subscription restart banner */}
+            {member.plan_id && member.subscription_status !== 'active' && (
+              <div className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm flex items-start gap-3">
+                <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <CreditCard size={15} className="text-amber-600" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-900 text-sm">
+                    {lang === 'en' ? 'Complete your subscription' : 'Abo abschließen'}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {lang === 'en'
+                      ? 'Your plan is set but no active subscription was found. Click below to complete the payment setup.'
+                      : 'Dein Tarif ist hinterlegt, aber noch kein aktives Abo vorhanden. Schließe jetzt die Zahlung ab.'}
+                  </p>
+                  <button
+                    onClick={handleRestartSubscription}
+                    disabled={subscribeLoading}
+                    className="mt-3 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {subscribeLoading
+                      ? (lang === 'en' ? 'Loading…' : 'Lädt…')
+                      : (lang === 'en' ? 'Subscribe now' : 'Jetzt abonnieren')}
+                  </button>
                 </div>
               </div>
             )}

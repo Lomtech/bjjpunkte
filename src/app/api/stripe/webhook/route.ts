@@ -12,6 +12,49 @@ function adminClient() {
 
 const PLAN_LIMITS: Record<string, number> = { starter: 50, grow: 150, pro: 9999 }
 
+/** Map Stripe price amount to plan name. Adjust thresholds to match your pricing. */
+function priceAmountToPlan(amountCents: number): string {
+  if (amountCents >= 9900) return 'pro'     // e.g. 99€/mo
+  if (amountCents >= 4900) return 'grow'    // e.g. 49€/mo
+  return 'starter'                           // e.g. 29€/mo or below
+}
+
+/** Send an urgent email to gym owner via Resend when a dispute is opened. */
+async function notifyGymDispute(gymId: string, disputeId: string, amountCents: number, chargeId: string) {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return
+  const supabase = adminClient()
+  const { data: gym } = await supabase.from('gyms').select('email, name').eq('id', gymId).single()
+  if (!gym || !(gym as any).email) return
+  const g = gym as any
+  const amountEur = (amountCents / 100).toFixed(2).replace('.', ',')
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL,
+      to: g.email,
+      subject: `⚠️ Chargeback eröffnet – ${amountEur} € – Sofortmaßnahme erforderlich`,
+      html: `
+        <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+          <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#dc2626">⚠️ Chargeback / Dispute eröffnet</p>
+          <p style="font-size:15px;color:#374151;line-height:1.6">
+            Ein Mitglied oder die Bank hat eine Zahlung über <strong>${amountEur} €</strong> zurückgebucht.
+            Du hast in der Regel <strong>7 Tage</strong>, um Beweise einzureichen.
+          </p>
+          <table style="width:100%;margin:16px 0;font-size:14px;border-collapse:collapse">
+            <tr><td style="padding:6px 0;color:#6b7280">Dispute-ID</td><td style="padding:6px 0;font-weight:600">${disputeId}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Betrag</td><td style="padding:6px 0;font-weight:600">${amountEur} €</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280">Charge-ID</td><td style="padding:6px 0">${chargeId}</td></tr>
+          </table>
+          <a href="https://dashboard.stripe.com/disputes/${disputeId}" style="display:inline-block;background:#dc2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">
+            Jetzt in Stripe-Dashboard ansehen →
+          </a>
+        </div>
+      `,
+    }),
+  }).catch(e => console.error('Dispute notify email error:', e))
+}
+
 export async function POST(req: Request) {
   const stripeKey    = process.env.STRIPE_SECRET_KEY
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -235,8 +278,73 @@ export async function POST(req: Request) {
     const inv      = event.data.object as Stripe.Invoice
     const meta     = (inv as unknown as { subscription_details?: { metadata?: Record<string, string> } }).subscription_details?.metadata ?? inv.metadata ?? {}
     const memberId = meta.memberId
+
     if (memberId) {
+      // Member subscription past due
       await supabase.from('members').update({ subscription_status: 'past_due' }).eq('id', memberId)
+    } else if (meta.type === 'owner_plan') {
+      // H-2: Owner plan payment failed — downgrade gym to free
+      const gymId = meta.gymId
+      if (gymId) {
+        await supabase.from('gyms').update({
+          plan:              'free',
+          plan_member_limit: 30,
+        }).eq('id', gymId)
+        console.warn(`[webhook] Owner plan payment failed for gym ${gymId} — downgraded to free`)
+      }
+    }
+  }
+
+  // ── customer.subscription.updated (owner plan) ────────────────────────────
+  // H-3: Sync owner plan changes made via Stripe billing portal back to DB.
+  // Member subscription.updated is already handled above (line ~135).
+  // We handle owner plan here for completeness — if the gym upgrades/downgrades
+  // via Stripe directly, the DB stays in sync.
+  if (event.type === 'customer.subscription.updated') {
+    const sub = event.data.object as Stripe.Subscription
+    if (sub.metadata?.type === 'owner_plan' && !sub.metadata?.memberId) {
+      const gymId = sub.metadata?.gymId
+      if (gymId && sub.status === 'active') {
+        // Derive plan from the first line item's price amount
+        const priceAmount = sub.items.data[0]?.price?.unit_amount ?? 0
+        const plan = priceAmountToPlan(priceAmount) as Database['public']['Tables']['gyms']['Update']['plan']
+        await supabase.from('gyms').update({
+          plan,
+          plan_member_limit:           PLAN_LIMITS[priceAmountToPlan(priceAmount)] ?? 30,
+          osss_stripe_subscription_id: sub.id,
+        }).eq('id', gymId)
+      }
+    }
+  }
+
+  // ── charge.dispute.created ───────────────────────────────────────────────────
+  // H-1: A cardholder or bank has disputed a payment. Mark the payment as disputed,
+  // notify the gym owner immediately (they have ~7 days to respond).
+  if (event.type === 'charge.dispute.created') {
+    const dispute  = event.data.object as Stripe.Dispute
+    const chargeId = typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id ?? ''
+
+    // Mark matching payment as disputed
+    if (chargeId) {
+      // Disputes link via charge → payment_intent; try to match via stored payment_intent
+      const { data: charge } = await (async () => {
+        try { return { data: await stripe.charges.retrieve(chargeId) } }
+        catch { return { data: null } }
+      })()
+      const piId = typeof charge?.payment_intent === 'string' ? charge.payment_intent : null
+      if (piId) {
+        const { data: pmt } = await supabase
+          .from('payments')
+          .update({ status: 'disputed' })
+          .eq('stripe_payment_intent_id', piId)
+          .select('gym_id, amount_cents')
+          .single()
+
+        // Notify gym owner
+        if (pmt) {
+          await notifyGymDispute((pmt as any).gym_id, dispute.id, (pmt as any).amount_cents, chargeId)
+        }
+      }
     }
   }
 

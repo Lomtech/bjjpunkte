@@ -43,6 +43,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
 
   if (!payment) return new Response('Zahlung nicht gefunden', { status: 404 })
 
+  // IDOR guard: verify the authenticated user owns the gym this payment belongs to.
+  // Use the authed (RLS-enforced) client to look up their gym — if the payment's gym_id
+  // doesn't match, they get a 403 even if they guessed the payment ID.
+  const authedSupabase = accessToken
+    ? createClient(url, anonKey, { global: { headers: { Authorization: `Bearer ${accessToken}` } } })
+    : await createServerClient()
+  const { data: callerGym } = await (authedSupabase as any)
+    .from('gyms')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+  if (!callerGym || callerGym.id !== (payment as any).gym_id) {
+    return new Response('Nicht autorisiert', { status: 403 })
+  }
+
   const gym = payment.gyms as any
   const member = payment.members as any
   const pmt = payment as any
@@ -68,7 +83,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   const date = new Date(pmt.paid_at || pmt.created_at)
   const formattedDate = date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const monthYear = date.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
-  const amountEur = (pmt.amount_cents / 100).toFixed(2).replace('.', ',')
+  const rawCents = typeof pmt.amount_cents === 'number' ? pmt.amount_cents : 0
+  const amountEur = (rawCents / 100).toFixed(2).replace('.', ',')
 
   const gymName = gym.legal_name || gym.name || ''
   const gymAddress = gym.legal_address || gym.address || ''
@@ -78,7 +94,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
     taxSection = `<p class="tax-note">Gemäß §19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).</p>`
   } else {
     // amount_cents is gross (inkl. 19% USt)
-    const grossCents = pmt.amount_cents
+    const grossCents = rawCents
     const netCents = Math.round(grossCents / 1.19)
     const vatCents = grossCents - netCents
     const netEur = (netCents / 100).toFixed(2).replace('.', ',')

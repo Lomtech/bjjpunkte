@@ -5,6 +5,16 @@ import { notifyGym } from '@/lib/notify'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { getAppUrl } from '@/lib/app-url'
 
+/** Escape HTML special chars to prevent XSS in email templates. */
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function serviceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +24,10 @@ function serviceClient() {
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const { note } = await req.json().catch(() => ({ note: '' }))
+  const { note: rawNote } = await req.json().catch(() => ({ note: '' }))
+  // Sanitize note: HTML-escape + cap length to prevent email injection / XSS
+  const note = typeof rawNote === 'string' ? rawNote.slice(0, 500) : ''
+  const safeNote = escHtml(note)
 
   const supabase = serviceClient()
 
@@ -128,7 +141,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
               deine Mitgliedschaft bei <strong>${gymName}</strong> wurde erfolgreich gekündigt.
               ${hadStripe ? '<br><br>Dein Abonnement wurde sofort beendet — es werden <strong>keine weiteren Zahlungen</strong> abgebucht.' : ''}
             </p>
-            ${note ? `<p style="margin:0 0 16px;font-size:14px;color:#374151;padding:12px 16px;background:#f8fafc;border-radius:8px;border-left:3px solid #e2e8f0"><strong>Deine Notiz:</strong> ${note}</p>` : ''}
+            ${safeNote ? `<p style="margin:0 0 16px;font-size:14px;color:#374151;padding:12px 16px;background:#f8fafc;border-radius:8px;border-left:3px solid #e2e8f0"><strong>Deine Notiz:</strong> ${safeNote}</p>` : ''}
             <p style="margin:0 0 16px;font-size:14px;color:#374151">
               Wir hoffen, dich bald wieder auf der Matte zu sehen! 🥋
             </p>
@@ -146,7 +159,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       body: [
         `Hallo ${m.first_name}! ✅ Deine Kündigung wurde bestätigt.`,
         hadStripe ? 'Dein Abonnement wurde sofort beendet – keine weiteren Zahlungen.' : '',
-        note ? `Notiz: ${note}` : '',
+        note ? `Notiz: ${safeNote}` : '',
         'Wir hoffen dich bald wieder zu sehen! Oss! 🥋',
         portalUrl ? `\nPortal: ${portalUrl}` : '',
       ].filter(Boolean).join('\n'),
@@ -171,7 +184,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
             <td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${hadStripe ? `✅ Sofort gekündigt (${stripeCancelledId})` : '⚪ Kein aktives Stripe-Abonnement'}</td></tr>
         <tr><td style="padding:8px 0;color:#6b7280">Datum</td>
             <td style="padding:8px 0">${new Date(now).toLocaleString('de-DE')}</td></tr>
-        ${note ? `<tr><td colspan="2" style="padding:8px 0;margin-top:4px"><strong>Notiz des Mitglieds:</strong><br><span style="color:#374151">${note}</span></td></tr>` : ''}
+        ${safeNote ? `<tr><td colspan="2" style="padding:8px 0;margin-top:4px"><strong>Notiz des Mitglieds:</strong><br><span style="color:#374151">${safeNote}</span></td></tr>` : ''}
       </table>
     `,
     whatsappText: [
@@ -179,7 +192,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       m.email ?? '',
       m.phone ?? '',
       hadStripe ? '✅ Stripe-Abo sofort beendet' : '⚪ Kein Stripe-Abo',
-      note ? `Notiz: ${note}` : '',
+      note ? `Notiz: ${safeNote}` : '',
       `\nhttps://www.osss.pro/dashboard/members`,
     ].filter(Boolean).join('\n'),
   }).catch(e => console.error('notifyGym error:', e))

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
+import { cronGuard } from '@/lib/cron-guard'
 
 function serviceClient() {
   return createClient(
@@ -95,10 +96,8 @@ function reminderEmailHtml({
 }
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const guard = cronGuard(req)
+  if (guard) return guard
 
   const supabase = serviceClient()
   const appUrl   = getAppUrl()
