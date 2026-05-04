@@ -73,20 +73,29 @@ export async function POST(req: Request) {
 
   // Create Express account if not yet existing
   if (!accountId) {
-    const account = await stripe.accounts.create({
-      type: 'express',
-      country: 'DE',
-      email: gymData.email ?? undefined,
-      business_type: 'individual',
-      capabilities: {
-        card_payments:       { requested: true },
-        transfers:           { requested: true },
-        sepa_debit_payments: { requested: true },
-      },
-      metadata: { gymId: gymData.id, gymName: gymData.name },
-    })
-    accountId = account.id
-    await supabase.from('gyms').update({ stripe_account_id: accountId }).eq('id', gymData.id)
+    // Before creating a new account, check if one already exists for this gym
+    // (prevents duplicates when the gym disconnects and reconnects)
+    const existing = await stripe.accounts.list({ limit: 100 })
+    const found = existing.data.find(a => a.metadata?.gymId === gymData.id)
+    if (found) {
+      accountId = found.id
+      await supabase.from('gyms').update({ stripe_account_id: accountId }).eq('id', gymData.id)
+    } else {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        country: 'DE',
+        email: gymData.email ?? undefined,
+        business_type: 'individual',
+        capabilities: {
+          card_payments:       { requested: true },
+          transfers:           { requested: true },
+          sepa_debit_payments: { requested: true },
+        },
+        metadata: { gymId: gymData.id, gymName: gymData.name },
+      })
+      accountId = account.id
+      await supabase.from('gyms').update({ stripe_account_id: accountId }).eq('id', gymData.id)
+    }
   } else {
     // For existing accounts: request additional capabilities that may be missing
     try {
