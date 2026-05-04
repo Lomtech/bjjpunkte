@@ -165,20 +165,21 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         from:    process.env.RESEND_FROM_EMAIL,
         to:      email.toLowerCase().trim(),
-        subject: `Deine Anmeldung bei ${gymName} – Bestätigung`,
+        subject: `Willkommen bei ${gymName}! 🥋`,
         html: `
           <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
             <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0f172a">Hallo ${firstName.trim()}! 🥋</p>
             <p style="margin:0 0 20px;font-size:15px;color:#64748b;line-height:1.6">
-              Deine Anmeldung bei <strong>${gymName}</strong> ist eingegangen!
-              Das Team wird deine Mitgliedschaft in Kürze freischalten.
+              Herzlich willkommen bei <strong>${gymName}</strong>!
+              Deine Mitgliedschaft wurde bestätigt. 🎉
             </p>
             ${portalUrl ? `
             <p style="margin:0 0 16px;font-size:14px;color:#374151">
-              Du kannst deinen persönlichen Mitglieder-Bereich bereits aufrufen:
+              Über deinen persönlichen Mitglieder-Link kannst du jederzeit deine Daten,
+              Trainingsanwesenheit und Beiträge einsehen:
             </p>
             <a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#0f172a;font-weight:700;font-size:14px;border-radius:12px;text-decoration:none">
-              Mein Mitglieder-Portal →
+              Zum Mitgliederportal →
             </a>
             ` : ''}
             <p style="margin:24px 0 0;font-size:12px;color:#94a3b8">Oss!</p>
@@ -192,7 +193,7 @@ export async function POST(req: Request) {
   if (phone?.trim()) {
     await sendWhatsApp({
       to:   phone.trim(),
-      body: `Hallo ${firstName.trim()}! 🥋\n\nDeine Anmeldung bei *${gymName}* ist eingegangen. Das Team schaltet dich in Kürze frei.${portalUrl ? `\n\nDein Portal: ${portalUrl}` : ''}\n\nOss!`,
+      body: `Hallo ${firstName.trim()}! 🥋 Willkommen bei ${gymName}!\n\nDeine Mitgliedschaft wurde bestätigt.${portalUrl ? `\n\nZum Mitgliederportal: ${portalUrl}` : ''}\n\nOss!`,
     }).catch(() => {})
   }
 
