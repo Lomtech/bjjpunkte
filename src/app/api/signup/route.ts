@@ -209,6 +209,7 @@ export async function POST(req: Request) {
           customer: customerId,
           line_items: [{ price: stripePrice, quantity: 1 }],
           mode: 'subscription',
+          payment_method_types: ['card', 'sepa_debit'],
           billing_address_collection: 'required',
           success_url: `${appUrl}/portal/${portalToken ?? ''}?payment=success`,
           cancel_url:  `${appUrl}/portal/${portalToken ?? ''}`,

@@ -80,6 +80,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           customer: customerId,
           line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
           mode: 'subscription',
+          payment_method_types: ['card', 'sepa_debit'],
           billing_address_collection: 'required',
           success_url: `${appUrl}/portal/${member.portal_token ?? ''}?payment=success`,
           cancel_url: `${appUrl}/portal/${member.portal_token ?? ''}`,
