@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { BeltBadge } from '@/components/BeltBadge'
@@ -305,6 +305,8 @@ export default function MemberPortalPage() {
   // Calendar navigation
   const todayDate = (() => { const d = new Date(); d.setHours(0,0,0,0); return d })()
   const [weekStart, setWeekStart]   = useState<Date>(() => startOfWeek(new Date()))
+  const weekStartRef = useRef<Date>(weekStart)
+  weekStartRef.current = weekStart
   const [selectedDay, setSelectedDay] = useState<Date>(todayDate)
 
   // GPS Check-in
@@ -343,14 +345,13 @@ export default function MemberPortalPage() {
 
   const loadClasses = useCallback((from?: Date) => {
     setClassesLoading(true)
-    const fromParam = (from ?? weekStart).toISOString()
+    const fromParam = (from ?? weekStartRef.current).toISOString()
     fetch(`/api/portal/${token}/classes?from=${encodeURIComponent(fromParam)}`)
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setClasses(d) })
       .catch(() => {})
       .finally(() => setClassesLoading(false))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }, [token]) // weekStartRef is a ref — always current, no dep needed
 
   const loadLogs = useCallback(() => {
     fetch(`/api/portal/${token}/training-log`)
@@ -379,13 +380,15 @@ export default function MemberPortalPage() {
   async function handleBook(classId: string) {
     setBookingId(classId)
     await fetch(`/api/portal/${token}/book/${classId}`, { method: 'POST' })
-    setBookingId(null); loadClasses(); loadPortal()
+    setBookingId(null)
+    loadClasses() // only reload classes — loadPortal() would risk wiping the page on transient errors
   }
 
   async function handleCancelBooking(classId: string) {
     setBookingId(classId)
     await fetch(`/api/portal/${token}/book/${classId}`, { method: 'DELETE' })
-    setBookingId(null); loadClasses(); loadPortal()
+    setBookingId(null)
+    loadClasses()
   }
 
   async function handleCheckin(classId: string) {
