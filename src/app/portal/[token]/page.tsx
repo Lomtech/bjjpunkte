@@ -102,10 +102,10 @@ function calcStats(attendance: { checked_in_at: string }[]) {
   return { sessionsThisMonth, streak }
 }
 
-function intervalLabel(interval: string) {
-  if (interval === 'biannual') return '/6 Monate'
-  if (interval === 'annual')   return '/Jahr'
-  return '/Monat'
+function intervalLabel(interval: string, lang: string) {
+  if (interval === 'biannual') return lang === 'en' ? '/6 months' : '/6 Monate'
+  if (interval === 'annual')   return lang === 'en' ? '/year'     : '/Jahr'
+  return lang === 'en' ? '/month' : '/Monat'
 }
 
 function intervalMonths(interval: string) {
@@ -114,14 +114,14 @@ function intervalMonths(interval: string) {
   return 1
 }
 
-function formatPrice(cents: number, interval: string) {
+function formatPrice(cents: number, interval: string, lang: string) {
   const total = (cents / 100).toFixed(2).replace('.', ',')
   const months = intervalMonths(interval)
   if (months > 1) {
     const perMonth = (cents / 100 / months).toFixed(2).replace('.', ',')
-    return { total: `€${total}${intervalLabel(interval)}`, perMonth: `≈ €${perMonth}/Mo` }
+    return { total: `€${total}${intervalLabel(interval, lang)}`, perMonth: `≈ €${perMonth}/${lang === 'en' ? 'mo' : 'Mo'}` }
   }
-  return { total: `€${total}/Monat`, perMonth: null }
+  return { total: `€${total}${intervalLabel(interval, lang)}`, perMonth: null }
 }
 
 const CLASS_LABELS: Record<string, string> = {
@@ -136,8 +136,11 @@ const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-green-50 text-green-700 border-green-200', pending: 'bg-amber-50 text-amber-700 border-amber-200',
   failed: 'bg-red-50 text-red-700 border-red-200', refunded: 'bg-slate-100 text-slate-500 border-slate-200',
 }
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS_DE: Record<string, string> = {
   paid: 'Bezahlt', pending: 'Ausstehend', failed: 'Fehlgeschlagen', refunded: 'Erstattet',
+}
+const STATUS_LABELS_EN: Record<string, string> = {
+  paid: 'Paid', pending: 'Pending', failed: 'Failed', refunded: 'Refunded',
 }
 
 function formatDateTime(iso: string) {
@@ -161,7 +164,8 @@ function isCheckoutExpired(p: { created_at: string; status: string }) {
 
 // ── Calendar helpers ─────────────────────────────────────────────────────────
 
-const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+const WEEKDAYS_DE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+const WEEKDAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 function startOfWeek(d: Date): Date {
   const r = new Date(d); const day = r.getDay()
@@ -192,7 +196,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 // ── PWA install button ────────────────────────────────────────────────────────
 
-function PWAInstallButton({ gymName }: { gymName: string }) {
+function PWAInstallButton({ gymName, lang }: { gymName: string; lang: string }) {
   const [prompt, setPrompt] = useState<any>(null)
   const [showIosHint, setShowIosHint] = useState(false)
   const [installed, setInstalled] = useState(false)
@@ -235,31 +239,31 @@ function PWAInstallButton({ gymName }: { gymName: string }) {
           <path d="M12 2v13M7 9l5 6 5-6"/>
           <path d="M5 19h14"/>
         </svg>
-        {gymName ? `${gymName} App installieren` : 'App installieren'}
+        {gymName ? (lang === 'en' ? `Install ${gymName} App` : `${gymName} App installieren`) : (lang === 'en' ? 'Install App' : 'App installieren')}
       </button>
 
       {showIosHint && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowIosHint(false)}>
           <div className="bg-white rounded-t-3xl w-full max-w-sm px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-6" />
-            <h3 className="text-lg font-bold text-slate-900 mb-1">App zum Homescreen hinzufügen</h3>
-            <p className="text-slate-500 text-sm mb-5">So funktioniert es auf dem iPhone:</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">{lang === 'en' ? 'Add App to Home Screen' : 'App zum Homescreen hinzufügen'}</h3>
+            <p className="text-slate-500 text-sm mb-5">{lang === 'en' ? 'How it works on iPhone:' : 'So funktioniert es auf dem iPhone:'}</p>
             <ol className="space-y-3 text-sm text-slate-700">
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                <span>Tippe auf das <strong>Teilen-Symbol</strong> <span className="inline-block bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">⬆</span> unten in der Browserleiste</span>
+                <span>{lang === 'en' ? <>Tap the <strong>Share</strong> icon <span className="inline-block bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">⬆</span> at the bottom of the browser bar</> : <>Tippe auf das <strong>Teilen-Symbol</strong> <span className="inline-block bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">⬆</span> unten in der Browserleiste</>}</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                <span>Scrolle nach unten und tippe auf <strong>„Zum Home-Bildschirm"</strong></span>
+                <span>{lang === 'en' ? <>Scroll down and tap <strong>"Add to Home Screen"</strong></> : <>Scrolle nach unten und tippe auf <strong>„Zum Home-Bildschirm"</strong></>}</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                <span>Tippe oben rechts auf <strong>„Hinzufügen"</strong></span>
+                <span>{lang === 'en' ? <>Tap <strong>"Add"</strong> in the top right</> : <>Tippe oben rechts auf <strong>„Hinzufügen"</strong></>}</span>
               </li>
             </ol>
             <button onClick={() => setShowIosHint(false)} className="mt-6 w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold transition-colors">
-              Verstanden
+              {lang === 'en' ? 'Got it' : 'Verstanden'}
             </button>
           </div>
         </div>
@@ -270,13 +274,13 @@ function PWAInstallButton({ gymName }: { gymName: string }) {
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
-function ContractBanner({ contractEndDate }: { contractEndDate: string }) {
+function ContractBanner({ contractEndDate, lang, locale }: { contractEndDate: string; lang: string; locale: string }) {
   const end = new Date(contractEndDate)
   const diffDays = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  const formatted = end.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  if (diffDays < 0)  return <div className="rounded-2xl px-4 py-3 border border-red-200 bg-red-50 text-red-700 text-sm font-medium">Vertrag abgelaufen</div>
-  if (diffDays <= 30) return <div className="rounded-2xl px-4 py-3 border border-amber-200 bg-amber-50 text-amber-700 text-sm font-medium">Vertrag läuft in {diffDays} {diffDays === 1 ? 'Tag' : 'Tagen'} ab</div>
-  return <div className="rounded-2xl px-4 py-3 border border-green-200 bg-green-50 text-green-700 text-sm font-medium">Vertrag gültig bis {formatted}</div>
+  const formatted = end.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+  if (diffDays < 0)  return <div className="rounded-2xl px-4 py-3 border border-red-200 bg-red-50 text-red-700 text-sm font-medium">{lang === 'en' ? 'Contract expired' : 'Vertrag abgelaufen'}</div>
+  if (diffDays <= 30) return <div className="rounded-2xl px-4 py-3 border border-amber-200 bg-amber-50 text-amber-700 text-sm font-medium">{lang === 'en' ? `Contract expires in ${diffDays} ${diffDays === 1 ? 'day' : 'days'}` : `Vertrag läuft in ${diffDays} ${diffDays === 1 ? 'Tag' : 'Tagen'} ab`}</div>
+  return <div className="rounded-2xl px-4 py-3 border border-green-200 bg-green-50 text-green-700 text-sm font-medium">{lang === 'en' ? `Contract valid until ${formatted}` : `Vertrag gültig bis ${formatted}`}</div>
 }
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
@@ -349,7 +353,7 @@ export default function MemberPortalPage() {
           setLocalCancelledAt(d.member?.cancellation_requested_at ?? null)
         }
       })
-      .catch(() => setError('Verbindungsfehler'))
+      .catch(() => setError(lang === 'en' ? 'Connection error' : 'Verbindungsfehler'))
       .finally(() => setLoading(false))
   }, [token])
 
@@ -428,7 +432,7 @@ export default function MemberPortalPage() {
 
   async function handleGpsCheckin() {
     if (!navigator.geolocation) {
-      setGpsMessage('GPS nicht verfügbar'); setGpsState('error'); return
+      setGpsMessage(lang === 'en' ? 'GPS not available' : 'GPS nicht verfügbar'); setGpsState('error'); return
     }
     setGpsState('locating'); setGpsMessage(null)
     navigator.geolocation.getCurrentPosition(
@@ -440,11 +444,11 @@ export default function MemberPortalPage() {
         const data = await res.json()
         if (res.ok) {
           const clsName = data.class?.title ? ` · ${data.class.title}` : ''
-          setGpsMessage(`Eingecheckt ✓${clsName}`)
+          setGpsMessage(`${lang === 'en' ? 'Checked in' : 'Eingecheckt'} ✓${clsName}`)
           setGpsState('success')
           loadPortal(); loadClasses()
         } else {
-          setGpsMessage(data.error ?? 'Fehler beim GPS-Check-in')
+          setGpsMessage(data.error ?? (lang === 'en' ? 'GPS check-in failed' : 'Fehler beim GPS-Check-in'))
           setGpsState('error')
         }
       },
@@ -494,8 +498,8 @@ export default function MemberPortalPage() {
   if (error || !data) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="text-center">
-        <p className="text-slate-500 text-sm">{error || 'Nicht gefunden'}</p>
-        <p className="text-slate-400 text-xs mt-2">Bitte kontaktiere dein Gym.</p>
+        <p className="text-slate-500 text-sm">{error || (lang === 'en' ? 'Not found' : 'Nicht gefunden')}</p>
+        <p className="text-slate-400 text-xs mt-2">{lang === 'en' ? 'Please contact your gym.' : 'Bitte kontaktiere dein Gym.'}</p>
       </div>
     </div>
   )
@@ -561,7 +565,7 @@ export default function MemberPortalPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-3">
 
         {/* PWA install */}
-        <PWAInstallButton gymName={gym?.name ?? ''} />
+        <PWAInstallButton gymName={gym?.name ?? ''} lang={lang} />
 
         {/* Trainer check-in notification banner */}
         {recentCheckin && !checkinBannerDismissed && (
@@ -574,7 +578,7 @@ export default function MemberPortalPage() {
               <p className="text-green-600 text-xs mt-0.5">
                 {CLASS_LABELS[recentCheckin.class_type] ?? recentCheckin.class_type}
                 {' · '}
-                {new Date(recentCheckin.checked_in_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} Uhr
+                {new Date(recentCheckin.checked_in_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}{lang === 'de' ? ' Uhr' : ''}
               </p>
             </div>
             <button onClick={() => setCheckinBannerDismissed(true)} className="text-green-400 hover:text-green-600 transition-colors flex-shrink-0">
@@ -710,7 +714,7 @@ export default function MemberPortalPage() {
                       setWeekStart(w); setSelectedDay(todayDate); loadClasses(w)
                     }}
                     className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
-                    Heute
+                    {lang === 'en' ? 'Today' : 'Heute'}
                   </button>
                   <button
                     onClick={() => {
@@ -735,7 +739,7 @@ export default function MemberPortalPage() {
                         className={`flex flex-col items-center px-4 py-2 rounded-xl transition-colors min-w-[52px] ${
                           isSel ? 'bg-amber-500 text-white' : isToday ? 'bg-amber-50 text-amber-700' : 'text-slate-500 hover:bg-slate-50'
                         }`}>
-                        <span className="text-[10px] font-semibold uppercase tracking-wide">{WEEKDAYS[idx]}</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide">{(lang === 'en' ? WEEKDAYS_EN : WEEKDAYS_DE)[idx]}</span>
                         <span className="text-sm font-bold mt-0.5">{day.getDate()}</span>
                         {hasCls && !isSel && <span className="w-1 h-1 rounded-full bg-amber-400 mt-1" />}
                       </button>
@@ -916,7 +920,7 @@ export default function MemberPortalPage() {
             </div>
 
             {/* Contract banner */}
-            {member.contract_end_date && <ContractBanner contractEndDate={member.contract_end_date} />}
+            {member.contract_end_date && <ContractBanner contractEndDate={member.contract_end_date} lang={lang} locale={locale} />}
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -939,18 +943,18 @@ export default function MemberPortalPage() {
                 </h2>
                 {currentPlan ? (
                   <p className="text-xs text-slate-400 mb-4">
-                    Aktuell: <span className="font-medium text-slate-600">{currentPlan.name}</span>
+                    {lang === 'en' ? 'Current:' : 'Aktuell:'} <span className="font-medium text-slate-600">{currentPlan.name}</span>
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-400 mb-4">Wähle einen Tarif oder fordere einen Wechsel an.</p>
+                  <p className="text-xs text-slate-400 mb-4">{lang === 'en' ? 'Choose a plan or request a change.' : 'Wähle einen Tarif oder fordere einen Wechsel an.'}</p>
                 )}
 
                 {requestedPlan && (
                   <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5">
                     <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-amber-800 text-sm font-medium">Wechsel zu „{requestedPlan.name}" angefordert</p>
-                      <p className="text-amber-700 text-xs mt-0.5">Dein Gym wird die Änderung bearbeiten.</p>
+                      <p className="text-amber-800 text-sm font-medium">{lang === 'en' ? `Change to "${requestedPlan.name}" requested` : `Wechsel zu „${requestedPlan.name}" angefordert`}</p>
+                      <p className="text-amber-700 text-xs mt-0.5">{lang === 'en' ? 'Your gym will process the change.' : 'Dein Gym wird die Änderung bearbeiten.'}</p>
                     </div>
                     <button onClick={handleWithdrawPlanRequest} className="text-amber-500 hover:text-amber-700 flex-shrink-0">
                       <X size={14} />
@@ -960,7 +964,7 @@ export default function MemberPortalPage() {
 
                 <div className="space-y-3">
                   {plans.map(plan => {
-                    const { total, perMonth } = formatPrice(plan.price_cents, plan.billing_interval)
+                    const { total, perMonth } = formatPrice(plan.price_cents, plan.billing_interval, lang)
                     const isCurrentPlan   = plan.id === member.plan_id
                     const isRequested     = plan.id === localRequestedPlanId
                     const isLoading       = planRequesting === plan.id
@@ -976,10 +980,10 @@ export default function MemberPortalPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-semibold text-slate-900 text-sm">{plan.name}</p>
                               {isCurrentPlan && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold">Aktuell</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold">{lang === 'en' ? 'Current' : 'Aktuell'}</span>
                               )}
                               {isRequested && !isCurrentPlan && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-800 font-bold">Angefordert</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-800 font-bold">{lang === 'en' ? 'Requested' : 'Angefordert'}</span>
                               )}
                             </div>
                             <div className="flex items-baseline gap-2 mt-1">
@@ -988,8 +992,8 @@ export default function MemberPortalPage() {
                             </div>
                             <p className="text-xs text-slate-400 mt-0.5">
                               {plan.contract_months === 0
-                                ? 'Jederzeit kündbar'
-                                : `${plan.contract_months} Monate Mindestlaufzeit`}
+                                ? (lang === 'en' ? 'Cancel anytime' : 'Jederzeit kündbar')
+                                : (lang === 'en' ? `${plan.contract_months} month minimum term` : `${plan.contract_months} Monate Mindestlaufzeit`)}
                             </p>
                             {plan.description && (
                               <p className="text-xs text-slate-500 mt-1">{plan.description}</p>
@@ -1001,7 +1005,7 @@ export default function MemberPortalPage() {
                               disabled={!!isLoading}
                               className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
                             >
-                              {isLoading ? '…' : 'Wählen'}
+                              {isLoading ? '…' : (lang === 'en' ? 'Choose' : 'Wählen')}
                             </button>
                           )}
                         </div>
@@ -1023,7 +1027,7 @@ export default function MemberPortalPage() {
                     <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0 gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${STATUS_COLORS[p.status] ?? STATUS_COLORS.pending}`}>
-                          {STATUS_LABELS[p.status] ?? p.status}
+                          {(lang === 'en' ? STATUS_LABELS_EN : STATUS_LABELS_DE)[p.status] ?? p.status}
                         </span>
                         <span className="text-slate-700 text-sm font-medium flex-shrink-0">
                           {(p.amount_cents / 100).toFixed(2).replace('.', ',')} €
@@ -1033,7 +1037,7 @@ export default function MemberPortalPage() {
                         <span className="text-slate-400 text-xs">{new Date(p.paid_at ?? p.created_at).toLocaleDateString(locale)}</span>
                         {p.status === 'pending' && p.checkout_url && (
                           isCheckoutExpired(p) ? (
-                            <span className="text-slate-400 text-xs opacity-60">Link abgelaufen</span>
+                            <span className="text-slate-400 text-xs opacity-60">{lang === 'en' ? 'Link expired' : 'Link abgelaufen'}</span>
                           ) : (
                             <a href={p.checkout_url} target="_blank" rel="noopener noreferrer"
                               className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors">
@@ -1078,7 +1082,7 @@ export default function MemberPortalPage() {
                   <div className="flex gap-2">
                     <button onClick={() => setShowCancelForm(false)}
                       className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
-                      Abbrechen
+                      {lang === 'en' ? 'Cancel' : 'Abbrechen'}
                     </button>
                     <button onClick={handleRequestCancel} disabled={cancelRequesting}
                       className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white text-sm font-semibold transition-colors disabled:opacity-50">
@@ -1103,7 +1107,7 @@ export default function MemberPortalPage() {
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
               <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
                 <Dumbbell size={15} className="text-slate-400" /> {t('portal', 'trainingHistory')}
-                <span className="text-sm font-normal text-slate-400">({totalSessions ?? 0} gesamt)</span>
+                <span className="text-sm font-normal text-slate-400">({totalSessions ?? 0} {lang === 'en' ? 'total' : 'gesamt'})</span>
               </h2>
               {attendance?.length > 0 ? (
                 <div>
@@ -1118,7 +1122,7 @@ export default function MemberPortalPage() {
                     </div>
                   ))}
                   {(totalSessions ?? 0) > 20 && (
-                    <p className="text-slate-400 text-xs pt-3 text-center">+ {(totalSessions ?? 0) - 20} weitere Einträge</p>
+                    <p className="text-slate-400 text-xs pt-3 text-center">+ {(totalSessions ?? 0) - 20} {lang === 'en' ? 'more entries' : 'weitere Einträge'}</p>
                   )}
                 </div>
               ) : (

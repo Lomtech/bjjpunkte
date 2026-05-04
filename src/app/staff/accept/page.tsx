@@ -3,6 +3,8 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 type StaffInfo = {
   email: string
@@ -12,6 +14,7 @@ type StaffInfo = {
 }
 
 function StaffAcceptForm() {
+  const { lang } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -25,7 +28,7 @@ function StaffAcceptForm() {
 
   useEffect(() => {
     if (!token) {
-      setError('Kein Einladungs-Token gefunden.')
+      setError(lang === 'en' ? 'No invitation token found.' : 'Kein Einladungs-Token gefunden.')
       setLoading(false)
       return
     }
@@ -38,7 +41,7 @@ function StaffAcceptForm() {
       .single()
       .then(({ data, error: err }) => {
         if (err || !data) {
-          setError('Einladungs-Link ungültig oder abgelaufen.')
+          setError(lang === 'en' ? 'Invitation link invalid or expired.' : 'Einladungs-Link ungültig oder abgelaufen.')
         } else {
           setStaff(data as StaffInfo)
         }
@@ -50,11 +53,11 @@ function StaffAcceptForm() {
     e.preventDefault()
     if (!staff || !token) return
     if (password.length < 8) {
-      setError('Passwort muss mindestens 8 Zeichen lang sein.')
+      setError(lang === 'en' ? 'Password must be at least 8 characters.' : 'Passwort muss mindestens 8 Zeichen lang sein.')
       return
     }
     if (password !== confirm) {
-      setError('Passwörter stimmen nicht überein.')
+      setError(lang === 'en' ? 'Passwords do not match.' : 'Passwörter stimmen nicht überein.')
       return
     }
 
@@ -104,12 +107,12 @@ function StaffAcceptForm() {
     }
   }
 
-  const gymName = staff?.gyms?.name ?? 'deinem Gym'
+  const gymName = staff?.gyms?.name ?? (lang === 'en' ? 'your gym' : 'deinem Gym')
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]">
-        <p className="text-gray-500">Einladung wird geladen…</p>
+        <p className="text-gray-500">{lang === 'en' ? 'Loading invitation…' : 'Einladung wird geladen…'}</p>
       </div>
     )
   }
@@ -142,13 +145,16 @@ function StaffAcceptForm() {
             <p className="font-black text-gray-900 text-base leading-none tracking-tight italic">Osss</p>
             <p className="text-[10px] text-gray-400 mt-0.5 tracking-wider uppercase">Gym Software</p>
           </div>
+          <div className="ml-auto">
+            <LanguageSwitcher variant="minimal" />
+          </div>
         </div>
 
         <h1 className="text-xl font-bold text-gray-900 mb-1">
-          Willkommen bei {gymName}!
+          {lang === 'en' ? `Welcome to ${gymName}!` : `Willkommen bei ${gymName}!`}
         </h1>
         <p className="text-sm text-gray-500 mb-6">
-          Hallo {staff?.name}, erstelle dein Passwort für den Trainer-Zugang.
+          {lang === 'en' ? `Hi ${staff?.name}, create your password for trainer access.` : `Hallo ${staff?.name}, erstelle dein Passwort für den Trainer-Zugang.`}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,26 +169,26 @@ function StaffAcceptForm() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Passwort</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{lang === 'en' ? 'Password' : 'Passwort'}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              placeholder="Mindestens 8 Zeichen"
+              placeholder={lang === 'en' ? 'At least 8 characters' : 'Mindestens 8 Zeichen'}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Passwort bestätigen</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{lang === 'en' ? 'Confirm password' : 'Passwort bestätigen'}</label>
             <input
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               required
-              placeholder="Passwort wiederholen"
+              placeholder={lang === 'en' ? 'Repeat password' : 'Passwort wiederholen'}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none text-sm"
             />
           </div>
@@ -196,7 +202,7 @@ function StaffAcceptForm() {
             disabled={submitting}
             className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors"
           >
-            {submitting ? 'Wird aktiviert…' : 'Zugang aktivieren →'}
+            {submitting ? (lang === 'en' ? 'Activating…' : 'Wird aktiviert…') : (lang === 'en' ? 'Create account' : 'Konto erstellen')}
           </button>
         </form>
       </div>
@@ -205,10 +211,11 @@ function StaffAcceptForm() {
 }
 
 export default function StaffAcceptPage() {
+  const { lang } = useLanguage()
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]">
-        <p className="text-gray-500">Lädt…</p>
+        <p className="text-gray-500">{lang === 'en' ? 'Loading…' : 'Lädt…'}</p>
       </div>
     }>
       <StaffAcceptForm />

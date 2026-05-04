@@ -3,8 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export default function ResetPasswordPage() {
+  const { lang } = useLanguage()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -39,7 +42,10 @@ export default function ResetPasswordPage() {
             </div>
           </div>
           <h1 className="text-3xl font-black text-slate-900 italic tracking-tight">Osss</h1>
-          <p className="text-slate-500 mt-1 text-sm tracking-wide">Passwort zurücksetzen</p>
+          <p className="text-slate-500 mt-1 text-sm tracking-wide">{lang === 'en' ? 'Reset password' : 'Passwort zurücksetzen'}</p>
+          <div className="mt-2 flex justify-center">
+            <LanguageSwitcher variant="minimal" />
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
@@ -50,10 +56,10 @@ export default function ResetPasswordPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="font-semibold text-slate-900">E-Mail gesendet!</p>
-              <p className="text-slate-500 text-sm">Prüfe dein Postfach und klicke den Link zum Zurücksetzen deines Passworts.</p>
+              <p className="font-semibold text-slate-900">{lang === 'en' ? 'Email sent!' : 'E-Mail gesendet!'}</p>
+              <p className="text-slate-500 text-sm">{lang === 'en' ? 'Check your inbox and click the link to reset your password.' : 'Prüfe dein Postfach und klicke den Link zum Zurücksetzen deines Passworts.'}</p>
               <Link href="/login" className="block text-center text-sm text-amber-600 hover:text-amber-500 font-medium mt-2">
-                Zurück zum Login
+                {lang === 'en' ? 'Back to login' : 'Zurück zum Login'}
               </Link>
             </div>
           ) : (
@@ -81,12 +87,12 @@ export default function ResetPasswordPage() {
                 disabled={loading}
                 className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold transition-colors shadow-sm"
               >
-                {loading ? 'Wird gesendet…' : 'Reset-Link senden'}
+                {loading ? (lang === 'en' ? 'Sending…' : 'Wird gesendet…') : (lang === 'en' ? 'Send reset link' : 'Reset-Link senden')}
               </button>
 
               <p className="text-center text-sm text-slate-500">
                 <Link href="/login" className="text-amber-600 hover:text-amber-500 font-medium">
-                  Zurück zum Login
+                  {lang === 'en' ? 'Back to login' : 'Zurück zum Login'}
                 </Link>
               </p>
             </form>

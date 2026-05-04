@@ -470,18 +470,18 @@ export default function SignupPage() {
         {step === 4 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-zinc-900 mb-1">Einwilligung & Anmeldung</h2>
-              <p className="text-zinc-500 text-sm">Bitte bestätige die folgenden Punkte.</p>
+              <h2 className="text-lg font-bold text-zinc-900 mb-1">{lang === 'en' ? 'Consent & registration' : 'Einwilligung & Anmeldung'}</h2>
+              <p className="text-zinc-500 text-sm">{lang === 'en' ? 'Please confirm the following points.' : 'Bitte bestätige die folgenden Punkte.'}</p>
             </div>
 
             <div className="bg-white rounded-2xl border border-zinc-200 p-4 shadow-sm space-y-2">
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Zusammenfassung</p>
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">{lang === 'en' ? 'Summary' : 'Zusammenfassung'}</p>
               <SummaryRow label="Name"         value={`${firstName} ${lastName}`} />
               <SummaryRow label="E-Mail"        value={email} />
-              {phone && <SummaryRow label="Telefon"       value={phone} />}
-              {dob   && <SummaryRow label="Geburtsdatum"  value={new Date(dob).toLocaleDateString('de-DE')} />}
-              {(street || city) && <SummaryRow label="Adresse" value={[street, `${zip} ${city}`.trim()].filter(Boolean).join(', ')} />}
-              {ecName && <SummaryRow label="Notfallkontakt" value={`${ecName}${ecPhone ? ` · ${ecPhone}` : ''}`} />}
+              {phone && <SummaryRow label={lang === 'en' ? 'Phone' : 'Telefon'}       value={phone} />}
+              {dob   && <SummaryRow label={lang === 'en' ? 'Date of birth' : 'Geburtsdatum'}  value={new Date(dob).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-DE')} />}
+              {(street || city) && <SummaryRow label={lang === 'en' ? 'Address' : 'Adresse'} value={[street, `${zip} ${city}`.trim()].filter(Boolean).join(', ')} />}
+              {ecName && <SummaryRow label={lang === 'en' ? 'Emergency contact' : 'Notfallkontakt'} value={`${ecName}${ecPhone ? ` · ${ecPhone}` : ''}`} />}
               <SummaryRow label={lang === 'en' ? 'Belt rank' : 'Gürtelgrad'} value={BELTS.find(b => b.value === belt)?.[lang === 'en' ? 'labelEn' : 'labelDe'] ?? (lang === 'en' ? 'White' : 'Weiß')} />
             </div>
 
@@ -490,8 +490,10 @@ export default function SignupPage() {
                 <input type="checkbox" checked={contractAccepted} onChange={e => setContractAccepted(e.target.checked)}
                   className="mt-0.5 w-5 h-5 rounded border-zinc-300 text-amber-500 focus:ring-amber-400 flex-shrink-0 cursor-pointer" />
                 <span className="text-sm text-zinc-700 leading-relaxed">
-                  Ich habe den Mitgliedsvertrag von <strong>{gymInfo?.gymName}</strong> vollständig gelesen,
-                  verstanden und erkläre mich damit einverstanden. Meine digitale Unterschrift ist rechtsverbindlich.
+                  {lang === 'en'
+                    ? <>I have read and fully understood the membership contract of <strong>{gymInfo?.gymName}</strong> and agree to it. My digital signature is legally binding.</>
+                    : <>Ich habe den Mitgliedsvertrag von <strong>{gymInfo?.gymName}</strong> vollständig gelesen, verstanden und erkläre mich damit einverstanden. Meine digitale Unterschrift ist rechtsverbindlich.</>
+                  }
                 </span>
               </label>
 
@@ -499,12 +501,10 @@ export default function SignupPage() {
                 <input type="checkbox" checked={gdprAccepted} onChange={e => setGdprAccepted(e.target.checked)}
                   className="mt-0.5 w-5 h-5 rounded border-zinc-300 text-amber-500 focus:ring-amber-400 flex-shrink-0 cursor-pointer" />
                 <span className="text-sm text-zinc-700 leading-relaxed">
-                  Ich stimme der Verarbeitung meiner personenbezogenen Daten zur Mitgliedschaftsverwaltung gemäß
-                  der{' '}
-                  <a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline font-medium">
-                    Datenschutzerklärung
-                  </a>
-                  {' '}zu.
+                  {lang === 'en'
+                    ? <>I consent to the processing of my personal data for membership management in accordance with the{' '}<a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline font-medium">Privacy Policy</a>.</>
+                    : <>Ich stimme der Verarbeitung meiner personenbezogenen Daten zur Mitgliedschaftsverwaltung gemäß der{' '}<a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline font-medium">Datenschutzerklärung</a>{' '}zu.</>
+                  }
                 </span>
               </label>
 
@@ -512,11 +512,10 @@ export default function SignupPage() {
                 <input type="checkbox" checked={agbAccepted} onChange={e => setAgbAccepted(e.target.checked)}
                   className="mt-0.5 w-5 h-5 rounded border-zinc-300 text-amber-500 focus:ring-amber-400 flex-shrink-0 cursor-pointer" />
                 <span className="text-sm text-zinc-700 leading-relaxed">
-                  Ich habe die{' '}
-                  <a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline font-medium">Datenschutzerklärung</a>
-                  {' '}und die{' '}
-                  <a href="/agb" target="_blank" className="text-amber-600 hover:underline font-medium">AGB</a>
-                  {' '}gelesen und stimme zu.
+                  {lang === 'en'
+                    ? <>I have read and agree to the{' '}<a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline font-medium">Privacy Policy</a>{' '}and the{' '}<a href="/agb" target="_blank" className="text-amber-600 hover:underline font-medium">Terms & Conditions</a>.</>
+                    : <>Ich habe die{' '}<a href="/datenschutz" target="_blank" className="text-amber-600 hover:underline font-medium">Datenschutzerklärung</a>{' '}und die{' '}<a href="/agb" target="_blank" className="text-amber-600 hover:underline font-medium">AGB</a>{' '}gelesen und stimme zu.</>
+                  }
                 </span>
               </label>
             </div>
@@ -530,16 +529,16 @@ export default function SignupPage() {
             <div className="flex gap-3">
               <button onClick={() => setStep(3)}
                 className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
-                <ChevronLeft size={16} /> Zurück
+                <ChevronLeft size={16} /> {lang === 'en' ? 'Back' : 'Zurück'}
               </button>
               <button disabled={!step4Valid || !agbAccepted || submitting} onClick={submit}
                 className="flex-1 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-base transition-colors flex items-center justify-center gap-2">
-                {submitting ? 'Wird gesendet…' : '🥋 Jetzt anmelden'}
+                {submitting ? (lang === 'en' ? 'Submitting…' : 'Wird gesendet…') : (lang === 'en' ? '🥋 Sign up now' : '🥋 Jetzt anmelden')}
               </button>
             </div>
 
             <p className="text-xs text-zinc-400 text-center">
-              Datum & Uhrzeit: {new Date().toLocaleString('de-DE')}
+              {lang === 'en' ? 'Date & time:' : 'Datum & Uhrzeit:'} {new Date().toLocaleString(lang === 'en' ? 'en-GB' : 'de-DE')}
             </p>
           </div>
         )}

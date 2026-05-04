@@ -751,31 +751,31 @@ export default function SettingsPage() {
                     gymPlan === 'grow' ? 'bg-amber-500 text-white' :
                     gymPlan === 'starter' ? 'bg-zinc-700 text-white' : 'bg-zinc-200 text-zinc-600'
                   }`}>{gymPlan.toUpperCase()}</span>
-                  <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-zinc-900'}`}>Aktueller Plan</span>
+                  <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-zinc-900'}`}>{t('settings', 'currentPlan')}</span>
                 </div>
                 <p className={`text-sm ${gymPlan === 'pro' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                  {memberCount} / {gymPlan === 'pro' ? '∞' : planLimit} aktive Mitglieder
+                  {memberCount} / {gymPlan === 'pro' ? '∞' : planLimit} {t('members', 'activeMembers')}
                 </p>
                 {gymPlan !== 'pro' && memberCount >= planLimit * 0.9 && (
-                  <p className="text-amber-600 text-xs mt-1 font-medium">Fast am Limit — upgrade für mehr Mitglieder</p>
+                  <p className="text-amber-600 text-xs mt-1 font-medium">{t('settings', 'nearLimit')}</p>
                 )}
               </div>
               <div className="flex flex-col gap-2 flex-shrink-0">
                 {gymPlan === 'pro' ? (
                   <button onClick={handlePortal} disabled={portalLoading}
                     className="px-4 py-2 rounded-xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-400 disabled:opacity-50 transition-colors">
-                    {portalLoading ? 'Wird geladen…' : 'Abo verwalten'}
+                    {portalLoading ? t('settings', 'loading') : t('settings', 'manageSubscription')}
                   </button>
                 ) : (
                   <>
                     <button onClick={() => setShowUpgradeModal(true)} disabled={loadingPlan !== null}
                       className="px-4 py-2 rounded-xl text-sm font-semibold bg-zinc-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
-                      {gymPlan === 'free' ? 'Upgraden →' : 'Plan ändern →'}
+                      {gymPlan === 'free' ? t('settings', 'upgradeBtn') : t('settings', 'changePlan')}
                     </button>
                     {gymPlan !== 'free' && (
                       <button onClick={handlePortal} disabled={portalLoading}
                         className="px-4 py-2 rounded-xl text-sm font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors">
-                        {portalLoading ? 'Wird geladen…' : 'Abo verwalten'}
+                        {portalLoading ? t('settings', 'loading') : t('settings', 'manageSubscription')}
                       </button>
                     )}
                   </>
@@ -786,12 +786,12 @@ export default function SettingsPage() {
 
           {/* Gym Profile */}
           <div className={sectionCls}>
-            <SectionHeader icon={<Building2 size={12} />} title="Gym-Profil" />
+            <SectionHeader icon={<Building2 size={12} />} title={t('settings', 'gymProfile')} />
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
 
               {/* Logo upload */}
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">Gym-Logo</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-2">{t('settings', 'gymLogo')}</label>
                 <div className="flex items-center gap-4">
                   {/* Preview */}
                   <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-zinc-100 border border-zinc-200 flex items-center justify-center">
@@ -821,7 +821,7 @@ export default function SettingsPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-semibold transition-colors"
                     >
                       <ImagePlus size={13} />
-                      {logoUploading ? 'Wird hochgeladen…' : logoUrl ? 'Logo ändern' : 'Logo hochladen'}
+                      {logoUploading ? t('settings', 'uploadLogoUploading') : logoUrl ? t('settings', 'changeLogo') : t('settings', 'uploadLogo')}
                     </button>
                     {logoUrl && (
                       <button
@@ -829,16 +829,16 @@ export default function SettingsPage() {
                         onClick={handleLogoRemove}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:text-red-500 hover:border-red-200 text-xs font-medium transition-colors"
                       >
-                        <X size={12} /> Entfernen
+                        <X size={12} /> {t('settings', 'remove')}
                       </button>
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-zinc-400 mt-2">Erscheint im Menü und auf Mitglieder-Portalen. PNG oder JPG, min. 100×100 px.</p>
+                <p className="text-xs text-zinc-400 mt-2">{t('settings', 'logoHint')}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Gym-Name *</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1.5">{t('settings', 'gymName')} *</label>
                 <input
                   value={name}
                   onChange={e => {
@@ -857,58 +857,58 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Adresse</label>
+                <label className="block text-sm font-medium text-zinc-700 mb-1.5">{t('settings', 'address')}</label>
                 <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Musterstraße 1, 80331 München" className={inputCls} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">Telefon</label>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">{t('settings', 'phone')}</label>
                   <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+49 89 123456" className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">E-Mail</label>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1.5">{t('settings', 'email')}</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="info@gym.de" className={inputCls} />
                 </div>
               </div>
               <button type="submit" disabled={loading} className={saveBtnCls}>
                 <Save size={15} />
-                {saved ? 'Gespeichert ✓' : loading ? 'Wird gespeichert…' : 'Profil speichern'}
+                {saved ? t('settings', 'saved') : loading ? t('settings', 'saving') : t('settings', 'saveProfile')}
               </button>
             </form>
           </div>
 
           {/* Produktiv-Checkliste */}
           <div className={sectionCls}>
-            <SectionHeader icon={<Shield size={12} />} title="Produktiv-Checkliste" />
+            <SectionHeader icon={<Shield size={12} />} title={t('settings', 'productionChecklist')} />
             <div className="divide-y divide-gray-100">
               {[
                 {
                   ok: !webhookUrl.includes('localhost'),
-                  title: 'Produktions-URL',
+                  title: t('settings', 'productionUrl'),
                   desc: webhookUrl.includes('localhost')
-                    ? <span className="text-amber-600">Setze <code className="font-mono bg-amber-50 px-1 rounded">NEXT_PUBLIC_APP_URL</code> in Vercel auf deine Domain.</span>
+                    ? <span className="text-amber-600">{t('settings', 'productionUrlDesc').replace('NEXT_PUBLIC_APP_URL', '')} <code className="font-mono bg-amber-50 px-1 rounded">NEXT_PUBLIC_APP_URL</code> in Vercel auf deine Domain.</span>
                     : <span className="text-zinc-400">{webhookUrl.replace('/api/stripe/webhook', '')}</span>,
                 },
                 {
                   ok: webhookActive,
-                  title: 'Stripe Webhook',
+                  title: t('settings', 'stripeWebhook'),
                   desc: webhookActive
-                    ? <span className="text-zinc-400">Webhook aktiv – Zahlungsbestätigungen werden empfangen.</span>
-                    : <span className="text-zinc-400">Im <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> Webhook-URL eintragen (Tab Zahlungen).</span>,
+                    ? <span className="text-zinc-400">{t('settings', 'webhookActiveDesc')}</span>
+                    : <span className="text-zinc-400">{t('settings', 'webhookInactiveDesc').replace('Stripe Dashboard', '')} <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> {t('settings', 'webhookInactiveDesc').split('Stripe Dashboard')[1] ?? ''}</span>,
                 },
                 {
                   ok: !!stripeAccountId,
-                  title: 'Stripe Connect verbunden',
+                  title: t('settings', 'stripeConnectCheck'),
                   desc: stripeAccountId
-                    ? <span className="text-zinc-400">Beiträge gehen direkt auf dein Konto.</span>
-                    : <span className="text-amber-600">Verbinde dein Stripe-Konto im Tab Zahlungen.</span>,
+                    ? <span className="text-zinc-400">{t('settings', 'stripeConnectOk')}</span>
+                    : <span className="text-amber-600">{t('settings', 'stripeConnectMissing')}</span>,
                 },
                 {
                   ok: !!legalName,
-                  title: 'Datenschutz',
+                  title: t('settings', 'privacyCheck'),
                   desc: legalName
-                    ? <span className="text-zinc-400">Verantwortlicher: <strong className="text-zinc-600">{legalName}</strong> · <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">Vorschau <ExternalLink size={10} /></a></span>
-                    : <span className="text-amber-600">Name als Verantwortlichen im Tab Zahlungen eintragen.</span>,
+                    ? <span className="text-zinc-400">{t('settings', 'privacyResponsible')}<strong className="text-zinc-600">{legalName}</strong> · <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">{t('settings', 'preview')} <ExternalLink size={10} /></a></span>
+                    : <span className="text-amber-600">{t('settings', 'privacyMissing')}</span>,
                 },
               ].map(item => (
                 <div key={item.title} className="px-5 py-3 flex items-start gap-3">
@@ -927,11 +927,11 @@ export default function SettingsPage() {
           {/* ── GPS Check-in ─────────────────────────────────────────────── */}
           <div className={sectionCls}>
             <div className={sectionHeaderCls}>
-              <SectionHeader icon={<MapPin size={12} />} title="GPS Check-in" />
+              <SectionHeader icon={<MapPin size={12} />} title={t('settings', 'gpsSection')} />
             </div>
             <div className="p-5 space-y-4">
               <p className="text-xs text-zinc-500">
-                Lege den Standort deines Gyms fest. Mitglieder und Interessenten können sich dann per GPS automatisch einchecken, wenn sie sich im Radius befinden.
+                {t('settings', 'gpsDesc')}
               </p>
               {gpsLat !== null && gpsLng !== null && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-800 text-xs font-mono">
@@ -946,17 +946,17 @@ export default function SettingsPage() {
                 <button type="button" onClick={handleGpsLocate} disabled={gpsLocating}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-60 transition-colors">
                   <Navigation size={14} />
-                  {gpsLocating ? 'Wird ermittelt…' : 'Standort jetzt ermitteln'}
+                  {gpsLocating ? t('settings', 'detecting') : t('settings', 'detectLocationNow')}
                 </button>
                 {gpsLat !== null && (
                   <button type="button" onClick={handleGpsSave} disabled={gpsSaving}
                     className={saveBtnCls}>
-                    {gpsSaved ? <><Check size={14} /> Gespeichert</> : <><Save size={14} /> Standort speichern</>}
+                    {gpsSaved ? <><Check size={14} /> {t('settings', 'locationSavedShort')}</> : <><Save size={14} /> {t('settings', 'saveLocation')}</>}
                   </button>
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <label className="text-sm text-zinc-600 whitespace-nowrap">Radius (Meter)</label>
+                <label className="text-sm text-zinc-600 whitespace-nowrap">{t('settings', 'radiusMeters')}</label>
                 <input type="number" min={50} max={2000} step={50} value={gpsRadius}
                   onChange={e => setGpsRadius(Number(e.target.value))}
                   className="w-28 px-3 py-1.5 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400" />
@@ -966,32 +966,32 @@ export default function SettingsPage() {
 
           <div className={sectionCls}>
             <div className={sectionHeaderCls}>
-              <SectionHeader icon={<Download size={12} />} title="Gym-Einstellungen exportieren / importieren" />
+              <SectionHeader icon={<Download size={12} />} title={t('settings', 'exportImport')} />
             </div>
             <div className="p-5 space-y-5">
               <p className="text-xs text-zinc-500">
-                Exportiere alle Einstellungen, Tarife, Ankündigungen und Posts als JSON — und importiere sie auf einem anderen Osss-Account. Ideal für Franchise-Gyms oder Demo-Setups.
+                {t('settings', 'exportImportDesc')}
               </p>
               <div>
-                <p className="text-sm font-medium text-zinc-800 mb-2">Exportieren</p>
+                <p className="text-sm font-medium text-zinc-800 mb-2">{t('settings', 'exportSection')}</p>
                 <button type="button" onClick={handleExport} className={saveBtnCls}>
-                  <Download size={14} /> Einstellungen als JSON herunterladen
+                  <Download size={14} /> {t('settings', 'exportBtn')}
                 </button>
               </div>
               <div>
-                <p className="text-sm font-medium text-zinc-800 mb-2">Importieren</p>
-                <p className="text-xs text-zinc-400 mb-3">Alle Daten (Mitglieder, Klassen, Medien, Einstellungen) werden übernommen. Bestehende Datensätze bleiben unberührt.</p>
+                <p className="text-sm font-medium text-zinc-800 mb-2">{t('settings', 'importSection')}</p>
+                <p className="text-xs text-zinc-400 mb-3">{t('settings', 'importDesc')}</p>
                 <label className={`flex items-center gap-2 cursor-pointer ${importing ? 'pointer-events-none opacity-50' : ''}`}>
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-sm font-medium transition-colors">
                     <Upload size={14} />
-                    {importFile ? importFile.name : 'JSON-Datei auswählen'}
+                    {importFile ? importFile.name : t('settings', 'selectJsonFile')}
                   </div>
                   <input type="file" accept=".json" className="hidden"
                     onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null); setImportProgress(0) }} />
                 </label>
                 {importFile && !importing && (
                   <button type="button" onClick={handleImport} className={`mt-2 ${saveBtnCls}`}>
-                    <Upload size={14} /> Import starten
+                    <Upload size={14} /> {t('settings', 'startImport')}
                   </button>
                 )}
                 {/* Progress bar */}
@@ -1022,11 +1022,11 @@ export default function SettingsPage() {
           <div className="rounded-2xl border border-red-100 bg-white shadow-sm overflow-hidden">
             <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
               <Trash2 size={12} className="text-red-500" />
-              <span className="text-xs font-bold text-red-700 uppercase tracking-wider">Konto löschen</span>
+              <span className="text-xs font-bold text-red-700 uppercase tracking-wider">{t('settings', 'deleteAccount')}</span>
             </div>
             <div className="p-5">
               <p className="text-sm text-zinc-600 mb-4">
-                Löscht dein Konto und <strong>alle Daten unwiderruflich</strong> — Mitglieder, Klassen, Zahlungen, Medien. Diese Aktion kann nicht rückgängig gemacht werden.
+                {t('settings', 'deleteAccountDesc')}
               </p>
               {!showDeleteAccount ? (
                 <button
@@ -1034,12 +1034,12 @@ export default function SettingsPage() {
                   onClick={() => setShowDeleteAccount(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors"
                 >
-                  <Trash2 size={14} /> Konto löschen…
+                  <Trash2 size={14} /> {t('settings', 'deleteAccount')}…
                 </button>
               ) : (
                 <div className="space-y-3">
                   <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
-                    ⚠️ Gib deine Login-E-Mail zur Bestätigung ein: <span className="font-mono">{userAuthEmail}</span>
+                    {t('settings', 'deleteAccountConfirm')}<span className="font-mono">{userAuthEmail}</span>
                   </div>
                   <input
                     type="email"
@@ -1057,7 +1057,7 @@ export default function SettingsPage() {
                       onClick={() => { setShowDeleteAccount(false); setDeleteConfirmEmail(''); setDeleteAccountError(null) }}
                       className="px-4 py-2 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-semibold hover:bg-zinc-50 transition-colors"
                     >
-                      Abbrechen
+                      {t('settings', 'cancelBtn')}
                     </button>
                     <button
                       type="button"
@@ -1066,7 +1066,7 @@ export default function SettingsPage() {
                       className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-bold transition-colors"
                     >
                       <Trash2 size={14} />
-                      {deletingAccount ? 'Wird gelöscht…' : 'Endgültig löschen'}
+                      {deletingAccount ? t('settings', 'deleting') : t('settings', 'deleteForever')}
                     </button>
                   </div>
                 </div>
@@ -1087,7 +1087,7 @@ export default function SettingsPage() {
             <div className="p-5 space-y-4">
               <div className={`rounded-lg p-3 ${stripeConfigured ? 'bg-zinc-100 border border-zinc-200' : 'bg-amber-50 border border-amber-200'}`}>
                 <p className={`text-sm font-medium ${stripeConfigured ? 'text-zinc-800' : 'text-amber-800'}`}>
-                  {stripeConfigured ? '✓ Stripe API-Key aktiv' : 'Stripe API-Key fehlt'}
+                  {stripeConfigured ? t('settings', 'stripeApiActive') : t('settings', 'stripeApiMissing')}
                 </p>
               </div>
 
@@ -1096,7 +1096,7 @@ export default function SettingsPage() {
                 <div className="px-4 py-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
                   <p className="text-sm font-semibold text-zinc-800">Stripe Connect</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stripeAccountId ? 'bg-zinc-200 text-zinc-700 border border-zinc-300' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
-                    {stripeAccountId ? 'Verbunden' : 'Nicht verbunden'}
+                    {stripeAccountId ? t('settings', 'connected') : t('settings', 'notConnected')}
                   </span>
                 </div>
                 <div className="p-4">
@@ -1106,21 +1106,21 @@ export default function SettingsPage() {
                         <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
                           <AlertCircle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
                           <div>
-                            <p className="text-xs font-semibold text-amber-800">Onboarding unvollständig</p>
-                            <p className="text-xs text-amber-700 mt-0.5">Dein Stripe-Konto kann noch keine Zahlungen empfangen. Klicke auf &quot;Einrichtung fortsetzen&quot; um das Onboarding abzuschließen.</p>
+                            <p className="text-xs font-semibold text-amber-800">{t('settings', 'onboardingIncomplete')}</p>
+                            <p className="text-xs text-amber-700 mt-0.5">{t('settings', 'onboardingIncompleteDesc')}</p>
                           </div>
                         </div>
                       )}
                       {stripeChargesEnabled === true && (
                         <div className="flex items-center gap-2 text-zinc-600 text-sm">
                           <CheckCircle2 size={14} className="text-zinc-400 flex-shrink-0" />
-                          Beiträge gehen direkt auf dein Stripe-Konto.
+                          {t('settings', 'stripeDirectFee')}
                         </div>
                       )}
                       {stripeChargesEnabled === null && (
                         <div className="flex items-center gap-2 text-zinc-600 text-sm">
                           <CheckCircle2 size={14} className="text-zinc-400 flex-shrink-0" />
-                          Beiträge gehen direkt auf dein Stripe-Konto.
+                          {t('settings', 'stripeDirectFee')}
                         </div>
                       )}
                       <p className="font-mono text-xs bg-zinc-100 px-2 py-1 rounded text-zinc-500 truncate">{stripeAccountId}</p>
@@ -1128,7 +1128,7 @@ export default function SettingsPage() {
                         {stripeChargesEnabled === false ? (
                           <button type="button" onClick={handleConnect} disabled={connectLoading}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
-                            <Zap size={11} /> {connectLoading ? 'Stripe öffnet…' : 'Einrichtung fortsetzen'}
+                            <Zap size={11} /> {connectLoading ? t('settings', 'stripeOpening') : t('settings', 'continueSetup')}
                           </button>
                         ) : (
                           <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
@@ -1138,22 +1138,22 @@ export default function SettingsPage() {
                         )}
                         <button type="button" onClick={handleDisconnect}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition-colors border border-red-200">
-                          <Unlink size={11} /> Trennen
+                          <Unlink size={11} /> {t('settings', 'disconnect')}
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-zinc-600 text-sm">Verbinde dein Konto — Beiträge landen direkt bei dir. Osss behält <strong>2%</strong> Plattformgebühr.</p>
+                      <p className="text-zinc-600 text-sm">{t('settings', 'platformFeeDesc')}</p>
                       <div className="text-xs text-zinc-500 bg-zinc-50 rounded-lg p-3 space-y-1">
-                        <p>Beispiel 80 € Monatsbeitrag:</p>
-                        <p>→ <strong className="text-zinc-700">78,40 €</strong> auf dein Konto</p>
-                        <p>→ <strong className="text-zinc-700">1,60 €</strong> Plattformgebühr + Stripe-Gebühren</p>
+                        <p>{t('settings', 'feeExample')}</p>
+                        <p>→ <strong className="text-zinc-700">78,40 €</strong> {t('settings', 'feeYourAccount')}</p>
+                        <p>→ <strong className="text-zinc-700">1,60 €</strong> {t('settings', 'feePlatform')}</p>
                       </div>
                       <button type="button" onClick={handleConnect} disabled={connectLoading || !stripeConfigured}
                         className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
                         <Zap size={14} />
-                        {connectLoading ? 'Stripe öffnet…' : 'Mit Stripe verbinden'}
+                        {connectLoading ? t('settings', 'stripeOpening') : t('settings', 'connectWithStripe')}
                       </button>
                     </div>
                   )}
@@ -1164,7 +1164,7 @@ export default function SettingsPage() {
               {!webhookActive && (
                 <div>
                   <p className="text-xs font-medium text-zinc-600 mb-1.5">
-                    Webhook-URL — im <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a> eintragen:
+                    {t('settings', 'webhookLabel').replace('Stripe Dashboard', '')} <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a>:
                   </p>
                   <CopyRow label="" value={webhookUrl} copied={copiedWebhook} onCopy={() => copyWithFeedback(webhookUrl, setCopiedWebhook)} />
                 </div>
@@ -1174,12 +1174,12 @@ export default function SettingsPage() {
 
           {/* Rechnungen & Steuer */}
           <div className={sectionCls}>
-            <SectionHeader icon={<ReceiptEuro size={12} />} title="Rechnungen & Steuer" />
+            <SectionHeader icon={<ReceiptEuro size={12} />} title={t('settings', 'invoiceTax')} />
             <div className="p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-zinc-700">Kleinunternehmer (§19 UStG)</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">Keine Umsatzsteuer auf Rechnungen</p>
+                  <p className="text-sm font-medium text-zinc-700">{t('settings', 'kleinunternehmer')}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{t('settings', 'kleinunternehmerDesc')}</p>
                 </div>
                 <button type="button" onClick={() => setIsKleinunternehmer(v => !v)}
                   className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${isKleinunternehmer ? 'bg-amber-500' : 'bg-zinc-200'}`}>

@@ -720,6 +720,7 @@ function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; pho
 }
 
 function PortalLinkSection({ token }: { token: string }) {
+  const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
   const appUrl = typeof window !== 'undefined' ? window.location.origin : ''
   const portalUrl = `${appUrl}/portal/${token}`
@@ -737,7 +738,7 @@ function PortalLinkSection({ token }: { token: string }) {
           <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
             <Link2 size={13} className="text-amber-600" />
           </span>
-          <p className="text-sm font-semibold text-zinc-800">Mitgliederbereich</p>
+          <p className="text-sm font-semibold text-zinc-800">{t('memberDetailExtra', 'memberArea')}</p>
         </div>
         <a
           href={portalUrl}
@@ -745,11 +746,11 @@ function PortalLinkSection({ token }: { token: string }) {
           rel="noopener noreferrer"
           className="text-xs text-amber-600 hover:text-amber-500 font-medium flex items-center gap-1"
         >
-          <ExternalLink size={12} /> Öffnen
+          <ExternalLink size={12} /> {t('memberDetailExtra', 'open')}
         </a>
       </div>
       <p className="text-zinc-500 text-xs mb-3">
-        Diesen Link an das Mitglied schicken — dort sieht es Trainings, Zahlungen und Statistiken.
+        {t('memberDetailExtra', 'portalLinkDesc')}
       </p>
       <div className="flex items-center gap-2">
         <input
@@ -763,7 +764,7 @@ function PortalLinkSection({ token }: { token: string }) {
             copied ? 'bg-green-500 text-white' : 'bg-amber-500 hover:bg-amber-400 text-white'
           }`}
         >
-          {copied ? <><Check size={12} /> Kopiert</> : <><Copy size={12} /> Kopieren</>}
+          {copied ? <><Check size={12} /> {t('memberDetailExtra', 'copied')}</> : <><Copy size={12} /> {t('memberDetailExtra', 'copy')}</>}
         </button>
       </div>
     </div>
@@ -779,6 +780,8 @@ function ContractSection({
   contractEndDate: string | null
   onUpdated: (newDate: string | null) => void
 }) {
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(contractEndDate ?? '')
   const [saving, setSaving] = useState(false)
@@ -807,13 +810,13 @@ function ContractSection({
           <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
             <CalendarDays size={13} className="text-amber-600" />
           </span>
-          <p className="text-sm font-semibold text-zinc-800">Vertragsende</p>
+          <p className="text-sm font-semibold text-zinc-800">{t('memberDetail', 'contractEnd')}</p>
         </div>
         <button
           onClick={() => { setEditing(e => !e); setValue(contractEndDate ?? '') }}
           className="text-xs text-amber-600 hover:text-amber-500 font-medium"
         >
-          {editing ? 'Abbrechen' : 'Bearbeiten'}
+          {editing ? t('memberDetailExtra', 'cancel') : t('memberDetailExtra', 'edit')}
         </button>
       </div>
 
@@ -830,22 +833,22 @@ function ContractSection({
             disabled={saving}
             className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
           >
-            {saving ? 'Speichert...' : 'Speichern'}
+            {saving ? t('memberDetailExtra', 'saving') : t('memberDetailExtra', 'save')}
           </button>
         </div>
       ) : (
         <div>
           <p className="text-zinc-900 font-semibold text-sm">
-            {contractEndDate ? new Date(contractEndDate).toLocaleDateString('de-DE') : '—'}
+            {contractEndDate ? new Date(contractEndDate).toLocaleDateString(locale) : '—'}
           </p>
           {isExpired && (
             <div className="mt-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
-              Vertrag ist abgelaufen ({Math.abs(Math.floor(diffDays!))} Tage überfällig)
+              {t('memberDetailExtra', 'contractExpiredDays', { n: String(Math.abs(Math.floor(diffDays!))) })}
             </div>
           )}
           {isExpiring && (
             <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
-              Vertrag läuft in {Math.floor(diffDays!)} Tagen ab
+              {t('memberDetailExtra', 'contractExpiresDays', { n: String(Math.floor(diffDays!)) })}
             </div>
           )}
         </div>

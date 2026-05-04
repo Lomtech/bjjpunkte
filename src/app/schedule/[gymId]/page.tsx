@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 const TYPE_COLORS: Record<string, string> = {
   gi: 'bg-blue-100 text-blue-700',
@@ -19,10 +20,10 @@ interface ClassItem {
 
 interface GymInfo { name: string; address: string | null; signup_enabled: boolean }
 
-function groupByDay(classes: ClassItem[]) {
+function groupByDay(classes: ClassItem[], locale: string) {
   const groups: Record<string, ClassItem[]> = {}
   for (const c of classes) {
-    const day = new Date(c.starts_at).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+    const day = new Date(c.starts_at).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })
     if (!groups[day]) groups[day] = []
     groups[day].push(c)
   }
@@ -34,6 +35,8 @@ function ScheduleContent() {
   const searchParams = useSearchParams()
   const gymId = params.gymId as string
   const isEmbed = searchParams.get('embed') === '1'
+  const { lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
 
   const [gym, setGym] = useState<GymInfo | null>(null)
   const [classes, setClasses] = useState<ClassItem[]>([])
@@ -48,13 +51,13 @@ function ScheduleContent() {
         setGym(d.gym)
         setClasses(d.classes ?? [])
       })
-      .catch(() => setError('Verbindungsfehler'))
+      .catch(() => setError(lang === 'en' ? 'Connection error' : 'Verbindungsfehler'))
       .finally(() => setLoading(false))
-  }, [gymId])
+  }, [gymId, lang])
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[200px]">
-      <div className="text-slate-400 text-sm">Lädt Stundenplan…</div>
+      <div className="text-slate-400 text-sm">{lang === 'en' ? 'Loading schedule…' : 'Lädt Stundenplan…'}</div>
     </div>
   )
 
@@ -64,7 +67,7 @@ function ScheduleContent() {
     </div>
   )
 
-  const grouped = groupByDay(classes)
+  const grouped = groupByDay(classes, locale)
   const days = Object.keys(grouped)
 
   return (
@@ -87,7 +90,7 @@ function ScheduleContent() {
                 href={`/schedule/${gymId}#signup`}
                 className="px-4 py-2 min-h-[44px] inline-flex items-center bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold rounded-xl transition-colors"
               >
-                Mitglied werden
+                {lang === 'en' ? 'Become a member' : 'Mitglied werden'}
               </a>
             )}
           </div>
@@ -96,14 +99,16 @@ function ScheduleContent() {
 
       <div className={`${isEmbed ? 'px-4 py-4' : 'max-w-2xl mx-auto px-5 py-6'} space-y-6`}>
         {days.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 text-sm">Keine Trainings in den nächsten 14 Tagen geplant.</div>
+          <div className="text-center py-12 text-slate-400 text-sm">
+            {lang === 'en' ? 'No classes scheduled in the next 14 days.' : 'Keine Trainings in den nächsten 14 Tagen geplant.'}
+          </div>
         ) : days.map(day => (
           <div key={day}>
             <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{day}</h2>
             <div className="space-y-2">
               {grouped[day].map(cls => {
-                const start = new Date(cls.starts_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-                const end = new Date(cls.ends_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+                const start = new Date(cls.starts_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+                const end = new Date(cls.ends_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
                 const isFull = cls.spots_left !== null && cls.spots_left <= 0
                 return (
                   <div key={cls.id} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
@@ -116,13 +121,24 @@ function ScheduleContent() {
                         <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${TYPE_COLORS[cls.class_type] ?? 'bg-slate-100 text-slate-600'}`}>
                           {cls.class_type.charAt(0).toUpperCase() + cls.class_type.slice(1)}
                         </span>
-                        {isFull && <span className="text-xs px-2 py-0.5 rounded-md bg-red-50 text-red-500 font-medium">Ausgebucht</span>}
+                        {cls.is_cancelled && (
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-red-50 text-red-500 font-medium">
+                            {lang === 'en' ? 'Cancelled' : 'Abgesagt'}
+                          </span>
+                        )}
+                        {isFull && !cls.is_cancelled && (
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-red-50 text-red-500 font-medium">
+                            {lang === 'en' ? 'Full' : 'Ausgebucht'}
+                          </span>
+                        )}
                       </div>
                       <p className="text-slate-900 font-semibold text-sm">{cls.title}</p>
                       {cls.instructor && <p className="text-slate-400 text-xs">{cls.instructor}</p>}
                       {cls.spots_left !== null && (
                         <p className="text-slate-400 text-xs mt-0.5">
-                          {isFull ? 'Warteliste möglich' : `${cls.spots_left} Plätze frei`}
+                          {isFull
+                            ? (lang === 'en' ? 'Waitlist possible' : 'Warteliste möglich')
+                            : (lang === 'en' ? `${cls.spots_left} spots left` : `${cls.spots_left} Plätze frei`)}
                         </p>
                       )}
                     </div>
@@ -135,13 +151,17 @@ function ScheduleContent() {
 
         {!isEmbed && gym?.signup_enabled && (
           <div id="signup" className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center mt-8">
-            <h3 className="font-bold text-amber-900 text-lg mb-1">Interesse? Jetzt anmelden!</h3>
-            <p className="text-amber-700 text-sm mb-4">Starte dein Probetraining — kostenlos und unverbindlich.</p>
+            <h3 className="font-bold text-amber-900 text-lg mb-1">
+              {lang === 'en' ? 'Interested? Sign up now!' : 'Interesse? Jetzt anmelden!'}
+            </h3>
+            <p className="text-amber-700 text-sm mb-4">
+              {lang === 'en' ? 'Start your trial class — free and non-binding.' : 'Starte dein Probetraining — kostenlos und unverbindlich.'}
+            </p>
             <a
               href={`/signup?schedule=${gymId}`}
               className="inline-block px-6 py-3 bg-amber-500 hover:bg-amber-400 text-white font-semibold rounded-xl transition-colors"
             >
-              Kostenlos anmelden →
+              {lang === 'en' ? 'Sign up for free →' : 'Kostenlos anmelden →'}
             </a>
           </div>
         )}
@@ -158,7 +178,7 @@ export default function PublicSchedulePage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="text-slate-400 text-sm">Lädt…</div>
+        <div className="text-slate-400 text-sm">Loading…</div>
       </div>
     }>
       <ScheduleContent />

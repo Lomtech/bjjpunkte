@@ -6,9 +6,9 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Save } from 'lucide-react'
 import type { Belt } from '@/types/database'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 const BELTS: Belt[] = ['white', 'blue', 'purple', 'brown', 'black']
-const BELT_LABELS: Record<Belt, string> = { white: 'Weiss', blue: 'Blau', purple: 'Lila', brown: 'Braun', black: 'Schwarz' }
 const BELT_CLASSES: Record<Belt, string> = {
   white:  'bg-slate-100 text-slate-700 border border-slate-300',
   blue:   'bg-blue-600 text-white',
@@ -20,7 +20,16 @@ const BELT_CLASSES: Record<Belt, string> = {
 export default function EditMemberPage() {
   const params = useParams()
   const router = useRouter()
+  const { t, lang } = useLanguage()
   const id = params.id as string
+
+  const BELT_LABELS: Record<Belt, string> = {
+    white:  lang === 'en' ? 'White'  : 'Weiss',
+    blue:   lang === 'en' ? 'Blue'   : 'Blau',
+    purple: lang === 'en' ? 'Purple' : 'Lila',
+    brown:  lang === 'en' ? 'Brown'  : 'Braun',
+    black:  lang === 'en' ? 'Black'  : 'Schwarz',
+  }
 
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
@@ -110,61 +119,61 @@ export default function EditMemberPage() {
   }
 
   if (loading) return (
-    <div className="flex items-center justify-center h-full text-slate-400 text-sm">Lädt…</div>
+    <div className="flex items-center justify-center h-full text-slate-400 text-sm">{t('memberForm', 'loading')}</div>
   )
 
   return (
     <div className="p-4 md:p-6 max-w-2xl">
       <div className="mb-6">
-        <Link href={`/dashboard/members/${id}`} className="text-slate-400 hover:text-slate-600 text-sm">← Zurück</Link>
-        <h1 className="text-xl font-bold text-slate-900 mt-3">Mitglied bearbeiten</h1>
+        <Link href={`/dashboard/members/${id}`} className="text-slate-400 hover:text-slate-600 text-sm">{t('memberForm', 'back')}</Link>
+        <h1 className="text-xl font-bold text-slate-900 mt-3">{t('memberForm', 'editMember')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
         {/* Personal data */}
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Persönliche Daten</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('memberForm', 'personalData')}</p>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Vorname *" value={form.first_name} onChange={v => set('first_name', v)} required />
-            <Field label="Nachname *" value={form.last_name} onChange={v => set('last_name', v)} required />
+            <Field label={t('memberForm', 'firstNameReq')} value={form.first_name} onChange={v => set('first_name', v)} required />
+            <Field label={t('memberForm', 'lastNameReq')} value={form.last_name} onChange={v => set('last_name', v)} required />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="E-Mail" type="email" value={form.email} onChange={v => set('email', v)} placeholder="max@gym.de" />
-            <Field label="Telefon" value={form.phone} onChange={v => set('phone', v)} placeholder="+49 170 1234567" />
+            <Field label={t('memberForm', 'email')} type="email" value={form.email} onChange={v => set('email', v)} placeholder="max@gym.de" />
+            <Field label={t('memberForm', 'phone')} value={form.phone} onChange={v => set('phone', v)} placeholder="+49 170 1234567" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Geburtsdatum" type="date" value={form.date_of_birth} onChange={v => set('date_of_birth', v)} />
-            <Field label="Mitglied seit *" type="date" value={form.join_date} onChange={v => set('join_date', v)} required />
+            <Field label={t('memberForm', 'dateOfBirth')} type="date" value={form.date_of_birth} onChange={v => set('date_of_birth', v)} />
+            <Field label={t('memberForm', 'joinDateReq')} type="date" value={form.join_date} onChange={v => set('join_date', v)} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Elternteil (optional, für Kids)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t('memberForm', 'parent')}</label>
             <select
               value={parentMemberId}
               onChange={e => setParentMemberId(e.target.value)}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
-              <option value="">Kein Elternteil (Erwachsener)</option>
+              <option value="">{t('memberForm', 'noParent')}</option>
               {allMembers.filter(m => m.id !== id).map(m => (
                 <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
               ))}
             </select>
           </div>
-          <Field label="Adresse" value={form.address} onChange={v => set('address', v)} placeholder="Musterstraße 1, 80331 München" />
+          <Field label={t('memberForm', 'address')} value={form.address} onChange={v => set('address', v)} placeholder="Musterstraße 1, 80331 München" />
         </div>
 
         {/* Emergency contact */}
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notfallkontakt</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('memberForm', 'emergency')}</p>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Name" value={form.emergency_contact_name} onChange={v => set('emergency_contact_name', v)} placeholder="Anna Mustermann" />
-            <Field label="Telefon" value={form.emergency_contact_phone} onChange={v => set('emergency_contact_phone', v)} placeholder="+49 170 9876543" />
+            <Field label={t('memberForm', 'emergencyName')} value={form.emergency_contact_name} onChange={v => set('emergency_contact_name', v)} placeholder="Anna Mustermann" />
+            <Field label={t('memberForm', 'emergencyPhone')} value={form.emergency_contact_phone} onChange={v => set('emergency_contact_phone', v)} placeholder="+49 170 9876543" />
           </div>
         </div>
 
         {/* Belt */}
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gürtel & Stripes</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('memberForm', 'beltStripes')}</p>
           <div className="flex flex-wrap gap-2">
             {BELTS.map(b => (
               <button key={b} type="button" onClick={() => set('belt', b)}
@@ -177,7 +186,7 @@ export default function EditMemberPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Stripes: <span className="text-amber-600 font-bold">{form.stripes}</span>
+              {t('memberForm', 'stripes')}: <span className="text-amber-600 font-bold">{form.stripes}</span>
             </label>
             <input type="range" min={0} max={4} value={form.stripes}
               onChange={e => set('stripes', Number(e.target.value))}
@@ -190,34 +199,34 @@ export default function EditMemberPage() {
 
         {/* Contract & billing */}
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Vertrag & Beitrag</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('memberForm', 'contractBilling')}</p>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Vertragsende" type="date" value={form.contract_end_date} onChange={v => set('contract_end_date', v)} />
+            <Field label={t('memberForm', 'contractEnd')} type="date" value={form.contract_end_date} onChange={v => set('contract_end_date', v)} />
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Individueller Beitrag (€)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('memberForm', 'individualFee')}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
                 <input
                   type="text"
                   value={form.monthly_fee_override_cents}
                   onChange={e => set('monthly_fee_override_cents', e.target.value)}
-                  placeholder="Standard"
+                  placeholder={t('memberForm', 'standard')}
                   className="w-full pl-8 pr-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
-              <p className="text-xs text-slate-400 mt-1">Leer lassen = Gym-Standard</p>
+              <p className="text-xs text-slate-400 mt-1">{t('memberForm', 'feeDefault')}</p>
             </div>
           </div>
         </div>
 
         {/* Notes */}
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-2">Notizen</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'notes')}</label>
           <textarea
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
             rows={3}
-            placeholder="Verletzungen, Ziele, besondere Hinweise…"
+            placeholder={t('memberForm', 'notesPlaceholder')}
             className="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 resize-none"
           />
         </div>
@@ -230,11 +239,11 @@ export default function EditMemberPage() {
           <button type="submit" disabled={saving}
             className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold transition-colors flex items-center justify-center gap-2 text-sm">
             <Save size={15} />
-            {saving ? 'Wird gespeichert…' : 'Änderungen speichern'}
+            {saving ? t('memberForm', 'saving') : t('memberForm', 'saveChanges')}
           </button>
           <Link href={`/dashboard/members/${id}`}
             className="px-5 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-colors">
-            Abbrechen
+            {t('memberForm', 'cancel')}
           </Link>
         </div>
       </form>

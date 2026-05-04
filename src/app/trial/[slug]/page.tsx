@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { CheckCircle2, ChevronRight, ChevronLeft, AlertCircle, Calendar, Clock, User } from 'lucide-react'
 import { LogoMark } from '@/components/Logo'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 interface GymInfo {
   id: string
@@ -28,16 +30,17 @@ const TYPE_LABELS: Record<string, string> = {
   gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat', kids: 'Kids', competition: 'Competition',
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+function formatTime(iso: string, locale = 'de-DE') {
+  return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
-function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })
+function formatDay(iso: string, locale = 'de-DE') {
+  return new Date(iso).toLocaleDateString(locale, { weekday: 'long', day: '2-digit', month: 'long' })
 }
 
 export default function TrialPage() {
   const { slug } = useParams() as { slug: string }
+  const { lang } = useLanguage()
 
   const [step, setStep]           = useState<1 | 2 | 3>(1)
   const [gymInfo, setGymInfo]     = useState<GymInfo | null>(null)
@@ -63,7 +66,7 @@ export default function TrialPage() {
         setGymInfo({ id: data.gym.id, name: data.gym.name, logo_url: data.gym.logo_url })
         setClasses(data.classes ?? [])
       })
-      .catch(() => setLoadErr('Verbindungsfehler – bitte Internetverbindung prüfen.'))
+      .catch(() => setLoadErr(lang === 'en' ? 'Connection error – please check your internet connection.' : 'Verbindungsfehler – bitte Internetverbindung prüfen.'))
       .finally(() => setLoading(false))
   }, [slug])
 
@@ -79,10 +82,10 @@ export default function TrialPage() {
         body: JSON.stringify({ first_name: firstName.trim(), last_name: lastName.trim(), email: email.trim(), phone: phone.trim() || null, message: message.trim() || null, class_id: classId }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Unbekannter Fehler')
+      if (!res.ok) throw new Error(data.error || (lang === 'en' ? 'Unknown error' : 'Unbekannter Fehler'))
       setStep(3)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler')
+      setError(e instanceof Error ? e.message : (lang === 'en' ? 'Error' : 'Fehler'))
     }
     setSubmitting(false)
   }
@@ -96,9 +99,9 @@ export default function TrialPage() {
   }, {})
 
   const steps = [
-    { n: 1 as const, label: 'Daten' },
-    { n: 2 as const, label: 'Klasse' },
-    { n: 3 as const, label: 'Fertig' },
+    { n: 1 as const, label: lang === 'en' ? 'Details' : 'Daten' },
+    { n: 2 as const, label: lang === 'en' ? 'Class' : 'Klasse' },
+    { n: 3 as const, label: lang === 'en' ? 'Done' : 'Fertig' },
   ]
 
   if (loading) return (
@@ -111,7 +114,7 @@ export default function TrialPage() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
       <div className="text-center max-w-sm">
         <AlertCircle size={40} className="text-red-400 mx-auto mb-3" />
-        <h2 className="font-bold text-zinc-900 text-lg mb-2">Gym nicht gefunden</h2>
+        <h2 className="font-bold text-zinc-900 text-lg mb-2">{lang === 'en' ? 'Gym not found' : 'Gym nicht gefunden'}</h2>
         <p className="text-zinc-500 text-sm">{loadErr}</p>
       </div>
     </div>
@@ -123,10 +126,12 @@ export default function TrialPage() {
         <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 size={40} className="text-amber-500" />
         </div>
-        <h2 className="font-bold text-zinc-900 text-2xl mb-2">Anfrage gesendet!</h2>
+        <h2 className="font-bold text-zinc-900 text-2xl mb-2">{lang === 'en' ? 'Request sent!' : 'Anfrage gesendet!'}</h2>
         <p className="text-zinc-500 text-sm leading-relaxed">
-          Deine Probetraining-Anfrage bei <strong>{gymInfo?.name}</strong> ist eingegangen.
-          Du erhältst eine Bestätigungs-E-Mail mit deinem persönlichen Portal-Link.
+          {lang === 'en'
+            ? <>Your trial class request at <strong>{gymInfo?.name}</strong> has been received. You will get a confirmation email with your personal portal link.</>
+            : <>Deine Probetraining-Anfrage bei <strong>{gymInfo?.name}</strong> ist eingegangen. Du erhältst eine Bestätigungs-E-Mail mit deinem persönlichen Portal-Link.</>
+          }
         </p>
       </div>
     </div>
@@ -144,7 +149,8 @@ export default function TrialPage() {
           <p className="text-amber-400 font-black text-xl italic tracking-tight">Osss</p>
         </div>
         <p className="text-white font-semibold text-sm">{gymInfo?.name}</p>
-        <p className="text-zinc-500 text-xs mt-0.5">Probetraining anfragen</p>
+        <p className="text-zinc-500 text-xs mt-0.5">{lang === 'en' ? 'Request a trial class' : 'Probetraining anfragen'}</p>
+        <div className="mt-2 flex justify-center"><LanguageSwitcher variant="minimal" className="text-zinc-400" /></div>
       </div>
 
       {/* Step indicator */}
@@ -176,34 +182,34 @@ export default function TrialPage() {
         {/* Step 1: Personal data */}
         {step === 1 && (
           <div>
-            <h2 className="text-2xl font-black text-zinc-900 mb-1">Persönliche Daten</h2>
-            <p className="text-zinc-400 text-sm mb-6">Bitte fülle alle Pflichtfelder aus.</p>
+            <h2 className="text-2xl font-black text-zinc-900 mb-1">{lang === 'en' ? 'Personal details' : 'Persönliche Daten'}</h2>
+            <p className="text-zinc-400 text-sm mb-6">{lang === 'en' ? 'Please fill in all required fields.' : 'Bitte fülle alle Pflichtfelder aus.'}</p>
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-zinc-700 mb-1.5">Vorname *</label>
+                  <label className="block text-sm font-semibold text-zinc-700 mb-1.5">{lang === 'en' ? 'First name *' : 'Vorname *'}</label>
                   <input className={INPUT} placeholder="Max" value={firstName} onChange={e => setFirstName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-zinc-700 mb-1.5">Nachname *</label>
+                  <label className="block text-sm font-semibold text-zinc-700 mb-1.5">{lang === 'en' ? 'Last name *' : 'Nachname *'}</label>
                   <input className={INPUT} placeholder="Mustermann" value={lastName} onChange={e => setLastName(e.target.value)} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">E-Mail *</label>
-                <input className={INPUT} type="email" placeholder="max@beispiel.de" value={email} onChange={e => setEmail(e.target.value)} />
+                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">{lang === 'en' ? 'Email *' : 'E-Mail *'}</label>
+                <input className={INPUT} type="email" placeholder="max@example.com" value={email} onChange={e => setEmail(e.target.value)} />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">Telefon</label>
+                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">{lang === 'en' ? 'Phone' : 'Telefon'}</label>
                 <input className={INPUT} type="tel" placeholder="+49 176 …" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">Nachricht <span className="text-zinc-400 font-normal">(optional)</span></label>
-                <textarea className={`${INPUT} resize-none`} rows={3} placeholder="Erfahrung, Fragen, …" value={message} onChange={e => setMessage(e.target.value)} />
+                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">{lang === 'en' ? 'Message' : 'Nachricht'} <span className="text-zinc-400 font-normal">({lang === 'en' ? 'optional' : 'optional'})</span></label>
+                <textarea className={`${INPUT} resize-none`} rows={3} placeholder={lang === 'en' ? 'Experience, questions, …' : 'Erfahrung, Fragen, …'} value={message} onChange={e => setMessage(e.target.value)} />
               </div>
             </div>
 
@@ -212,7 +218,7 @@ export default function TrialPage() {
               disabled={!step1Valid}
               className="mt-8 w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-950 font-bold text-sm transition-colors"
             >
-              Weiter <ChevronRight size={16} />
+              {lang === 'en' ? 'Next' : 'Weiter'} <ChevronRight size={16} />
             </button>
           </div>
         )}
@@ -220,19 +226,19 @@ export default function TrialPage() {
         {/* Step 2: Class selection */}
         {step === 2 && (
           <div>
-            <h2 className="text-2xl font-black text-zinc-900 mb-1">Klasse wählen</h2>
-            <p className="text-zinc-400 text-sm mb-6">Optional — du kannst auch ohne Slot anfragen.</p>
+            <h2 className="text-2xl font-black text-zinc-900 mb-1">{lang === 'en' ? 'Choose a class' : 'Klasse wählen'}</h2>
+            <p className="text-zinc-400 text-sm mb-6">{lang === 'en' ? 'Optional — you can also enquire without a slot.' : 'Optional — du kannst auch ohne Slot anfragen.'}</p>
 
             {classes.length === 0 ? (
               <div className="bg-white rounded-2xl border border-zinc-200 p-8 text-center mb-6">
                 <Calendar size={28} className="text-zinc-200 mx-auto mb-2" />
-                <p className="text-zinc-400 text-sm">Keine bevorstehenden Klassen eingetragen.</p>
+                <p className="text-zinc-400 text-sm">{lang === 'en' ? 'No upcoming classes listed.' : 'Keine bevorstehenden Klassen eingetragen.'}</p>
               </div>
             ) : (
               <div className="space-y-4 mb-6">
                 {Object.entries(byDay).map(([day, dayClasses]) => (
                   <div key={day}>
-                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">{formatDay(dayClasses[0].starts_at)}</p>
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">{formatDay(dayClasses[0].starts_at, lang === 'en' ? 'en-GB' : 'de-DE')}</p>
                     <div className="space-y-2">
                       {dayClasses.map(cls => {
                         const full = cls.spots_left !== null && cls.spots_left <= 0
@@ -255,11 +261,11 @@ export default function TrialPage() {
                                   <span className="text-xs font-semibold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">
                                     {TYPE_LABELS[cls.class_type] ?? cls.class_type}
                                   </span>
-                                  {full && <span className="text-xs text-red-400 font-medium">Ausgebucht</span>}
+                                  {full && <span className="text-xs text-red-400 font-medium">{lang === 'en' ? 'Full' : 'Ausgebucht'}</span>}
                                 </div>
                                 <p className="font-semibold text-zinc-900 text-sm truncate">{cls.title}</p>
                                 <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400">
-                                  <span className="flex items-center gap-1"><Clock size={10} /> {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}</span>
+                                  <span className="flex items-center gap-1"><Clock size={10} /> {formatTime(cls.starts_at, lang === 'en' ? 'en-GB' : 'de-DE')} – {formatTime(cls.ends_at, lang === 'en' ? 'en-GB' : 'de-DE')}</span>
                                   {cls.instructor && <span className="flex items-center gap-1"><User size={10} /> {cls.instructor}</span>}
                                 </div>
                               </div>
@@ -287,7 +293,7 @@ export default function TrialPage() {
             <div className="flex gap-3">
               <button onClick={() => setStep(1)}
                 className="flex items-center gap-1.5 px-5 py-4 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-sm font-semibold transition-colors">
-                <ChevronLeft size={15} /> Zurück
+                <ChevronLeft size={15} /> {lang === 'en' ? 'Back' : 'Zurück'}
               </button>
               <button
                 onClick={submit}
@@ -295,9 +301,9 @@ export default function TrialPage() {
                 className="flex-1 flex items-center justify-center gap-2 py-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-zinc-950 font-bold text-sm transition-colors"
               >
                 {submitting ? (
-                  <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-zinc-400 border-t-zinc-900 rounded-full animate-spin" /> Wird gesendet…</span>
+                  <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-zinc-400 border-t-zinc-900 rounded-full animate-spin" /> {lang === 'en' ? 'Sending…' : 'Wird gesendet…'}</span>
                 ) : (
-                  classId ? 'Probetraining buchen' : 'Anfrage senden'
+                  classId ? (lang === 'en' ? 'Book trial class' : 'Probetraining buchen') : (lang === 'en' ? 'Send request' : 'Anfrage senden')
                 )}
               </button>
             </div>

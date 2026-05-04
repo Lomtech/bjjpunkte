@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export default function UpdatePasswordPage() {
+  const { lang } = useLanguage()
   const router = useRouter()
   const [ready, setReady] = useState(false)
   const [newPassword, setNewPassword] = useState('')
@@ -26,11 +29,11 @@ export default function UpdatePasswordPage() {
     e.preventDefault()
     setError('')
     if (newPassword.length < 8) {
-      setError('Passwort muss mindestens 8 Zeichen lang sein.')
+      setError(lang === 'en' ? 'Password must be at least 8 characters.' : 'Passwort muss mindestens 8 Zeichen lang sein.')
       return
     }
     if (newPassword !== confirm) {
-      setError('Passwörter stimmen nicht überein.')
+      setError(lang === 'en' ? 'Passwords do not match.' : 'Passwörter stimmen nicht überein.')
       return
     }
     setLoading(true)
@@ -56,37 +59,40 @@ export default function UpdatePasswordPage() {
             </div>
           </div>
           <h1 className="text-3xl font-black text-slate-900 italic tracking-tight">Osss</h1>
-          <p className="text-slate-500 mt-1 text-sm tracking-wide">Neues Passwort setzen</p>
+          <p className="text-slate-500 mt-1 text-sm tracking-wide">{lang === 'en' ? 'Set new password' : 'Neues Passwort setzen'}</p>
+          <div className="mt-2 flex justify-center">
+            <LanguageSwitcher variant="minimal" />
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
           {!ready ? (
             <div className="text-center py-4">
-              <p className="text-slate-500 text-sm">Warte auf Bestätigung des Reset-Links…</p>
-              <p className="text-slate-400 text-xs mt-2">Bitte klicke den Link in deiner E-Mail, falls du noch nicht weitergeleitet wurdest.</p>
+              <p className="text-slate-500 text-sm">{lang === 'en' ? 'Waiting for reset link confirmation…' : 'Warte auf Bestätigung des Reset-Links…'}</p>
+              <p className="text-slate-400 text-xs mt-2">{lang === 'en' ? 'Please click the link in your email if you haven\'t been redirected yet.' : 'Bitte klicke den Link in deiner E-Mail, falls du noch nicht weitergeleitet wurdest.'}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Neues Passwort</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{lang === 'en' ? 'New password' : 'Neues Passwort'}</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   required
                   minLength={8}
-                  placeholder="Mindestens 8 Zeichen"
+                  placeholder={lang === 'en' ? 'At least 8 characters' : 'Mindestens 8 Zeichen'}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Passwort bestätigen</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{lang === 'en' ? 'Confirm password' : 'Passwort bestätigen'}</label>
                 <input
                   type="password"
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
                   required
-                  placeholder="Passwort wiederholen"
+                  placeholder={lang === 'en' ? 'Repeat password' : 'Passwort wiederholen'}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
               </div>
@@ -102,7 +108,7 @@ export default function UpdatePasswordPage() {
                 disabled={loading}
                 className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold transition-colors shadow-sm"
               >
-                {loading ? 'Wird gespeichert…' : 'Passwort speichern'}
+                {loading ? (lang === 'en' ? 'Saving…' : 'Wird gespeichert…') : (lang === 'en' ? 'Save password' : 'Passwort speichern')}
               </button>
             </form>
           )}

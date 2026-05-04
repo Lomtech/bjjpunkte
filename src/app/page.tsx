@@ -67,11 +67,17 @@ const STEPS = [
   { num: '03', title: 'Gym läuft',              desc: 'Zahlungen, Stundenplan, Portale — alles sofort einsatzbereit.' },
 ]
 
-const MARQUEE_ITEMS = [
+const MARQUEE_ITEMS_DE = [
   'BJJ', 'MMA', 'Judo', 'Karate', 'Muay Thai', 'Boxen', 'Ringen', 'Taekwondo',
   'Hamburg', 'München', 'Berlin', 'Köln', 'Frankfurt', 'Stuttgart', 'Leipzig', 'Dresden',
   'BJJ', 'MMA', 'Judo', 'Karate', 'Muay Thai', 'Boxen', 'Ringen', 'Taekwondo',
   'Hamburg', 'München', 'Berlin', 'Köln', 'Frankfurt', 'Stuttgart', 'Leipzig', 'Dresden',
+]
+const MARQUEE_ITEMS_EN = [
+  'BJJ', 'MMA', 'Judo', 'Karate', 'Muay Thai', 'Boxing', 'Wrestling', 'Taekwondo',
+  'Hamburg', 'Munich', 'Berlin', 'Cologne', 'Frankfurt', 'Stuttgart', 'Leipzig', 'Dresden',
+  'BJJ', 'MMA', 'Judo', 'Karate', 'Muay Thai', 'Boxing', 'Wrestling', 'Taekwondo',
+  'Hamburg', 'Munich', 'Berlin', 'Cologne', 'Frankfurt', 'Stuttgart', 'Leipzig', 'Dresden',
 ]
 
 // ── Variants ──────────────────────────────────────────────────────────────────
@@ -303,7 +309,7 @@ export default function Home() {
                 {!appInstalled && installPrompt !== null && (
                   <button onClick={handleInstallClick}
                     className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
-                    App herunterladen <ArrowRight size={15} />
+                    {lang === 'en' ? 'Download app' : 'App herunterladen'} <ArrowRight size={15} />
                   </button>
                 )}
               </motion.div>
@@ -312,36 +318,41 @@ export default function Home() {
                 <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowIosHint(false)}>
                   <div className="bg-white rounded-t-3xl w-full max-w-sm px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
                     <div className="w-10 h-1 rounded-full bg-zinc-200 mx-auto mb-6" />
-                    <h3 className="text-lg font-bold text-zinc-900 mb-1">Osss App installieren</h3>
-                    <p className="text-zinc-500 text-sm mb-5">So geht's auf dem iPhone:</p>
+                    <h3 className="text-lg font-bold text-zinc-900 mb-1">{lang === 'en' ? 'Install Osss app' : 'Osss App installieren'}</h3>
+                    <p className="text-zinc-500 text-sm mb-5">{lang === 'en' ? 'How it works on iPhone:' : 'So geht\'s auf dem iPhone:'}</p>
                     <ol className="space-y-3 text-sm text-zinc-700">
                       <li className="flex items-start gap-3">
                         <span className="w-6 h-6 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                        <span>Tippe auf das <strong>Teilen-Symbol</strong> <span className="inline-block bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-600">⬆</span> in der Browserleiste</span>
+                        <span>{lang === 'en' ? <>Tap the <strong>Share icon</strong> <span className="inline-block bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-600">⬆</span> in the browser toolbar</> : <>Tippe auf das <strong>Teilen-Symbol</strong> <span className="inline-block bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-600">⬆</span> in der Browserleiste</>}</span>
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="w-6 h-6 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                        <span>Scrolle und tippe auf <strong>„Zum Home-Bildschirm"</strong></span>
+                        <span>{lang === 'en' ? <>Scroll and tap <strong>"Add to Home Screen"</strong></> : <>Scrolle und tippe auf <strong>„Zum Home-Bildschirm"</strong></>}</span>
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="w-6 h-6 rounded-full bg-zinc-900 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                        <span>Oben rechts auf <strong>„Hinzufügen"</strong> tippen</span>
+                        <span>{lang === 'en' ? <>Tap <strong>"Add"</strong> in the top right</> : <>Oben rechts auf <strong>„Hinzufügen"</strong> tippen</>}</span>
                       </li>
                     </ol>
                     <button onClick={() => setShowIosHint(false)} className="mt-6 w-full py-3 rounded-2xl bg-zinc-900 text-white text-sm font-semibold">
-                      Verstanden
+                      {lang === 'en' ? 'Got it' : 'Verstanden'}
                     </button>
                   </div>
                 </div>
               )}
 
               <motion.div variants={fadeUp} className="flex flex-wrap gap-x-7 gap-y-3">
-                {[
+                {(lang === 'en' ? [
+                  { val: '€0',     label: 'Setup cost' },
+                  { val: '10 min', label: 'Setup' },
+                  { val: '2%',     label: 'Platform fee' },
+                  { val: 'GDPR',   label: 'compliant' },
+                ] : [
                   { val: '€0',     label: 'Startkosten' },
                   { val: '10 Min', label: 'Setup' },
                   { val: '2%',     label: 'Plattformgebühr' },
                   { val: 'DSGVO',  label: 'konform' },
-                ].map(s => (
+                ]).map(s => (
                   <div key={s.label}>
                     <span className="text-zinc-950 font-black text-lg tracking-tight">{s.val}</span>
                     <span className="text-zinc-400 text-xs ml-1.5 tracking-wide">{s.label}</span>
@@ -414,8 +425,8 @@ export default function Home() {
                     <Award size={12} className="text-zinc-950" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black text-zinc-900 leading-tight">Für Wettkämpfer</p>
-                    <p className="text-[9px] text-zinc-400 leading-tight">Promotions · Verlauf · Daten</p>
+                    <p className="text-[10px] font-black text-zinc-900 leading-tight">{lang === 'en' ? 'For competitors' : 'Für Wettkämpfer'}</p>
+                    <p className="text-[9px] text-zinc-400 leading-tight">{lang === 'en' ? 'Promotions · History · Data' : 'Promotions · Verlauf · Daten'}</p>
                   </div>
                 </div>
               </motion.div>
@@ -429,11 +440,11 @@ export default function Home() {
       {/* ── TRUST MARQUEE ── */}
       <div className="bg-zinc-50 border-y border-zinc-100 py-5 overflow-hidden">
         <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em] text-center mb-3">
-          Für Kampfsport-Gyms in ganz Deutschland
+          {lang === 'en' ? 'For martial arts gyms across Germany' : 'Für Kampfsport-Gyms in ganz Deutschland'}
         </p>
         <div className="relative overflow-hidden">
           <div className="animate-marquee">
-            {MARQUEE_ITEMS.map((item, i) => (
+            {(lang === 'en' ? MARQUEE_ITEMS_EN : MARQUEE_ITEMS_DE).map((item, i) => (
               <span key={i} className="inline-flex items-center mx-5 text-zinc-400 text-sm font-medium whitespace-nowrap">
                 <span className="inline-block w-1 h-1 rounded-full bg-amber-400 mr-5" />
                 {item}
@@ -474,15 +485,15 @@ export default function Home() {
             >
               <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-4"
                 style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
-                Echtes Training. Echter Wettkampf.
+                {lang === 'en' ? 'Real training. Real competition.' : 'Echtes Training. Echter Wettkampf.'}
               </p>
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-none mb-5"
                 style={{ textShadow: '0 2px 32px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.5)' }}>
-                Für Gyms,<br />die gewinnen wollen.
+                {lang === 'en' ? <>For gyms<br />that want to win.</> : <>Für Gyms,<br />die gewinnen wollen.</>}
               </h2>
               <p className="text-white/85 text-base max-w-md mx-auto leading-relaxed"
                 style={{ textShadow: '0 1px 16px rgba(0,0,0,0.65)' }}>
-                Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.
+                {lang === 'en' ? 'Osss handles the day-to-day — so you can focus on training.' : 'Osss hält den Alltag im Griff — damit du dich aufs Training konzentrieren kannst.'}
               </p>
             </motion.div>
           </motion.div>
@@ -490,7 +501,7 @@ export default function Home() {
 
         <div className="absolute bottom-6 right-5">
           <span className="text-white/70 text-xs font-semibold bg-black/35 backdrop-blur-sm px-3 py-1.5 rounded-full tracking-wide">
-            Wettkampf · Submission Grappling
+            {lang === 'en' ? 'Competition · Submission Grappling' : 'Wettkampf · Submission Grappling'}
           </span>
         </div>
       </section>
@@ -505,12 +516,12 @@ export default function Home() {
             transition={{ duration: 0.48, ease: EASE }}
             className="text-center mb-12"
           >
-            <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">Dein Gym. Dein Dashboard.</p>
+            <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">{lang === 'en' ? 'Your gym. Your dashboard.' : 'Dein Gym. Dein Dashboard.'}</p>
             <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">
-              Alles auf einen Blick.
+              {lang === 'en' ? 'Everything at a glance.' : 'Alles auf einen Blick.'}
             </h2>
             <p className="text-zinc-500 mt-3 text-sm max-w-sm mx-auto leading-relaxed">
-              Mitglieder, Einnahmen, Belt-Verteilung — live und in Echtzeit.
+              {lang === 'en' ? 'Members, revenue, belt distribution — live and in real time.' : 'Mitglieder, Einnahmen, Belt-Verteilung — live und in Echtzeit.'}
             </p>
           </motion.div>
 
@@ -574,11 +585,11 @@ export default function Home() {
           >
             <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-5"
               style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
-              Kein Papierkram. Mehr Training.
+              {lang === 'en' ? 'No paperwork. More training.' : 'Kein Papierkram. Mehr Training.'}
             </p>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[0.92] max-w-2xl mx-auto"
               style={{ textShadow: '0 2px 32px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.5)' }}>
-              Osss läuft im Hintergrund.<br />Du trainierst im Vordergrund.
+              {lang === 'en' ? <>Osss runs in the background.<br />You train in the foreground.</> : <>Osss läuft im Hintergrund.<br />Du trainierst im Vordergrund.</>}
             </h2>
           </motion.div>
         </div>
@@ -603,7 +614,7 @@ export default function Home() {
                     ? 'bg-zinc-950 text-white border-zinc-950 shadow-sm'
                     : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:text-zinc-800'
                 }`}>
-                {s.label}
+                {s.id === 'boxing' ? (lang === 'en' ? 'Boxing' : 'Boxen') : s.id === 'wrestling' ? (lang === 'en' ? 'Wrestling' : 'Ringen') : s.label}
               </button>
             ))}
           </div>
@@ -727,15 +738,15 @@ export default function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
             <div>
-              <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Stundenplan</motion.p>
+              <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Schedule' : 'Stundenplan'}</motion.p>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-5">
-                Kursplan direkt auf deiner Website
+                {lang === 'en' ? 'Schedule directly on your website' : 'Kursplan direkt auf deiner Website'}
               </motion.h2>
               <motion.p variants={fadeUp} className="text-zinc-500 mb-8 leading-relaxed text-sm">
-                Stundenplan verwalten und per iframe einbetten. Mitglieder sehen immer den aktuellen Plan — ohne Pflege einer zweiten Seite.
+                {lang === 'en' ? 'Manage your timetable and embed it via iframe. Members always see the current schedule — no need to maintain a second page.' : 'Stundenplan verwalten und per iframe einbetten. Mitglieder sehen immer den aktuellen Plan — ohne Pflege einer zweiten Seite.'}
               </motion.p>
               <motion.ul variants={stagger} className="space-y-3.5">
-                {['Wochenansicht mit Kursdetails', 'Öffentlicher Embed-Link', 'iCal-Export für Google Calendar', 'Online-Buchung für Mitglieder'].map(item => (
+                {(lang === 'en' ? ['Weekly view with class details', 'Public embed link', 'iCal export for Google Calendar', 'Online booking for members'] : ['Wochenansicht mit Kursdetails', 'Öffentlicher Embed-Link', 'iCal-Export für Google Calendar', 'Online-Buchung für Mitglieder']).map(item => (
                   <motion.li key={item} variants={fadeUp} className="flex items-center gap-3 text-sm text-zinc-700">
                     <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
                       <CheckCircle size={11} className="text-amber-600" />
@@ -784,20 +795,26 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="text-zinc-900 font-bold text-sm">Osss</p>
-                  <p className="text-zinc-400 text-xs">Automatische Rechnung</p>
+                  <p className="text-zinc-400 text-xs">{lang === 'en' ? 'Automatic invoice' : 'Automatische Rechnung'}</p>
                 </div>
                 <div className="ml-auto">
-                  <span className="text-[11px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 px-2.5 py-1 rounded-full">Bezahlt</span>
+                  <span className="text-[11px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 px-2.5 py-1 rounded-full">{lang === 'en' ? 'Paid' : 'Bezahlt'}</span>
                 </div>
               </div>
               <div className="space-y-3.5">
-                {[
+                {(lang === 'en' ? [
+                  ['Invoice no.', 'OSS-2026-047'],
+                  ['Member',      'Max Mustermann'],
+                  ['Service',     'Monthly fee May 2026'],
+                  ['Amount',      '€ 89.00'],
+                  ['Tax note',    '§19 UStG — VAT-exempt'],
+                ] : [
                   ['Rechnungsnummer', 'OSS-2026-047'],
                   ['Mitglied',        'Max Mustermann'],
                   ['Leistung',        'Monatsbeitrag Mai 2026'],
                   ['Betrag',          '€ 89,00'],
                   ['Steuerhinweis',   '§19 UStG — keine USt.'],
-                ].map(([label, val]) => (
+                ]).map(([label, val]) => (
                   <div key={label} className="flex justify-between text-sm border-b border-zinc-200/80 pb-3.5">
                     <span className="text-zinc-400">{label}</span>
                     <span className="text-zinc-900 font-medium">{val}</span>
@@ -806,7 +823,7 @@ export default function Home() {
               </div>
               <div className="mt-5 bg-zinc-100 border border-zinc-200 rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 text-zinc-600 text-xs font-semibold">
                 <CheckCircle size={12} />
-                Automatisch erstellt und archiviert
+                {lang === 'en' ? 'Automatically created and archived' : 'Automatisch erstellt und archiviert'}
               </div>
             </motion.div>
           </div>
@@ -816,15 +833,15 @@ export default function Home() {
       {/* ── PRICING TEASER ── */}
       <Section className="py-24 px-5 bg-white">
         <div className="max-w-3xl mx-auto text-center">
-          <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Preise</motion.p>
-          <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">Faire Preise. Kein Kleingedrucktes.</motion.h2>
-          <motion.p variants={fadeUp} className="text-zinc-500 mb-10 text-sm leading-relaxed">Starte kostenlos mit bis zu 30 Mitgliedern. Zahle erst wenn du wächst.</motion.p>
+          <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Pricing' : 'Preise'}</motion.p>
+          <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Fair pricing. No fine print.' : 'Faire Preise. Kein Kleingedrucktes.'}</motion.h2>
+          <motion.p variants={fadeUp} className="text-zinc-500 mb-10 text-sm leading-relaxed">{lang === 'en' ? 'Start free with up to 30 members. Pay only when you grow.' : 'Starte kostenlos mit bis zu 30 Mitgliedern. Zahle erst wenn du wächst.'}</motion.p>
           <motion.div variants={stagger} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             {[
-              { name: 'Free',    price: '€0',  members: '30 Mitgl.',  highlight: false },
-              { name: 'Starter', price: '€29', members: '50 Mitgl.',  highlight: false },
-              { name: 'Grow',    price: '€59', members: '150 Mitgl.', highlight: true  },
-              { name: 'Pro',     price: '€99', members: 'Unbegrenzt', highlight: false },
+              { name: 'Free',    price: '€0',  members: lang === 'en' ? '30 mbrs.'   : '30 Mitgl.',  highlight: false },
+              { name: 'Starter', price: '€29', members: lang === 'en' ? '50 mbrs.'   : '50 Mitgl.',  highlight: false },
+              { name: 'Grow',    price: '€59', members: lang === 'en' ? '150 mbrs.'  : '150 Mitgl.', highlight: true  },
+              { name: 'Pro',     price: '€99', members: lang === 'en' ? 'Unlimited'  : 'Unbegrenzt', highlight: false },
             ].map(p => (
               <motion.div key={p.name} variants={fadeUp}
                 className={`rounded-2xl p-5 border-2 text-center transition-all ${
@@ -838,7 +855,7 @@ export default function Home() {
           </motion.div>
           <motion.div variants={fadeUp}>
             <Link href="/pricing" className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-700 font-semibold text-sm transition-colors">
-              Alle Features im Detail vergleichen <ArrowRight size={14} />
+              {lang === 'en' ? 'Compare all features in detail' : 'Alle Features im Detail vergleichen'} <ArrowRight size={14} />
             </Link>
           </motion.div>
         </div>
@@ -869,29 +886,29 @@ export default function Home() {
             <div className="sm:col-span-2">
               <OsssLogo variant="dark" />
               <p className="text-zinc-400 text-sm mt-4 leading-relaxed max-w-xs">
-                Die Gym-Management-Software für Kampfsport — auf Deutsch, DSGVO-konform, ab €0.
+                {lang === 'en' ? 'The gym management software for martial arts — GDPR-compliant, from €0.' : 'Die Gym-Management-Software für Kampfsport — auf Deutsch, DSGVO-konform, ab €0.'}
               </p>
             </div>
             <div>
-              <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">Produkt</p>
+              <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">{lang === 'en' ? 'Product' : 'Produkt'}</p>
               <ul className="space-y-3">
-                {[{ label: 'Preise', href: '/pricing' }, { label: 'Anmelden', href: '/login' }, { label: 'Registrieren', href: '/register' }].map(l => (
+                {(lang === 'en' ? [{ label: 'Pricing', href: '/pricing' }, { label: 'Log in', href: '/login' }, { label: 'Register', href: '/register' }] : [{ label: 'Preise', href: '/pricing' }, { label: 'Anmelden', href: '/login' }, { label: 'Registrieren', href: '/register' }]).map(l => (
                   <li key={l.label}><Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">{l.label}</Link></li>
                 ))}
               </ul>
             </div>
             <div>
-              <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">Rechtliches</p>
+              <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">{lang === 'en' ? 'Legal' : 'Rechtliches'}</p>
               <ul className="space-y-3">
-                {[{ label: 'Datenschutz', href: '/datenschutz' }, { label: 'Impressum', href: '/impressum' }, { label: 'Kontakt', href: 'mailto:oss@osss.pro' }].map(l => (
+                {(lang === 'en' ? [{ label: 'Privacy policy', href: '/datenschutz' }, { label: 'Imprint', href: '/impressum' }, { label: 'Contact', href: 'mailto:oss@osss.pro' }] : [{ label: 'Datenschutz', href: '/datenschutz' }, { label: 'Impressum', href: '/impressum' }, { label: 'Kontakt', href: 'mailto:oss@osss.pro' }]).map(l => (
                   <li key={l.label}><Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">{l.label}</Link></li>
                 ))}
               </ul>
             </div>
           </div>
           <div className="pt-6 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-zinc-400 text-xs">© {new Date().getFullYear()} Osss · Die Kampfsport-Gym-Software</p>
-            <p className="text-zinc-300 text-xs">Made in Germany · DSGVO-konform · Daten auf EU-Servern</p>
+            <p className="text-zinc-400 text-xs">© {new Date().getFullYear()} Osss · {lang === 'en' ? 'The martial arts gym software' : 'Die Kampfsport-Gym-Software'}</p>
+            <p className="text-zinc-300 text-xs">{lang === 'en' ? 'Made in Germany · GDPR-compliant · Data on EU servers' : 'Made in Germany · DSGVO-konform · Daten auf EU-Servern'}</p>
           </div>
         </div>
       </footer>

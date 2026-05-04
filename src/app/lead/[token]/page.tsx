@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { Clock, CheckCircle, MapPin, Calendar, Navigation } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -62,12 +64,19 @@ const TYPE_COLORS: Record<string, string> = {
   competition: 'bg-red-50 text-red-700',
 }
 
-const LEAD_STATUS_LABELS: Record<string, string> = {
+const LEAD_STATUS_LABELS_DE: Record<string, string> = {
   new:        'Neu',
   contacted:  'Kontaktiert',
   trial:      'Probetraining',
   converted:  'Mitglied',
   lost:       'Kein Interesse',
+}
+const LEAD_STATUS_LABELS_EN: Record<string, string> = {
+  new:        'New',
+  contacted:  'Contacted',
+  trial:      'Trial',
+  converted:  'Member',
+  lost:       'Not interested',
 }
 
 const LEAD_STATUS_COLORS: Record<string, string> = {
@@ -80,12 +89,12 @@ const LEAD_STATUS_COLORS: Record<string, string> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatDateTime(iso: string) {
+function formatDateTime(iso: string, locale: string) {
   const d = new Date(iso)
   return {
-    date: d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }),
-    time: d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-    dateShort: d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' }),
+    date: d.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }),
+    time: d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }),
+    dateShort: d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' }),
   }
 }
 
@@ -100,6 +109,8 @@ function isWithin2h(startsAt: string): boolean {
 export default function LeadPortalPage() {
   const params = useParams()
   const token  = params.token as string
+  const { lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
 
   const [data, setData]       = useState<PortalData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -115,7 +126,7 @@ export default function LeadPortalPage() {
         if (d.error) setError(d.error)
         else setData(d)
       })
-      .catch(() => setError('Verbindungsfehler'))
+      .catch(() => setError(lang === 'en' ? 'Connection error' : 'Verbindungsfehler'))
       .finally(() => setLoading(false))
   }, [token])
 
@@ -145,7 +156,7 @@ export default function LeadPortalPage() {
 
   async function handleGpsCheckin() {
     if (!navigator.geolocation) {
-      setGpsMessage('GPS nicht verfügbar'); setGpsState('error'); return
+      setGpsMessage(lang === 'en' ? 'GPS not available' : 'GPS nicht verfügbar'); setGpsState('error'); return
     }
     setGpsState('locating'); setGpsMessage(null)
     navigator.geolocation.getCurrentPosition(
@@ -157,11 +168,11 @@ export default function LeadPortalPage() {
         const d = await res.json()
         if (res.ok) {
           const clsName = d.class?.title ? ` · ${d.class.title}` : ''
-          setGpsMessage(`Eingecheckt ✓${clsName}`)
+          setGpsMessage(`${lang === 'en' ? 'Checked in' : 'Eingecheckt'} ✓${clsName}`)
           setGpsState('success')
           load()
         } else {
-          setGpsMessage(d.error ?? 'Fehler beim GPS-Check-in')
+          setGpsMessage(d.error ?? (lang === 'en' ? 'GPS check-in failed' : 'Fehler beim GPS-Check-in'))
           setGpsState('error')
         }
       },
@@ -186,7 +197,7 @@ export default function LeadPortalPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-slate-400 text-sm">Lädt…</div>
+        <div className="text-slate-400 text-sm">{lang === 'en' ? 'Loading…' : 'Lädt…'}</div>
       </div>
     )
   }
@@ -195,8 +206,8 @@ export default function LeadPortalPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-slate-500 text-sm">{error || 'Nicht gefunden'}</p>
-          <p className="text-slate-400 text-xs mt-2">Bitte kontaktiere dein Gym.</p>
+          <p className="text-slate-500 text-sm">{error || (lang === 'en' ? 'Not found' : 'Nicht gefunden')}</p>
+          <p className="text-slate-400 text-xs mt-2">{lang === 'en' ? 'Please contact your gym.' : 'Bitte kontaktiere dein Gym.'}</p>
         </div>
       </div>
     )
@@ -210,7 +221,8 @@ export default function LeadPortalPage() {
     if (b.status !== 'cancelled') bookingMap.set(b.class_id, b)
   }
 
-  const statusLabel = LEAD_STATUS_LABELS[lead.status] ?? lead.status
+  const statusLabels = lang === 'en' ? LEAD_STATUS_LABELS_EN : LEAD_STATUS_LABELS_DE
+  const statusLabel = statusLabels[lead.status] ?? lead.status
   const statusColor = LEAD_STATUS_COLORS[lead.status] ?? LEAD_STATUS_COLORS.new
 
   return (
@@ -238,7 +250,7 @@ export default function LeadPortalPage() {
             <p className="font-bold text-slate-900 text-sm leading-tight truncate">
               {gym?.name ?? 'Gym'}
             </p>
-            <p className="text-xs text-slate-400">Interessenten-Portal</p>
+            <p className="text-xs text-slate-400">{lang === 'en' ? 'Prospect Portal' : 'Interessenten-Portal'}</p>
           </div>
         </div>
       </div>
@@ -250,10 +262,10 @@ export default function LeadPortalPage() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-slate-900 font-bold text-lg leading-tight">
-                Hallo {lead.first_name}!
+                {lang === 'en' ? 'Hello' : 'Hallo'} {lead.first_name}!
               </p>
               <p className="text-slate-600 text-sm mt-1">
-                Du bist als Interessent registriert.
+                {lang === 'en' ? 'You are registered as a prospect.' : 'Du bist als Interessent registriert.'}
               </p>
               {gym?.address && (
                 <a
@@ -277,14 +289,14 @@ export default function LeadPortalPage() {
           <p className="text-slate-900 font-semibold text-sm mb-0.5 flex items-center gap-2">
             <Navigation size={14} className="text-amber-500" /> GPS Check-in
           </p>
-          <p className="text-slate-400 text-xs mb-4">Im Gym? Tippe einmal — wir checken dich automatisch ein.</p>
+          <p className="text-slate-400 text-xs mb-4">{lang === 'en' ? 'At the gym? One tap — checked in automatically.' : 'Im Gym? Tippe einmal — wir checken dich automatisch ein.'}</p>
           <button
             onClick={handleGpsCheckin}
             disabled={gpsState === 'locating'}
             className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
           >
             <Navigation size={14} />
-            {gpsState === 'locating' ? 'Standort wird ermittelt…' : 'GPS Check-in starten'}
+            {gpsState === 'locating' ? (lang === 'en' ? 'Locating…' : 'Standort wird ermittelt…') : (lang === 'en' ? 'Start GPS Check-in' : 'GPS Check-in starten')}
           </button>
           {gpsMessage && (
             <p className={`mt-3 text-xs text-center px-3 py-2 rounded-xl ${gpsState === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
@@ -303,7 +315,7 @@ export default function LeadPortalPage() {
               style={{ border: 0, display: 'block' }}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              title="Standort"
+              title={lang === 'en' ? 'Location' : 'Standort'}
             />
             <a
               href={`https://maps.google.com/?q=${encodeURIComponent(gym.address)}`}
@@ -323,12 +335,12 @@ export default function LeadPortalPage() {
         <div>
           <h2 className="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
             <Calendar size={15} className="text-amber-500" />
-            Kommende Trainings
+            {lang === 'en' ? 'Upcoming classes' : 'Kommende Trainings'}
           </h2>
 
           {classes.length === 0 ? (
             <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-8 text-center">
-              <p className="text-slate-400 text-sm">Keine Trainings in den nächsten 14 Tagen.</p>
+              <p className="text-slate-400 text-sm">{lang === 'en' ? 'No classes in the next 14 days.' : 'Keine Trainings in den nächsten 14 Tagen.'}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -340,8 +352,8 @@ export default function LeadPortalPage() {
                 const isBooking    = actionLoading === cls.id + ':book'
                 const isCheckingIn = actionLoading === cls.id + ':checkin'
                 const isCancelling = actionLoading === cls.id + ':cancel'
-                const endTime = new Date(cls.ends_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-                const { date, time } = formatDateTime(cls.starts_at)
+                const endTime = new Date(cls.ends_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+                const { date, time } = formatDateTime(cls.starts_at, locale)
                 const typeColor = TYPE_COLORS[cls.class_type] ?? 'bg-zinc-100 text-zinc-700'
                 const typeLabel = CLASS_LABELS[cls.class_type] ?? cls.class_type
 
@@ -364,7 +376,7 @@ export default function LeadPortalPage() {
                         )}
                         {cls.max_capacity != null && (
                           <p className="text-slate-400 text-xs mt-0.5">
-                            max. {cls.max_capacity} Plätze
+                            {lang === 'en' ? `max. ${cls.max_capacity} spots` : `max. ${cls.max_capacity} Plätze`}
                           </p>
                         )}
                       </div>
@@ -373,20 +385,20 @@ export default function LeadPortalPage() {
                         {isCheckedIn ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-3 py-2 rounded-xl border border-green-100">
                             <CheckCircle size={12} />
-                            Eingecheckt ✓
+                            {lang === 'en' ? 'Checked in ✓' : 'Eingecheckt ✓'}
                           </span>
                         ) : isBooked ? (
                           <div className="flex flex-col items-end gap-1.5">
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-3 py-2 rounded-xl border border-green-100">
                               <CheckCircle size={12} />
-                              Zugesagt ✓
+                              {lang === 'en' ? 'Booked ✓' : 'Zugesagt ✓'}
                             </span>
                             <button
                               onClick={() => handleCancel(cls.id)}
                               disabled={!!isCancelling}
                               className="text-[11px] text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
                             >
-                              {isCancelling ? '…' : 'Abmelden'}
+                              {isCancelling ? '…' : (lang === 'en' ? 'Cancel' : 'Abmelden')}
                             </button>
                           </div>
                         ) : (
@@ -395,7 +407,7 @@ export default function LeadPortalPage() {
                             disabled={!!isBooking}
                             className="text-xs font-semibold px-3 min-h-[36px] rounded-xl bg-amber-500 hover:bg-amber-400 text-white transition-colors disabled:opacity-50"
                           >
-                            {isBooking ? '…' : 'Anmelden'}
+                            {isBooking ? '…' : (lang === 'en' ? 'Book' : 'Anmelden')}
                           </button>
                         )}
                       </div>
@@ -410,7 +422,7 @@ export default function LeadPortalPage() {
                           className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                           <CheckCircle size={14} />
-                          {isCheckingIn ? 'Einchecken…' : 'Einchecken'}
+                          {isCheckingIn ? (lang === 'en' ? 'Checking in…' : 'Einchecken…') : (lang === 'en' ? 'Check in' : 'Einchecken')}
                         </button>
                       </div>
                     )}
@@ -426,7 +438,7 @@ export default function LeadPortalPage() {
           <div>
             <h2 className="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
               <CheckCircle size={15} className="text-amber-500" />
-              Meine Anmeldungen
+              {lang === 'en' ? 'My bookings' : 'Meine Anmeldungen'}
             </h2>
 
             <div className="space-y-2">
@@ -436,7 +448,7 @@ export default function LeadPortalPage() {
                   const cls = classes.find(c => c.id === b.class_id)
                   const isCheckedIn = b.status === 'checked_in'
                   const { dateShort, time } = cls
-                    ? formatDateTime(cls.starts_at)
+                    ? formatDateTime(cls.starts_at, locale)
                     : { dateShort: '—', time: '—' }
 
                   return (
@@ -457,7 +469,7 @@ export default function LeadPortalPage() {
                           ? 'bg-green-50 text-green-700 border-green-100'
                           : 'bg-amber-50 text-amber-700 border-amber-100'
                       }`}>
-                        {isCheckedIn ? 'Eingecheckt' : 'Angemeldet'}
+                        {isCheckedIn ? (lang === 'en' ? 'Checked in' : 'Eingecheckt') : (lang === 'en' ? 'Booked' : 'Angemeldet')}
                       </span>
                     </div>
                   )
@@ -468,7 +480,7 @@ export default function LeadPortalPage() {
 
         {/* Footer */}
         <p className="text-center text-slate-300 text-xs pb-4">
-          Betrieben mit <span className="font-bold italic">Osss</span>
+          {lang === 'en' ? 'Powered by' : 'Betrieben mit'} <span className="font-bold italic">Osss</span>
         </p>
       </div>
     </div>

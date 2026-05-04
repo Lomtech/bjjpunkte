@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Belt } from '@/types/database'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 const BELTS: Belt[] = ['white', 'blue', 'purple', 'brown', 'black']
-const BELT_LABELS: Record<Belt, string> = { white: 'Weiss', blue: 'Blau', purple: 'Lila', brown: 'Braun', black: 'Schwarz' }
 const BELT_CLASSES: Record<Belt, string> = {
   white:  'bg-slate-100 text-slate-700 border border-slate-300',
   blue:   'bg-blue-600 text-white',
@@ -19,6 +19,15 @@ const BELT_CLASSES: Record<Belt, string> = {
 function NewMemberForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t, lang } = useLanguage()
+
+  const BELT_LABELS: Record<Belt, string> = {
+    white:  lang === 'en' ? 'White'  : 'Weiss',
+    blue:   lang === 'en' ? 'Blue'   : 'Blau',
+    purple: lang === 'en' ? 'Purple' : 'Lila',
+    brown:  lang === 'en' ? 'Brown'  : 'Braun',
+    black:  lang === 'en' ? 'Black'  : 'Schwarz',
+  }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [parentMemberId, setParentMemberId] = useState('')
@@ -53,7 +62,7 @@ function NewMemberForm() {
       const limit = (gym as any)?.plan_member_limit ?? 30
       const { count: activeCount } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gymId).eq('is_active', true)
       if ((activeCount ?? 0) >= limit) {
-        setError(`Du hast das Limit deines Plans erreicht (${limit} aktive Mitglieder). Bitte upgraden.`)
+        setError(t('memberForm', 'planLimitReached', { limit: String(limit) }))
       }
     }
     loadMembers()
@@ -72,8 +81,8 @@ function NewMemberForm() {
     })
     if (!res.ok) {
       const err = await res.json()
-      if (err.error === 'PLAN_LIMIT_REACHED') setError(`Limit erreicht (${err.limit} Mitglieder). Bitte Plan upgraden.`)
-      else setError(err.error ?? 'Fehler')
+      if (err.error === 'PLAN_LIMIT_REACHED') setError(t('memberForm', 'planLimitShort', { limit: String(err.limit) }))
+      else setError(err.error ?? t('memberForm', 'saving'))
       setLoading(false); return
     }
     router.push('/dashboard/members'); router.refresh()
@@ -82,47 +91,47 @@ function NewMemberForm() {
   return (
     <div className="p-8 max-w-2xl">
       <div className="mb-8">
-        <Link href="/dashboard/members" className="text-slate-400 hover:text-slate-600 text-sm">← Zurück</Link>
-        <h1 className="text-2xl font-bold text-slate-900 mt-3">Neues Mitglied</h1>
+        <Link href="/dashboard/members" className="text-slate-400 hover:text-slate-600 text-sm">{t('memberForm', 'back')}</Link>
+        <h1 className="text-2xl font-bold text-slate-900 mt-3">{t('memberForm', 'newMember')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Persönliche Daten</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('memberForm', 'personalData')}</p>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Vorname *" value={form.first_name} onChange={v => set('first_name', v)} required placeholder="Max" />
-            <Field label="Nachname *" value={form.last_name} onChange={v => set('last_name', v)} required placeholder="Mustermann" />
+            <Field label={t('memberForm', 'firstNameReq')} value={form.first_name} onChange={v => set('first_name', v)} required placeholder="Max" />
+            <Field label={t('memberForm', 'lastNameReq')} value={form.last_name} onChange={v => set('last_name', v)} required placeholder="Mustermann" />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="E-Mail" value={form.email} onChange={v => set('email', v)} type="email" placeholder="max@gym.de" />
-            <Field label="Telefon" value={form.phone} onChange={v => set('phone', v)} placeholder="+49 170 1234567" />
+            <Field label={t('memberForm', 'email')} value={form.email} onChange={v => set('email', v)} type="email" placeholder="max@gym.de" />
+            <Field label={t('memberForm', 'phone')} value={form.phone} onChange={v => set('phone', v)} placeholder="+49 170 1234567" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Elternteil (optional, für Kids)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t('memberForm', 'parent')}</label>
             <select
               value={parentMemberId}
               onChange={e => setParentMemberId(e.target.value)}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
-              <option value="">Kein Elternteil (Erwachsener)</option>
+              <option value="">{t('memberForm', 'noParent')}</option>
               {allMembers.map(m => (
                 <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
               ))}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Geburtsdatum" value={form.date_of_birth} onChange={v => set('date_of_birth', v)} type="date" />
-            <Field label="Mitglied seit" value={form.join_date} onChange={v => set('join_date', v)} type="date" required />
+            <Field label={t('memberForm', 'dateOfBirth')} value={form.date_of_birth} onChange={v => set('date_of_birth', v)} type="date" />
+            <Field label={t('memberForm', 'joinDate')} value={form.join_date} onChange={v => set('join_date', v)} type="date" required />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Vertragsende" value={form.contract_end_date} onChange={v => set('contract_end_date', v)} type="date" />
+            <Field label={t('memberForm', 'contractEnd')} value={form.contract_end_date} onChange={v => set('contract_end_date', v)} type="date" />
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Belt & Stripes</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('memberForm', 'beltStripes')}</p>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Belt</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'belt')}</label>
             <div className="flex flex-wrap gap-2">
               {BELTS.map(b => (
                 <button
@@ -140,7 +149,7 @@ function NewMemberForm() {
           </div>
           {stripesEnabled && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Stripes: <span className="text-amber-600 font-bold">{form.stripes}</span></label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'stripes')}: <span className="text-amber-600 font-bold">{form.stripes}</span></label>
               <input
                 type="range" min={0} max={4} value={form.stripes}
                 onChange={e => set('stripes', Number(e.target.value))}
@@ -154,13 +163,13 @@ function NewMemberForm() {
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-2">Notizen</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'notes')}</label>
           <textarea
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
             rows={3}
             className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-400 resize-none"
-            placeholder="Verletzungen, Ziele, besondere Hinweise..."
+            placeholder={t('memberForm', 'notesPlaceholder')}
           />
         </div>
 
@@ -172,7 +181,7 @@ function NewMemberForm() {
               target="_blank"
               className="inline-block px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
             >
-              Pläne ansehen →
+              {t('memberForm', 'viewPlans')}
             </a>
           </div>
         )}
@@ -183,13 +192,13 @@ function NewMemberForm() {
             disabled={loading}
             className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold transition-colors shadow-sm"
           >
-            {loading ? 'Wird gespeichert...' : 'Mitglied speichern'}
+            {loading ? t('memberForm', 'saving') : t('memberForm', 'saveMember')}
           </button>
           <Link
             href="/dashboard/members"
             className="px-6 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-colors"
           >
-            Abbrechen
+            {t('memberForm', 'cancel')}
           </Link>
         </div>
       </form>
@@ -199,7 +208,7 @@ function NewMemberForm() {
 
 export default function NewMemberPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-400">Lädt…</div>}>
+    <Suspense fallback={<div className="p-8 text-slate-400">…</div>}>
       <NewMemberForm />
     </Suspense>
   )
