@@ -175,8 +175,11 @@ export async function POST(req: Request) {
 
       if (stripePrice) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+        const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
+        const connectedAccountId = (gymStripe as any)?.stripe_account_id as string | null
+        const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
 
-        // Get or create Stripe customer
+        // Get or create Stripe customer on connected account
         const { data: memberRow } = await supabase
           .from('members')
           .select('stripe_customer_id')
@@ -184,19 +187,26 @@ export async function POST(req: Request) {
           .single()
 
         let customerId = (memberRow as any)?.stripe_customer_id as string | null
+
+        // Verify existing customer is on connected account; recreate if not
+        if (customerId && connectedAccountId) {
+          try {
+            await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
+          } catch {
+            customerId = null
+          }
+        }
         if (!customerId) {
-          const customer = await stripe.customers.create({
-            email: email.toLowerCase().trim(),
-            name: fullName,
-            metadata: { memberId: member.id, gymId },
-          })
+          const customer = await stripe.customers.create(
+            { email: email.toLowerCase().trim(), name: fullName, metadata: { memberId: member.id, gymId } },
+            stripeOpts ?? {},
+          )
           customerId = customer.id
           await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
         }
 
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
-          payment_method_types: ['card', 'sepa_debit'],
           line_items: [{ price: stripePrice, quantity: 1 }],
           mode: 'subscription',
           billing_address_collection: 'required',
@@ -208,12 +218,11 @@ export async function POST(req: Request) {
           },
         }
 
-        const connectedAccountId = (gymStripe as any)?.stripe_account_id as string | null
         if (connectedAccountId) {
           sessionParams.subscription_data = {
             ...sessionParams.subscription_data,
             on_behalf_of: connectedAccountId,
-            // transfer_data is NOT used for subscriptions — on_behalf_of alone routes funds
+            ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
           }
         }
 

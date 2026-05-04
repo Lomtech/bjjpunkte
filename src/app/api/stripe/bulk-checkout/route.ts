@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     .single()
   if (!gymData) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
   const connectedAccountId = gymData?.stripe_account_id
-  const paymentMethodTypes = (gymData as any)?.payment_method_types as string[] | null
+  const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
 
   // Active members with email, no active subscription
   const { data: members } = await supabase
@@ -87,12 +87,21 @@ export async function POST(req: Request) {
       if (fee < 50) continue
 
       let customerId = member.stripe_customer_id
+      const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+
+      // Verify existing customer is on connected account; recreate if not
+      if (customerId && connectedAccountId) {
+        try {
+          await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
+        } catch {
+          customerId = null
+        }
+      }
       if (!customerId) {
-        const customer = await stripe.customers.create({
-          email: member.email!,
-          name: `${member.first_name} ${member.last_name}`,
-          metadata: { memberId: member.id, gymId },
-        })
+        const customer = await stripe.customers.create(
+          { email: member.email!, name: `${member.first_name} ${member.last_name}`, metadata: { memberId: member.id, gymId } },
+          stripeOpts ?? {},
+        )
         customerId = customer.id
         await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
       }
@@ -100,7 +109,6 @@ export async function POST(req: Request) {
       const memberName = `${member.first_name} ${member.last_name}`
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
-        ...(paymentMethodTypes?.length ? { payment_method_types: paymentMethodTypes as Stripe.Checkout.SessionCreateParams['payment_method_types'] } : {}),
         line_items: [{
           price_data: {
             currency: 'eur',
@@ -116,9 +124,10 @@ export async function POST(req: Request) {
       }
 
       if (connectedAccountId) {
+        const platformFee = Math.round(fee * platformFeePercent / 100)
         sessionParams.payment_intent_data = {
-          on_behalf_of: connectedAccountId,
           transfer_data: { destination: connectedAccountId },
+          ...(platformFee > 0 ? { application_fee_amount: platformFee } : {}),
         }
       }
 

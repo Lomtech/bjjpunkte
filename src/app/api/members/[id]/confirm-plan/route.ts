@@ -76,17 +76,38 @@ export async function POST(
     .update({ plan_id: plan.id, requested_plan_id: null })
     .eq('id', memberId)
 
-  // If plan has a stripe_price_id, member has a stripe_customer_id, and member does NOT already have a subscription
+  // If plan has a stripe_price_id and member does NOT already have a subscription
   const stripeKey = process.env.STRIPE_SECRET_KEY
   if (
     stripeKey &&
     plan.stripe_price_id &&
-    member.stripe_customer_id &&
     !member.stripe_subscription_id
   ) {
     try {
       const stripe = new Stripe(stripeKey)
       const appUrl = getAppUrl()
+      const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
+      const connectedAccountId = gymData.stripe_account_id
+      const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+
+      // Verify/create customer on connected account
+      let customerId = member.stripe_customer_id
+      if (customerId && connectedAccountId) {
+        try {
+          await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
+        } catch {
+          customerId = null
+        }
+      }
+      if (!customerId) {
+        if (!member.email) return NextResponse.json({ error: 'Mitglied hat keine E-Mail' }, { status: 400 })
+        const customer = await stripe.customers.create(
+          { email: member.email, name: `${member.first_name} ${member.last_name}`, metadata: { memberId, gymId: gymData.id } },
+          stripeOpts ?? {},
+        )
+        customerId = customer.id
+        await (supabase.from('members') as any).update({ stripe_customer_id: customerId }).eq('id', memberId)
+      }
 
       // If contract has a fixed duration, auto-cancel the subscription at the end
       let cancelAt: number | undefined
@@ -97,11 +118,10 @@ export async function POST(
       }
 
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
-        customer: member.stripe_customer_id,
+        customer: customerId,
         line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
         mode: 'subscription',
         billing_address_collection: 'required',
-        payment_method_types: ['card', 'sepa_debit'],
         success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
         cancel_url: `${appUrl}/dashboard/members/${memberId}`,
         metadata: { memberId, gymId: gymData.id },
@@ -112,11 +132,11 @@ export async function POST(
         },
       }
 
-      if (gymData.stripe_account_id) {
+      if (connectedAccountId) {
         sessionParams.subscription_data = {
           ...sessionParams.subscription_data,
-          on_behalf_of: gymData.stripe_account_id,
-          // transfer_data is NOT used for subscriptions — on_behalf_of alone routes funds
+          on_behalf_of: connectedAccountId,
+          ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
         }
       }
 

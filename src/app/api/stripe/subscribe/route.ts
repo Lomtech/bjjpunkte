@@ -65,32 +65,43 @@ export async function POST(req: Request) {
     }
   }
 
+  const appUrl = getAppUrl()
+  const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
+  const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+
+  // Verify existing customer is on connected account; recreate if not
+  if (customerId && connectedAccountId) {
+    try {
+      await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
+    } catch {
+      customerId = null
+    }
+  }
   if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: memberEmail,
-      name: memberName,
-      metadata: { memberId, gymId },
-    })
+    const customer = await stripe.customers.create(
+      { email: memberEmail, name: memberName, metadata: { memberId, gymId } },
+      stripeOpts ?? {},
+    )
     customerId = customer.id
     await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', memberId)
   }
 
-  const appUrl = getAppUrl()
-
   try {
-    const price = await stripe.prices.create({
-      currency: 'eur',
-      unit_amount: amountCents,
-      recurring: { interval: 'month' },
-      product_data: { name: 'Monatlicher Mitgliedsbeitrag' },
-    })
+    const price = await stripe.prices.create(
+      {
+        currency: 'eur',
+        unit_amount: amountCents,
+        recurring: { interval: 'month' },
+        product_data: { name: 'Monatlicher Mitgliedsbeitrag' },
+      },
+      connectedAccountId ? { stripeAccount: connectedAccountId } : {},
+    )
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      payment_method_types: ['card', 'sepa_debit'],
       line_items: [{ price: price.id, quantity: 1 }],
       mode: 'subscription',
-          billing_address_collection: 'required',
+      billing_address_collection: 'required',
       success_url: `${appUrl}/dashboard/members/${memberId}?sub=success`,
       cancel_url:  `${appUrl}/dashboard/members/${memberId}`,
       metadata: { memberId, gymId },
@@ -105,7 +116,7 @@ export async function POST(req: Request) {
       sessionParams.subscription_data = {
         ...sessionParams.subscription_data,
         on_behalf_of: connectedAccountId,
-        // transfer_data is NOT used for subscriptions — on_behalf_of alone routes funds
+        ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
       }
     }
 

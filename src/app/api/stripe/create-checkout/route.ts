@@ -40,7 +40,6 @@ export async function POST(req: Request) {
     .single()
   if (!gymData) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
   const connectedAccountId  = gymData?.stripe_account_id
-  const paymentMethodTypes  = (gymData as any)?.payment_method_types as string[] | null
 
   // Cross-gym guard: member must belong to the caller's gym
   const { data: memberData } = await supabase.from('members')
@@ -53,21 +52,29 @@ export async function POST(req: Request) {
   let customerId = memberData?.stripe_customer_id
 
   const appUrl = getAppUrl()
+  const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
+  const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
 
   try {
+    // Verify existing customer is on connected account; recreate if not
+    if (customerId && connectedAccountId) {
+      try {
+        await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
+      } catch {
+        customerId = null
+      }
+    }
     if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: memberEmail,
-        name: memberName,
-        metadata: { memberId, gymId },
-      })
+      const customer = await stripe.customers.create(
+        { email: memberEmail, name: memberName, metadata: { memberId, gymId } },
+        stripeOpts ?? {},
+      )
       customerId = customer.id
       await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', memberId)
     }
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      ...(paymentMethodTypes?.length ? { payment_method_types: paymentMethodTypes as Stripe.Checkout.SessionCreateParams['payment_method_types'] } : {}),
       line_items: [{
         price_data: {
           currency: 'eur',
@@ -83,9 +90,10 @@ export async function POST(req: Request) {
     }
 
     if (connectedAccountId) {
+      const fee = Math.round(amountCents * platformFeePercent / 100)
       sessionParams.payment_intent_data = {
-        on_behalf_of: connectedAccountId,
         transfer_data: { destination: connectedAccountId },
+        ...(fee > 0 ? { application_fee_amount: fee } : {}),
       }
     }
 

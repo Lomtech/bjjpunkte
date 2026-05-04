@@ -23,7 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   // Get gym
-  const { data: gym } = await (supabase.from('gyms') as any).select('id, name, email, stripe_account_id, payment_method_types').single()
+  const { data: gym } = await (supabase.from('gyms') as any).select('id, name, email, stripe_account_id').eq('owner_id', user.id).single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   // Get member (verify ownership)
@@ -52,15 +52,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       if (plan?.stripe_price_id) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
         const appUrl = getAppUrl()
+        const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
+        const connectedAccountId = gym.stripe_account_id as string | null
+        const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
 
-        // Get or create Stripe customer
+        // Verify existing customer is on connected account; recreate if not
         let customerId = member.stripe_customer_id
+        if (customerId && connectedAccountId) {
+          try {
+            await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
+          } catch {
+            customerId = null
+          }
+        }
         if (!customerId) {
-          const customer = await stripe.customers.create({
-            email: member.email,
-            name: `${member.first_name} ${member.last_name}`,
-            metadata: { memberId, gymId: gym.id },
-          })
+          const customer = await stripe.customers.create(
+            { email: member.email, name: `${member.first_name} ${member.last_name}`, metadata: { memberId, gymId: gym.id } },
+            stripeOpts ?? {},
+          )
           customerId = customer.id
           await (supabase.from('members') as any)
             .update({ stripe_customer_id: customerId })
@@ -69,7 +78,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
-          payment_method_types: ['card', 'sepa_debit'],
           line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
           mode: 'subscription',
           billing_address_collection: 'required',
@@ -81,11 +89,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           },
         }
 
-        if (gym.stripe_account_id) {
+        if (connectedAccountId) {
           sessionParams.subscription_data = {
             ...sessionParams.subscription_data,
-            on_behalf_of: gym.stripe_account_id,
-            // transfer_data is NOT used for subscriptions — on_behalf_of alone routes funds
+            on_behalf_of: connectedAccountId,
+            ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
           }
         }
 
