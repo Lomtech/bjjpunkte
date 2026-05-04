@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   const { data: member, error } = await supabase
     .from('members')
-    .select('id, gym_id, first_name, last_name, email, phone, stripe_subscription_id, stripe_customer_id, portal_token')
+    .select('id, gym_id, first_name, last_name, email, phone, stripe_subscription_id, stripe_customer_id, portal_token, contract_end_date')
     .eq('portal_token', token)
     .single()
 
@@ -45,12 +45,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     id: string; gym_id: string; first_name: string; last_name: string
     email: string | null; phone: string | null
     stripe_subscription_id: string | null; stripe_customer_id: string | null
-    portal_token: string | null
+    portal_token: string | null; contract_end_date: string | null
   }
 
-  // ── 1. Cancel Stripe subscription ─────────────────────────────────────────
-  let stripeCancelledId: string | null = null
-  let stripeError: string | null = null
+  // ── Contract check ─────────────────────────────────────────────────────────
+  // If the member has a contract that hasn't ended yet, schedule cancellation
+  // at contract end instead of cancelling immediately.
+  const now = new Date()
+  const contractEnd = m.contract_end_date ? new Date(m.contract_end_date) : null
+  const hasActiveContract = contractEnd !== null && contractEnd > now
+  const cancelAtTs = hasActiveContract ? Math.floor(contractEnd.getTime() / 1000) : null
+
+  // ── 1. Cancel / schedule Stripe subscription ───────────────────────────────
+  let stripeCancelledId: string | null = null   // immediately cancelled
+  let stripeScheduledId: string | null = null   // scheduled to cancel at contract end
 
   if (process.env.STRIPE_SECRET_KEY) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -63,23 +71,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     // Primary: use stored subscription ID
     if (m.stripe_subscription_id) {
       try {
-        await stripe.subscriptions.cancel(m.stripe_subscription_id, {}, stripeOpts)
-        stripeCancelledId = m.stripe_subscription_id
+        if (cancelAtTs) {
+          // Contract still running → schedule cancel at contract end
+          await stripe.subscriptions.update(
+            m.stripe_subscription_id,
+            { cancel_at: cancelAtTs },
+            stripeOpts,
+          )
+          stripeScheduledId = m.stripe_subscription_id
+        } else {
+          // No contract / expired → cancel immediately
+          await stripe.subscriptions.cancel(m.stripe_subscription_id, {}, stripeOpts)
+          stripeCancelledId = m.stripe_subscription_id
+        }
       } catch (err: any) {
-        // If subscription not found in Stripe, treat as already gone
         if (err?.code === 'resource_missing') {
           stripeCancelledId = m.stripe_subscription_id // already gone, that's fine
         } else {
-          stripeError = err?.message ?? 'Stripe-Fehler'
+          const stripeError = err?.message ?? 'Stripe-Fehler'
           console.error('Stripe cancel error:', stripeError)
-          // Return error — don't mark as cancelled if Stripe failed
           return NextResponse.json({
             error: `Stripe-Kündigung fehlgeschlagen: ${stripeError}. Bitte kontaktiere dein Gym.`
           }, { status: 500 })
         }
       }
-    } else if (m.stripe_customer_id) {
-      // Fallback: look up active subscriptions via customer ID on connected account
+    } else if (m.stripe_customer_id && !cancelAtTs) {
+      // Fallback: look up active subscriptions via customer ID (only for immediate cancel)
       try {
         const subs = await stripe.subscriptions.list(
           { customer: m.stripe_customer_id, status: 'active', limit: 10 },
@@ -89,7 +106,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
           await stripe.subscriptions.cancel(sub.id, {}, stripeOpts)
           stripeCancelledId = sub.id
         }
-        // Also check trialing subscriptions
         const trialSubs = await stripe.subscriptions.list(
           { customer: m.stripe_customer_id, status: 'trialing', limit: 10 },
           stripeOpts,
@@ -100,25 +116,40 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         }
       } catch (err: any) {
         console.error('Stripe customer subscription lookup error:', err?.message)
-        // Non-fatal for this path — member may not have had a subscription
       }
     }
   }
 
   // ── 2. Update member in DB ─────────────────────────────────────────────────
-  const now = new Date().toISOString()
-  await (supabase.from('members') as any).update({
-    is_active:                 false,
-    cancellation_requested_at: now,
-    cancellation_note:         note || null,
-    stripe_subscription_id:    null,   // safe to clear — confirmed cancelled above
-    subscription_status:       stripeCancelledId ? 'cancelled' : null,
-  }).eq('id', m.id)
+  const nowIso = now.toISOString()
+
+  if (hasActiveContract && (stripeScheduledId || !m.stripe_subscription_id)) {
+    // Contract running → member stays active until contract end, just mark as cancelling
+    await (supabase.from('members') as any).update({
+      cancellation_requested_at: nowIso,
+      cancellation_note:         note || null,
+      // is_active stays true — member keeps access until contract_end_date
+      // subscription_status stays 'active' — Stripe will fire customer.subscription.deleted at contract end
+    }).eq('id', m.id)
+  } else {
+    // Immediate cancel
+    await (supabase.from('members') as any).update({
+      is_active:                 false,
+      cancellation_requested_at: nowIso,
+      cancellation_note:         note || null,
+      stripe_subscription_id:    null,
+      subscription_status:       stripeCancelledId ? 'cancelled' : null,
+    }).eq('id', m.id)
+  }
 
   const fullName  = `${m.first_name} ${m.last_name}`
   const appUrl    = getAppUrl()
   const portalUrl = m.portal_token ? `${appUrl}/portal/${m.portal_token}` : null
   const hadStripe = !!stripeCancelledId
+  const isScheduled = !!stripeScheduledId
+  const contractEndFormatted = contractEnd
+    ? contractEnd.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : null
 
   // ── 3. Email → Member ─────────────────────────────────────────────────────
   if (m.email && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
@@ -141,8 +172,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
             <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0f172a">Kündigung bestätigt ✅</p>
             <p style="margin:0 0 20px;font-size:15px;color:#64748b;line-height:1.6">
               Hallo ${m.first_name},<br><br>
-              deine Mitgliedschaft bei <strong>${gymName}</strong> wurde erfolgreich gekündigt.
-              ${hadStripe ? '<br><br>Dein Abonnement wurde sofort beendet — es werden <strong>keine weiteren Zahlungen</strong> abgebucht.' : ''}
+              deine Kündigung bei <strong>${gymName}</strong> wurde registriert.
+              ${isScheduled && contractEndFormatted
+                ? `<br><br>Du hast einen laufenden Vertrag. Deine Mitgliedschaft bleibt aktiv bis zum <strong>${contractEndFormatted}</strong> — ab dann werden keine weiteren Zahlungen abgebucht.`
+                : hadStripe
+                  ? '<br><br>Dein Abonnement wurde sofort beendet — es werden <strong>keine weiteren Zahlungen</strong> abgebucht.'
+                  : ''}
             </p>
             ${safeNote ? `<p style="margin:0 0 16px;font-size:14px;color:#374151;padding:12px 16px;background:#f8fafc;border-radius:8px;border-left:3px solid #e2e8f0"><strong>Deine Notiz:</strong> ${safeNote}</p>` : ''}
             <p style="margin:0 0 16px;font-size:14px;color:#374151">
@@ -161,7 +196,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       to:   m.phone,
       body: [
         `Hallo ${m.first_name}! ✅ Deine Kündigung wurde bestätigt.`,
-        hadStripe ? 'Dein Abonnement wurde sofort beendet – keine weiteren Zahlungen.' : '',
+        isScheduled && contractEndFormatted
+          ? `Dein Vertrag läuft bis ${contractEndFormatted} – ab dann keine weiteren Zahlungen.`
+          : hadStripe ? 'Dein Abonnement wurde sofort beendet – keine weiteren Zahlungen.' : '',
         note ? `Notiz: ${safeNote}` : '',
         'Wir hoffen dich bald wieder zu sehen! Oss! 🥋',
         portalUrl ? `\nPortal: ${portalUrl}` : '',
@@ -184,7 +221,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         ${m.email ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">E-Mail</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${m.email}</td></tr>` : ''}
         ${m.phone ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Telefon</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${m.phone}</td></tr>` : ''}
         <tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Stripe Abo</td>
-            <td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${hadStripe ? `✅ Sofort gekündigt (${stripeCancelledId})` : '⚪ Kein aktives Stripe-Abonnement'}</td></tr>
+            <td style="padding:8px 0;border-bottom:1px solid #f1f5f9">
+              ${isScheduled && contractEndFormatted
+                ? `🗓️ Läuft bis ${contractEndFormatted}, dann automatisch beendet (${stripeScheduledId})`
+                : hadStripe
+                  ? `✅ Sofort gekündigt (${stripeCancelledId})`
+                  : '⚪ Kein aktives Stripe-Abonnement'}
+            </td></tr>
         <tr><td style="padding:8px 0;color:#6b7280">Datum</td>
             <td style="padding:8px 0">${new Date(now).toLocaleString('de-DE')}</td></tr>
         ${safeNote ? `<tr><td colspan="2" style="padding:8px 0;margin-top:4px"><strong>Notiz des Mitglieds:</strong><br><span style="color:#374151">${safeNote}</span></td></tr>` : ''}
@@ -194,13 +237,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       `❌ Kündigung: ${fullName}`,
       m.email ?? '',
       m.phone ?? '',
-      hadStripe ? '✅ Stripe-Abo sofort beendet' : '⚪ Kein Stripe-Abo',
+      isScheduled && contractEndFormatted
+        ? `🗓️ Abo läuft bis ${contractEndFormatted}`
+        : hadStripe ? '✅ Stripe-Abo sofort beendet' : '⚪ Kein Stripe-Abo',
       note ? `Notiz: ${safeNote}` : '',
       `\nhttps://www.osss.pro/dashboard/members`,
     ].filter(Boolean).join('\n'),
   }).catch(e => console.error('notifyGym error:', e))
 
-  return NextResponse.json({ success: true, stripeCancelled: hadStripe })
+  return NextResponse.json({
+    success: true,
+    stripeCancelled: hadStripe,
+    scheduled: isScheduled,
+    contractEndDate: contractEndFormatted ?? null,
+  })
 }
 
 // DELETE = withdraw cancellation (reactivate member)

@@ -356,6 +356,7 @@ export default function MemberPortalPage() {
   const [cancelRequesting, setCancelRequesting] = useState(false)
   const [localCancelledAt, setLocalCancelledAt] = useState<string | null>(null)
   const [cancelError, setCancelError]           = useState<string | null>(null)
+  const [cancelContractEnd, setCancelContractEnd] = useState<string | null>(null) // set if scheduled to end at contract date
 
   const { lang, t } = useLanguage()
   const locale = lang === 'en' ? 'en-GB' : 'de-DE'
@@ -523,6 +524,9 @@ export default function MemberPortalPage() {
       } else {
         setLocalCancelledAt(new Date().toISOString())
         setShowCancelForm(false)
+        if (data?.scheduled && data?.contractEndDate) {
+          setCancelContractEnd(data.contractEndDate)
+        }
       }
     } catch {
       setCancelError(lang === 'en' ? 'Network error. Please try again.' : 'Netzwerkfehler. Bitte versuche es erneut.')
@@ -1163,9 +1167,17 @@ export default function MemberPortalPage() {
               {localCancelledAt ? (
                 <div className="rounded-xl bg-red-50 border border-red-200 p-4">
                   <p className="text-red-700 text-sm font-semibold">{t('portal', 'cancellationRequested')}</p>
-                  <p className="text-red-600 text-xs mt-1">
-                    {t('portal', 'cancellationDate', { date: new Date(localCancelledAt).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) })}
-                  </p>
+                  {cancelContractEnd ? (
+                    <p className="text-red-600 text-xs mt-1">
+                      {lang === 'en'
+                        ? `You have an active contract. Your membership remains active until ${cancelContractEnd} — no further payments after that.`
+                        : `Du hast einen laufenden Vertrag. Deine Mitgliedschaft bleibt aktiv bis ${cancelContractEnd} — danach keine weiteren Zahlungen.`}
+                    </p>
+                  ) : (
+                    <p className="text-red-600 text-xs mt-1">
+                      {t('portal', 'cancellationDate', { date: new Date(localCancelledAt).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) })}
+                    </p>
+                  )}
                   <button onClick={handleWithdrawCancel}
                     className="mt-3 text-xs text-red-400 hover:text-red-600 underline">
                     {t('portal', 'withdrawCancellation')}
