@@ -635,6 +635,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
 }
 
 function ContactBar({ firstName, phone, email }: { firstName: string; phone: string | null; email: string | null }) {
+  const { t } = useLanguage()
   const [showWa, setShowWa] = useState(false)
   return (
     <>
@@ -643,7 +644,7 @@ function ContactBar({ firstName, phone, email }: { firstName: string; phone: str
           <>
             <a href={`tel:${phone}`}
               className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors shadow-sm">
-              <Phone size={14} /> Anrufen
+              <Phone size={14} /> {t('memberDetailExtra', 'call')}
             </a>
             <button onClick={() => setShowWa(true)}
               className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors shadow-sm">
@@ -654,7 +655,7 @@ function ContactBar({ firstName, phone, email }: { firstName: string; phone: str
         {email && (
           <a href={`mailto:${email}`}
             className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors shadow-sm">
-            <Mail size={14} /> E-Mail
+            <Mail size={14} /> {t('memberDetailExtra', 'email')}
           </a>
         )}
       </div>
@@ -666,6 +667,7 @@ function ContactBar({ firstName, phone, email }: { firstName: string; phone: str
 }
 
 function WhatsAppCompose({ firstName, phone, onClose }: { firstName: string; phone: string; onClose: () => void }) {
+  const { t: tl } = useLanguage()
   const [selected, setSelected] = useState(WA_TEMPLATES[0].id)
   const [customText, setCustomText] = useState('')
   const template = WA_TEMPLATES.find(t => t.id === selected)!

@@ -384,7 +384,7 @@ export default function SignupPage() {
 
             <button disabled={!step1Valid} onClick={() => setStep(2)}
               className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-base transition-colors flex items-center justify-center gap-2">
-              Weiter <ChevronRight size={18} />
+              {lang === 'en' ? 'Next' : 'Weiter'} <ChevronRight size={18} />
             </button>
           </div>
         )}
@@ -393,8 +393,8 @@ export default function SignupPage() {
         {step === 2 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-zinc-900 mb-1">Mitgliedsvertrag</h2>
-              <p className="text-zinc-500 text-sm">Bitte lies den Vertrag vollständig durch (bis zum Ende scrollen).</p>
+              <h2 className="text-lg font-bold text-zinc-900 mb-1">{lang === 'en' ? 'Membership contract' : 'Mitgliedsvertrag'}</h2>
+              <p className="text-zinc-500 text-sm">{lang === 'en' ? 'Please read the contract fully (scroll to the end).' : 'Bitte lies den Vertrag vollständig durch (bis zum Ende scrollen).'}</p>
             </div>
 
             <div
@@ -402,28 +402,28 @@ export default function SignupPage() {
               onScroll={handleScroll}
               className="bg-white rounded-2xl border border-zinc-200 p-5 max-h-[55vh] overflow-y-auto shadow-sm text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap"
             >
-              {gymInfo?.contractTemplate || 'Kein Vertrag hinterlegt.'}
+              {gymInfo?.contractTemplate || (lang === 'en' ? 'No contract on file.' : 'Kein Vertrag hinterlegt.')}
             </div>
 
             {!contractRead && (
               <p className="text-xs text-amber-600 flex items-center gap-1.5">
-                <AlertCircle size={13} /> Bitte scrolle bis zum Ende, um fortzufahren.
+                <AlertCircle size={13} /> {lang === 'en' ? 'Please scroll to the end to continue.' : 'Bitte scrolle bis zum Ende, um fortzufahren.'}
               </p>
             )}
             {contractRead && (
               <p className="text-xs text-emerald-600 flex items-center gap-1.5">
-                <CheckCircle2 size={13} /> Du hast den Vertrag vollständig gelesen.
+                <CheckCircle2 size={13} /> {lang === 'en' ? 'You have read the contract in full.' : 'Du hast den Vertrag vollständig gelesen.'}
               </p>
             )}
 
             <div className="flex gap-3">
               <button onClick={() => setStep(1)}
                 className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
-                <ChevronLeft size={16} /> Zurück
+                <ChevronLeft size={16} /> {lang === 'en' ? 'Back' : 'Zurück'}
               </button>
               <button disabled={!contractRead} onClick={() => setStep(3)}
                 className="flex-1 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold transition-colors flex items-center justify-center gap-2">
-                Weiter <ChevronRight size={18} />
+                {lang === 'en' ? 'Next' : 'Weiter'} <ChevronRight size={18} />
               </button>
             </div>
           </div>
