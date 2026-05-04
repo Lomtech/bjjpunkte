@@ -5,6 +5,7 @@ import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw,
 import { createClient } from '@/lib/supabase/client'
 import { toWaPhone } from '@/lib/phone'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { ConfirmModal } from '@/components/ConfirmModal'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
 
@@ -31,6 +32,13 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
   const [payments, setPayments] = useState<Payment[]>(initialPayments)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [copiedLink, setCopiedLink] = useState(false)
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; description?: string; confirmLabel?: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void
+  }>({ open: false, title: '', onConfirm: () => {} })
+  function askConfirm(opts: { title: string; description?: string; confirmLabel?: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void }) {
+    setConfirmState({ ...opts, open: true })
+  }
+  function closeConfirm() { setConfirmState(s => ({ ...s, open: false })) }
 
   async function sendPaymentLink() {
     if (!memberEmail) { setError(t('billing', 'noEmailError')); return }
@@ -78,8 +86,17 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
     setSubLoading(false)
   }
 
-  async function cancelSubscription() {
-    if (!confirm(t('billing', 'confirmCancelSub'))) return
+  function cancelSubscription() {
+    askConfirm({
+      title: t('billing', 'confirmCancelSub'),
+      confirmLabel: lang === 'en' ? 'Cancel subscription' : 'Abo kündigen',
+      danger: true,
+      icon: '⚠️',
+      onConfirm: () => { closeConfirm(); doCancelSubscription() },
+    })
+  }
+
+  async function doCancelSubscription() {
     setSubLoading(true); setError('')
     try {
       const { data: { session } } = await createClient().auth.getSession()
@@ -93,8 +110,17 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
     setSubLoading(false)
   }
 
-  async function deletePayment(paymentId: string) {
-    if (!confirm(t('billing', 'confirmDeletePayment'))) return
+  function deletePayment(paymentId: string) {
+    askConfirm({
+      title: t('billing', 'confirmDeletePayment'),
+      confirmLabel: lang === 'en' ? 'Delete' : 'Löschen',
+      danger: true,
+      icon: '🗑️',
+      onConfirm: () => { closeConfirm(); doDeletePayment(paymentId) },
+    })
+  }
+
+  async function doDeletePayment(paymentId: string) {
     setDeletingId(paymentId)
     try {
       const { data: { session } } = await createClient().auth.getSession()
@@ -130,6 +156,17 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
 
   return (
     <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm mb-5">
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmLabel={confirmState.confirmLabel}
+        cancelLabel={lang === 'en' ? 'Cancel' : 'Abbrechen'}
+        danger={confirmState.danger}
+        icon={confirmState.icon}
+        onConfirm={confirmState.onConfirm}
+        onCancel={closeConfirm}
+      />
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-zinc-900 flex items-center gap-2">
           <CreditCard size={16} className="text-zinc-400" />

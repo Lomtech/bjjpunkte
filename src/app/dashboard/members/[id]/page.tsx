@@ -13,6 +13,7 @@ import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
 import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { ConfirmModal } from '@/components/ConfirmModal'
 
 import { toWaPhone } from '@/lib/phone'
 
@@ -98,6 +99,15 @@ export default function MemberDetailPage() {
   const [checkingIn, setCheckingIn]       = useState(false)
   const [checkedInNow, setCheckedInNow]   = useState(false)
   const [gpsError, setGpsError]           = useState<string | null>(null)
+  const [confirmState, setConfirmState]   = useState<{
+    open: boolean; title: string; description?: string
+    confirmLabel?: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void
+  }>({ open: false, title: '', onConfirm: () => {} })
+
+  function askConfirm(opts: { title: string; description?: string; confirmLabel?: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void }) {
+    setConfirmState({ ...opts, open: true })
+  }
+  function closeConfirm() { setConfirmState(s => ({ ...s, open: false })) }
   const cachedGps = useRef<{ lat: number; lng: number; ts: number } | null>(null)
   const GPS_CACHE_MS = 5 * 60 * 1000
 
@@ -170,11 +180,16 @@ export default function MemberDetailPage() {
   }, [id])
 
   async function deletePromotion(promoId: string, isLatest: boolean) {
-    if (!confirm(isLatest
-      ? t('memberDetailExtra', 'confirmDeletePromoLatest')
-      : t('memberDetailExtra', 'confirmDeletePromoOld')
-    )) return
+    askConfirm({
+      title: isLatest ? t('memberDetailExtra', 'confirmDeletePromoLatest') : t('memberDetailExtra', 'confirmDeletePromoOld'),
+      confirmLabel: lang === 'en' ? 'Delete' : 'Löschen',
+      danger: true,
+      icon: '🗑️',
+      onConfirm: () => { closeConfirm(); doDeletePromotion(promoId) },
+    })
+  }
 
+  async function doDeletePromotion(promoId: string) {
     // Capture promo data BEFORE any state update
     const promoSnapshot = promotions.find(p => p.id === promoId)
 
@@ -208,8 +223,18 @@ export default function MemberDetailPage() {
     setMember(m => m ? { ...m, belt: belt as string, stripes } : m)
   }
 
-  async function handleDeleteMember() {
-    if (!confirm(t('memberDetailExtra', 'confirmDeleteMember', { name: `${member?.first_name} ${member?.last_name}` }))) return
+  function handleDeleteMember() {
+    askConfirm({
+      title: t('memberDetailExtra', 'confirmDeleteMember', { name: `${member?.first_name} ${member?.last_name}` }),
+      description: lang === 'en' ? 'All data will be permanently deleted.' : 'Alle Daten werden dauerhaft gelöscht.',
+      confirmLabel: lang === 'en' ? 'Delete' : 'Löschen',
+      danger: true,
+      icon: '🗑️',
+      onConfirm: () => { closeConfirm(); doDeleteMember() },
+    })
+  }
+
+  async function doDeleteMember() {
     setDeletingMember(true)
     const { data: { session } } = await createClient().auth.getSession()
     const res = await fetch(`/api/members/${id}`, {
@@ -228,8 +253,17 @@ export default function MemberDetailPage() {
       .then(({ data }) => { if (data) setPromotions(data as Promotion[]) })
   }
 
-  async function handleClearCancellation() {
-    if (!confirm(t('memberDetailExtra', 'confirmCancellation'))) return
+  function handleClearCancellation() {
+    askConfirm({
+      title: t('memberDetailExtra', 'confirmCancellation'),
+      confirmLabel: lang === 'en' ? 'Confirm' : 'Bestätigen',
+      danger: true,
+      icon: '⚠️',
+      onConfirm: () => { closeConfirm(); doClearCancellation() },
+    })
+  }
+
+  async function doClearCancellation() {
     const supabase = createClient()
     await (supabase.from('members') as any).update({
       cancellation_requested_at: null,
@@ -239,8 +273,16 @@ export default function MemberDetailPage() {
     setMember(m => m ? { ...m, cancellation_requested_at: null, cancellation_note: null, is_active: false } : m)
   }
 
-  async function handleClearPlanRequest() {
-    if (!confirm(t('memberDetailExtra', 'confirmPlanRequest'))) return
+  function handleClearPlanRequest() {
+    askConfirm({
+      title: t('memberDetailExtra', 'confirmPlanRequest'),
+      confirmLabel: lang === 'en' ? 'Confirm' : 'Bestätigen',
+      icon: '📋',
+      onConfirm: () => { closeConfirm(); doClearPlanRequest() },
+    })
+  }
+
+  async function doClearPlanRequest() {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch(`/api/members/${id}/confirm-plan`, {
@@ -327,6 +369,17 @@ export default function MemberDetailPage() {
 
   return (
     <div className="max-w-3xl">
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmLabel={confirmState.confirmLabel}
+        cancelLabel={lang === 'en' ? 'Cancel' : 'Abbrechen'}
+        danger={confirmState.danger}
+        icon={confirmState.icon}
+        onConfirm={confirmState.onConfirm}
+        onCancel={closeConfirm}
+      />
       {/* Sticky check-in bar — always visible at top */}
       <div className="sticky top-0 z-20 bg-slate-50 border-b border-zinc-100 px-4 md:px-6 py-3 flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">

@@ -9,6 +9,7 @@ import {
 import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
 import { readCachedGymId } from '../_components/RoleShell'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { ConfirmModal } from '@/components/ConfirmModal'
 
 interface Announcement {
   id:         string
@@ -258,6 +259,13 @@ export default function ContentPage() {
   const [annoFormOpen,  setAnnoFormOpen]  = useState(false)
   const [annoSaving,    setAnnoSaving]    = useState(false)
   const [annoForm, setAnnoForm] = useState({ title: '', body: '', isPinned: false, expiresAt: '' })
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void
+  }>({ open: false, title: '', onConfirm: () => {} })
+  function askConfirm(opts: { title: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void }) {
+    setConfirmState({ ...opts, open: true })
+  }
+  function closeConfirm() { setConfirmState(s => ({ ...s, open: false })) }
 
   useEffect(() => { loadAll() }, [])
 
@@ -319,12 +327,12 @@ export default function ContentPage() {
     setAnnoFormOpen(false); setAnnoSaving(false)
   }
 
-  async function handleAnnoDelete(id: string) {
-    if (!confirm(t('content', 'confirmDeleteAnno'))) return
-    const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('gym_announcements') as any).delete().eq('id', id)
-    setAnnouncements(prev => prev.filter(a => a.id !== id))
+  function handleAnnoDelete(id: string) {
+    askConfirm({
+      title: t('content', 'confirmDeleteAnno'),
+      danger: true, icon: '🗑️',
+      onConfirm: async () => { closeConfirm(); const supabase = createClient(); await (supabase.from('gym_announcements') as any).delete().eq('id', id); setAnnouncements(prev => prev.filter(a => a.id !== id)) },
+    })
   }
 
   async function handleTogglePublish(post: Post) {
@@ -341,11 +349,12 @@ export default function ContentPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm(t('content', 'confirmDeletePost'))) return
-    const headers = await getAuthHeaders()
-    await fetch(`/api/posts/${id}`, { method: 'DELETE', headers })
-    setPosts(ps => ps.filter(p => p.id !== id))
+  function handleDelete(id: string) {
+    askConfirm({
+      title: t('content', 'confirmDeletePost'),
+      danger: true, icon: '🗑️',
+      onConfirm: async () => { closeConfirm(); const headers = await getAuthHeaders(); await fetch(`/api/posts/${id}`, { method: 'DELETE', headers }); setPosts(ps => ps.filter(p => p.id !== id)) },
+    })
   }
 
   function handleSaved(post: Post) {
@@ -363,7 +372,16 @@ export default function ContentPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-3xl">
-
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        confirmLabel={lang === 'en' ? 'Delete' : 'Löschen'}
+        cancelLabel={lang === 'en' ? 'Cancel' : 'Abbrechen'}
+        danger={confirmState.danger}
+        icon={confirmState.icon}
+        onConfirm={confirmState.onConfirm}
+        onCancel={closeConfirm}
+      />
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>

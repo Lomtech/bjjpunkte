@@ -7,6 +7,7 @@ import Link from 'next/link'
 
 import { toWaPhone } from '@/lib/phone'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { ConfirmModal } from '@/components/ConfirmModal'
 
 type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
 type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page'
@@ -87,6 +88,13 @@ export default function LeadsPage() {
     source: 'walk-in' as LeadSource, trial_date: '', referred_by: '', notes: '',
   })
   const [editSaving, setEditSaving] = useState(false)
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void
+  }>({ open: false, title: '', onConfirm: () => {} })
+  function askConfirm(opts: { title: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void }) {
+    setConfirmState({ ...opts, open: true })
+  }
+  function closeConfirm() { setConfirmState(s => ({ ...s, open: false })) }
 
   // form state
   const [form, setForm] = useState({
@@ -181,10 +189,13 @@ export default function LeadsPage() {
     setEditingLead(null)
   }
 
-  async function deleteLead(id: string) {
-    if (!confirm(t('leads', 'delete') + '?')) return
-    await createClient().from('leads').delete().eq('id', id)
-    setLeads(prev => prev.filter(l => l.id !== id))
+  function deleteLead(id: string) {
+    askConfirm({
+      title: t('leads', 'delete') + '?',
+      danger: true,
+      icon: '🗑️',
+      onConfirm: async () => { closeConfirm(); await createClient().from('leads').delete().eq('id', id); setLeads(prev => prev.filter(l => l.id !== id)) },
+    })
   }
 
   // KPI counts
@@ -204,6 +215,16 @@ export default function LeadsPage() {
 
   return (
     <div className="p-4 md:p-6">
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        confirmLabel={lang === 'en' ? 'Delete' : 'Löschen'}
+        cancelLabel={lang === 'en' ? 'Cancel' : 'Abbrechen'}
+        danger={confirmState.danger}
+        icon={confirmState.icon}
+        onConfirm={confirmState.onConfirm}
+        onCancel={closeConfirm}
+      />
       {/* Header */}
       <div className="flex items-center justify-between mb-4 gap-3">
         <div className="min-w-0">

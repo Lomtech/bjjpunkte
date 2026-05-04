@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { ConfirmModal } from '@/components/ConfirmModal'
 
 type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge' | 'vertraege'
 
@@ -143,16 +144,14 @@ export default function SettingsPage() {
   const [deleteAccountError, setDeleteAccountError]       = useState<string | null>(null)
   const [userAuthEmail, setUserAuthEmail]                 = useState('')
 
-  // Payment methods
-  const PAYMENT_METHODS = [
-    { id: 'card',       labelDe: 'Kreditkarte / Debitkarte', labelEn: 'Credit / Debit card',   desc: 'Visa, Mastercard, Amex',       required: true },
-    { id: 'sepa_debit', labelDe: 'SEPA-Lastschrift',         labelEn: 'SEPA Direct Debit',      desc: 'DE/EU Bankeinzug',             required: false },
-    { id: 'klarna',     labelDe: 'Klarna',                   labelEn: 'Klarna',                 desc: 'Ratenkauf / Später bezahlen',  required: false },
-    { id: 'link',       labelDe: 'Stripe Link',              labelEn: 'Stripe Link',            desc: 'Schnell-Checkout für bekannte Kunden', required: false },
-  ]
-  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>(['card'])
-  const [paymentMethodsSaving, setPaymentMethodsSaving]     = useState(false)
-  const [paymentMethodsSaved, setPaymentMethodsSaved]       = useState(false)
+  // Confirm modal
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean; title: string; description?: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void
+  }>({ open: false, title: '', onConfirm: () => {} })
+  function askConfirm(opts: { title: string; description?: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void }) {
+    setConfirmState({ ...opts, open: true })
+  }
+  function closeConfirm() { setConfirmState(s => ({ ...s, open: false })) }
 
   // GPS Check-in
   const [gpsLat, setGpsLat]                     = useState<number | null>(null)
@@ -247,10 +246,6 @@ export default function SettingsPage() {
         if ((data as any)?.latitude)  setGpsLat((data as any).latitude)
         if ((data as any)?.longitude) setGpsLng((data as any).longitude)
         setGpsRadius((data as any)?.gps_radius_meters ?? 300)
-        const savedPaymentMethods = (data as any)?.payment_method_types as string[] | null
-        if (Array.isArray(savedPaymentMethods) && savedPaymentMethods.length > 0) {
-          setSelectedPaymentMethods(savedPaymentMethods)
-        }
         setGymPlan((data as any)?.plan ?? 'free')
         setPlanLimit((data as any)?.plan_member_limit ?? 30)
         const { count } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', data.id).eq('is_active', true)
@@ -339,11 +334,13 @@ export default function SettingsPage() {
     setConnectLoading(false)
   }
 
-  async function handleDisconnect() {
-    if (!confirm(lang === 'en' ? 'Really disconnect Stripe?' : 'Stripe-Verbindung wirklich trennen?')) return
-    const { data: { session } } = await createClient().auth.getSession()
-    await fetch('/api/stripe/connect', { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
-    setStripeAccountId(null)
+  function handleDisconnect() {
+    askConfirm({
+      title: lang === 'en' ? 'Disconnect Stripe?' : 'Stripe-Verbindung trennen?',
+      description: lang === 'en' ? 'Payments will stop working until reconnected.' : 'Zahlungen funktionieren nicht mehr bis zur Neuverbindung.',
+      danger: true, icon: '⚠️',
+      onConfirm: async () => { closeConfirm(); const { data: { session } } = await createClient().auth.getSession(); await fetch('/api/stripe/connect', { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } }); setStripeAccountId(null) },
+    })
   }
 
   async function handleUpgrade(plan: string) {
@@ -394,17 +391,6 @@ export default function SettingsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     await (supabase.from('gyms') as any).update({ callmebot_api_key: callmebotKey.trim() || null }).eq('owner_id', user?.id ?? '')
     setCallmebotSaving(false); setCallmebotSaved(true); setTimeout(() => setCallmebotSaved(false), 2000)
-  }
-
-  async function handlePaymentMethodsSave() {
-    setPaymentMethodsSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    // Always ensure 'card' is included
-    const methods = Array.from(new Set(['card', ...selectedPaymentMethods]))
-    await (supabase.from('gyms') as any).update({ payment_method_types: methods }).eq('owner_id', user?.id ?? '')
-    setSelectedPaymentMethods(methods)
-    setPaymentMethodsSaving(false); setPaymentMethodsSaved(true); setTimeout(() => setPaymentMethodsSaved(false), 2000)
   }
 
   async function handleLegalSave() {
@@ -619,11 +605,12 @@ export default function SettingsPage() {
     setStaffInviting(false)
   }
 
-  async function handleStaffDelete(id: string) {
-    if (!confirm(lang === 'en' ? 'Really remove this trainer?' : 'Trainer wirklich entfernen?')) return
-    const { data: { session } } = await createClient().auth.getSession()
-    await fetch(`/api/staff/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
-    setStaffList(prev => prev.filter(s => s.id !== id))
+  function handleStaffDelete(id: string) {
+    askConfirm({
+      title: lang === 'en' ? 'Remove this trainer?' : 'Trainer entfernen?',
+      danger: true, icon: '👤',
+      onConfirm: async () => { closeConfirm(); const { data: { session } } = await createClient().auth.getSession(); await fetch(`/api/staff/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } }); setStaffList(prev => prev.filter(s => s.id !== id)) },
+    })
   }
 
   async function handlePlanSave() {
@@ -665,14 +652,13 @@ export default function SettingsPage() {
     setPlanSaving(false)
   }
 
-  async function handlePlanDelete(planId: string) {
-    if (!confirm(lang === 'en' ? 'Really delete this plan?' : 'Tarif wirklich löschen?')) return
-    const { data: { session } } = await createClient().auth.getSession()
-    const res = await fetch(`/api/plans/${planId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+  function handlePlanDelete(planId: string) {
+    askConfirm({
+      title: lang === 'en' ? 'Delete this plan?' : 'Tarif löschen?',
+      description: lang === 'en' ? 'Members assigned to this plan will keep it until changed.' : 'Mitglieder mit diesem Tarif behalten ihn bis zur Änderung.',
+      danger: true, icon: '🗑️',
+      onConfirm: async () => { closeConfirm(); const { data: { session } } = await createClient().auth.getSession(); const res = await fetch(`/api/plans/${planId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } }); if (res.ok) setPlans(ps => ps.filter(p => p.id !== planId)) },
     })
-    if (res.ok) setPlans(ps => ps.filter(p => p.id !== planId))
   }
 
   function handlePlanEdit(plan: Plan) {
@@ -726,6 +712,17 @@ export default function SettingsPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-lg">
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        description={confirmState.description}
+        confirmLabel={confirmState.danger ? (lang === 'en' ? 'Confirm' : 'Bestätigen') : 'OK'}
+        cancelLabel={lang === 'en' ? 'Cancel' : 'Abbrechen'}
+        danger={confirmState.danger}
+        icon={confirmState.icon}
+        onConfirm={confirmState.onConfirm}
+        onCancel={closeConfirm}
+      />
       <div className="mb-5">
         <h1 className="text-xl font-bold text-zinc-900">{t('settings', 'title')}</h1>
         <p className="text-zinc-400 text-xs mt-0.5">{t('nav', 'settings')}</p>
@@ -1204,53 +1201,6 @@ export default function SettingsPage() {
                   <CopyRow label="" value={webhookUrl} copied={copiedWebhook} onCopy={() => copyWithFeedback(webhookUrl, setCopiedWebhook)} />
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Zahlungsmethoden */}
-          <div className={sectionCls}>
-            <SectionHeader icon={<CreditCard size={12} />} title={lang === 'en' ? 'Payment methods' : 'Zahlungsmethoden'} />
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-zinc-500">
-                {lang === 'en'
-                  ? 'Choose which payment methods your members can use at checkout. Card is always required.'
-                  : 'Wähle welche Zahlungsmethoden deine Mitglieder beim Checkout nutzen können. Kreditkarte ist immer aktiv.'}
-              </p>
-              <div className="space-y-2">
-                {PAYMENT_METHODS.map(pm => {
-                  const isSelected = selectedPaymentMethods.includes(pm.id)
-                  return (
-                    <label key={pm.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                      pm.required ? 'border-zinc-200 bg-zinc-50 cursor-not-allowed opacity-70' :
-                      isSelected ? 'border-amber-400 bg-amber-50' : 'border-zinc-200 bg-white hover:border-zinc-300'
-                    }`}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        disabled={pm.required}
-                        onChange={e => {
-                          if (pm.required) return
-                          setSelectedPaymentMethods(prev =>
-                            e.target.checked ? [...prev, pm.id] : prev.filter(m => m !== pm.id)
-                          )
-                        }}
-                        className="w-4 h-4 rounded border-zinc-300 text-amber-500 focus:ring-amber-400 flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-zinc-800">
-                          {lang === 'en' ? pm.labelEn : pm.labelDe}
-                          {pm.required && <span className="ml-2 text-xs text-zinc-400">{lang === 'en' ? '(required)' : '(Pflicht)'}</span>}
-                        </p>
-                        <p className="text-xs text-zinc-400 mt-0.5">{pm.desc}</p>
-                      </div>
-                    </label>
-                  )
-                })}
-              </div>
-              <button type="button" onClick={handlePaymentMethodsSave} disabled={paymentMethodsSaving} className={saveBtnCls}>
-                <Save size={14} />
-                {paymentMethodsSaved ? t('settings', 'saved') : paymentMethodsSaving ? t('settings', 'saving') : (lang === 'en' ? 'Save payment methods' : 'Zahlungsmethoden speichern')}
-              </button>
             </div>
           </div>
 
