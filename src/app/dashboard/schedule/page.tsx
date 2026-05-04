@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw, Upload } from 'lucide-react'
 import { NewClassModal } from './NewClassModal'
 import { EditClassModal } from './EditClassModal'
+import Link from 'next/link'
 
 interface ClassRow {
   id: string; title: string; class_type: string; description: string | null
@@ -260,6 +261,10 @@ export default function SchedulePage() {
               📅 iCal-Export
             </a>
           )}
+          <Link href="/dashboard/schedule/import"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-zinc-50 transition-colors">
+            <Upload size={13} /> Import
+          </Link>
           <button onClick={() => openAddModal(selectedDay)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-colors ml-1">
             <Plus size={14} /> Klasse
