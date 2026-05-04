@@ -307,6 +307,14 @@ export default function OnboardingPage() {
       .update({ onboarding_completed_at: new Date().toISOString() })
       .eq('id', gym.id)
     setSaving(false)
+    // Invalidate RoleShell cache so "Einrichtung" nav item disappears immediately
+    try {
+      const raw = localStorage.getItem('osss_role_v2')
+      if (raw) {
+        const c = JSON.parse(raw)
+        localStorage.setItem('osss_role_v2', JSON.stringify({ ...c, onboardingDone: true, cachedAt: 0 }))
+      }
+    } catch { /* ignore */ }
     router.push('/dashboard')
   }
 
