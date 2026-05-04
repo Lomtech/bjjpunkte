@@ -54,7 +54,6 @@ export async function POST(req: Request) {
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      payment_method_types: ['card'],
       line_items: [{
         price_data: {
           currency: 'eur',
