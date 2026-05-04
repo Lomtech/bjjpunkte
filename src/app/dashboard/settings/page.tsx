@@ -1195,9 +1195,10 @@ export default function SettingsPage() {
                           </div>
                           <div className="divide-y divide-zinc-100">
                             {[
-                              { key: 'card',  label: lang === 'en' ? 'Card (Visa / Mastercard)' : 'Karte (Visa / Mastercard)', icon: '💳' },
-                              { key: 'sepa',  label: 'SEPA Direct Debit',  icon: '🏦' },
+                              { key: 'card',   label: lang === 'en' ? 'Card + Apple/Google Pay' : 'Karte + Apple/Google Pay', icon: '💳' },
+                              { key: 'sepa',   label: 'SEPA Direct Debit', icon: '🏦' },
                               { key: 'klarna', label: 'Klarna',            icon: '🟣' },
+                              { key: 'paypal', label: 'PayPal',            icon: '🅿️' },
                             ].map(({ key, label, icon }) => {
                               const status = stripeCapabilities[key] ?? 'inactive'
                               const isActive = status === 'active'
@@ -1237,7 +1238,7 @@ export default function SettingsPage() {
                                   ? <><CheckCircle2 size={12} /> {lang === 'en' ? 'Requested!' : 'Angefragt!'}</>
                                   : capRequesting
                                   ? (lang === 'en' ? 'Requesting…' : 'Wird angefragt…')
-                                  : <><Zap size={12} /> {lang === 'en' ? 'Request SEPA + Klarna' : 'SEPA + Klarna anfordern'}</>
+                                  : <><Zap size={12} /> {lang === 'en' ? 'Request SEPA, Klarna & PayPal' : 'SEPA, Klarna & PayPal anfordern'}</>
                                 }
                               </button>
                             </div>

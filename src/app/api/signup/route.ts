@@ -198,6 +198,7 @@ export async function POST(req: Request) {
           // payment_method_types omitted → Stripe uses dashboard defaults automatically
           line_items: [{ price: stripePrice, quantity: 1 }],
           mode: 'subscription',
+          billing_address_collection: 'auto',
           success_url: `${appUrl}/portal/${portalToken ?? ''}?payment=success`,
           cancel_url:  `${appUrl}/portal/${portalToken ?? ''}`,
           metadata: { memberId: member.id, gymId },

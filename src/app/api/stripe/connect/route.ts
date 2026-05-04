@@ -38,10 +38,11 @@ export async function GET(req: Request) {
       payouts_enabled: account.payouts_enabled,
       details_submitted: account.details_submitted,
       capabilities: {
-        card:       caps.card_payments       ?? 'inactive',
-        sepa:       caps.sepa_debit_payments ?? 'inactive',
-        klarna:     caps.klarna_payments     ?? 'inactive',
-        transfers:  caps.transfers           ?? 'inactive',
+        card:      caps.card_payments       ?? 'inactive',
+        sepa:      caps.sepa_debit_payments ?? 'inactive',
+        klarna:    caps.klarna_payments     ?? 'inactive',
+        paypal:    caps.paypal_payments     ?? 'inactive',
+        transfers: caps.transfers           ?? 'inactive',
       },
     })
   } catch {
@@ -84,6 +85,7 @@ export async function POST(req: Request) {
         transfers:            { requested: true },
         sepa_debit_payments:  { requested: true },
         klarna_payments:      { requested: true },
+        paypal_payments:      { requested: true },
       },
       metadata: { gymId: gymData.id, gymName: gymData.name },
     })
@@ -98,6 +100,7 @@ export async function POST(req: Request) {
           transfers:           { requested: true },
           sepa_debit_payments: { requested: true },
           klarna_payments:     { requested: true },
+          paypal_payments:     { requested: true },
         },
       })
     } catch { /* non-fatal */ }
