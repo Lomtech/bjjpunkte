@@ -238,7 +238,7 @@ export default function MemberDetailPage() {
     if (res.ok) {
       setMember(m => m ? { ...m, requested_plan_id: null } : m)
       if (json.checkout_url) {
-        alert(`Tarif zugewiesen! Stripe-Zahlungslink für das Mitglied: ${json.checkout_url}\n\nDu kannst diesen Link per WhatsApp oder E-Mail versenden.`)
+        alert(t('memberDetailExtra', 'planAssigned', { url: json.checkout_url }))
       }
     }
   }
@@ -261,12 +261,12 @@ export default function MemberDetailPage() {
         cachedGps.current = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now() }
         lat = pos.coords.latitude; lng = pos.coords.longitude
       } else {
-        throw new Error('GPS nicht verfügbar')
+        throw new Error(t('memberDetailExtra', 'gpsNotAvailable'))
       }
     } catch (e: unknown) {
       setCheckingIn(false)
       const msg = e instanceof GeolocationPositionError
-        ? (e.code === 1 ? 'GPS-Zugriff verweigert. Bitte Standortfreigabe erlauben.' : 'GPS-Standort konnte nicht ermittelt werden.')
+        ? (e.code === 1 ? t('memberDetailExtra', 'gpsDenied') : t('memberDetailExtra', 'gpsLocationError'))
         : (e instanceof Error ? e.message : 'GPS-Fehler')
       setGpsError(msg)
       return
@@ -289,14 +289,14 @@ export default function MemberDetailPage() {
       setTimeout(() => setCheckedInNow(false), 3000)
     } else {
       const json = await res.json().catch(() => ({}))
-      setGpsError(json.error ?? 'Check-in fehlgeschlagen')
+      setGpsError(json.error ?? t('memberDetailExtra', 'checkinFailed'))
     }
   }
 
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-full">
-        <div className="text-zinc-400 text-sm">Lädt...</div>
+        <div className="text-zinc-400 text-sm">{t('common', 'loading')}</div>
       </div>
     )
   }
@@ -305,9 +305,9 @@ export default function MemberDetailPage() {
     return (
       <div className="p-8">
         <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors">
-          ← Mitglieder
+          {t('memberDetail', 'backToList')}
         </Link>
-        <p className="mt-6 text-zinc-500">Mitglied nicht gefunden.</p>
+        <p className="mt-6 text-zinc-500">{t('memberDetailExtra', 'notFound')}</p>
       </div>
     )
   }
@@ -318,7 +318,7 @@ export default function MemberDetailPage() {
       <div className="sticky top-0 z-20 bg-slate-50 border-b border-zinc-100 px-4 md:px-6 py-3 flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
           <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-700 transition-colors flex-shrink-0">
-            ← Mitglieder
+            {t('memberDetail', 'backToList')}
           </Link>
           <button
             onClick={handleCheckIn}
@@ -330,10 +330,10 @@ export default function MemberDetailPage() {
             } disabled:opacity-60`}
           >
             {checkedInNow
-              ? <><Check size={14} /> Eingecheckt!</>
+              ? <><Check size={14} /> {t('memberDetailExtra', 'checkedIn')}</>
               : checkingIn
                 ? 'GPS…'
-                : <><UserCheck size={14} /> Einchecken</>
+                : <><UserCheck size={14} /> {t('memberDetail', 'checkin')}</>
             }
           </button>
         </div>
@@ -358,7 +358,7 @@ export default function MemberDetailPage() {
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
             member.is_active ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-100 text-zinc-400 border-zinc-200'
           }`}>
-            {member.is_active ? 'Aktiv' : 'Inaktiv'}
+            {member.is_active ? t('common', 'active') : t('common', 'inactive')}
           </span>
           {(() => {
             const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -370,12 +370,12 @@ export default function MemberDetailPage() {
             )
             if (paidThisMonth) return (
               <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-zinc-100 text-zinc-600 border-zinc-200">
-                Beitrag bezahlt
+                {t('memberDetailExtra', 'feePaid')}
               </span>
             )
             if (hasPendingThisMonth) return (
               <span className="text-xs px-2 py-0.5 rounded-full font-medium border bg-amber-50 text-amber-700 border-amber-200">
-                Beitrag ausstehend
+                {t('memberDetailExtra', 'feePending')}
               </span>
             )
             return null
@@ -385,7 +385,7 @@ export default function MemberDetailPage() {
               member.subscription_status === 'past_due' ? 'bg-zinc-100 text-zinc-500 border-zinc-200' :
               'bg-zinc-100 text-zinc-600 border-zinc-200'
             }`}>
-              {member.subscription_status === 'past_due' ? 'Abo überfällig' : 'Abo aktiv'}
+              {member.subscription_status === 'past_due' ? t('memberDetailExtra', 'subOverdue') : t('memberDetailExtra', 'subActive')}
             </span>
           )}
         </div>
@@ -396,7 +396,7 @@ export default function MemberDetailPage() {
             href={`/dashboard/members/${member.id}/edit`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-sm font-medium transition-colors shadow-sm"
           >
-            <Pencil size={13} /> Bearbeiten
+            <Pencil size={13} /> {t('memberDetail', 'editMember')}
           </Link>
           <ToggleActiveButton
             memberId={member.id}
@@ -420,9 +420,9 @@ export default function MemberDetailPage() {
         <div className="mb-4 bg-zinc-50 rounded-xl border border-zinc-200 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-zinc-800">Kündigung beantragt</p>
+              <p className="text-sm font-semibold text-zinc-800">{t('memberDetailExtra', 'cancellationNote')}</p>
               <p className="text-xs text-zinc-500 mt-0.5">
-                {new Date(member.cancellation_requested_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                {new Date(member.cancellation_requested_at).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' })}
               </p>
               {member.cancellation_note && (
                 <p className="text-sm text-zinc-600 mt-2 bg-white rounded-lg px-3 py-2 border border-zinc-200">"{member.cancellation_note}"</p>
@@ -431,7 +431,7 @@ export default function MemberDetailPage() {
             <button
               onClick={handleClearCancellation}
               className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold transition-colors">
-              Erledigt
+              {t('memberDetailExtra', 'done')}
             </button>
           </div>
         </div>
@@ -441,13 +441,13 @@ export default function MemberDetailPage() {
         <div className="mb-4 bg-amber-50 rounded-xl border border-amber-200 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-amber-800">Plan-Änderung beantragt</p>
-              <p className="text-xs text-amber-600 mt-0.5">Mitglied möchte den Tarif wechseln</p>
+              <p className="text-sm font-semibold text-amber-800">{t('memberDetailExtra', 'planChangeNote')}</p>
+              <p className="text-xs text-amber-600 mt-0.5">{t('memberDetailExtra', 'planChangeSub')}</p>
             </div>
             <button
               onClick={handleClearPlanRequest}
               className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white border border-amber-200 hover:bg-amber-50 text-amber-700 text-xs font-semibold transition-colors">
-              Erledigt
+              {t('memberDetailExtra', 'done')}
             </button>
           </div>
         </div>
@@ -459,7 +459,7 @@ export default function MemberDetailPage() {
           {parentInfo && (
             <div className="flex items-center gap-2 text-sm text-zinc-600">
               <Users size={14} className="text-zinc-400" />
-              <span>Kind von </span>
+              <span>{t('memberDetailExtra', 'childOf')} </span>
               <Link href={`/dashboard/members/${parentInfo.id}`} className="text-amber-600 hover:underline font-medium">
                 {parentInfo.first_name} {parentInfo.last_name}
               </Link>
@@ -468,7 +468,7 @@ export default function MemberDetailPage() {
           {children.length > 0 && (
             <div className="flex items-center gap-2 text-sm text-zinc-600 flex-wrap">
               <Users size={14} className="text-zinc-400" />
-              <span>Kinder: </span>
+              <span>{t('memberDetailExtra', 'children')}: </span>
               {children.map(child => (
                 <Link key={child.id} href={`/dashboard/members/${child.id}`} className="text-amber-600 hover:underline font-medium">
                   {child.first_name} {child.last_name}

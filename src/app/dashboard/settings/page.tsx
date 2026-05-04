@@ -11,20 +11,22 @@ import {
   Package, Megaphone, Edit2, FileSpreadsheet, Download, Upload, MapPin, Navigation,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge' | 'vertraege'
 
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'allgemein',  label: 'Allgemein',  icon: <Building2 size={14} /> },
-  { id: 'zahlungen',  label: 'Zahlungen',  icon: <CreditCard size={14} /> },
-  { id: 'training',   label: 'Training',   icon: <Award size={14} /> },
-  { id: 'zugaenge',   label: 'Zugänge',    icon: <Globe size={14} /> },
-  { id: 'vertraege',  label: 'Verträge',   icon: <Package size={14} /> },
-]
-
 export default function SettingsPage() {
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<Tab>('allgemein')
+
+  const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: 'allgemein',  label: t('settings', 'general'),   icon: <Building2 size={14} /> },
+    { id: 'zahlungen',  label: t('settings', 'payments'),  icon: <CreditCard size={14} /> },
+    { id: 'training',   label: t('settings', 'training'),  icon: <Award size={14} /> },
+    { id: 'zugaenge',   label: t('settings', 'access'),    icon: <Globe size={14} /> },
+    { id: 'vertraege',  label: t('settings', 'contracts'), icon: <Package size={14} /> },
+  ]
 
   // Gym profile
   const [name, setName]             = useState('')
@@ -690,27 +692,27 @@ export default function SettingsPage() {
   return (
     <div className="p-4 md:p-6 max-w-lg">
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-zinc-900">Einstellungen</h1>
-        <p className="text-zinc-400 text-xs mt-0.5">Gym konfigurieren</p>
+        <h1 className="text-xl font-bold text-zinc-900">{t('settings', 'title')}</h1>
+        <p className="text-zinc-400 text-xs mt-0.5">{t('nav', 'settings')}</p>
       </div>
 
       {/* Banners */}
       {upgradedBanner && (
         <div className="mb-4 p-3 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center gap-2">
           <CheckCircle2 size={15} className="text-zinc-500 flex-shrink-0" />
-          <p className="text-zinc-800 text-sm font-medium">✓ Plan erfolgreich aktualisiert!</p>
+          <p className="text-zinc-800 text-sm font-medium">{t('settings', 'planUpdated')}</p>
         </div>
       )}
       {stripeConnected && (
         <div className="mb-4 p-3 rounded-lg bg-zinc-100 border border-zinc-200 flex items-center gap-2">
           <CheckCircle2 size={15} className="text-zinc-500 flex-shrink-0" />
-          <p className="text-zinc-800 text-sm font-medium">Stripe erfolgreich verbunden!</p>
+          <p className="text-zinc-800 text-sm font-medium">{t('settings', 'stripeConnectedBanner')}</p>
         </div>
       )}
       {stripeError && (
         <div className="mb-4 p-3 rounded-lg bg-zinc-50 border border-zinc-200 flex items-center gap-2">
           <AlertCircle size={15} className="text-zinc-500 flex-shrink-0" />
-          <p className="text-zinc-700 text-sm">Verbindung fehlgeschlagen: {stripeError}</p>
+          <p className="text-zinc-700 text-sm">{t('settings', 'connectionFailed')}{stripeError}</p>
         </div>
       )}
 

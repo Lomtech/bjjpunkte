@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { CheckCircle2, ChevronRight, ChevronLeft, Pen, RotateCcw, AlertCircle } from 'lucide-react'
 import { LogoMark } from '@/components/Logo'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 interface Plan {
   id: string
@@ -22,17 +24,17 @@ interface GymInfo {
 }
 
 const BELTS = [
-  { value: 'white',  label: 'Weiß',    color: '#f1f5f9' },
-  { value: 'blue',   label: 'Blau',    color: '#3b82f6' },
-  { value: 'purple', label: 'Lila',    color: '#a855f7' },
-  { value: 'brown',  label: 'Braun',   color: '#92400e' },
-  { value: 'black',  label: 'Schwarz', color: '#0f172a' },
+  { value: 'white',  labelDe: 'Weiß',    labelEn: 'White',  color: '#f1f5f9' },
+  { value: 'blue',   labelDe: 'Blau',    labelEn: 'Blue',   color: '#3b82f6' },
+  { value: 'purple', labelDe: 'Lila',    labelEn: 'Purple', color: '#a855f7' },
+  { value: 'brown',  labelDe: 'Braun',   labelEn: 'Brown',  color: '#92400e' },
+  { value: 'black',  labelDe: 'Schwarz', labelEn: 'Black',  color: '#0f172a' },
 ]
 
 const INPUT = 'w-full px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors'
 
 /* ── Canvas signature pad ──────────────────────────────────────────── */
-function SignaturePad({ onChange }: { onChange: (data: string | null) => void }) {
+function SignaturePad({ onChange, lang = 'de' }: { onChange: (data: string | null) => void; lang?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing   = useRef(false)
   const [hasData, setHasData] = useState(false)
@@ -100,14 +102,14 @@ function SignaturePad({ onChange }: { onChange: (data: string | null) => void })
         {!hasData && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <Pen size={20} className="text-zinc-300 mb-1" />
-            <p className="text-zinc-400 text-sm">Hier unterschreiben</p>
+            <p className="text-zinc-400 text-sm">{lang === 'en' ? 'Sign here' : 'Hier unterschreiben'}</p>
           </div>
         )}
       </div>
       {hasData && (
         <button type="button" onClick={clear}
           className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors">
-          <RotateCcw size={12} /> Unterschrift löschen
+          <RotateCcw size={12} /> {lang === 'en' ? 'Clear signature' : 'Unterschrift löschen'}
         </button>
       )}
     </div>
@@ -118,6 +120,7 @@ function SignaturePad({ onChange }: { onChange: (data: string | null) => void })
 export default function SignupPage() {
   const params = useParams()
   const token  = params.token as string
+  const { lang } = useLanguage()
 
   const [step, setStep]       = useState<1 | 2 | 3 | 4>(1)
   const [gymInfo, setGymInfo] = useState<GymInfo | null>(null)
@@ -214,7 +217,7 @@ export default function SignupPage() {
       <div className="text-center max-w-sm">
         <AlertCircle size={40} className="text-red-400 mx-auto mb-3" />
         <h2 className="font-bold text-zinc-900 text-lg mb-2">
-          {loadErr.includes('deaktiviert') ? 'Anmeldung deaktiviert' : 'Link ungültig'}
+          {loadErr.includes('deaktiviert') ? (lang === 'en' ? 'Sign-up disabled' : 'Anmeldung deaktiviert') : (lang === 'en' ? 'Invalid link' : 'Link ungültig')}
         </h2>
         <p className="text-zinc-500 text-sm">{loadErr}</p>
       </div>
@@ -227,23 +230,28 @@ export default function SignupPage() {
         <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 size={40} className="text-amber-500" />
         </div>
-        <h2 className="font-bold text-zinc-900 text-2xl mb-2">Anmeldung erfolgreich!</h2>
+        <h2 className="font-bold text-zinc-900 text-2xl mb-2">{lang === 'en' ? 'Registration successful!' : 'Anmeldung erfolgreich!'}</h2>
         <p className="text-zinc-500 text-sm leading-relaxed mb-4">
-          Deine Anmeldung bei <strong>{gymInfo?.gymName}</strong> wurde übermittelt.
-          Das Gym wird dich in Kürze kontaktieren und freischalten.
+          {lang === 'en'
+            ? <><strong>{gymInfo?.gymName}</strong>{' '}has received your registration. The gym will contact you and activate your account shortly.</>
+            : <>Deine Anmeldung bei <strong>{gymInfo?.gymName}</strong> wurde übermittelt. Das Gym wird dich in Kürze kontaktieren und freischalten.</>
+          }
         </p>
         <p className="text-xs text-zinc-400">
-          Vertrag und Datenschutz digital unterzeichnet am {new Date().toLocaleDateString('de-DE')}.
+          {lang === 'en'
+            ? `Contract and privacy policy digitally signed on ${new Date().toLocaleDateString('en-GB')}.`
+            : `Vertrag und Datenschutz digital unterzeichnet am ${new Date().toLocaleDateString('de-DE')}.`
+          }
         </p>
       </div>
     </div>
   )
 
   const steps = [
-    { n: 1 as const, label: 'Daten' },
-    { n: 2 as const, label: 'Vertrag' },
-    { n: 3 as const, label: 'Unterschrift' },
-    { n: 4 as const, label: 'Bestätigung' },
+    { n: 1 as const, label: lang === 'en' ? 'Details' : 'Daten' },
+    { n: 2 as const, label: lang === 'en' ? 'Contract' : 'Vertrag' },
+    { n: 3 as const, label: lang === 'en' ? 'Signature' : 'Unterschrift' },
+    { n: 4 as const, label: lang === 'en' ? 'Confirm' : 'Bestätigung' },
   ]
 
   return (
@@ -258,7 +266,8 @@ export default function SignupPage() {
           <p className="text-amber-400 font-black text-xl italic tracking-tight">Osss</p>
         </div>
         <p className="text-white font-semibold text-sm">{gymInfo?.gymName}</p>
-        <p className="text-zinc-500 text-xs mt-0.5">Mitglieder-Anmeldung</p>
+        <p className="text-zinc-500 text-xs mt-0.5">{lang === 'en' ? 'Member registration' : 'Mitglieder-Anmeldung'}</p>
+        <div className="mt-2 flex justify-center"><LanguageSwitcher variant="minimal" className="text-zinc-400" /></div>
       </div>
 
       {/* Step indicator */}
@@ -363,7 +372,7 @@ export default function SignupPage() {
                     }`}>
                     <span className="w-4 h-4 rounded-full border border-black/10 flex-shrink-0"
                       style={{ background: b.color }} />
-                    {b.label}
+                    {lang === 'en' ? b.labelEn : b.labelDe}
                   </button>
                 ))}
               </div>
@@ -468,7 +477,7 @@ export default function SignupPage() {
               {dob   && <SummaryRow label="Geburtsdatum"  value={new Date(dob).toLocaleDateString('de-DE')} />}
               {(street || city) && <SummaryRow label="Adresse" value={[street, `${zip} ${city}`.trim()].filter(Boolean).join(', ')} />}
               {ecName && <SummaryRow label="Notfallkontakt" value={`${ecName}${ecPhone ? ` · ${ecPhone}` : ''}`} />}
-              <SummaryRow label="Gürtelgrad"   value={BELTS.find(b => b.value === belt)?.label ?? 'Weiß'} />
+              <SummaryRow label={lang === 'en' ? 'Belt rank' : 'Gürtelgrad'} value={BELTS.find(b => b.value === belt)?.[lang === 'en' ? 'labelEn' : 'labelDe'] ?? (lang === 'en' ? 'White' : 'Weiß')} />
             </div>
 
             <div className="space-y-3">

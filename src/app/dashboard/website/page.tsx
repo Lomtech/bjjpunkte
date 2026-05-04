@@ -577,10 +577,10 @@ export default function WebsitePage() {
                 <button type="button"
                   onClick={() => setVideoUrls(vs => [...vs, ''])}
                   className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-amber-600 transition-colors py-1">
-                  <Plus size={13} /> Video hinzufügen
+                  <Plus size={13} /> {t('website', 'addVideo')}
                 </button>
               </div>
-              <p className="text-xs text-zinc-400 mt-1">Regular Videos (16:9) und Shorts (9:16) werden automatisch erkannt.</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('website', 'videoHint')}</p>
             </div>
 
             <div className="flex justify-end">
@@ -598,30 +598,29 @@ export default function WebsitePage() {
           </div>
         </Section>
 
-        {/* 4 — Kontakt & Social */}
-        <Section num="4" title="Kontakt & Social Media" icon={<Phone size={14} />}
-          subtitle="WhatsApp, Instagram, Facebook und mehr"
+        {/* 4 — Contact & Social */}
+        <Section num="4" title={t('website', 'contact')} icon={<Phone size={14} />}
+          subtitle={t('website', 'contactSubtitle')}
           done={!!(whatsapp || instagram)}>
           <div className="space-y-4 pt-4">
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
               <Info size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-800">
-                E-Mail, Telefon und Adresse werden automatisch aus den Gym-Einstellungen übernommen.
-                Hier konfigurierst du zusätzliche Kanäle.
+                {t('website', 'contactAutoHint')}
               </p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-600 mb-1.5">
-                <span className="flex items-center gap-1.5"><Phone size={12} /> WhatsApp-Nummer</span>
+                <span className="flex items-center gap-1.5"><Phone size={12} /> {t('website', 'whatsappLabel')}</span>
               </label>
               <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
                 placeholder="+49 151 12345678"
                 className={INPUT} />
-              <p className="text-xs text-zinc-400 mt-1">Erscheint als grüner WhatsApp-Button auf deiner Seite — direkte Kontaktaufnahme für Interessenten.</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('website', 'whatsappHint')}</p>
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-600 mb-1.5">
-                <span className="flex items-center gap-1.5"><Share2 size={12} /> Instagram-URL</span>
+                <span className="flex items-center gap-1.5"><Share2 size={12} /> {t('website', 'instagramLabel')}</span>
               </label>
               <input value={instagram} onChange={e => setInstagram(e.target.value)}
                 placeholder="https://www.instagram.com/deingym"
@@ -629,7 +628,7 @@ export default function WebsitePage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-600 mb-1.5">
-                <span className="flex items-center gap-1.5"><Share2 size={12} /> Facebook-URL</span>
+                <span className="flex items-center gap-1.5"><Share2 size={12} /> {t('website', 'facebookLabel')}</span>
               </label>
               <input value={facebook} onChange={e => setFacebook(e.target.value)}
                 placeholder="https://www.facebook.com/deingym"
@@ -637,7 +636,7 @@ export default function WebsitePage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-600 mb-1.5">
-                <span className="flex items-center gap-1.5"><Globe size={12} /> Eigene Website</span>
+                <span className="flex items-center gap-1.5"><Globe size={12} /> {t('website', 'ownWebsite')}</span>
               </label>
               <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)}
                 placeholder="https://www.deingym.de"
@@ -657,9 +656,9 @@ export default function WebsitePage() {
           </div>
         </Section>
 
-        {/* 5 — Öffnungszeiten */}
-        <Section num="5" title="Öffnungszeiten" icon={<Clock size={14} />}
-          subtitle="Wann ist dein Gym geöffnet?"
+        {/* 5 — Opening hours */}
+        <Section num="5" title={t('website', 'hours')} icon={<Clock size={14} />}
+          subtitle={t('website', 'hoursSubtitle')}
           done={!!gym?.opening_hours}>
           <div className="space-y-2 pt-4">
             {DAYS.map(({ key, label }) => (
@@ -672,7 +671,7 @@ export default function WebsitePage() {
                     onChange={e => setHours(h => ({ ...h, [key]: { ...h[key], closed: !e.target.checked } }))}
                     className="w-4 h-4 rounded border-zinc-300 text-amber-500 focus:ring-amber-400"
                   />
-                  <span className="text-xs text-zinc-500">Offen</span>
+                  <span className="text-xs text-zinc-500">{t('website', 'open')}</span>
                 </label>
                 {!hours[key].closed && (
                   <>
@@ -686,7 +685,7 @@ export default function WebsitePage() {
                   </>
                 )}
                 {hours[key].closed && (
-                  <span className="text-xs text-zinc-400 italic">Geschlossen</span>
+                  <span className="text-xs text-zinc-400 italic">{t('website', 'closed')}</span>
                 )}
               </div>
             ))}
@@ -699,21 +698,21 @@ export default function WebsitePage() {
           </div>
         </Section>
 
-        {/* 6 — Impressum */}
-        <Section num="6" title="Impressum" icon={<FileText size={14} />}
-          subtitle="Gesetzlich vorgeschrieben für gewerbliche Websites"
+        {/* 6 — Imprint */}
+        <Section num="6" title={t('website', 'imprint')} icon={<FileText size={14} />}
+          subtitle={t('website', 'imprintSubtitle')}
           done={!!impressum}>
           <div className="space-y-4 pt-4">
             <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex gap-2">
               <Info size={14} className="text-zinc-500 flex-shrink-0 mt-0.5" />
               <div className="text-xs text-zinc-600 space-y-1">
-                <p className="font-semibold">Pflichtangaben im Impressum:</p>
-                <p>Name & Anschrift · Telefon · E-Mail · ggf. Handelsregisternummer · ggf. Steuernummer</p>
-                <p className="text-zinc-400">Tipp: Nutze einen kostenlosen Impressum-Generator (z.B. e-recht24.de) und füge den Text hier ein.</p>
+                <p className="font-semibold">{t('website', 'imprintRequired')}</p>
+                <p>{t('website', 'imprintRequiredList')}</p>
+                <p className="text-zinc-400">{t('website', 'imprintTip')}</p>
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">Impressum-Text *</label>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">{t('website', 'imprintLabel')}</label>
               <textarea value={impressum} onChange={e => setImpressum(e.target.value)}
                 rows={8}
                 placeholder={`Angaben gemäß § 5 TMG:\n\nDein Name / Firmenname\nStraße Hausnummer\nPLZ Stadt\n\nTelefon: +49 …\nE-Mail: info@…`}
@@ -735,10 +734,10 @@ export default function WebsitePage() {
         <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
           <Globe size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">Deine Gym-Seite ist live</p>
+            <p className="text-sm font-semibold text-amber-900">{t('website', 'pageIsLive')}</p>
             <a href={publicUrl} target="_blank" rel="noopener noreferrer"
               className="text-xs text-amber-700 hover:underline break-all">{publicUrl}</a>
-            <p className="text-xs text-amber-700 mt-1">Teile diesen Link auf Instagram, in WhatsApp-Gruppen oder drucke ihn als QR-Code aus.</p>
+            <p className="text-xs text-amber-700 mt-1">{t('website', 'shareHint')}</p>
           </div>
         </div>
       )}
@@ -749,6 +748,7 @@ export default function WebsitePage() {
 // ── Gallery uploader ──────────────────────────────────────────────────────────
 
 function GalleryUploader({ onUploaded }: { onUploaded: (url: string) => void }) {
+  const { t } = useLanguage()
   const ref = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -779,7 +779,7 @@ function GalleryUploader({ onUploaded }: { onUploaded: (url: string) => void }) 
         {uploading
           ? <Loader2 size={18} className="text-amber-500 animate-spin" />
           : <ImagePlus size={18} className="text-zinc-400" />}
-        <span className="text-[10px] text-zinc-400">{uploading ? 'Lädt…' : 'Foto hinzufügen'}</span>
+        <span className="text-[10px] text-zinc-400">{uploading ? t('website', 'uploading') : t('website', 'addPhoto')}</span>
       </button>
       {error && <p className="text-[10px] text-red-500 mt-1 text-center">{error}</p>}
       <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleFile} />
