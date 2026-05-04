@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 import { LogoMark } from '@/components/Logo'
 import { SectionWave } from '@/components/SectionWave'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -95,18 +97,19 @@ function ytParse(url: string): { id: string; isShort: boolean } | null {
 function Nav({ gym, hasVideos }: { gym: GymInfo; hasVideos: boolean }) {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen]         = useState(false)
+  const { lang } = useLanguage()
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 60)
     window.addEventListener('scroll', h, { passive: true })
     return () => window.removeEventListener('scroll', h)
   }, [])
   const links = [
-    { href: '#about', label: 'Über uns' },
+    { href: '#about', label: lang === 'en' ? 'About' : 'Über uns' },
     ...(hasVideos ? [{ href: '#videos', label: 'Videos' }] : []),
     { href: '#news', label: 'News' },
-    { href: '#schedule', label: 'Stundenplan' },
-    { href: '#plans', label: 'Preise' },
-    { href: '#contact', label: 'Kontakt' },
+    { href: '#schedule', label: lang === 'en' ? 'Schedule' : 'Stundenplan' },
+    { href: '#plans', label: lang === 'en' ? 'Pricing' : 'Preise' },
+    { href: '#contact', label: lang === 'en' ? 'Contact' : 'Kontakt' },
   ]
   return (
     <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-zinc-100' : 'bg-transparent'}`}
@@ -125,8 +128,9 @@ function Nav({ gym, hasVideos }: { gym: GymInfo; hasVideos: boolean }) {
           ))}
         </div>
         <div className="flex items-center gap-2">
+          <LanguageSwitcher variant="minimal" className={scrolled ? 'text-zinc-400' : 'text-white/70'} />
           <a href="#contact" className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-sm font-bold transition-colors">
-            Probetraining <ChevronRight size={14} />
+            {lang === 'en' ? 'Trial class' : 'Probetraining'} <ChevronRight size={14} />
           </a>
           <button onClick={() => setOpen(o => !o)} className={`md:hidden p-2 rounded-lg transition-colors ${scrolled ? 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
             {open ? <X size={20} /> : <Menu size={20} />}
@@ -138,7 +142,9 @@ function Nav({ gym, hasVideos }: { gym: GymInfo; hasVideos: boolean }) {
           {links.map(l => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block px-3 py-2.5 text-sm text-zinc-600 hover:text-zinc-900 rounded-xl hover:bg-zinc-50 transition-colors">{l.label}</a>
           ))}
-          <a href="#contact" onClick={() => setOpen(false)} className="block mt-2 px-3 py-3 text-sm font-bold text-zinc-950 bg-amber-500 hover:bg-amber-400 rounded-xl text-center">Probetraining anfragen</a>
+          <a href="#contact" onClick={() => setOpen(false)} className="block mt-2 px-3 py-3 text-sm font-bold text-zinc-950 bg-amber-500 hover:bg-amber-400 rounded-xl text-center">
+            {lang === 'en' ? 'Request trial class' : 'Probetraining anfragen'}
+          </a>
         </div>
       )}
     </nav>
@@ -152,6 +158,7 @@ function ContactForm({ slug, classes }: { slug: string; classes: GymClass[] }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr]   = useState('')
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '', message: '', class_id: '' })
+  const { lang } = useLanguage()
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setErr('')

@@ -6,6 +6,7 @@ import { BeltBadge } from '@/components/BeltBadge'
 import { ArrowRight, Award } from 'lucide-react'
 import type { BeltSystem } from '@/lib/belt-system'
 import { DEFAULT_BELT_SYSTEM, getBeltSlot } from '@/lib/belt-system'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export function PromoteButton({
   memberId, gymId, currentBelt, currentStripes, onPromoted, beltSystem, stripesEnabled = true,
@@ -16,6 +17,7 @@ export function PromoteButton({
   stripesEnabled?: boolean
 }) {
   const system = beltSystem ?? DEFAULT_BELT_SYSTEM
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 

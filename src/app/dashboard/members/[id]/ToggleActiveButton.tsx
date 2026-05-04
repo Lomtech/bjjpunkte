@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface Props {
   memberId: string
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
+  const { t } = useLanguage()
   const [loading, setLoading]         = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [current, setCurrent]         = useState(isActive)
@@ -47,7 +49,10 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
             : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
         }`}
       >
-        {feedback ? `✓ ${current ? 'Aktiv' : 'Inaktiv'}` : loading ? '…' : current ? 'Deaktivieren' : 'Aktivieren'}
+        {feedback
+          ? (current ? t('promotion', 'feedbackActive') : t('promotion', 'feedbackInactive'))
+          : loading ? '…'
+          : current ? t('promotion', 'deactivateBtn') : t('promotion', 'activateBtn')}
       </button>
 
       {showConfirm && (
@@ -62,19 +67,19 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
               {current ? '⏸' : '▶'}
             </div>
             <h3 className="font-bold text-zinc-900 text-lg mb-2 text-center">
-              {current ? 'Mitglied deaktivieren?' : 'Mitglied aktivieren?'}
+              {current ? t('promotion', 'toggleDeactivateTitle') : t('promotion', 'toggleActivateTitle')}
             </h3>
             <p className="text-zinc-500 text-sm mb-6 text-center leading-relaxed">
               {current
-                ? 'Das Mitglied wird als inaktiv markiert und taucht nicht mehr in der aktiven Liste auf.'
-                : 'Das Mitglied wird reaktiviert und erscheint wieder in der aktiven Mitgliederliste.'}
+                ? t('promotion', 'deactivateDesc')
+                : t('promotion', 'activateDesc')}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
                 className="flex-1 py-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-sm font-medium transition-colors"
               >
-                Abbrechen
+                {t('promotion', 'cancel')}
               </button>
               <button
                 onClick={toggle}
@@ -83,7 +88,7 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
                   current ? 'bg-red-500 hover:bg-red-400' : 'bg-green-500 hover:bg-green-400'
                 }`}
               >
-                {loading ? 'Speichert…' : current ? 'Deaktivieren' : 'Aktivieren'}
+                {loading ? t('promotion', 'toggleSaving') : current ? t('promotion', 'deactivateBtn') : t('promotion', 'activateBtn')}
               </button>
             </div>
           </div>

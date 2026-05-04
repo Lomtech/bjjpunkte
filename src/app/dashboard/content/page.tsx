@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
 import { readCachedGymId } from '../_components/RoleShell'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface Announcement {
   id:         string
@@ -56,6 +57,7 @@ function PostEditor({
   onSave: (p: Post) => void
   onClose: () => void
 }) {
+  const { t } = useLanguage()
   const [title,    setTitle]    = useState(initial.title ?? '')
   const [blocks,   setBlocks]   = useState<Block[]>(initial.blocks ?? [])
   const [coverUrl, setCoverUrl] = useState<string | null>(initial.cover_url ?? null)
@@ -108,7 +110,7 @@ function PostEditor({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <h2 className="font-bold text-zinc-900 text-base">
-            {initial.id ? 'Beitrag bearbeiten' : 'Neuer Beitrag'}
+            {initial.id ? t('content', 'editPost') : t('content', 'newPost')}
           </h2>
           <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-zinc-100 transition-colors">
             <X size={18} />
@@ -118,18 +120,18 @@ function PostEditor({
         <div className="p-6 space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Titel</label>
+            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">{t('content', 'title2')}</label>
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Beitragsüberschrift…"
+              placeholder={t('content', 'titlePlaceholder')}
               className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 font-semibold text-base focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
             />
           </div>
 
           {/* Cover image */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">Titelbild</label>
+            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">{t('content', 'coverImage')}</label>
             <input ref={coverRef} type="file" accept="image/*" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverFile(f); e.target.value = '' }} />
             {coverUrl ? (
@@ -137,7 +139,7 @@ function PostEditor({
                 <img src={coverUrl} alt="Cover" className="w-full h-40 object-cover" />
                 <button type="button" onClick={() => coverRef.current?.click()}
                   className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-semibold">
-                  Titelbild ändern
+                  {t('content', 'changeCover')}
                 </button>
                 <button type="button" onClick={() => setCoverUrl(null)}
                   className="absolute top-2 right-2 bg-white/90 rounded-full p-1 hover:bg-red-50">
@@ -148,22 +150,22 @@ function PostEditor({
               <button type="button" onClick={() => coverRef.current?.click()} disabled={coverUploading}
                 className="w-full h-28 border-2 border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-400 hover:border-amber-300 hover:text-amber-500 transition-colors">
                 <ImagePlus size={22} />
-                <span className="text-xs">{coverUploading ? 'Wird hochgeladen…' : 'Titelbild hochladen'}</span>
+                <span className="text-xs">{coverUploading ? t('content', 'coverUploading') : t('content', 'uploadCover')}</span>
               </button>
             )}
           </div>
 
           {/* Blocks */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Inhalt</label>
+            <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{t('content', 'contentLabel')}</label>
             <BlockEditor blocks={blocks} onChange={setBlocks} />
           </div>
 
           {/* Publish toggle */}
           <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
             <div>
-              <p className="text-sm font-semibold text-zinc-800">{published ? 'Veröffentlicht' : 'Entwurf'}</p>
-              <p className="text-xs text-zinc-400">{published ? 'Sichtbar auf deiner Gym-Seite' : 'Nur du siehst diesen Beitrag'}</p>
+              <p className="text-sm font-semibold text-zinc-800">{published ? t('content', 'published') : t('content', 'draft')}</p>
+              <p className="text-xs text-zinc-400">{published ? t('content', 'visibleOnPage') : t('content', 'onlyYouSee')}</p>
             </div>
             <button type="button" onClick={() => setPublished(v => !v)}
               className={`relative w-10 h-6 rounded-full transition-colors ${published ? 'bg-amber-500' : 'bg-zinc-200'}`}>
@@ -177,7 +179,7 @@ function PostEditor({
           <button type="button" onClick={handleSave} disabled={saving || !title.trim()}
             className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
             <Save size={15} />
-            {saving ? 'Wird gespeichert…' : 'Speichern'}
+            {saving ? t('content', 'saving') : t('content', 'save')}
           </button>
         </div>
       </div>
@@ -193,9 +195,11 @@ function PostCard({ post, onEdit, onDelete, onTogglePublish }: {
   onDelete: () => void
   onTogglePublish: () => void
 }) {
+  const { t, lang } = useLanguage()
   const isPublished = !!post.published_at && new Date(post.published_at) <= new Date()
   const blockCount = post.blocks.length
   const imageCount = post.blocks.filter(b => b.type === 'image').length
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
 
   return (
     <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
@@ -206,24 +210,24 @@ function PostCard({ post, onEdit, onDelete, onTogglePublish }: {
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-bold text-zinc-900 text-sm leading-snug line-clamp-2 flex-1">{post.title || 'Kein Titel'}</h3>
+          <h3 className="font-bold text-zinc-900 text-sm leading-snug line-clamp-2 flex-1">{post.title || t('content', 'noTitle')}</h3>
           <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${isPublished ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'}`}>
-            {isPublished ? <><Globe size={9} /> Live</> : 'Entwurf'}
+            {isPublished ? <><Globe size={9} /> Live</> : t('content', 'draft')}
           </span>
         </div>
         <p className="text-xs text-zinc-400 mb-3">
-          {blockCount} {blockCount === 1 ? 'Block' : 'Blöcke'}{imageCount > 0 ? ` · ${imageCount} Bild${imageCount > 1 ? 'er' : ''}` : ''}
-          {' · '}{new Date(post.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
+          {blockCount} {blockCount === 1 ? t('content', 'blockCount') : t('content', 'blocksCount')}{imageCount > 0 ? ` · ${imageCount} ${imageCount > 1 ? t('content', 'imagesCount') : t('content', 'imageCount')}` : ''}
+          {' · '}{new Date(post.created_at).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}
         </p>
         <div className="flex items-center gap-2">
           <button type="button" onClick={onEdit}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-xs font-semibold text-zinc-700 transition-colors">
-            <Edit2 size={12} /> Bearbeiten
+            <Edit2 size={12} /> {t('content', 'edit')}
           </button>
           <button type="button" onClick={onTogglePublish}
             className={`flex items-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-colors ${isPublished ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700' : 'bg-amber-100 hover:bg-amber-200 text-amber-700'}`}>
             {isPublished ? <EyeOff size={12} /> : <Eye size={12} />}
-            {isPublished ? 'Verstecken' : 'Veröffentlichen'}
+            {isPublished ? t('content', 'hide') : t('content', 'publish')}
           </button>
           <button type="button" onClick={onDelete}
             className="p-2 rounded-lg hover:bg-red-50 text-zinc-400 hover:text-red-500 transition-colors">
@@ -238,6 +242,8 @@ function PostCard({ post, onEdit, onDelete, onTogglePublish }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ContentPage() {
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const [activeTab, setActiveTab] = useState<'posts' | 'announcements'>('posts')
 
   // ── Posts ──────────────────────────────────────────────────────────────────
