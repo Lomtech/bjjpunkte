@@ -567,7 +567,7 @@ export default function MemberDetailPage() {
                     <BeltBadge belt={p.new_belt as Belt} stripes={p.new_stripes} beltSystem={beltSystem} />
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-zinc-400 text-sm">{new Date(p.promoted_at).toLocaleDateString('de-DE')}</span>
+                    <span className="text-zinc-400 text-sm">{new Date(p.promoted_at).toLocaleDateString(locale)}</span>
                     <button
                       onClick={() => deletePromotion(p.id, isLatest)}
                       disabled={deletingPromoId === p.id}
@@ -575,7 +575,7 @@ export default function MemberDetailPage() {
                       className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 transition-all disabled:opacity-30"
                     >
                       <Undo2 size={13} />
-                      {isLatest ? 'Rückgängig' : 'Löschen'}
+                      {isLatest ? t('memberDetailExtra', 'undo') : t('memberDetailExtra', 'delete')}
                     </button>
                   </div>
                 </div>
@@ -592,16 +592,16 @@ export default function MemberDetailPage() {
             <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
               <CalendarDays size={13} className="text-amber-600" />
             </span>
-            <h2 className="text-sm font-semibold text-zinc-800">Letzte Trainings</h2>
+            <h2 className="text-sm font-semibold text-zinc-800">{t('memberDetailExtra', 'recentSessions')}</h2>
           </div>
           <div className="space-y-2">
             {attendance.map(a => (
               <div key={a.id} className="flex items-center gap-3 py-2 border-b border-zinc-100 last:border-0">
                 <span className="text-zinc-700 text-sm capitalize font-medium flex-1 min-w-0 truncate">{a.class_type}</span>
                 <span className="text-zinc-400 text-xs flex-shrink-0 whitespace-nowrap">
-                  {new Date(a.checked_in_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                  {new Date(a.checked_in_at).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit' })}
                   {' · '}
-                  {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(a.checked_in_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             ))}
@@ -615,9 +615,9 @@ export default function MemberDetailPage() {
           <button onClick={handleDeleteMember} disabled={deletingMember}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-semibold transition-colors disabled:opacity-50">
             <Trash2 size={14} />
-            {deletingMember ? 'Wird gelöscht…' : 'Mitglied dauerhaft löschen'}
+            {deletingMember ? t('memberDetailExtra', 'deletingMember') : t('memberDetailExtra', 'deleteMember')}
           </button>
-          <p className="text-xs text-zinc-400 mt-2">Nur für inaktive Mitglieder. Alle Daten werden unwiderruflich gelöscht.</p>
+          <p className="text-xs text-zinc-400 mt-2">{t('memberDetailExtra', 'deleteWarning')}</p>
         </div>
       )}
       </div>{/* /p-4 md:p-6 */}

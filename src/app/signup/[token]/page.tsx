@@ -299,45 +299,49 @@ export default function SignupPage() {
         {step === 1 && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-zinc-900 mb-1">Persönliche Daten</h2>
-              <p className="text-zinc-500 text-sm">Bitte fülle alle Pflichtfelder aus.</p>
+              <h2 className="text-lg font-bold text-zinc-900 mb-1">{lang === 'en' ? 'Personal details' : 'Persönliche Daten'}</h2>
+              <p className="text-zinc-500 text-sm">{lang === 'en' ? 'Please fill in all required fields.' : 'Bitte fülle alle Pflichtfelder aus.'}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Vorname *" value={firstName} onChange={setFirstName} placeholder="Max" />
-              <Field label="Nachname *" value={lastName} onChange={setLastName} placeholder="Mustermann" />
+              <Field label={lang === 'en' ? 'First name *' : 'Vorname *'} value={firstName} onChange={setFirstName} placeholder="Max" />
+              <Field label={lang === 'en' ? 'Last name *' : 'Nachname *'} value={lastName} onChange={setLastName} placeholder="Mustermann" />
             </div>
-            <Field label="E-Mail *" type="email" value={email} onChange={setEmail} placeholder="max@beispiel.de" />
-            <Field label="Telefon" type="tel" value={phone} onChange={setPhone} placeholder="+49 176 …" />
-            <Field label="Geburtsdatum *" type="date" value={dob} onChange={setDob} />
+            <Field label={lang === 'en' ? 'Email *' : 'E-Mail *'} type="email" value={email} onChange={setEmail} placeholder="max@example.com" />
+            <Field label={lang === 'en' ? 'Phone' : 'Telefon'} type="tel" value={phone} onChange={setPhone} placeholder="+49 176 …" />
+            <Field label={lang === 'en' ? 'Date of birth *' : 'Geburtsdatum *'} type="date" value={dob} onChange={setDob} />
 
             <div>
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Adresse</p>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{lang === 'en' ? 'Address' : 'Adresse'}</p>
               <div className="space-y-3">
-                <Field label="Straße & Hausnummer" value={street} onChange={setStreet} placeholder="Musterstraße 1" />
+                <Field label={lang === 'en' ? 'Street & number' : 'Straße & Hausnummer'} value={street} onChange={setStreet} placeholder={lang === 'en' ? '1 Example St' : 'Musterstraße 1'} />
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="PLZ" value={zip} onChange={setZip} placeholder="12345" />
-                  <Field label="Stadt" value={city} onChange={setCity} placeholder="München" />
+                  <Field label={lang === 'en' ? 'Postcode' : 'PLZ'} value={zip} onChange={setZip} placeholder="12345" />
+                  <Field label={lang === 'en' ? 'City' : 'Stadt'} value={city} onChange={setCity} placeholder={lang === 'en' ? 'Berlin' : 'München'} />
                 </div>
               </div>
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Notfallkontakt</p>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{lang === 'en' ? 'Emergency contact' : 'Notfallkontakt'}</p>
               <div className="space-y-3">
                 <Field label="Name" value={ecName} onChange={setEcName} placeholder="Maria Mustermann" />
-                <Field label="Telefon" type="tel" value={ecPhone} onChange={setEcPhone} placeholder="+49 …" />
+                <Field label={lang === 'en' ? 'Phone' : 'Telefon'} type="tel" value={ecPhone} onChange={setEcPhone} placeholder="+49 …" />
               </div>
             </div>
 
             {plans.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Mitgliedschaft wählen *</p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{lang === 'en' ? 'Choose membership *' : 'Mitgliedschaft wählen *'}</p>
                 <div className="space-y-2">
                   {plans.map(plan => {
-                    const intervalLabel = plan.billing_interval === 'monthly' ? 'mtl.' : plan.billing_interval === 'biannual' ? 'halbjährl.' : 'jährl.'
-                    const price = (plan.price_cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
-                    const contractLabel = plan.contract_months === 0 ? 'Monatlich kündbar' : `${plan.contract_months} Monate Laufzeit`
+                    const intervalLabel = lang === 'en'
+                      ? (plan.billing_interval === 'monthly' ? 'mo.' : plan.billing_interval === 'biannual' ? '6 mo.' : 'yr.')
+                      : (plan.billing_interval === 'monthly' ? 'mtl.' : plan.billing_interval === 'biannual' ? 'halbjährl.' : 'jährl.')
+                    const price = (plan.price_cents / 100).toLocaleString(lang === 'en' ? 'en-GB' : 'de-DE', { style: 'currency', currency: 'EUR' })
+                    const contractLabel = lang === 'en'
+                      ? (plan.contract_months === 0 ? 'Cancel monthly' : `${plan.contract_months} month term`)
+                      : (plan.contract_months === 0 ? 'Monatlich kündbar' : `${plan.contract_months} Monate Laufzeit`)
                     const isSelected = selectedPlanId === plan.id
                     return (
                       <button key={plan.id} type="button" onClick={() => setSelectedPlanId(plan.id)}
@@ -363,7 +367,7 @@ export default function SignupPage() {
             )}
 
             <div>
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Aktueller Gürtelgrad</p>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{lang === 'en' ? 'Current belt rank' : 'Aktueller Gürtelgrad'}</p>
               <div className="flex flex-wrap gap-2">
                 {BELTS.map(b => (
                   <button key={b.value} type="button" onClick={() => setBelt(b.value)}
