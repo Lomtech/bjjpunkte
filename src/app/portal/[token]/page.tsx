@@ -171,8 +171,8 @@ function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+function formatTime(iso: string, locale = 'de-DE') {
+  return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 const TYPE_BADGE: Record<string, string> = {
@@ -664,7 +664,7 @@ export default function MemberPortalPage() {
             {/* Posts */}
             {(posts ?? []).length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-1 mb-2">News vom Gym</h2>
+                <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-1 mb-2">{t('portal', 'newsFromGym')}</h2>
                 {(posts ?? []).map(post => (
                   <div key={post.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                     {post.cover_url && (
@@ -672,7 +672,7 @@ export default function MemberPortalPage() {
                     )}
                     <div className="p-4">
                       <p className="text-xs text-slate-400 mb-1">
-                        {new Date(post.published_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        {new Date(post.published_at).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
                       </p>
                       <h3 className="font-bold text-slate-900 text-base leading-snug mb-2">{post.title}</h3>
                       {post.blocks.slice(0, 2).map((block, i) => {
@@ -693,7 +693,7 @@ export default function MemberPortalPage() {
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                 <h2 className="font-semibold text-slate-900 flex items-center gap-2 text-sm">
-                  <Calendar size={14} className="text-amber-500" /> Stundenplan
+                  <Calendar size={14} className="text-amber-500" /> {t('portal', 'schedule')}
                 </h2>
                 <div className="flex items-center gap-1">
                   <button
@@ -747,13 +747,13 @@ export default function MemberPortalPage() {
               {/* Class list for selected day */}
               <div className="p-4">
                 {classesLoading ? (
-                  <p className="text-slate-400 text-sm text-center py-8">Lädt…</p>
+                  <p className="text-slate-400 text-sm text-center py-8">{t('common', 'loading')}</p>
                 ) : (() => {
                   const dayClasses = classes.filter(c => isSameDay(new Date(c.starts_at), selectedDay))
                   if (dayClasses.length === 0) {
                     return (
                       <p className="text-slate-400 text-sm text-center py-8">
-                        Kein Training an diesem Tag.
+                        {t('portal', 'noTraining')}
                       </p>
                     )
                   }
@@ -786,27 +786,27 @@ export default function MemberPortalPage() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                                     <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border font-semibold tracking-wide ${TYPE_BADGE[cls.class_type] ?? TYPE_BADGE.gi}`}>
-                                      {TYPE_LABEL[cls.class_type] ?? cls.class_type}
+                                      {translations.classType[cls.class_type as keyof typeof translations.classType]?.[lang] ?? cls.class_type}
                                     </span>
                                     {isLive && (
                                       <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                        LIVE
+                                        {t('portal', 'live')}
                                       </span>
                                     )}
                                     {isBooked && !attState && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-green-50 text-green-700 border border-green-200">Angemeldet</span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-green-50 text-green-700 border border-green-200">{t('portal', 'booked')}</span>
                                     )}
                                     {isWaitlist && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-700 border border-amber-200">Warteliste</span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-700 border border-amber-200">{t('portal', 'waitlisted')}</span>
                                     )}
                                     {attState && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Eingecheckt ✓</span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">{t('portal', 'checkedInBadge')}</span>
                                     )}
                                   </div>
                                   <p className="text-slate-900 text-sm font-bold leading-tight">{cls.title}</p>
                                   <p className="text-slate-500 text-xs mt-0.5 tabular-nums">
-                                    {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
+                                    {formatTime(cls.starts_at, locale)} – {formatTime(cls.ends_at, locale)}
                                   </p>
                                   {cls.instructor && (
                                     <p className="text-slate-400 text-xs truncate">{cls.instructor}</p>
@@ -817,7 +817,7 @@ export default function MemberPortalPage() {
                                       <span>{cls.confirmed_count}{cls.max_capacity ? `/${cls.max_capacity}` : ''}</span>
                                       {cls.waitlist_count > 0 && <span className="text-amber-600 font-medium">+{cls.waitlist_count} WL</span>}
                                       {isFull && !isBooked && !isWaitlist && (
-                                        <span className="text-red-500 font-medium">· Ausgebucht</span>
+                                        <span className="text-red-500 font-medium">{t('portal', 'soldOut')}</span>
                                       )}
                                     </div>
                                     {hasParticipants && (
@@ -833,7 +833,7 @@ export default function MemberPortalPage() {
                             {/* Participant list */}
                             {isExpanded && (
                               <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/50">
-                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Wer kommt</p>
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('portal', 'whosComing')}</p>
                                 <div className="flex flex-wrap gap-1.5">
                                   {cls.participants.map((p, i) => (
                                     <span key={i} className={`text-xs px-2 py-1 rounded-lg font-medium ${
@@ -855,27 +855,27 @@ export default function MemberPortalPage() {
                                   <button onClick={() => handleCheckin(cls.id)} disabled={checkinLoading === cls.id}
                                     className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
                                     <CheckCircle size={14} />
-                                    {checkinLoading === cls.id ? 'Einchecken…' : 'Jetzt einchecken'}
+                                    {checkinLoading === cls.id ? t('portal', 'checkingIn') : t('portal', 'checkinNow')}
                                   </button>
                                 ) : isBooked ? (
                                   <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
                                     className="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors disabled:opacity-50">
-                                    {isLoading ? '…' : 'Abmelden'}
+                                    {isLoading ? '…' : t('portal', 'cancel')}
                                   </button>
                                 ) : isWaitlist ? (
                                   <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
                                     className="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors disabled:opacity-50">
-                                    {isLoading ? '…' : 'Von Warteliste abmelden'}
+                                    {isLoading ? '…' : t('portal', 'cancelWaitlist')}
                                   </button>
                                 ) : isFull ? (
                                   <button onClick={() => handleBook(cls.id)} disabled={isLoading}
                                     className="w-full py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-sm font-medium transition-colors disabled:opacity-50">
-                                    {isLoading ? '…' : 'Auf Warteliste'}
+                                    {isLoading ? '…' : t('portal', 'waitlist')}
                                   </button>
                                 ) : (
                                   <button onClick={() => handleBook(cls.id)} disabled={isLoading}
                                     className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold transition-colors disabled:opacity-50">
-                                    {isLoading ? '…' : 'Anmelden'}
+                                    {isLoading ? '…' : t('portal', 'book')}
                                   </button>
                                 )}
                               </div>
@@ -920,10 +920,10 @@ export default function MemberPortalPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatCard icon={<Calendar size={15} />} label="Mitglied seit" value={new Date(member.join_date).toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })} />
-              <StatCard icon={<Dumbbell size={15} />} label="Gesamt" value={String(totalSessions ?? 0)} />
-              <StatCard icon={<Flame size={15} />} label="Diesen Monat" value={`${sessionsThisMonth}${sessionsThisMonth > 0 ? ' 🔥' : ''}`} />
-              <StatCard icon={<Trophy size={15} />} label="Wochen-Streak" value={`${streak}${streak >= 4 ? ' 🏆' : ''}`} />
+              <StatCard icon={<Calendar size={15} />} label={t('portal', 'memberSince')} value={new Date(member.join_date).toLocaleDateString(locale, { month: 'short', year: 'numeric' })} />
+              <StatCard icon={<Dumbbell size={15} />} label={t('portal', 'total')} value={String(totalSessions ?? 0)} />
+              <StatCard icon={<Flame size={15} />} label={t('portal', 'thisMonth')} value={`${sessionsThisMonth}${sessionsThisMonth > 0 ? ' 🔥' : ''}`} />
+              <StatCard icon={<Trophy size={15} />} label={t('portal', 'weekStreak')} value={`${streak}${streak >= 4 ? ' 🏆' : ''}`} />
             </div>
           </>
         )}
@@ -935,7 +935,7 @@ export default function MemberPortalPage() {
             {plans.length > 0 && (
               <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
                 <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
-                  <Package size={15} className="text-slate-400" /> Mitgliedschaft
+                  <Package size={15} className="text-slate-400" /> {t('portal', 'membership')}
                 </h2>
                 {currentPlan ? (
                   <p className="text-xs text-slate-400 mb-4">
@@ -1015,7 +1015,7 @@ export default function MemberPortalPage() {
             {/* Payments */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
               <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <CreditCard size={15} className="text-slate-400" /> Zahlungshistorie
+                <CreditCard size={15} className="text-slate-400" /> {t('portal', 'paymentHistory')}
               </h2>
               {payments?.length > 0 ? (
                 <div className="space-y-2">
@@ -1030,14 +1030,14 @@ export default function MemberPortalPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-slate-400 text-xs">{new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}</span>
+                        <span className="text-slate-400 text-xs">{new Date(p.paid_at ?? p.created_at).toLocaleDateString(locale)}</span>
                         {p.status === 'pending' && p.checkout_url && (
                           isCheckoutExpired(p) ? (
                             <span className="text-slate-400 text-xs opacity-60">Link abgelaufen</span>
                           ) : (
                             <a href={p.checkout_url} target="_blank" rel="noopener noreferrer"
                               className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors">
-                              Jetzt bezahlen
+                              {t('portal', 'payNow')}
                             </a>
                           )
                         )}
@@ -1046,34 +1046,34 @@ export default function MemberPortalPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-slate-400 text-sm">Keine Zahlungen vorhanden.</p>
+                <p className="text-slate-400 text-sm">{t('portal', 'noPayments')}</p>
               )}
             </div>
 
             {/* Cancellation */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
               <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
-                <AlertTriangle size={15} className="text-slate-400" /> Mitgliedschaft kündigen
+                <AlertTriangle size={15} className="text-slate-400" /> {t('portal', 'cancelMembership')}
               </h2>
               <p className="text-xs text-slate-400 mb-4">
-                Eine Kündigung muss vom Gym bestätigt werden. Deine Mitgliedschaft läuft bis zur Bearbeitung weiter.
+                {t('portal', 'cancelDisclaimer')}
               </p>
 
               {localCancelledAt ? (
                 <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-                  <p className="text-red-700 text-sm font-semibold">Kündigung angefordert</p>
+                  <p className="text-red-700 text-sm font-semibold">{t('portal', 'cancellationRequested')}</p>
                   <p className="text-red-600 text-xs mt-1">
-                    Eingereicht am {new Date(localCancelledAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}. Dein Gym wird sich melden.
+                    {t('portal', 'cancellationDate', { date: new Date(localCancelledAt).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) })}
                   </p>
                   <button onClick={handleWithdrawCancel}
                     className="mt-3 text-xs text-red-400 hover:text-red-600 underline">
-                    Kündigung zurückziehen
+                    {t('portal', 'withdrawCancellation')}
                   </button>
                 </div>
               ) : showCancelForm ? (
                 <div className="space-y-3">
                   <textarea value={cancelNote} onChange={e => setCancelNote(e.target.value)}
-                    placeholder="Grund (optional)…" rows={3}
+                    placeholder={t('portal', 'reasonOptional')} rows={3}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
                   <div className="flex gap-2">
                     <button onClick={() => setShowCancelForm(false)}
@@ -1082,14 +1082,14 @@ export default function MemberPortalPage() {
                     </button>
                     <button onClick={handleRequestCancel} disabled={cancelRequesting}
                       className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white text-sm font-semibold transition-colors disabled:opacity-50">
-                      {cancelRequesting ? 'Wird gesendet…' : 'Kündigung senden'}
+                      {cancelRequesting ? t('portal', 'sending') : t('portal', 'sendCancellation')}
                     </button>
                   </div>
                 </div>
               ) : (
                 <button onClick={() => setShowCancelForm(true)}
                   className="w-full py-2.5 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 text-sm font-semibold transition-colors">
-                  Kündigung anfordern
+                  {t('portal', 'requestCancellation')}
                 </button>
               )}
             </div>
@@ -1102,7 +1102,7 @@ export default function MemberPortalPage() {
             {/* Attendance history */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
               <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <Dumbbell size={15} className="text-slate-400" /> Trainingsverlauf
+                <Dumbbell size={15} className="text-slate-400" /> {t('portal', 'trainingHistory')}
                 <span className="text-sm font-normal text-slate-400">({totalSessions ?? 0} gesamt)</span>
               </h2>
               {attendance?.length > 0 ? (
@@ -1111,9 +1111,9 @@ export default function MemberPortalPage() {
                     <div key={a.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
                       <span className="text-slate-700 text-sm font-medium">{CLASS_LABELS[a.class_type] ?? a.class_type}</span>
                       <span className="text-slate-400 text-xs">
-                        {new Date(a.checked_in_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
+                        {new Date(a.checked_in_at).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
                         {' · '}
-                        {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(a.checked_in_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   ))}
@@ -1122,23 +1122,23 @@ export default function MemberPortalPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-slate-400 text-sm">Noch keine Trainings aufgezeichnet.</p>
+                <p className="text-slate-400 text-sm">{t('portal', 'noTrainingLogged')}</p>
               )}
             </div>
 
             {/* Training log */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
               <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <BookOpen size={15} className="text-slate-400" /> Technik-Logbuch
+                <BookOpen size={15} className="text-slate-400" /> {t('portal', 'techLogbook')}
               </h2>
               <div className="space-y-3 mb-5">
                 <textarea value={logNote} onChange={e => setLogNote(e.target.value)}
-                  placeholder="Was hast du heute gelernt oder geübt?" rows={3}
+                  placeholder={t('portal', 'logPlaceholder')} rows={3}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
                 <div className="flex gap-2">
                   <select value={logClassType} onChange={e => setLogClassType(e.target.value)}
                     className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
-                    <option value="">Klasse (optional)</option>
+                    <option value="">{t('portal', 'classOptional')}</option>
                     {CLASS_TYPE_OPTIONS.map(t => <option key={t} value={t}>{CLASS_LABELS[t] ?? t}</option>)}
                   </select>
                   <button onClick={handleSaveLog} disabled={logSaving || !logNote.trim()}
@@ -1148,15 +1148,15 @@ export default function MemberPortalPage() {
                 </div>
               </div>
               {logs.length === 0 ? (
-                <p className="text-slate-400 text-sm">Noch keine Notizen gespeichert.</p>
+                <p className="text-slate-400 text-sm">{t('portal', 'noNotes')}</p>
               ) : (
                 <div className="space-y-3">
                   {logs.slice(0, 10).map(log => (
                     <div key={log.id} className="rounded-xl border border-slate-100 p-3 bg-slate-50">
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-slate-400 text-xs">
-                          {new Date(log.logged_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
-                          {' · '}{new Date(log.logged_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(log.logged_at).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
+                          {' · '}{new Date(log.logged_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         {log.class_type && (
                           <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${TYPE_COLORS[log.class_type] ?? TYPE_COLORS.gi}`}>
@@ -1173,7 +1173,7 @@ export default function MemberPortalPage() {
           </>
         )}
 
-        <p className="text-center text-slate-300 text-xs pb-4">Powered by <span className="font-bold italic">Osss</span></p>
+        <p className="text-center text-slate-300 text-xs pb-4">{t("portal", "poweredBy")} <span className="font-bold italic">Osss</span></p>
       </div>
     </div>
   )
