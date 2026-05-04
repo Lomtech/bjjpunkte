@@ -11,6 +11,8 @@ import {
   FileSpreadsheet, Globe, FileEdit, FileText, Shield, Headphones,
   CheckCircle, ArrowRight, Zap, Check, Menu, X,
 } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -142,7 +144,47 @@ export default function Home() {
   const videoParallaxY    = useTransform(scrollY, [1600, 2600], [0, 80])
   const videoScale        = useTransform(scrollY, [1600, 2200], [1.08, 1.0])
 
-  const features = SPORT_FEATURES[activeSport]
+  const { lang } = useLanguage()
+
+  const PAIN_POINTS_DATA = lang === 'en' ? [
+    { icon: FileSpreadsheet, title: 'Excel & WhatsApp',  desc: 'Member lists in spreadsheets, payment reminders via chat — error-prone, time-consuming, not scalable.' },
+    { icon: Globe,           title: 'US tools for €200+', desc: 'Mindbody, Glofox & co. — in English, without German invoicing or GDPR compliance.' },
+    { icon: FileEdit,        title: 'Manual invoicing',   desc: 'Creating invoices by hand every month — a bureaucratic nightmare, especially for small businesses.' },
+  ] : PAIN_POINTS
+
+  const FEATURES_DATA = lang === 'en' ? [
+    { icon: Users,      title: 'Member management',    desc: 'All members at a glance. Belt tracking, family members, notes — everything in one place.' },
+    { icon: CreditCard, title: 'Payments & invoices',  desc: 'Collect dues via Stripe. Automatic invoices — GDPR-compliant, small-business ready.' },
+    { icon: Smartphone, title: 'Member portal',        desc: 'Members check in via QR code, book classes and view their training history — no app needed.' },
+    { icon: Calendar,   title: 'Schedule & gym page',  desc: 'Manage your timetable and share it as a public gym page. Prospects see everything — including iCal export.' },
+    { icon: Target,     title: 'Lead pipeline',        desc: 'Track prospects from first enquiry to membership. Never lose a lead again.' },
+    { icon: Award,      title: 'Belt tracking',        desc: 'Document promotions with date and history — configurable for all belt systems.' },
+  ] : FEATURES
+
+  const GERMAN_FEATURES_DATA = lang === 'en' ? [
+    { icon: FileText,   title: 'German-compliant invoices', desc: 'Automatic §19 UStG invoices — enter your details once and Osss handles the rest.' },
+    { icon: Shield,     title: 'GDPR from day one',         desc: 'Data on European servers (Supabase EU). No third-party sharing. Privacy policy included.' },
+    { icon: Headphones, title: 'Support in your language',  desc: 'No English-only support ticket. Direct, fast, understandable — oss@osss.pro.' },
+  ] : GERMAN_FEATURES
+
+  const STEPS_DATA = lang === 'en' ? [
+    { num: '01', title: 'Create account',     desc: 'Registered in 2 minutes — free, no credit card.' },
+    { num: '02', title: 'Import members',     desc: 'CSV upload or manual entry. Existing data comes straight in.' },
+    { num: '03', title: 'Your gym is live',   desc: 'Payments, schedule, portals — everything ready to go.' },
+  ] : STEPS
+
+  const SPORT_FEATURES_DATA: Record<SportId, { title: string; items: string[] }> = lang === 'en' ? {
+    bjj:       { title: 'Optimised for BJJ',       items: ['5-belt system (White to Black)', 'Stripe tracking up to 4 levels', 'Gi / No-Gi class types', 'Promotions with history & date'] },
+    judo:      { title: 'Configured for Judo',      items: ['7-level Kyu system', 'Yellow to Black pre-configured', 'Competition class types', 'Dan grades freely extendable'] },
+    karate:    { title: 'Configured for Karate',    items: ['8 Kyu levels pre-configured', 'Kata & Kumite class types', 'Exam log per promotion', 'Colours & labels customisable'] },
+    taekwondo: { title: 'Configured for Taekwondo', items: ['6 belt colours pre-configured', 'Poomsae & Sparring classes', 'Exam log', 'Dan grades freely extendable'] },
+    mma:       { title: 'No belt system needed',    items: ['Belt tracking disabled', 'Focus on attendance & payments', 'Manage sparring & classes', 'Member portal without belts'] },
+    muaythai:  { title: 'No belt system needed',    items: ['Belt tracking disabled', 'Pad work & sparring classes', 'Attendance & dues', 'Custom class types configurable'] },
+    boxing:    { title: 'No belt system needed',    items: ['Belt tracking disabled', 'Manage boxing classes & sparring', 'Competition tracking via notes', 'Monthly dues via Stripe'] },
+    wrestling: { title: 'No belt system needed',    items: ['Belt tracking disabled', 'Wrestling & freestyle classes', 'Weight classes as notes', 'Attendance & members'] },
+  } : SPORT_FEATURES
+
+  const features = SPORT_FEATURES_DATA[activeSport]
   const hasBelt  = SPORTS.find(s => s.id === activeSport)?.belt ?? false
 
   return (
@@ -158,13 +200,14 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <OsssLogo variant="dark" />
           <div className="flex items-center gap-6">
-            <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">Preise</Link>
-            <a href="mailto:oss@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Kontakt</a>
+            <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
+            <a href="mailto:oss@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</a>
+            <LanguageSwitcher variant="minimal" />
             {checked && (loggedIn
               ? <Link href="/dashboard" className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors">Dashboard</Link>
               : <>
-                  <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">Anmelden</Link>
-                  <Link href="/register" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors hidden sm:block">Kostenlos starten</Link>
+                  <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Log in' : 'Anmelden'}</Link>
+                  <Link href="/register" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors hidden sm:block">{lang === 'en' ? 'Get started free' : 'Kostenlos starten'}</Link>
                 </>
             )}
             {/* Mobile hamburger */}
@@ -188,15 +231,15 @@ export default function Home() {
               transition={{ duration: 0.18, ease: EASE }}
               className="sm:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1"
             >
-              <Link href="/pricing" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Preise</Link>
-              <a href="mailto:oss@osss.pro" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Kontakt</a>
+              <Link href="/pricing" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
+              <a href="mailto:oss@osss.pro" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Contact' : 'Kontakt'}</a>
               {checked && !loggedIn && (
-                <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Anmelden</Link>
+                <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Log in' : 'Anmelden'}</Link>
               )}
               <div className="pt-1">
                 {checked && (loggedIn
                   ? <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl transition-colors">Dashboard</Link>
-                  : <Link href="/register" onClick={() => setMenuOpen(false)} className="block text-center bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-bold px-4 py-3 rounded-xl transition-colors">Kostenlos starten</Link>
+                  : <Link href="/register" onClick={() => setMenuOpen(false)} className="block text-center bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-bold px-4 py-3 rounded-xl transition-colors">{lang === 'en' ? 'Get started free' : 'Kostenlos starten'}</Link>
                 )}
               </div>
             </motion.div>
@@ -236,28 +279,26 @@ export default function Home() {
             <motion.div variants={stagger} initial="hidden" animate="show" className="relative max-w-xl">
               <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 mb-8">
                 <Shield size={11} className="text-amber-600" />
-                <span className="text-amber-700 text-xs font-semibold tracking-wide">Made in Germany · DSGVO-konform</span>
+                <span className="text-amber-700 text-xs font-semibold tracking-wide">{lang === 'en' ? 'For martial arts gyms' : 'Für Kampfsport-Gyms'}</span>
               </motion.div>
 
               <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-black tracking-tighter leading-[0.9] mb-6 text-zinc-950">
-                Schluss mit Excel.<br />
-                <span className="text-amber-500">Dein Gym läuft</span><br />
-                in 10 Minuten.
+                {lang === 'en' ? <>No more spreadsheets.<br /><span className="text-amber-500">Your gym is live</span><br />in 10 minutes.</> : <>Schluss mit Excel.<br /><span className="text-amber-500">Dein Gym läuft</span><br />in 10 Minuten.</>}
               </motion.h1>
 
               <motion.p variants={fadeUp} className="text-zinc-500 text-lg mb-8 leading-relaxed">
-                Mitglieder, Beiträge, Stundenplan — alles in einer Software. Auf Deutsch. Für Kampfsport-Gyms.
+                {lang === 'en' ? 'Members, dues, schedule — all in one software. In your language. For martial arts gyms.' : 'Mitglieder, Beiträge, Stundenplan — alles in einer Software. Auf Deutsch. Für Kampfsport-Gyms.'}
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-8">
                 <Link href="/register"
                   className="bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/20">
                   <Zap size={16} className="text-amber-400" />
-                  Jetzt kostenlos starten
+                  {lang === 'en' ? 'Get started free' : 'Jetzt kostenlos starten'}
                 </Link>
                 <Link href="/pricing"
                   className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
-                  Preise ansehen <ArrowRight size={15} />
+                  {lang === 'en' ? 'View pricing' : 'Preise ansehen'} <ArrowRight size={15} />
                 </Link>
                 {!appInstalled && installPrompt !== null && (
                   <button onClick={handleInstallClick}
@@ -547,10 +588,10 @@ export default function Home() {
       <section className="bg-zinc-50 px-5 py-24 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto">
           <Section className="text-center mb-12">
-            <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Für jede Kampfsportart</motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">Was trainierst du?</motion.h2>
+            <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'For every martial art' : 'Für jede Kampfsportart'}</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'What do you train?' : 'Was trainierst du?'}</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-sm mx-auto text-sm leading-relaxed">
-              Osss konfiguriert sich automatisch — mit oder ohne Gürtelsystem.
+              {lang === 'en' ? 'Osss configures itself automatically — with or without a belt system.' : 'Osss konfiguriert sich automatisch — mit oder ohne Gürtelsystem.'}
             </motion.p>
           </Section>
 
@@ -580,7 +621,7 @@ export default function Home() {
                     <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border tracking-wide ${
                       hasBelt ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200'
                     }`}>
-                      {hasBelt ? 'Mit Gürtelsystem' : 'Ohne Gürtelsystem'}
+                      {hasBelt ? (lang === 'en' ? 'With belt system' : 'Mit Gürtelsystem') : (lang === 'en' ? 'Without belt system' : 'Ohne Gürtelsystem')}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -599,7 +640,7 @@ export default function Home() {
                 <div className="flex-shrink-0 self-end md:self-center">
                   <Link href="/register"
                     className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors whitespace-nowrap">
-                    Jetzt testen <ArrowRight size={14} />
+                    {lang === 'en' ? 'Try it now' : 'Jetzt testen'} <ArrowRight size={14} />
                   </Link>
                 </div>
               </div>
@@ -612,14 +653,14 @@ export default function Home() {
       <Section className="py-24 px-5 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Das Problem</motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">Kennst du das?</motion.h2>
+            <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'The problem' : 'Das Problem'}</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'What really frustrates gym owners' : 'Kennst du das?'}</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
-              Die meisten Gym-Softwares sind zu teuer, zu komplex oder nicht auf Deutschland ausgelegt.
+              {lang === 'en' ? 'Most gym software is too expensive, too complex, or not built for your market.' : 'Die meisten Gym-Softwares sind zu teuer, zu komplex oder nicht auf Deutschland ausgelegt.'}
             </motion.p>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {PAIN_POINTS.map(p => (
+            {PAIN_POINTS_DATA.map(p => (
               <motion.div key={p.title} variants={fadeUp} className="bg-zinc-50 rounded-2xl p-7 border border-zinc-100">
                 <div className="w-10 h-10 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mb-5">
                   <p.icon size={18} className="text-zinc-500" />
@@ -636,14 +677,14 @@ export default function Home() {
       <Section className="py-24 px-5 bg-amber-50">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <motion.p variants={fadeUp} className="text-amber-700 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">So einfach geht&apos;s</motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">In 3 Schritten fertig</motion.h2>
+            <motion.p variants={fadeUp} className="text-amber-700 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'That simple' : 'So einfach geht\'s'}</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Live in 3 steps' : 'In 3 Schritten fertig'}</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-sm mx-auto text-sm leading-relaxed">
-              Kein langer Onboarding-Prozess. Du bist in unter 10 Minuten live.
+              {lang === 'en' ? 'No lengthy onboarding process. You\'re live in under 10 minutes.' : 'Kein langer Onboarding-Prozess. Du bist in unter 10 Minuten live.'}
             </motion.p>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {STEPS.map(step => (
+            {STEPS_DATA.map(step => (
               <motion.div key={step.num} variants={fadeUp}>
                 <div className="bg-white rounded-2xl p-7 border border-amber-100 shadow-sm h-full">
                   <div className="text-amber-500 font-black text-4xl tracking-tighter leading-none mb-5">{step.num}</div>
@@ -661,13 +702,13 @@ export default function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Features</motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">Alles was dein Gym braucht</motion.h2>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Everything in one platform' : 'Alles was dein Gym braucht'}</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
-              Von der Mitgliederverwaltung bis zur automatischen Rechnung — in einer Software.
+              {lang === 'en' ? 'From member management to automatic invoices — in one software.' : 'Von der Mitgliederverwaltung bis zur automatischen Rechnung — in einer Software.'}
             </motion.p>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map(f => (
+            {FEATURES_DATA.map(f => (
               <motion.div key={f.title} variants={fadeUp}
                 className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-7 hover:border-amber-200 hover:bg-white hover:shadow-sm transition-all duration-200 group">
                 <div className="w-10 h-10 rounded-xl bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center mb-5 transition-colors">
@@ -716,12 +757,12 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
             <div>
-              <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Nur bei Osss</motion.p>
+              <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Only at Osss' : 'Nur bei Osss'}</motion.p>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-8">
-                Gemacht für<br />deutsche Gyms
+                {lang === 'en' ? <>Built for<br />your market</> : <>Gemacht für<br />deutsche Gyms</>}
               </motion.h2>
               <motion.div variants={stagger} className="space-y-6">
-                {GERMAN_FEATURES.map(item => (
+                {GERMAN_FEATURES_DATA.map(item => (
                   <motion.div key={item.title} variants={fadeUp} className="flex gap-4">
                     <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
                       <item.icon size={16} className="text-amber-600" />
@@ -808,16 +849,16 @@ export default function Home() {
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 70% 70% at 50% 110%, rgba(255,255,255,0.15) 0%, transparent 70%)' }} />
         <div className="max-w-xl mx-auto relative">
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-950 mb-5">Bereit loszulegen?</h2>
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-950 mb-5">{lang === 'en' ? 'Ready to get started?' : 'Bereit loszulegen?'}</h2>
           <p className="text-zinc-800 text-lg mb-10 leading-relaxed">
-            Dein Gym läuft in 10 Minuten.<br />Keine Kreditkarte, keine Mindestlaufzeit.
+            {lang === 'en' ? <>Your gym is live in 10 minutes.<br />No credit card, no minimum term.</> : <>Dein Gym läuft in 10 Minuten.<br />Keine Kreditkarte, keine Mindestlaufzeit.</>}
           </p>
           <Link href="/register"
             className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-zinc-900/25">
             <Zap size={18} className="text-amber-400" />
-            Jetzt kostenlos starten
+            {lang === 'en' ? 'Get started free' : 'Jetzt kostenlos starten'}
           </Link>
-          <p className="text-zinc-700 text-xs mt-5 tracking-wide">Keine Kreditkarte · Keine Mindestlaufzeit · Jederzeit kündbar</p>
+          <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? 'No credit card · No minimum term · Cancel anytime' : 'Keine Kreditkarte · Keine Mindestlaufzeit · Jederzeit kündbar'}</p>
         </div>
       </section>
 
