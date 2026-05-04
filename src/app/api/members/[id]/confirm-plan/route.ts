@@ -107,8 +107,9 @@ export async function POST(
         cancel_url: `${appUrl}/dashboard/members/${memberId}`,
         metadata: { memberId, gymId: gymData.id },
         subscription_data: {
-          metadata: { memberId, gymId: gymData.id },
-          ...(cancelAt ? { cancel_at: cancelAt } : {}),
+          // cancel_at is NOT supported in subscription_data for checkout sessions.
+          // Pass cancel_at_ts in metadata; the webhook sets it via subscriptions.update.
+          metadata: { memberId, gymId: gymData.id, ...(cancelAt ? { cancel_at_ts: String(cancelAt) } : {}) },
         },
       }
 

@@ -144,6 +144,19 @@ export async function POST(req: Request) {
       await supabase.from('members')
         .update({ stripe_subscription_id: sub.id, subscription_status: status })
         .eq('id', memberId)
+
+      // If a contract end date was requested, set cancel_at on the subscription now.
+      // (cancel_at cannot be passed during checkout session creation — set it here instead.)
+      if (event.type === 'customer.subscription.created') {
+        const cancelAtTs = sub.metadata?.cancel_at_ts
+        if (cancelAtTs && !sub.cancel_at) {
+          try {
+            await stripe.subscriptions.update(sub.id, { cancel_at: parseInt(cancelAtTs, 10) })
+          } catch (err) {
+            console.error('Failed to set cancel_at on subscription:', err)
+          }
+        }
+      }
     }
   }
 
