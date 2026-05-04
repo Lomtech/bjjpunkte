@@ -888,10 +888,14 @@ export const translations = {
     trialStep3Desc:  { de: 'Interessent trägt sich für ein Probetraining ein.', en: 'Prospect signs up for a trial session.' },
     trialStep4Title: { de: 'Du siehst es',          en: 'You see it' },
     trialStep4Desc:  { de: 'Neuer Lead erscheint automatisch unter Interessenten.', en: 'New lead appears automatically under prospects.' },
-    qrTitle:         { de: 'QR-Code erstellen',     en: 'Create QR code' },
-    qrDesc:          { de: 'Kopiere einen der Links und erstelle kostenlos einen QR-Code auf', en: 'Copy one of the links and create a free QR code at' },
-    qrAfterLink:     { de: '— ausdrucken und am Empfang oder auf Social Media teilen.', en: '— print it and share at reception or on social media.' },
-    qrCta:           { de: 'QR-Code erstellen',     en: 'Create QR code' },
+    qrTitle:              { de: 'QR-Code erstellen',     en: 'Create QR code' },
+    qrDesc:               { de: 'Kopiere einen der Links und erstelle kostenlos einen QR-Code auf', en: 'Copy one of the links and create a free QR code at' },
+    qrAfterLink:          { de: '— ausdrucken und am Empfang oder auf Social Media teilen.', en: '— print it and share at reception or on social media.' },
+    qrCta:                { de: 'QR-Code erstellen',     en: 'Create QR code' },
+    printPoster:          { de: 'Poster drucken',        en: 'Print poster' },
+    posterTitle:          { de: 'Poster-Titel',          en: 'Poster title' },
+    posterDesc:           { de: 'Beschreibung (optional)', en: 'Description (optional)' },
+    posterDescPlaceholder:{ de: 'z.B. Kostenlos, unverbindlich & ohne Anmeldung.', en: 'e.g. Free, no commitment & no registration required.' },
   },
 
   // ── Member form (new / edit) ─────────────────────────────────────────────────
