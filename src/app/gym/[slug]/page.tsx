@@ -901,25 +901,25 @@ function ClassBookingModal({ cls, gymName, onClose }: { cls: GymClass; gymName: 
             <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-3">
               <CheckCircle2 size={28} className="text-amber-500" />
             </div>
-            <p className="font-bold text-zinc-900 mb-1">Buchung bestätigt!</p>
-            <p className="text-zinc-400 text-sm">Du bist für dieses Training angemeldet.</p>
-            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-sm font-semibold transition-colors">Schließen</button>
+            <p className="font-bold text-zinc-900 mb-1">{lang === 'en' ? 'Booking confirmed!' : 'Buchung bestätigt!'}</p>
+            <p className="text-zinc-400 text-sm">{lang === 'en' ? 'You are registered for this class.' : 'Du bist für dieses Training angemeldet.'}</p>
+            <button onClick={onClose} className="mt-5 w-full py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-sm font-semibold transition-colors">{lang === 'en' ? 'Close' : 'Schließen'}</button>
           </div>
         ) : (
           <div className="p-5">
             {/* Tabs */}
             <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 mb-5">
               <button onClick={() => setTab('member')} className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'member' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}>
-                Ich bin Mitglied
+                {lang === 'en' ? 'I am a member' : 'Ich bin Mitglied'}
               </button>
               <button onClick={() => setTab('trial')} className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'trial' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}>
-                Probetraining
+                {lang === 'en' ? 'Trial class' : 'Probetraining'}
               </button>
             </div>
 
             {tab === 'member' ? (
               <div className="space-y-3">
-                <p className="text-xs text-zinc-500">Gib deinen persönlichen Portal-Link oder Token ein (aus deiner Willkommens-E-Mail).</p>
+                <p className="text-xs text-zinc-500">{lang === 'en' ? 'Enter your personal portal link or token (from your welcome email).' : 'Gib deinen persönlichen Portal-Link oder Token ein (aus deiner Willkommens-E-Mail).'}</p>
                 <input
                   value={token}
                   onChange={e => { setToken(e.target.value); setStatus('idle'); setErrMsg('') }}
@@ -936,18 +936,18 @@ function ClassBookingModal({ cls, gymName, onClose }: { cls: GymClass; gymName: 
                   disabled={status === 'loading' || !token.trim()}
                   className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-zinc-950 font-bold text-sm transition-colors"
                 >
-                  {status === 'loading' ? 'Wird gebucht…' : 'Training buchen'}
+                  {status === 'loading' ? (lang === 'en' ? 'Booking…' : 'Wird gebucht…') : (lang === 'en' ? 'Book class' : 'Training buchen')}
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-zinc-500">Noch kein Mitglied? Melde dich für ein kostenloses Probetraining an.</p>
+                <p className="text-xs text-zinc-500">{lang === 'en' ? 'Not a member yet? Sign up for a free trial class.' : 'Noch kein Mitglied? Melde dich für ein kostenloses Probetraining an.'}</p>
                 <a
                   href={`#contact`}
                   onClick={onClose}
                   className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-zinc-900 hover:bg-zinc-700 text-white font-bold text-sm transition-colors"
                 >
-                  Probetraining anfragen
+                  {lang === 'en' ? 'Request trial class' : 'Probetraining anfragen'}
                 </a>
               </div>
             )}

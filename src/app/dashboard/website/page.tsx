@@ -496,9 +496,9 @@ export default function WebsitePage() {
           </div>
         </Section>
 
-        {/* 2 — Über uns */}
-        <Section num="2" title="Über uns" icon={<FileText size={14} />}
-          subtitle="Geschichte, Philosophie, Team — mit Texten und Bildern"
+        {/* 2 — About */}
+        <Section num="2" title={t('website', 'about')} icon={<FileText size={14} />}
+          subtitle={t('website', 'aboutSubtitle')}
           done={aboutBlocks.length > 0 || !!about}>
           <div className="space-y-4 pt-4">
             <BlockEditor blocks={aboutBlocks} onChange={setAboutBlocks} />
@@ -514,25 +514,25 @@ export default function WebsitePage() {
           </div>
         </Section>
 
-        {/* 3 — Medien */}
-        <Section num="3" title="Fotos & Video" icon={<Camera size={14} />}
-          subtitle="Hero-Bild, Galerie und YouTube-Video"
+        {/* 3 — Media */}
+        <Section num="3" title={t('website', 'media')} icon={<Camera size={14} />}
+          subtitle={t('website', 'mediaSubtitle')}
           done={!!heroImageUrl || galleryUrls.length > 0}>
           <div className="space-y-5 pt-4">
 
             {/* Hero image */}
             <ImageUpload
-              label="Hero-Bild (Hauptfoto)"
+              label={t('website', 'heroBadge')}
               url={heroImageUrl || null}
               onUploaded={setHeroImageUrl}
               positionY={heroPos}
               onPositionChange={setHeroPos}
-              hint="Empfehlung: Hochformat oder Querformat. Bild im Vorschaufenster nach oben/unten ziehen um den Ausschnitt einzustellen."
+              hint={t('website', 'heroHint')}
             />
 
             {/* Gallery */}
             <div>
-              <p className="text-xs font-semibold text-zinc-600 mb-2">Galerie (bis zu 9 Fotos)</p>
+              <p className="text-xs font-semibold text-zinc-600 mb-2">{t('website', 'gallery')}</p>
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {galleryUrls.map((url, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group">
@@ -548,13 +548,13 @@ export default function WebsitePage() {
                   <GalleryUploader onUploaded={url => setGalleryUrls(prev => [...prev, url])} />
                 )}
               </div>
-              <p className="text-xs text-zinc-400">Klicke auf + um Fotos hochzuladen. Empfehlung: quadratische oder querformatige Aufnahmen.</p>
+              <p className="text-xs text-zinc-400">{t('website', 'galleryHint')}</p>
             </div>
 
             {/* Videos */}
             <div>
               <label className="block text-xs font-semibold text-zinc-600 mb-2">
-                <span className="flex items-center gap-1.5"><Play size={12} /> YouTube-Videos & Shorts</span>
+                <span className="flex items-center gap-1.5"><Play size={12} /> {t('website', 'videos')}</span>
               </label>
               <div className="space-y-2">
                 {videoUrls.map((url, i) => (

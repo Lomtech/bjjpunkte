@@ -72,6 +72,8 @@ interface Payment {
 export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const id = params.id as string
 
   const [loading, setLoading] = useState(true)
@@ -156,8 +158,8 @@ export default function MemberDetailPage() {
 
   async function deletePromotion(promoId: string, isLatest: boolean) {
     if (!confirm(isLatest
-      ? 'Graduierung rückgängig machen? Der Gürtel wird auf den vorherigen Stand zurückgesetzt.'
-      : 'Eintrag aus dem Verlauf löschen? (Gürtel bleibt unverändert.)'
+      ? t('memberDetailExtra', 'confirmDeletePromoLatest')
+      : t('memberDetailExtra', 'confirmDeletePromoOld')
     )) return
 
     // Capture promo data BEFORE any state update
@@ -194,7 +196,7 @@ export default function MemberDetailPage() {
   }
 
   async function handleDeleteMember() {
-    if (!confirm(`${member?.first_name} ${member?.last_name} wirklich löschen? Alle Daten (Anwesenheit, Zahlungen, Promotions) werden dauerhaft gelöscht.`)) return
+    if (!confirm(t('memberDetailExtra', 'confirmDeleteMember', { name: `${member?.first_name} ${member?.last_name}` }))) return
     setDeletingMember(true)
     const { data: { session } } = await createClient().auth.getSession()
     const res = await fetch(`/api/members/${id}`, {
@@ -214,7 +216,7 @@ export default function MemberDetailPage() {
   }
 
   async function handleClearCancellation() {
-    if (!confirm('Kündigung bestätigen und Mitglied deaktivieren?')) return
+    if (!confirm(t('memberDetailExtra', 'confirmCancellation'))) return
     const supabase = createClient()
     await (supabase.from('members') as any).update({
       cancellation_requested_at: null,
@@ -225,7 +227,7 @@ export default function MemberDetailPage() {
   }
 
   async function handleClearPlanRequest() {
-    if (!confirm('Plan-Anfrage bestätigen und Tarif zuweisen?')) return
+    if (!confirm(t('memberDetailExtra', 'confirmPlanRequest'))) return
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch(`/api/members/${id}/confirm-plan`, {
