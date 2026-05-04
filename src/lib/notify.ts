@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { sendWhatsApp } from '@/lib/whatsapp'
 
 function serviceClient() {
   return createClient(
@@ -18,13 +19,13 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
   const supabase = serviceClient()
   const { data: gym } = await supabase
     .from('gyms')
-    .select('name, email, whatsapp_number, callmebot_api_key')
+    .select('name, email, phone, whatsapp_number, callmebot_api_key')
     .eq('id', gymId)
     .single()
 
   if (!gym) return
 
-  // ── Email via Resend ─────────────────────────────────────────────
+  // ── Email via Resend ─────────────────────────────────────────────────────
   if (gym.email && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -41,13 +42,21 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
     }).catch(() => {/* best-effort */})
   }
 
-  // ── WhatsApp via CallMeBot ───────────────────────────────────────
-  if (gym.whatsapp_number && (gym as Record<string, unknown>).callmebot_api_key) {
-    const phone  = String(gym.whatsapp_number).replace(/\D/g, '')
-    const apikey = (gym as Record<string, unknown>).callmebot_api_key as string
-    const text   = encodeURIComponent(whatsappText)
+  // ── WhatsApp via Twilio ──────────────────────────────────────────────────
+  // Use gym.phone (profile field) first, fall back to gym.whatsapp_number
+  const waPhone = (gym as Record<string, unknown>).phone as string | null
+              ?? (gym as Record<string, unknown>).whatsapp_number as string | null
+  if (waPhone) {
+    await sendWhatsApp({ to: waPhone, body: whatsappText }).catch(() => {/* best-effort */})
+  }
+
+  // ── WhatsApp via CallMeBot (legacy fallback if configured) ───────────────
+  const callmebotKey = (gym as Record<string, unknown>).callmebot_api_key as string | null
+  if (!waPhone && gym.whatsapp_number && callmebotKey) {
+    const phone = String(gym.whatsapp_number).replace(/\D/g, '')
+    const text  = encodeURIComponent(whatsappText)
     await fetch(
-      `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${text}&apikey=${apikey}`,
+      `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${text}&apikey=${callmebotKey}`,
     ).catch(() => {/* best-effort */})
   }
 }
