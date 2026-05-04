@@ -67,10 +67,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             .eq('id', memberId)
         }
 
-        const gymPaymentMethods = (gym as any).payment_method_types as string[] | null
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
-          ...(gymPaymentMethods?.length ? { payment_method_types: gymPaymentMethods as Stripe.Checkout.SessionCreateParams['payment_method_types'] } : {}),
+          // payment_method_types omitted → Stripe uses dashboard defaults automatically
           line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
           mode: 'subscription',
           success_url: `${appUrl}/portal/${member.portal_token ?? ''}?payment=success`,
