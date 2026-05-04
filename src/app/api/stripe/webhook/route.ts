@@ -194,7 +194,14 @@ export async function POST(req: Request) {
         const cancelAtTs = sub.metadata?.cancel_at_ts
         if (cancelAtTs && !sub.cancel_at) {
           try {
-            await stripe.subscriptions.update(sub.id, { cancel_at: parseInt(cancelAtTs, 10) })
+            // For direct charges, the subscription lives on the connected account.
+            // Read the Stripe-Account header sent with Connect webhook events.
+            const connectedAccount = req.headers.get('stripe-account') ?? undefined
+            await stripe.subscriptions.update(
+              sub.id,
+              { cancel_at: parseInt(cancelAtTs, 10) },
+              connectedAccount ? { stripeAccount: connectedAccount } : undefined,
+            )
           } catch (err) {
             console.error('Failed to set cancel_at on subscription:', err)
           }
