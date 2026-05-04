@@ -73,13 +73,17 @@ export default function RevenuePage() {
       const startOfPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-      const [paymentsRes, membersRes] = await Promise.all([
+      const [paymentsRes, membersRes, plansRes] = await Promise.all([
         supabase.from('payments')
           .select('id, member_id, amount_cents, paid_at, status, created_at')
           .eq('gym_id', gymData.id)
           .order('paid_at', { ascending: false }),
         supabase.from('members')
-          .select('id, first_name, last_name, monthly_fee_override_cents')
+          .select('id, first_name, last_name, monthly_fee_override_cents, plan_id')
+          .eq('gym_id', gymData.id)
+          .eq('is_active', true),
+        (supabase.from('membership_plans') as any)
+          .select('id, price_cents')
           .eq('gym_id', gymData.id)
           .eq('is_active', true),
       ])
@@ -88,8 +92,21 @@ export default function RevenuePage() {
       const paidPayments = payments.filter(p => p.status === 'paid' && p.paid_at)
 
       const activeMembers = (membersRes.data ?? []) as {
-        id: string; first_name: string; last_name: string; monthly_fee_override_cents: number | null
+        id: string; first_name: string; last_name: string
+        monthly_fee_override_cents: number | null; plan_id: string | null
       }[]
+
+      // Plan price lookup: plan_id → price_cents
+      const planPriceMap = new Map<string, number>(
+        ((plansRes.data ?? []) as { id: string; price_cents: number }[]).map(p => [p.id, p.price_cents])
+      )
+
+      // Effective fee: override → plan price → gym default
+      function effectiveFee(m: { monthly_fee_override_cents: number | null; plan_id: string | null }) {
+        if (m.monthly_fee_override_cents != null) return m.monthly_fee_override_cents
+        if (m.plan_id && planPriceMap.has(m.plan_id)) return planPriceMap.get(m.plan_id)!
+        return gymData.monthly_fee_cents ?? 0
+      }
 
       // Member name map
       const nameMap = new Map(activeMembers.map(m => [m.id, `${m.first_name} ${m.last_name}`]))
@@ -122,7 +139,7 @@ export default function RevenuePage() {
       const memberStatuses: MemberStatus[] = activeMembers.map(m => {
         const memberPayments = paidPayments.filter(p => p.member_id === m.id)
         const latest = memberPayments[0]
-        const fee = m.monthly_fee_override_cents ?? gymData.monthly_fee_cents ?? 0
+        const fee = effectiveFee(m)
         const totalPaid = memberPayments.reduce((s, p) => s + p.amount_cents, 0)
 
         let status: 'paid' | 'pending' | 'never' = 'never'
@@ -147,7 +164,7 @@ export default function RevenuePage() {
       })
 
       setMembers(memberStatuses)
-      setExpectedMonthlyCents(activeMembers.reduce((s, m) => s + (m.monthly_fee_override_cents ?? gymData.monthly_fee_cents ?? 0), 0))
+      setExpectedMonthlyCents(activeMembers.reduce((s, m) => s + effectiveFee(m), 0))
 
       // All payments with member name
       setAllPayments(
