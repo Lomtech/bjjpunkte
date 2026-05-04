@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
 import Image from 'next/image'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 async function getAuthHeaders(): Promise<HeadersInit> {
   const { data: { session } } = await createClient().auth.getSession()
@@ -42,15 +43,17 @@ type DayKey = 'mo' | 'di' | 'mi' | 'do' | 'fr' | 'sa' | 'so'
 interface DayHours { closed: boolean; open: string; close: string }
 type OpeningHours = Record<DayKey, DayHours>
 
-const DAYS: { key: DayKey; label: string }[] = [
-  { key: 'mo', label: 'Montag' },
-  { key: 'di', label: 'Dienstag' },
-  { key: 'mi', label: 'Mittwoch' },
-  { key: 'do', label: 'Donnerstag' },
-  { key: 'fr', label: 'Freitag' },
-  { key: 'sa', label: 'Samstag' },
-  { key: 'so', label: 'Sonntag' },
-]
+function getDays(t: (section: string, key: string) => string): { key: DayKey; label: string }[] {
+  return [
+    { key: 'mo', label: t('website', 'monday') },
+    { key: 'di', label: t('website', 'tuesday') },
+    { key: 'mi', label: t('website', 'wednesday') },
+    { key: 'do', label: t('website', 'thursday') },
+    { key: 'fr', label: t('website', 'friday') },
+    { key: 'sa', label: t('website', 'saturday') },
+    { key: 'so', label: t('website', 'sunday') },
+  ]
+}
 
 const DEFAULT_HOURS: OpeningHours = {
   mo: { closed: false, open: '09:00', close: '21:00' },

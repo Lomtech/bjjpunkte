@@ -295,9 +295,9 @@ export default function PublicGymPage() {
         <div className="max-w-6xl mx-auto px-5">
           <div data-reveal className="flex items-center gap-2 mb-3">
             <span className="w-6 h-px bg-amber-400" />
-            <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">News & Ankündigungen</p>
+            <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">{lang === 'en' ? 'News & Announcements' : 'News & Ankündigungen'}</p>
           </div>
-          <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12">Aktuelles</h2>
+          <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12">{lang === 'en' ? 'Latest' : 'Aktuelles'}</h2>
           <div className="space-y-12">
             {posts.map((post, idx) => (
               <article key={post.id} data-reveal
@@ -313,12 +313,12 @@ export default function PublicGymPage() {
                     ) : (
                       <div className="rounded-2xl bg-zinc-50 border border-zinc-100 aspect-[4/3] flex items-center justify-center">
                         <span className="text-zinc-200 font-black text-6xl select-none">
-                          {new Date(post.published_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}
+                          {new Date(post.published_at).toLocaleDateString(locale, { day: '2-digit', month: 'short' })}
                         </span>
                       </div>
                     )}
                     <p className="text-xs text-zinc-400 mt-3 font-medium">
-                      {new Date(post.published_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {new Date(post.published_at).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
                   {/* Content */}
@@ -387,10 +387,10 @@ export default function PublicGymPage() {
             )}
             <div className="flex flex-wrap gap-3 mb-10">
               <a href="#contact" className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-sm transition-colors">
-                Probetraining <ChevronRight size={15} />
+                {lang === 'en' ? 'Trial class' : 'Probetraining'} <ChevronRight size={15} />
               </a>
               {gym.whatsapp_number && (
-                <a href={`https://wa.me/${toWa(gym.whatsapp_number)}?text=${encodeURIComponent(`Hallo! Ich interessiere mich für ${gym.name}.`)}`}
+                <a href={`https://wa.me/${toWa(gym.whatsapp_number)}?text=${encodeURIComponent(lang === 'en' ? `Hello! I am interested in ${gym.name}.` : `Hallo! Ich interessiere mich für ${gym.name}.`)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 backdrop-blur-sm transition-colors">
                   <MessageCircle size={15} /> WhatsApp
@@ -405,7 +405,7 @@ export default function PublicGymPage() {
               )}
               {gym.founded_year && (
                 <span className="flex items-center gap-1.5 text-sm text-zinc-400">
-                  <Award size={13} className="text-zinc-500" /> Seit {gym.founded_year}
+                  <Award size={13} className="text-zinc-500" /> {lang === 'en' ? 'Since' : 'Seit'} {gym.founded_year}
                 </span>
               )}
             </div>
@@ -509,21 +509,21 @@ export default function PublicGymPage() {
               <div data-reveal className="md:sticky md:top-24">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="w-6 h-px bg-amber-400" />
-                  <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">Über uns</p>
+                  <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">{lang === 'en' ? 'About us' : 'Über uns'}</p>
                 </div>
-                <h2 className="text-2xl font-black text-zinc-900 leading-tight">Was uns ausmacht</h2>
+                <h2 className="text-2xl font-black text-zinc-900 leading-tight">{lang === 'en' ? 'What makes us special' : 'Was uns ausmacht'}</h2>
                 {(gym.founded_year || gym.sport_type) && (
                   <div className="mt-6 space-y-3">
                     {gym.founded_year && (
                       <div className="border-l-2 border-amber-400 pl-3">
                         <p className="text-2xl font-black text-amber-500">{gym.founded_year}</p>
-                        <p className="text-xs text-zinc-400 mt-0.5">Gegründet</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">{lang === 'en' ? 'Founded' : 'Gegründet'}</p>
                       </div>
                     )}
                     {gym.sport_type && (
                       <div className="border-l-2 border-zinc-200 pl-3">
                         <p className="text-base font-black text-zinc-800">{gym.sport_type}</p>
-                        <p className="text-xs text-zinc-400 mt-0.5">Schwerpunkt</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">{lang === 'en' ? 'Focus' : 'Schwerpunkt'}</p>
                       </div>
                     )}
                   </div>

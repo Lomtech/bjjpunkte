@@ -23,6 +23,8 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
   subscriptionStatus: string; stripeCustomerId: string | null; monthlyFeeCents: number
   payments: Payment[]; stripeSubscriptionId?: string | null
 }) {
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const [loading, setLoading] = useState(false)
   const [subLoading, setSubLoading] = useState(false)
   const [error, setError] = useState('')
@@ -33,7 +35,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
   const [copiedLink, setCopiedLink] = useState(false)
 
   async function sendPaymentLink() {
-    if (!memberEmail) { setError('Mitglied hat keine E-Mail-Adresse.'); return }
+    if (!memberEmail) { setError(t('billing', 'noEmailError')); return }
     setLoading(true)
     setError('')
     try {
@@ -47,7 +49,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
         body: JSON.stringify({ memberId, gymId, memberEmail, memberName, amountCents: monthlyFeeCents }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Fehler beim Erstellen des Zahlungslinks')
+      if (!res.ok) throw new Error(data.error || t('billing', 'otLinkCreated'))
       setCheckoutUrl(data.url)
       setLinkType('onetime')
       // Refresh payments list
@@ -61,7 +63,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
   }
 
   async function setupSubscription() {
-    if (!memberEmail) { setError('Mitglied hat keine E-Mail-Adresse.'); return }
+    if (!memberEmail) { setError(t('billing', 'noEmailError')); return }
     setSubLoading(true); setError('')
     try {
       const { data: { session } } = await createClient().auth.getSession()
@@ -79,7 +81,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
   }
 
   async function cancelSubscription() {
-    if (!confirm('Abonnement wirklich kündigen? Die nächste Abbuchung wird nicht mehr stattfinden.')) return
+    if (!confirm(t('billing', 'confirmCancelSub'))) return
     setSubLoading(true); setError('')
     try {
       const { data: { session } } = await createClient().auth.getSession()
@@ -94,7 +96,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
   }
 
   async function deletePayment(paymentId: string) {
-    if (!confirm('Zahlung wirklich löschen?')) return
+    if (!confirm(t('billing', 'confirmDeletePayment'))) return
     setDeletingId(paymentId)
     try {
       const { data: { session } } = await createClient().auth.getSession()

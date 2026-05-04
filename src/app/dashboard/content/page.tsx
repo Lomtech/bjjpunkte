@@ -490,11 +490,11 @@ export default function ContentPage() {
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => { setAnnoFormOpen(false); setAnnoForm({ title: '', body: '', isPinned: false, expiresAt: '' }) }}
                   className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-zinc-50 transition-colors">
-                  Abbrechen
+                  {t('content', 'cancel')}
                 </button>
                 <button type="button" onClick={handleAnnoSave} disabled={annoSaving || !annoForm.title.trim()}
                   className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-bold text-sm transition-colors">
-                  {annoSaving ? 'Wird gespeichert…' : 'Veröffentlichen'}
+                  {annoSaving ? t('content', 'saving') : t('content', 'publish')}
                 </button>
               </div>
             </div>
@@ -502,17 +502,17 @@ export default function ContentPage() {
 
           {/* List */}
           {annoLoading ? (
-            <div className="text-zinc-400 text-sm py-8 text-center">Wird geladen…</div>
+            <div className="text-zinc-400 text-sm py-8 text-center">{t('content', 'loading')}</div>
           ) : announcements.length === 0 && !annoFormOpen ? (
             <div className="text-center py-16 px-6">
               <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
                 <Megaphone size={24} className="text-zinc-300" />
               </div>
-              <p className="font-semibold text-zinc-700 mb-1">Noch keine Ankündigungen</p>
-              <p className="text-zinc-400 text-sm mb-5">Informiere deine Mitglieder über Änderungen, Events oder Neuigkeiten.</p>
+              <p className="font-semibold text-zinc-700 mb-1">{t('content', 'noAnnoTitle')}</p>
+              <p className="text-zinc-400 text-sm mb-5">{t('content', 'noAnnoDesc')}</p>
               <button type="button" onClick={() => setAnnoFormOpen(true)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors">
-                <Plus size={15} /> Erste Ankündigung
+                <Plus size={15} /> {t('content', 'firstAnnouncement')}
               </button>
             </div>
           ) : (
@@ -528,9 +528,9 @@ export default function ContentPage() {
                     <p className="text-sm font-semibold text-zinc-900">{a.title}</p>
                     {a.body && <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{a.body}</p>}
                     <p className="text-[10px] text-zinc-400 mt-1.5">
-                      {new Date(a.created_at).toLocaleDateString('de-DE')}
-                      {a.expires_at && ` · läuft ab ${new Date(a.expires_at).toLocaleDateString('de-DE')}`}
-                      {a.is_pinned && <span className="ml-1.5 text-amber-500 font-medium">· Gepinnt</span>}
+                      {new Date(a.created_at).toLocaleDateString(locale)}
+                      {a.expires_at && `${t('content', 'expiresLabel')}${new Date(a.expires_at).toLocaleDateString(locale)}`}
+                      {a.is_pinned && <span className="ml-1.5 text-amber-500 font-medium">{t('content', 'pinnedLabel')}</span>}
                     </p>
                   </div>
                   <button type="button" onClick={() => handleAnnoDelete(a.id)}
