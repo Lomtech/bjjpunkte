@@ -6,6 +6,7 @@ import { BeltBadge } from '@/components/BeltBadge'
 import { ArrowLeft, ChevronDown } from 'lucide-react'
 import type { BeltSystem } from '@/lib/belt-system'
 import { DEFAULT_BELT_SYSTEM, getBeltSlot } from '@/lib/belt-system'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export function DemoteButton({
   memberId, gymId, currentBelt, currentStripes, onDemoted, beltSystem, stripesEnabled = true,
@@ -16,6 +17,7 @@ export function DemoteButton({
   stripesEnabled?: boolean
 }) {
   const system = beltSystem ?? DEFAULT_BELT_SYSTEM
+  const { t } = useLanguage()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -68,22 +70,22 @@ export function DemoteButton({
         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
       >
         <ChevronDown size={14} />
-        Degradieren
+        {t('promotion', 'demoteBtn')}
       </button>
 
       {open && (
         <div className="absolute top-full left-0 mt-1 z-10 bg-white rounded-xl border border-slate-200 shadow-lg p-4 w-72">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Degradierung bestätigen</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t('promotion', 'confirmDemote')}</p>
 
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 mb-4">
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Aktuell</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{t('promotion', 'current')}</p>
               <BeltBadge belt={currentBelt} stripes={stripesEnabled ? currentStripes : 0} beltSystem={system} />
             </div>
             <ArrowLeft size={16} className="text-slate-300 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                {isBeltChange ? 'Zurück zu' : 'Neue Stufe'}
+                {isBeltChange ? t('promotion', 'backTo') : t('promotion', 'newLevel')}
               </p>
               <BeltBadge belt={prev.belt} stripes={stripesEnabled ? prev.stripes : 0} beltSystem={system} />
             </div>
@@ -94,7 +96,7 @@ export function DemoteButton({
               onClick={() => setOpen(false)}
               className="flex-1 px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 border border-slate-200 transition-colors"
             >
-              Abbrechen
+              {t('promotion', 'cancel')}
             </button>
             <button
               onClick={demote}
@@ -106,8 +108,8 @@ export function DemoteButton({
               }`}
             >
               <ChevronDown size={14} />
-              {success ? 'Gespeichert' : loading ? 'Speichert…' :
-                isBeltChange ? `Zu ${getBeltSlot(system, prev.belt).label} Belt` : 'Stripe entfernen'}
+              {success ? t('promotion', 'demoteSaved') : loading ? t('promotion', 'demoteSaving') :
+                isBeltChange ? t('promotion', 'demoteTo', { belt: getBeltSlot(system, prev.belt).label }) : t('promotion', 'removeStripe')}
             </button>
           </div>
         </div>

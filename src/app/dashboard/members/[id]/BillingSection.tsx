@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X, FileText, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toWaPhone } from '@/lib/phone'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
 

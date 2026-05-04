@@ -320,7 +320,7 @@ export default function ContentPage() {
   }
 
   async function handleAnnoDelete(id: string) {
-    if (!confirm('Ankündigung wirklich löschen?')) return
+    if (!confirm(t('content', 'confirmDeleteAnno'))) return
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('gym_announcements') as any).delete().eq('id', id)
@@ -342,7 +342,7 @@ export default function ContentPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Beitrag wirklich löschen?')) return
+    if (!confirm(t('content', 'confirmDeletePost'))) return
     const headers = await getAuthHeaders()
     await fetch(`/api/posts/${id}`, { method: 'DELETE', headers })
     setPosts(ps => ps.filter(p => p.id !== id))
@@ -367,19 +367,19 @@ export default function ContentPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900">Inhalte</h1>
-          <p className="text-zinc-400 text-xs mt-0.5">Beiträge & Ankündigungen für deine Mitglieder</p>
+          <h1 className="text-xl font-bold text-zinc-900">{t('content', 'title')}</h1>
+          <p className="text-zinc-400 text-xs mt-0.5">{t('content', 'subtitle')}</p>
         </div>
         {activeTab === 'posts' && (
           <button type="button" onClick={() => setEditorPost({})}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors shadow-sm shadow-amber-200">
-            <Plus size={16} /> Neuer Beitrag
+            <Plus size={16} /> {t('content', 'newPost')}
           </button>
         )}
         {activeTab === 'announcements' && !annoFormOpen && (
           <button type="button" onClick={() => setAnnoFormOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors shadow-sm shadow-amber-200">
-            <Plus size={16} /> Neue Ankündigung
+            <Plus size={16} /> {t('content', 'newAnnouncement')}
           </button>
         )}
       </div>
@@ -387,8 +387,8 @@ export default function ContentPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 mb-6 w-fit">
         {([
-          { id: 'posts',         label: 'Beiträge',      icon: AlignLeft  },
-          { id: 'announcements', label: 'Ankündigungen', icon: Megaphone  },
+          { id: 'posts',         label: t('content', 'posts'),         icon: AlignLeft  },
+          { id: 'announcements', label: t('content', 'announcements'), icon: Megaphone  },
         ] as const).map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" onClick={() => setActiveTab(id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -400,27 +400,27 @@ export default function ContentPage() {
         ))}
       </div>
 
-      {/* ── Tab: Beiträge ── */}
+      {/* ── Tab: Posts ── */}
       {activeTab === 'posts' && (
         postsLoading ? (
-          <div className="text-zinc-400 text-sm py-12 text-center">Wird geladen…</div>
+          <div className="text-zinc-400 text-sm py-12 text-center">{t('content', 'loading')}</div>
         ) : posts.length === 0 ? (
           <div className="text-center py-16 px-6">
             <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto mb-4">
               <AlignLeft size={24} className="text-zinc-300" />
             </div>
-            <p className="font-semibold text-zinc-700 mb-1">Noch keine Beiträge</p>
-            <p className="text-zinc-400 text-sm mb-5">Eventinfos, Neuigkeiten oder Ankündigungen für deine Mitglieder und Besucher.</p>
+            <p className="font-semibold text-zinc-700 mb-1">{t('content', 'noPostsTitle')}</p>
+            <p className="text-zinc-400 text-sm mb-5">{t('content', 'noPostsDesc')}</p>
             <button type="button" onClick={() => setEditorPost({})}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm transition-colors">
-              <Plus size={15} /> Ersten Beitrag erstellen
+              <Plus size={15} /> {t('content', 'createFirstPost')}
             </button>
           </div>
         ) : (
           <div className="space-y-6">
             {published.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Veröffentlicht ({published.length})</p>
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">{t('content', 'publishedCount')} ({published.length})</p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {published.map(post => (
                     <PostCard key={post.id} post={post}
@@ -433,7 +433,7 @@ export default function ContentPage() {
             )}
             {drafts.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Entwürfe ({drafts.length})</p>
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">{t('content', 'draftsCount')} ({drafts.length})</p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {drafts.map(post => (
                     <PostCard key={post.id} post={post}
@@ -448,38 +448,38 @@ export default function ContentPage() {
         )
       )}
 
-      {/* ── Tab: Ankündigungen ── */}
+      {/* ── Tab: Announcements ── */}
       {activeTab === 'announcements' && (
         <div className="space-y-4">
           <p className="text-xs text-zinc-400">
-            Ankündigungen erscheinen im Mitglieder-Portal. Gepinnte Beiträge erscheinen immer ganz oben.
+            {t('content', 'announcementsHint')}
           </p>
 
           {/* New announcement form */}
           {annoFormOpen && (
             <div className="bg-white rounded-2xl border border-amber-200 p-5 space-y-3 shadow-sm">
-              <p className="text-sm font-bold text-zinc-900">Neue Ankündigung</p>
+              <p className="text-sm font-bold text-zinc-900">{t('content', 'annoTitle')}</p>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1">Titel *</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">{t('content', 'annoTitleLabel')}</label>
                 <input value={annoForm.title} onChange={e => setAnnoForm(a => ({ ...a, title: e.target.value }))}
-                  placeholder="z.B. Neue Öffnungszeiten ab März" className={inputCls} />
+                  placeholder={t('content', 'annoTitlePlaceholder')} className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1">Text (optional)</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">{t('content', 'annoBody')}</label>
                 <textarea value={annoForm.body} onChange={e => setAnnoForm(a => ({ ...a, body: e.target.value }))}
-                  rows={3} placeholder="Detailliertere Informationen…"
+                  rows={3} placeholder={t('content', 'annoBodyPlaceholder')}
                   className="w-full px-3 py-2.5 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y" />
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-zinc-600 mb-1">Läuft ab am</label>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1">{t('content', 'expiresAt')}</label>
                   <input type="date" value={annoForm.expiresAt} onChange={e => setAnnoForm(a => ({ ...a, expiresAt: e.target.value }))}
                     className={inputCls} />
                 </div>
                 <div className="flex items-center justify-between gap-3 pt-4">
                   <div>
-                    <p className="text-xs font-medium text-zinc-700">Gepinnt</p>
-                    <p className="text-[10px] text-zinc-400">Immer oben</p>
+                    <p className="text-xs font-medium text-zinc-700">{t('content', 'pinned')}</p>
+                    <p className="text-[10px] text-zinc-400">{t('content', 'alwaysTop')}</p>
                   </div>
                   <button type="button" onClick={() => setAnnoForm(a => ({ ...a, isPinned: !a.isPinned }))}
                     className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${annoForm.isPinned ? 'bg-amber-500' : 'bg-zinc-200'}`}>

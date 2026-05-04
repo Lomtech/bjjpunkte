@@ -64,16 +64,19 @@ const DAY_ORDER: DayKey[] = ['mo', 'di', 'mi', 'do', 'fr', 'sa', 'so']
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmt(interval: string) {
+function fmt(interval: string, lang = 'de') {
+  if (lang === 'en') {
+    return interval === 'biannual' ? '/ 6 mo.' : interval === 'annual' ? '/ year' : '/ month'
+  }
   return interval === 'biannual' ? '/ 6 Mo.' : interval === 'annual' ? '/ Jahr' : '/ Monat'
 }
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
-function groupByDay(cls: GymClass[]) {
+function groupByDay(cls: GymClass[], locale = 'de-DE') {
   const g: Record<string, GymClass[]> = {}
   for (const c of cls) {
-    const k = new Date(c.starts_at).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+    const k = new Date(c.starts_at).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })
     ;(g[k] = g[k] ?? []).push(c)
   }
   return Object.entries(g)
@@ -171,49 +174,50 @@ function ContactForm({ slug, classes }: { slug: string; classes: GymClass[] }) {
   }
 
   const ic = 'w-full px-3 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors'
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
 
   if (step === 'done') return (
     <div className="text-center py-8">
       <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
         <Check size={24} className="text-amber-500" strokeWidth={2.5} />
       </div>
-      <p className="font-bold text-zinc-900 text-lg mb-1">Anfrage erhalten!</p>
-      <p className="text-zinc-500 text-sm">Wir melden uns schnellstmöglich.</p>
+      <p className="font-bold text-zinc-900 text-lg mb-1">{lang === 'en' ? 'Request received!' : 'Anfrage erhalten!'}</p>
+      <p className="text-zinc-500 text-sm">{lang === 'en' ? 'We will get back to you as soon as possible.' : 'Wir melden uns schnellstmöglich.'}</p>
     </div>
   )
 
   if (step === 'idle') return (
     <button onClick={() => setStep('form')} className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-sm flex items-center justify-center gap-2 transition-colors">
-      Probetraining anfragen <ChevronRight size={15} />
+      {lang === 'en' ? 'Request trial class' : 'Probetraining anfragen'} <ChevronRight size={15} />
     </button>
   )
 
   return (
     <form onSubmit={submit} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <div><label className="block text-xs font-medium text-zinc-500 mb-1">Vorname *</label><input value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} required placeholder="Max" className={ic} /></div>
-        <div><label className="block text-xs font-medium text-zinc-500 mb-1">Nachname *</label><input value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} required placeholder="Mustermann" className={ic} /></div>
+        <div><label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'First name *' : 'Vorname *'}</label><input value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} required placeholder="Max" className={ic} /></div>
+        <div><label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Last name *' : 'Nachname *'}</label><input value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} required placeholder="Mustermann" className={ic} /></div>
       </div>
-      <div><label className="block text-xs font-medium text-zinc-500 mb-1">E-Mail *</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required placeholder="max@beispiel.de" className={ic} /></div>
-      <div><label className="block text-xs font-medium text-zinc-500 mb-1">Telefon</label><input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+49 151 …" className={ic} /></div>
+      <div><label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Email *' : 'E-Mail *'}</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required placeholder="max@example.com" className={ic} /></div>
+      <div><label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Phone' : 'Telefon'}</label><input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+49 151 …" className={ic} /></div>
       {classes.length > 0 && (
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1">Trainingsslot wählen (optional)</label>
+          <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Choose a class (optional)' : 'Trainingsslot wählen (optional)'}</label>
           <select value={form.class_id} onChange={e => setForm(f => ({ ...f, class_id: e.target.value }))} className={ic}>
-            <option value="">Kein bestimmter Slot</option>
+            <option value="">{lang === 'en' ? 'No specific slot' : 'Kein bestimmter Slot'}</option>
             {classes.map(c => (
               <option key={c.id} value={c.id}>
-                {new Date(c.starts_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short' })} {new Date(c.starts_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – {c.title}
+                {new Date(c.starts_at).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: 'short' })} {new Date(c.starts_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} – {c.title}
               </option>
             ))}
           </select>
         </div>
       )}
-      <div><label className="block text-xs font-medium text-zinc-500 mb-1">Nachricht</label><textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} rows={2} placeholder="Ich interessiere mich für…" className={ic + ' resize-none'} /></div>
+      <div><label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Message' : 'Nachricht'}</label><textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} rows={2} placeholder={lang === 'en' ? 'I am interested in…' : 'Ich interessiere mich für…'} className={ic + ' resize-none'} /></div>
       {err && <p className="text-red-500 text-xs">{err}</p>}
       <div className="flex gap-2 pt-1">
-        <button type="button" onClick={() => setStep('idle')} className="flex-1 border border-zinc-200 text-zinc-600 rounded-xl py-2.5 text-sm hover:bg-zinc-50 transition-colors">Zurück</button>
-        <button type="submit" disabled={busy} className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-xl py-2.5 text-sm transition-colors disabled:opacity-50">{busy ? 'Senden…' : 'Absenden'}</button>
+        <button type="button" onClick={() => setStep('idle')} className="flex-1 border border-zinc-200 text-zinc-600 rounded-xl py-2.5 text-sm hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Back' : 'Zurück'}</button>
+        <button type="submit" disabled={busy} className="flex-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-xl py-2.5 text-sm transition-colors disabled:opacity-50">{busy ? (lang === 'en' ? 'Sending…' : 'Senden…') : (lang === 'en' ? 'Submit' : 'Absenden')}</button>
       </div>
     </form>
   )
@@ -254,6 +258,7 @@ export default function PublicGymPage() {
   const [loading, setLoading]  = useState(true)
   const [showImpressum, setShowImpressum] = useState(false)
   const [bookingClass, setBookingClass]   = useState<GymClass | null>(null)
+  const { lang } = useLanguage()
 
   useScrollReveal()
 
@@ -271,11 +276,12 @@ export default function PublicGymPage() {
   )
   if (!gym) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
-      <p className="text-zinc-400 text-sm">Gym nicht gefunden.</p>
+      <p className="text-zinc-400 text-sm">{lang === 'en' ? 'Gym not found.' : 'Gym nicht gefunden.'}</p>
     </div>
   )
 
-  const days   = groupByDay(classes)
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
+  const days   = groupByDay(classes, locale)
   // Merge video_urls array (new) with legacy video_url fallback, dedupe, parse
   const allVideoUrls = Array.isArray(gym.video_urls) && gym.video_urls.length > 0
     ? gym.video_urls

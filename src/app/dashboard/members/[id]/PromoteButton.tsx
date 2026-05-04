@@ -63,8 +63,8 @@ export function PromoteButton({
 
   if (isMax) {
     const maxLabel = stripesEnabled
-      ? `${getBeltSlot(system, currentBelt).label} Belt, 4 Stripes – maximales Level erreicht.`
-      : `${getBeltSlot(system, currentBelt).label} Belt – maximales Level erreicht.`
+      ? t('promotion', 'maxLevel', { belt: getBeltSlot(system, currentBelt).label })
+      : t('promotion', 'maxLevelNoStripes', { belt: getBeltSlot(system, currentBelt).label })
     return <p className="text-slate-400 text-sm">{maxLabel}</p>
   }
 
@@ -72,13 +72,13 @@ export function PromoteButton({
     <div className="space-y-4">
       <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Aktuell</p>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{t('promotion', 'current')}</p>
           <BeltBadge belt={currentBelt} stripes={stripesEnabled ? currentStripes : 0} beltSystem={system} />
         </div>
         <ArrowRight size={16} className="text-slate-300 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-            {isBeltChange ? 'Aufsteigen zu' : 'Nächste Stufe'}
+            {isBeltChange ? t('promotion', 'promoteToLabel') : t('promotion', 'nextLevel')}
           </p>
           <BeltBadge belt={next.belt} stripes={stripesEnabled ? next.stripes : 0} beltSystem={system} />
         </div>
@@ -95,12 +95,12 @@ export function PromoteButton({
       >
         <Award size={15} />
         {success
-          ? 'Graduierung gespeichert'
+          ? t('promotion', 'saved')
           : loading
-            ? 'Wird gespeichert…'
+            ? t('promotion', 'saving')
             : isBeltChange
-              ? `Aufsteigen zu ${getBeltSlot(system, next.belt).label} Belt`
-              : 'Streifen vergeben'}
+              ? t('promotion', 'promoteToBtn', { belt: getBeltSlot(system, next.belt).label })
+              : t('promotion', 'addStripe')}
       </button>
     </div>
   )
