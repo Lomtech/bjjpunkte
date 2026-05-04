@@ -1073,8 +1073,20 @@ export default function MemberPortalPage() {
               </div>
             )}
 
-            {/* Subscription restart banner — only if no active sub and not just paid */}
-            {member.plan_id && member.subscription_status !== 'active' && !paymentSuccess && (
+            {/* past_due warning */}
+            {member.subscription_status === 'past_due' && (
+              <div className="bg-red-50 rounded-2xl p-4 border border-red-200 flex items-center gap-3">
+                <span className="text-red-500 text-lg">⚠️</span>
+                <p className="text-red-700 text-sm font-semibold">
+                  {lang === 'en' ? 'Payment failed. Please update your payment method.' : 'Zahlung fehlgeschlagen. Bitte aktualisiere deine Zahlungsmethode.'}
+                </p>
+              </div>
+            )}
+
+            {/* Subscription start banner — only if plan set but never started (not cancelled, not past_due) */}
+            {member.plan_id &&
+              (member.subscription_status === null || member.subscription_status === 'none' || member.subscription_status === '') &&
+              !paymentSuccess && (
               <div className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm flex items-start gap-3">
                 <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CreditCard size={15} className="text-amber-600" />
