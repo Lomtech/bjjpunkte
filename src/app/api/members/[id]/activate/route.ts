@@ -69,7 +69,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
-          payment_method_types: ['card', 'sepa_debit'],
+          payment_method_types: ['card'],
           line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
           mode: 'subscription',
           success_url: `${appUrl}/portal/${member.portal_token ?? ''}?payment=success`,

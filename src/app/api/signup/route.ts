@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import Stripe from 'stripe'
 import { notifyGym } from '@/lib/notify'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { getAppUrl } from '@/lib/app-url'
@@ -154,6 +155,75 @@ export async function POST(req: Request) {
   const portalUrl   = portalToken ? `${appUrl}/portal/${portalToken}` : null
   const gymName     = gymWithName?.name ?? 'deinem Gym'
 
+  // ── Stripe subscription checkout (if plan has stripe_price_id) ────────────
+  let checkoutUrl: string | null = null
+  if (plan_id && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const { data: plan } = await supabase
+        .from('membership_plans')
+        .select('id, name, price_cents, stripe_price_id')
+        .eq('id', plan_id)
+        .single()
+
+      const { data: gymStripe } = await supabase
+        .from('gyms')
+        .select('stripe_account_id')
+        .eq('id', gymId)
+        .single()
+
+      const stripePrice = (plan as any)?.stripe_price_id as string | null
+
+      if (stripePrice) {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+
+        // Get or create Stripe customer
+        const { data: memberRow } = await supabase
+          .from('members')
+          .select('stripe_customer_id')
+          .eq('id', member.id)
+          .single()
+
+        let customerId = (memberRow as any)?.stripe_customer_id as string | null
+        if (!customerId) {
+          const customer = await stripe.customers.create({
+            email: email.toLowerCase().trim(),
+            name: fullName,
+            metadata: { memberId: member.id, gymId },
+          })
+          customerId = customer.id
+          await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
+        }
+
+        const sessionParams: Stripe.Checkout.SessionCreateParams = {
+          customer: customerId,
+          payment_method_types: ['card'],
+          line_items: [{ price: stripePrice, quantity: 1 }],
+          mode: 'subscription',
+          success_url: `${appUrl}/portal/${portalToken ?? ''}?payment=success`,
+          cancel_url:  `${appUrl}/portal/${portalToken ?? ''}`,
+          metadata: { memberId: member.id, gymId },
+          subscription_data: {
+            metadata: { memberId: member.id, gymId },
+          },
+        }
+
+        const connectedAccountId = (gymStripe as any)?.stripe_account_id as string | null
+        if (connectedAccountId) {
+          sessionParams.subscription_data = {
+            ...sessionParams.subscription_data,
+            on_behalf_of: connectedAccountId,
+          }
+        }
+
+        const session = await stripe.checkout.sessions.create(sessionParams)
+        checkoutUrl = session.url
+      }
+    } catch (err) {
+      console.error('Stripe checkout at signup error:', err instanceof Error ? err.message : err)
+      // Non-fatal — member is already created and active
+    }
+  }
+
   // ── 1. Bestätigungs-Email → Mitglied ──────────────────────────────────────
   if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
     await fetch('https://api.resend.com/emails', {
@@ -173,6 +243,14 @@ export async function POST(req: Request) {
               Herzlich willkommen bei <strong>${gymName}</strong>!
               Deine Mitgliedschaft wurde bestätigt. 🎉
             </p>
+            ${checkoutUrl ? `
+            <p style="margin:0 0 16px;font-size:14px;color:#374151">
+              Bitte schließe jetzt dein Abonnement ab, um deinen Mitgliedsbeitrag einzurichten:
+            </p>
+            <a href="${checkoutUrl}" style="display:inline-block;padding:12px 24px;background:#22c55e;color:#fff;font-weight:700;font-size:14px;border-radius:12px;text-decoration:none;margin-bottom:16px">
+              Jetzt Abonnement abschließen →
+            </a>
+            ` : ''}
             ${portalUrl ? `
             <p style="margin:0 0 16px;font-size:14px;color:#374151">
               Über deinen persönlichen Mitglieder-Link kannst du jederzeit deine Daten,
@@ -191,9 +269,12 @@ export async function POST(req: Request) {
 
   // ── 2. Bestätigungs-WhatsApp → Mitglied (Twilio) ─────────────────────────
   if (phone?.trim()) {
+    const waBody = checkoutUrl
+      ? `Hallo ${firstName.trim()}! 🥋 Willkommen bei ${gymName}!\n\nDeine Mitgliedschaft wurde bestätigt. Bitte schließe jetzt dein Abonnement ab:\n${checkoutUrl}${portalUrl ? `\n\nMitgliederportal: ${portalUrl}` : ''}\n\nOss!`
+      : `Hallo ${firstName.trim()}! 🥋 Willkommen bei ${gymName}!\n\nDeine Mitgliedschaft wurde bestätigt.${portalUrl ? `\n\nZum Mitgliederportal: ${portalUrl}` : ''}\n\nOss!`
     await sendWhatsApp({
       to:   phone.trim(),
-      body: `Hallo ${firstName.trim()}! 🥋 Willkommen bei ${gymName}!\n\nDeine Mitgliedschaft wurde bestätigt.${portalUrl ? `\n\nZum Mitgliederportal: ${portalUrl}` : ''}\n\nOss!`,
+      body: waBody,
     }).catch(() => {})
   }
 
