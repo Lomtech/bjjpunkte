@@ -28,6 +28,7 @@ interface Member {
   onboarding_status: string | null; portal_token: string | null
   cancellation_requested_at: string | null
   requested_plan_id: string | null
+  created_at: string
 }
 
 function contractStatus(endDate: string | null): 'ok' | 'expiring' | 'expired' {
@@ -172,7 +173,7 @@ export default function MembersPage() {
       const [membersRes, classesRes] = await Promise.all([
         supabase
           .from('members')
-          .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id')
+          .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id, created_at')
           .eq('gym_id', gym.id).order('last_name').limit(1000),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() }),
@@ -410,36 +411,33 @@ export default function MembersPage() {
         </div>
       )}
 
-      {/* Pending sign-ups */}
-      {pending.length > 0 && (
-        <div className="mb-4 bg-amber-50 rounded-xl border border-amber-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
-            <Clock size={13} className="text-amber-600" />
-            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">{lang === 'en' ? 'Pending sign-ups' : 'Ausstehende Anmeldungen'}</span>
-            <span className="ml-auto text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">{pending.length}</span>
+      {/* New sign-ups in last 24h — info only, no approval needed */}
+      {active.filter(m => (Date.now() - new Date(m.created_at).getTime()) < 24 * 60 * 60 * 1000).length > 0 && (
+        <div className="mb-4 bg-green-50 rounded-xl border border-green-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-green-200 flex items-center gap-2">
+            <span className="text-xs font-semibold text-green-800 uppercase tracking-wider">🆕 {lang === 'en' ? 'New today' : 'Heute neu'}</span>
+            <span className="ml-auto text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">
+              {active.filter(m => (Date.now() - new Date(m.created_at).getTime()) < 24 * 60 * 60 * 1000).length}
+            </span>
           </div>
-          <div className="divide-y divide-amber-100">
-            {pending.map(m => (
-              <div key={m.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-amber-700">{m.first_name[0]}{m.last_name[0]}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
-                  {m.email && <p className="text-xs text-zinc-500 truncate">{m.email}</p>}
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="divide-y divide-green-100">
+            {active
+              .filter(m => (Date.now() - new Date(m.created_at).getTime()) < 24 * 60 * 60 * 1000)
+              .map(m => (
+                <div key={m.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-green-700">{m.first_name[0]}{m.last_name[0]}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
+                    {m.email && <p className="text-xs text-zinc-500 truncate">{m.email}</p>}
+                  </div>
                   <Link href={`/dashboard/members/${m.id}`}
-                    className="text-xs text-amber-700 hover:text-amber-600 font-medium">{lang === 'en' ? 'Details' : 'Details'}</Link>
-                  <button
-                    onClick={() => activateMember(m.id)}
-                    disabled={activatingId === m.id}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
-                    {activatingId === m.id ? '…' : t('members', 'activate')}
-                  </button>
+                    className="text-xs text-green-700 hover:text-green-600 font-medium flex-shrink-0">
+                    {lang === 'en' ? 'View' : 'Ansehen'} →
+                  </Link>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
@@ -513,11 +511,18 @@ export default function MembersPage() {
                         )}
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          m.is_active ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-zinc-100 text-zinc-400'
-                        }`}>
-                          {m.is_active ? t('members', 'active') : t('members', 'inactive')}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            m.is_active ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-zinc-100 text-zinc-400'
+                          }`}>
+                            {m.is_active ? t('members', 'active') : t('members', 'inactive')}
+                          </span>
+                          {(Date.now() - new Date(m.created_at).getTime()) < 24 * 60 * 60 * 1000 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                              {lang === 'en' ? 'New' : 'Neu'} 🆕
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3.5 text-right" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">

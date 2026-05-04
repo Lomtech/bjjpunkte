@@ -122,8 +122,8 @@ export async function POST(req: Request) {
       belt:                    belt || 'white',
       plan_id:                 plan_id || null,
       stripes:                 0,
-      is_active:               false,          // pending until gym activates
-      onboarding_status:       'pending',
+      is_active:               true,           // auto-activated — gym gets notified
+      onboarding_status:       'complete',
     })
     .select('id, portal_token')
     .single()
