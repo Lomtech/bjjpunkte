@@ -16,7 +16,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge' | 'vertraege'
 
 export default function SettingsPage() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<Tab>('allgemein')
 
@@ -295,7 +295,7 @@ export default function SettingsPage() {
     const { error: uploadErr } = await supabase.storage
       .from('gym-logos')
       .upload(path, file, { contentType: file.type })
-    if (uploadErr) { alert('Upload fehlgeschlagen: ' + uploadErr.message); setLogoUploading(false); return }
+    if (uploadErr) { alert((lang === 'en' ? 'Upload failed: ' : 'Upload fehlgeschlagen: ') + uploadErr.message); setLogoUploading(false); return }
     const { data: { publicUrl } } = supabase.storage.from('gym-logos').getPublicUrl(path)
     await supabase.from('gyms').update({ logo_url: publicUrl }).eq('owner_id', user.id)
     setLogoUrl(publicUrl)
@@ -325,7 +325,7 @@ export default function SettingsPage() {
   }
 
   async function handleDisconnect() {
-    if (!confirm('Stripe-Verbindung wirklich trennen?')) return
+    if (!confirm(lang === 'en' ? 'Really disconnect Stripe?' : 'Stripe-Verbindung wirklich trennen?')) return
     const { data: { session } } = await createClient().auth.getSession()
     await fetch('/api/stripe/connect', { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
     setStripeAccountId(null)
@@ -421,7 +421,16 @@ export default function SettingsPage() {
     setImportProgress(0)
 
     // Animate progress through realistic stages while the server works
-    const STAGES = [
+    const STAGES = lang === 'en' ? [
+      { pct: 5,  label: 'Checking file…' },
+      { pct: 15, label: 'Gym settings…' },
+      { pct: 30, label: 'Importing members…' },
+      { pct: 50, label: 'Classes & bookings…' },
+      { pct: 65, label: 'Attendance & belt promotions…' },
+      { pct: 78, label: 'Uploading media & photos…' },
+      { pct: 88, label: 'Plans & content…' },
+      { pct: 93, label: 'Finishing up…' },
+    ] : [
       { pct: 5,  label: 'Datei wird geprüft…' },
       { pct: 15, label: 'Gym-Einstellungen…' },
       { pct: 30, label: 'Mitglieder werden importiert…' },
@@ -447,7 +456,7 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         clearInterval(ticker)
-        setImportResult('Nicht autorisiert')
+        setImportResult(lang === 'en' ? 'Not authorized' : 'Nicht autorisiert')
         setImporting(false)
         return
       }
@@ -458,30 +467,30 @@ export default function SettingsPage() {
       })
       clearInterval(ticker)
       setImportProgress(100)
-      setImportStage('Fertig!')
+      setImportStage(lang === 'en' ? 'Done!' : 'Fertig!')
 
       const result = await res.json()
       if (result.success) {
         const imp = result.imported
         const parts: string[] = []
-        if (imp.members)         parts.push(`${imp.members} Mitglieder`)
-        if (imp.classes)         parts.push(`${imp.classes} Klassen`)
-        if (imp.plans)           parts.push(`${imp.plans} Tarife`)
-        if (imp.attendance)      parts.push(`${imp.attendance} Check-ins`)
-        if (imp.belt_promotions) parts.push(`${imp.belt_promotions} Gürtelpromotionen`)
-        if (imp.leads)           parts.push(`${imp.leads} Interessenten`)
-        if (imp.posts)           parts.push(`${imp.posts} Posts`)
+        if (imp.members)         parts.push(`${imp.members} ${lang === 'en' ? 'members' : 'Mitglieder'}`)
+        if (imp.classes)         parts.push(`${imp.classes} ${lang === 'en' ? 'classes' : 'Klassen'}`)
+        if (imp.plans)           parts.push(`${imp.plans} ${lang === 'en' ? 'plans' : 'Tarife'}`)
+        if (imp.attendance)      parts.push(`${imp.attendance} ${lang === 'en' ? 'check-ins' : 'Check-ins'}`)
+        if (imp.belt_promotions) parts.push(`${imp.belt_promotions} ${lang === 'en' ? 'belt promotions' : 'Gürtelpromotionen'}`)
+        if (imp.leads)           parts.push(`${imp.leads} ${lang === 'en' ? 'leads' : 'Interessenten'}`)
+        if (imp.posts)           parts.push(`${imp.posts} ${lang === 'en' ? 'posts' : 'Posts'}`)
         const mediaCount = (imp.gallery_images ?? 0) + (imp.about_blocks ?? 0) +
           (imp.logo_uploaded ? 1 : 0) + (imp.hero_uploaded ? 1 : 0)
-        if (mediaCount > 0)      parts.push(`${mediaCount} Medien`)
-        setImportResult(`✓ Import erfolgreich: ${parts.join(', ')}`)
+        if (mediaCount > 0)      parts.push(`${mediaCount} ${lang === 'en' ? 'media' : 'Medien'}`)
+        setImportResult(`✓ ${lang === 'en' ? 'Import successful' : 'Import erfolgreich'}: ${parts.join(', ')}`)
         setImportFile(null)
       } else {
-        setImportResult(`Fehler: ${result.error}`)
+        setImportResult(`${lang === 'en' ? 'Error' : 'Fehler'}: ${result.error}`)
       }
     } catch {
       clearInterval(ticker)
-      setImportResult('Fehler: Ungültige JSON-Datei')
+      setImportResult(lang === 'en' ? 'Error: Invalid JSON file' : 'Fehler: Ungültige JSON-Datei')
     }
     setTimeout(() => { setImporting(false); setImportProgress(0); setImportStage('') }, 800)
   }
@@ -492,7 +501,7 @@ export default function SettingsPage() {
     try {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setDeleteAccountError('Nicht eingeloggt'); setDeletingAccount(false); return }
+      if (!session) { setDeleteAccountError(lang === 'en' ? 'Not logged in' : 'Nicht eingeloggt'); setDeletingAccount(false); return }
       const res = await fetch('/api/auth/delete-account', {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -502,11 +511,11 @@ export default function SettingsPage() {
         await supabase.auth.signOut()
         window.location.href = '/'
       } else {
-        setDeleteAccountError(json.error ?? 'Unbekannter Fehler')
+        setDeleteAccountError(json.error ?? (lang === 'en' ? 'Unknown error' : 'Unbekannter Fehler'))
         setDeletingAccount(false)
       }
     } catch {
-      setDeleteAccountError('Netzwerkfehler — bitte erneut versuchen')
+      setDeleteAccountError(lang === 'en' ? 'Network error — please try again' : 'Netzwerkfehler — bitte erneut versuchen')
       setDeletingAccount(false)
     }
   }
@@ -585,7 +594,7 @@ export default function SettingsPage() {
   }
 
   async function handleStaffDelete(id: string) {
-    if (!confirm('Trainer wirklich entfernen?')) return
+    if (!confirm(lang === 'en' ? 'Really remove this trainer?' : 'Trainer wirklich entfernen?')) return
     const { data: { session } } = await createClient().auth.getSession()
     await fetch(`/api/staff/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
     setStaffList(prev => prev.filter(s => s.id !== id))
@@ -631,7 +640,7 @@ export default function SettingsPage() {
   }
 
   async function handlePlanDelete(planId: string) {
-    if (!confirm('Tarif wirklich löschen?')) return
+    if (!confirm(lang === 'en' ? 'Really delete this plan?' : 'Tarif wirklich löschen?')) return
     const { data: { session } } = await createClient().auth.getSession()
     const res = await fetch(`/api/plans/${planId}`, {
       method: 'DELETE',
@@ -680,7 +689,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
           <code className="text-xs font-mono text-zinc-600 flex-1 truncate min-w-0">{value}</code>
           <button type="button" onClick={onCopy} className="flex-shrink-0 flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors">
-            {copied ? <><Check size={13} className="text-green-500" /><span className="text-green-600 font-medium">Kopiert!</span></> : <><Copy size={13} /><span>Kopieren</span></>}
+            {copied ? <><Check size={13} className="text-green-500" /><span className="text-green-600 font-medium">{t('settings', 'copiedBtn')}</span></> : <><Copy size={13} /><span>{t('settings', 'copyBtn')}</span></>}
           </button>
         </div>
       </div>
@@ -1187,26 +1196,26 @@ export default function SettingsPage() {
                 </button>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Steuernummer</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'taxNumber')}</label>
                 <input value={taxNumber} onChange={e => setTaxNumber(e.target.value)} placeholder="12/345/67890" className={inputCls} />
               </div>
               {!isKleinunternehmer && (
                 <div>
-                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">USt-IdNr.</label>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'ustid')}</label>
                   <input value={ustid} onChange={e => setUstid(e.target.value)} placeholder="DE123456789" className={inputCls} />
-                  <p className="text-xs text-zinc-400 mt-1">Auf Rechnungen wird 19% USt. ausgewiesen.</p>
+                  <p className="text-xs text-zinc-400 mt-1">{t('settings', 'ustidDesc')}</p>
                 </div>
               )}
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Rechnungspräfix</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'invoicePrefix')}</label>
                 <input value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value)} placeholder="RE" className={inputCls} />
-                <p className="text-xs text-zinc-400 mt-1">Beispiel: RE → RE-2025-0001</p>
+                <p className="text-xs text-zinc-400 mt-1">{t('settings', 'invoicePrefixExample')}</p>
               </div>
               <div className="pt-2 border-t border-zinc-100">
-                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Bankverbindung</p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">{t('settings', 'bankDetails')}</p>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1.5">Bank</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'bank')}</label>
                     <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="Sparkasse München" className={inputCls} />
                   </div>
                   <div>
@@ -1221,7 +1230,7 @@ export default function SettingsPage() {
               </div>
               <button type="button" onClick={handleInvoiceSave} disabled={invoiceSaving} className={saveBtnCls}>
                 <Save size={14} />
-                {invoiceSaved ? 'Gespeichert ✓' : invoiceSaving ? 'Wird gespeichert…' : 'Rechnungseinstellungen speichern'}
+                {invoiceSaved ? t('settings', 'saved') : invoiceSaving ? t('settings', 'saving') : t('settings', 'saveInvoiceSettings')}
               </button>
             </div>
           </div>
@@ -1229,29 +1238,29 @@ export default function SettingsPage() {
           {/* DATEV */}
           <div className={sectionCls}>
             <div className={sectionHeaderCls}>
-              <SectionHeader icon={<FileSpreadsheet size={12} />} title="DATEV-Export" />
+              <SectionHeader icon={<FileSpreadsheet size={12} />} title={t('settings', 'datevExport')} />
             </div>
             <div className="p-5 space-y-4">
               <p className="text-xs text-zinc-500">
-                Diese Nummern bekommst du von deinem Steuerberater. Sie werden in den DATEV Buchungsstapel-Export eingebettet, damit dein Steuerberater die Datei direkt importieren kann.
+                {t('settings', 'datevDesc')}
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">Beraternummer</label>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'advisorNumber')}</label>
                   <input value={datevBeraternummer} onChange={e => setDatevBeraternummer(e.target.value)}
                     placeholder="z. B. 12345" className={inputCls} maxLength={7} />
-                  <p className="text-xs text-zinc-400 mt-1">5–7-stellig, vom Steuerberater</p>
+                  <p className="text-xs text-zinc-400 mt-1">{t('settings', 'advisorNumberDesc')}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">Mandantennummer</label>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'clientNumber')}</label>
                   <input value={datevMandantennummer} onChange={e => setDatevMandantennummer(e.target.value)}
                     placeholder="z. B. 1001" className={inputCls} maxLength={5} />
-                  <p className="text-xs text-zinc-400 mt-1">1–5-stellig, vom Steuerberater</p>
+                  <p className="text-xs text-zinc-400 mt-1">{t('settings', 'clientNumberDesc')}</p>
                 </div>
               </div>
               <button type="button" onClick={handleDatevSave} disabled={datevSaving} className={saveBtnCls}>
                 <Save size={14} />
-                {datevSaved ? 'Gespeichert ✓' : datevSaving ? 'Wird gespeichert…' : 'DATEV-Einstellungen speichern'}
+                {datevSaved ? t('settings', 'saved') : datevSaving ? t('settings', 'saving') : t('settings', 'saveDatev')}
               </button>
             </div>
           </div>
@@ -1261,30 +1270,30 @@ export default function SettingsPage() {
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                <FileText size={12} /> Datenschutz / Impressum
+                <FileText size={12} /> {t('settings', 'privacyImprint')}
               </p>
               <a href="/datenschutz" target="_blank" rel="noopener noreferrer"
                 className="text-xs text-amber-600 hover:text-amber-500 flex items-center gap-1">
-                Vorschau <ExternalLink size={11} />
+                {t('settings', 'preview')} <ExternalLink size={11} />
               </a>
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-xs text-zinc-500">Diese Angaben erscheinen in der Datenschutzerklärung als Verantwortlicher.</p>
+              <p className="text-xs text-zinc-500">{t('settings', 'privacyDesc')}</p>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Name / Firma *</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'nameFirm')}</label>
                 <input value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="Max Mustermann / BJJ Gym GmbH" className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Adresse</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'address')}</label>
                 <input value={legalAddress} onChange={e => setLegalAddress(e.target.value)} placeholder="Musterstraße 1, 80331 München" className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">E-Mail (Datenschutzanfragen)</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'emailPrivacy')}</label>
                 <input type="email" value={legalEmail} onChange={e => setLegalEmail(e.target.value)} placeholder="datenschutz@gym.de" className={inputCls} />
               </div>
               <button type="button" onClick={handleLegalSave} disabled={legalSaving} className={saveBtnCls}>
                 <Save size={14} />
-                {legalSaved ? 'Gespeichert ✓' : legalSaving ? 'Wird gespeichert…' : 'Datenschutz speichern'}
+                {legalSaved ? t('settings', 'saved') : legalSaving ? t('settings', 'saving') : t('settings', 'savePrivacy')}
               </button>
             </div>
           </div>
@@ -1297,10 +1306,10 @@ export default function SettingsPage() {
 
           {/* Trainings-Typen */}
           <div className={sectionCls}>
-            <SectionHeader icon={<Tag size={12} />} title="Trainings-Typen" />
+            <SectionHeader icon={<Tag size={12} />} title={t('settings', 'trainingTypes')} />
             <div className="p-5 space-y-4">
               <p className="text-zinc-500 text-sm">
-                Kommagetrennte Liste der Klassen-Typen. Standard: gi, no-gi, open mat, kids, competition
+                {t('settings', 'trainingTypesDesc')}
               </p>
               <input
                 type="text"
@@ -1310,24 +1319,24 @@ export default function SettingsPage() {
                 className={inputCls}
               />
               <div className="flex flex-wrap gap-2">
-                {classTypesInput.split(',').map(s => s.trim()).filter(Boolean).map((t, i) => (
-                  <span key={i} className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 text-xs font-medium">{t}</span>
+                {classTypesInput.split(',').map(s => s.trim()).filter(Boolean).map((ct, i) => (
+                  <span key={i} className="px-2 py-1 rounded-full bg-zinc-100 text-zinc-700 text-xs font-medium">{ct}</span>
                 ))}
               </div>
               <button onClick={handleClassTypesSave} disabled={classTypesSaving} className={saveBtnCls}>
                 <Save size={14} />
-                {classTypesSaved ? 'Gespeichert ✓' : classTypesSaving ? 'Wird gespeichert…' : 'Speichern'}
+                {classTypesSaved ? t('settings', 'saved') : classTypesSaving ? t('settings', 'saving') : t('common', 'save')}
               </button>
             </div>
           </div>
 
           {/* Belt System */}
           <div className={sectionCls}>
-            <SectionHeader icon={<Award size={12} />} title="Gürtelsystem" />
+            <SectionHeader icon={<Award size={12} />} title={t('settings', 'beltSystem')} />
             <div className="p-5 space-y-4">
               {/* Sport type selector */}
               <div>
-                <p className="text-xs font-medium text-zinc-600 mb-2">Sportart</p>
+                <p className="text-xs font-medium text-zinc-600 mb-2">{t('settings', 'sportType')}</p>
                 <div className="grid grid-cols-4 gap-1.5 mb-1.5">
                   {([
                     { id: 'bjj',       label: 'BJJ',       belt: true  },
@@ -1336,9 +1345,9 @@ export default function SettingsPage() {
                     { id: 'taekwondo', label: 'Taekwondo', belt: true  },
                     { id: 'mma',       label: 'MMA',       belt: false },
                     { id: 'muaythai',  label: 'Muay Thai', belt: false },
-                    { id: 'boxing',    label: 'Boxen',     belt: false },
-                    { id: 'wrestling', label: 'Ringen',    belt: false },
-                    { id: 'custom',    label: 'Eigene',    belt: null  },
+                    { id: 'boxing',    label: lang === 'en' ? 'Boxing'   : 'Boxen',   belt: false },
+                    { id: 'wrestling', label: lang === 'en' ? 'Wrestling' : 'Ringen',  belt: false },
+                    { id: 'custom',    label: lang === 'en' ? 'Custom'    : 'Eigene',  belt: null  },
                   ] as { id: SportType; label: string; belt: boolean | null }[]).map(sport => (
                     <button
                       key={sport.id}
@@ -1366,19 +1375,19 @@ export default function SettingsPage() {
                 </div>
                 <p className="text-xs text-zinc-400 mt-1">
                   {isBeltFreeSport(sportType)
-                    ? 'Ohne Gürtelsystem — Belt-Tracking im Dashboard deaktiviert.'
+                    ? t('settings', 'beltFreeHint')
                     : sportType === 'custom'
-                      ? 'Eigene Stufen frei definierbar — füge Stufen hinzu oder entferne sie.'
-                      : 'Vorkonfiguriertes System — Bezeichnungen und Farben noch anpassbar.'}
+                      ? t('settings', 'beltCustomHint')
+                      : t('settings', 'beltPresetHint')}
                 </p>
               </div>
 
               {/* Belt enabled toggle */}
               <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-200">
                 <div>
-                  <p className="text-sm font-medium text-zinc-700">Gürtelsystem aktiv</p>
+                  <p className="text-sm font-medium text-zinc-700">{t('settings', 'beltSystemActive')}</p>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    {beltEnabled ? 'Gürtel & Promotions werden im Dashboard angezeigt.' : 'Belt-Tracking deaktiviert — nur Mitglieder & Anwesenheit.'}
+                    {beltEnabled ? t('settings', 'beltSystemActiveDesc') : t('settings', 'beltSystemInactiveDesc')}
                   </p>
                 </div>
                 <button type="button" onClick={() => setBeltEnabled(v => !v)}
@@ -1390,9 +1399,9 @@ export default function SettingsPage() {
               {/* Stripes toggle */}
               <div className={`flex items-center justify-between gap-4 ${!beltEnabled ? 'opacity-30 pointer-events-none' : ''}`}>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-zinc-800">Stripes anzeigen</p>
+                  <p className="text-sm font-medium text-zinc-800">{t('settings', 'showStripes')}</p>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    {stripesEnabled ? 'Stripes (0–4) werden bei Gürteln angezeigt.' : 'Keine Stripes — nur Gürtelfarben ohne Stufen.'}
+                    {stripesEnabled ? t('settings', 'showStripesDesc') : t('settings', 'noStripesDesc')}
                   </p>
                 </div>
                 <button type="button" onClick={() => setStripesEnabled(v => !v)}
@@ -1404,7 +1413,7 @@ export default function SettingsPage() {
               {/* Belt slot rows — only when enabled */}
               {!beltEnabled && (
                 <div className="text-center py-6 text-zinc-400 text-sm">
-                  Gürtelsystem deaktiviert. Schalte es oben ein um Stufen zu konfigurieren.
+                  {t('settings', 'beltSystemDisabledHint')}
                 </div>
               )}
               <div className={`space-y-2 ${!beltEnabled ? 'opacity-30 pointer-events-none' : ''}`}>
@@ -1417,13 +1426,13 @@ export default function SettingsPage() {
                       maxLength={20}
                       onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, label: e.target.value } : s))}
                       className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 min-w-0"
-                      placeholder="z.B. Gelb"
+                      placeholder={lang === 'en' ? 'e.g. Yellow' : 'z.B. Gelb'}
                     />
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <input type="color" value={slot.bg} title="Hintergrundfarbe"
+                      <input type="color" value={slot.bg} title={lang === 'en' ? 'Background colour' : 'Hintergrundfarbe'}
                         onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, bg: e.target.value } : s))}
                         className="w-7 h-7 rounded cursor-pointer border border-zinc-200" />
-                      <input type="color" value={slot.text} title="Textfarbe"
+                      <input type="color" value={slot.text} title={lang === 'en' ? 'Text colour' : 'Textfarbe'}
                         onChange={e => setBeltSlots(prev => prev.map((s, j) => j === i ? { ...s, text: e.target.value } : s))}
                         className="w-7 h-7 rounded cursor-pointer border border-zinc-200" />
                     </div>
@@ -1436,7 +1445,7 @@ export default function SettingsPage() {
                       onClick={() => setBeltSlots(prev => prev.filter((_, j) => j !== i))}
                       disabled={beltSlots.length <= 1}
                       className="flex-shrink-0 text-zinc-300 hover:text-red-400 disabled:opacity-20 transition-colors"
-                      title="Stufe entfernen"
+                      title={lang === 'en' ? 'Remove level' : 'Stufe entfernen'}
                     >
                       <Minus size={14} />
                     </button>
@@ -1449,12 +1458,12 @@ export default function SettingsPage() {
                 onClick={() => setBeltSlots(prev => [...prev, { key: `slot_${prev.length + 1}`, label: '', bg: '#e2e8f0', text: '#1e293b' }])}
                 className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-amber-600 transition-colors"
               >
-                <Plus size={13} /> Stufe hinzufügen
+                <Plus size={13} /> {t('settings', 'addLevel')}
               </button>
 
               <button onClick={handleBeltSave} disabled={beltSaving} className={saveBtnCls}>
                 <Save size={14} />
-                {beltSaved ? 'Gespeichert ✓' : beltSaving ? 'Wird gespeichert…' : 'Gürtelsystem speichern'}
+                {beltSaved ? t('settings', 'saved') : beltSaving ? t('settings', 'saving') : t('settings', 'saveBeltSystem')}
               </button>
             </div>
           </div>
@@ -1469,10 +1478,10 @@ export default function SettingsPage() {
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                <UserPlus size={12} /> Mitglieder-Anmeldung
+                <UserPlus size={12} /> {t('settings', 'memberSignup')}
               </p>
               <label className="flex items-center gap-2 cursor-pointer select-none">
-                <span className="text-xs text-zinc-500">{signupEnabled ? 'Aktiv' : 'Inaktiv'}</span>
+                <span className="text-xs text-zinc-500">{signupEnabled ? t('settings', 'activeLabel') : t('settings', 'inactiveLabel')}</span>
                 <button type="button" onClick={() => setSignupEnabled(v => !v)}
                   className={`relative w-9 h-5 rounded-full transition-colors ${signupEnabled ? 'bg-amber-500' : 'bg-zinc-200'}`}>
                   <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${signupEnabled ? 'translate-x-4' : ''}`} />
@@ -1483,7 +1492,7 @@ export default function SettingsPage() {
               {signupToken && (
                 <div>
                   <CopyRow
-                    label="Anmelde-Link"
+                    label={t('settings', 'signupLinkLabel')}
                     value={signupUrl ?? ''}
                     copied={copiedSignup}
                     onCopy={() => copyWithFeedback(signupUrl ?? '', setCopiedSignup)}
@@ -1491,88 +1500,90 @@ export default function SettingsPage() {
                   {signupUrl && (
                     <a href={signupUrl} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-amber-600 hover:underline mt-1">
-                      <ExternalLink size={11} /> Vorschau
+                      <ExternalLink size={11} /> {t('settings', 'preview')}
                     </a>
                   )}
                   <p className="text-xs text-zinc-400 mt-1">
-                    {signupEnabled ? 'Aktiv — teile diesen Link mit neuen Mitgliedern.' : 'Aktiviere die Anmeldung oben, damit der Link funktioniert.'}
+                    {signupEnabled ? t('settings', 'signupActiveHint') : t('settings', 'signupInactiveHint')}
                   </p>
                 </div>
               )}
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Vertragsvorlage</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'contractTemplate')}</label>
                 <textarea
                   value={contractTemplate}
                   onChange={e => setContractTemplate(e.target.value)}
                   rows={8}
-                  placeholder="Mitgliedschaftsvertrag…"
+                  placeholder={lang === 'en' ? 'Membership agreement…' : 'Mitgliedschaftsvertrag…'}
                   className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm font-mono placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
                 />
-                <p className="text-xs text-zinc-400 mt-1">Wird dem Mitglied beim Anmelden angezeigt.</p>
+                <p className="text-xs text-zinc-400 mt-1">{t('settings', 'contractTemplateHint')}</p>
               </div>
               <button type="button" onClick={handleSignupSave} disabled={signupSaving} className={saveBtnCls}>
                 <Save size={14} />
-                {signupSaved ? 'Gespeichert ✓' : signupSaving ? 'Wird gespeichert…' : 'Anmeldung speichern'}
+                {signupSaved ? t('settings', 'saved') : signupSaving ? t('settings', 'saving') : t('settings', 'saveSignup')}
               </button>
             </div>
           </div>
 
           {/* WhatsApp Benachrichtigungen */}
           <div className={sectionCls}>
-            <SectionHeader icon={<Megaphone size={12} />} title="Benachrichtigungen" />
+            <SectionHeader icon={<Megaphone size={12} />} title={t('settings', 'notifications')} />
             <div className="p-5 space-y-4">
               <p className="text-zinc-500 text-sm leading-relaxed">
-                Erhalte eine <strong>E-Mail</strong> (automatisch an deine Gym-E-Mail) und eine <strong>WhatsApp-Nachricht</strong>, sobald sich jemand über den Anmeldelink oder deine Gym-Seite anmeldet.
+                {lang === 'en'
+                  ? <><strong>Email</strong> (auto-sent to your gym email) and a <strong>WhatsApp message</strong> when someone signs up via the signup link or your gym page.</>
+                  : <>Erhalte eine <strong>E-Mail</strong> (automatisch an deine Gym-E-Mail) und eine <strong>WhatsApp-Nachricht</strong>, sobald sich jemand über den Anmeldelink oder deine Gym-Seite anmeldet.</>
+                }
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 leading-relaxed space-y-1">
-                <p className="font-semibold">WhatsApp einrichten (einmalig, kostenlos):</p>
-                <p>1. Sende auf WhatsApp an <strong>+34 644 59 98 05</strong> die Nachricht:<br /><code className="bg-amber-100 px-1 rounded">I allow callmebot to send me messages</code></p>
-                <p>2. Du bekommst direkt deinen persönlichen API-Key zurück.</p>
-                <p>3. Trage den Key hier ein — fertig.</p>
+                <p className="font-semibold">{t('settings', 'whatsappSetupTitle')}</p>
+                <p>1. {lang === 'en' ? <>Send on WhatsApp to <strong>+34 644 59 98 05</strong> the message:</> : <>Sende auf WhatsApp an <strong>+34 644 59 98 05</strong> die Nachricht:</>}<br /><code className="bg-amber-100 px-1 rounded">I allow callmebot to send me messages</code></p>
+                <p>2. {lang === 'en' ? 'You will receive your personal API key right away.' : 'Du bekommst direkt deinen persönlichen API-Key zurück.'}</p>
+                <p>3. {lang === 'en' ? 'Enter the key here — done.' : 'Trage den Key hier ein — fertig.'}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">CallMeBot API-Key</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'callmebotKey')}</label>
                 <input
                   value={callmebotKey}
                   onChange={e => setCallmebotKey(e.target.value)}
-                  placeholder="z.B. 1234567"
+                  placeholder={lang === 'en' ? 'e.g. 1234567' : 'z.B. 1234567'}
                   className={inputCls}
                 />
                 <p className="text-xs text-zinc-400 mt-1">
-                  Deine WhatsApp-Nummer hinterlegst du unter <em>Allgemein → Telefon</em>.
+                  {t('settings', 'callmebotPhoneHint')}
                 </p>
               </div>
               <button type="button" onClick={handleCallmebotSave} disabled={callmebotSaving} className={saveBtnCls}>
                 <Save size={14} />
-                {callmebotSaved ? 'Gespeichert ✓' : callmebotSaving ? 'Wird gespeichert…' : 'Benachrichtigungen speichern'}
+                {callmebotSaved ? t('settings', 'saved') : callmebotSaving ? t('settings', 'saving') : t('settings', 'saveNotifications')}
               </button>
             </div>
           </div>
 
           {/* Öffentliche Gym-Seite */}
           <div className={sectionCls}>
-            <SectionHeader icon={<Globe size={12} />} title="Öffentliche Gym-Seite" />
+            <SectionHeader icon={<Globe size={12} />} title={t('settings', 'publicGymPage')} />
             <div className="p-5 space-y-4">
               <p className="text-zinc-500 text-sm">
-                Deine öffentliche Seite mit Stundenplan, Tarifen und Anmeldeformular.
-                Neue Interessenten landen direkt in deiner Lead-Pipeline.
+                {t('settings', 'publicGymPageDesc')}
               </p>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Gym-Slug (URL-Kürzel)</label>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'gymSlugLabel')}</label>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-zinc-400 shrink-0">osss.pro/gym/</span>
                   <input
                     value={gymSlug}
                     onChange={e => { setGymSlug(e.target.value); setSlugManuallyEdited(true) }}
-                    placeholder="mein-gym"
+                    placeholder={lang === 'en' ? 'my-gym' : 'mein-gym'}
                     className={inputCls + ' flex-1'}
                   />
                 </div>
-                <p className="text-xs text-zinc-400 mt-1">Nur Kleinbuchstaben, Zahlen und Bindestriche.</p>
+                <p className="text-xs text-zinc-400 mt-1">{t('settings', 'slugHint')}</p>
               </div>
               {gymSlug && (
                 <CopyRow
-                  label="Gym-Seite"
+                  label={t('settings', 'gymPageLabel')}
                   value={`${typeof window !== 'undefined' ? window.location.origin : ''}/gym/${gymSlug}`}
                   copied={copiedGymPage}
                   onCopy={() => copyWithFeedback(`${window.location.origin}/gym/${gymSlug}`, setCopiedGymPage)}
@@ -1581,12 +1592,12 @@ export default function SettingsPage() {
               {gymSlug && (
                 <a href={`/gym/${gymSlug}`} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-amber-600 hover:underline">
-                  <ExternalLink size={11} /> Vorschau öffnen
+                  <ExternalLink size={11} /> {t('settings', 'openPreview')}
                 </a>
               )}
               <button type="button" onClick={handleSlugSave} disabled={slugSaving || !gymSlug.trim()} className={saveBtnCls}>
                 <Save size={14} />
-                {slugSaved ? 'Gespeichert ✓' : slugSaving ? 'Wird gespeichert…' : 'URL speichern'}
+                {slugSaved ? t('settings', 'saved') : slugSaving ? t('settings', 'saving') : t('settings', 'saveUrl')}
               </button>
             </div>
           </div>
@@ -1594,17 +1605,17 @@ export default function SettingsPage() {
           {/* Öffentlicher Stundenplan */}
           {gymId && (
             <div className={sectionCls}>
-              <SectionHeader icon={<Globe size={12} />} title="Öffentlicher Stundenplan" />
+              <SectionHeader icon={<Globe size={12} />} title={t('settings', 'publicSchedule')} />
               <div className="p-5 space-y-4">
-                <p className="text-zinc-500 text-sm">Bette den Stundenplan auf deiner Website ein — kein Login nötig.</p>
+                <p className="text-zinc-500 text-sm">{t('settings', 'publicScheduleDesc')}</p>
                 <CopyRow
-                  label="Direktlink"
+                  label={t('settings', 'directLink')}
                   value={`${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}`}
                   copied={copiedScheduleLink}
                   onCopy={() => copyWithFeedback(`${window.location.origin}/schedule/${gymId}`, setCopiedScheduleLink)}
                 />
                 <CopyRow
-                  label="iFrame Embed-Code"
+                  label={t('settings', 'iframeEmbed')}
                   value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`}
                   copied={copiedEmbedCode}
                   onCopy={() => copyWithFeedback(`<iframe src="${window.location.origin}/schedule/${gymId}?embed=1" width="100%" height="600" frameborder="0" style="border-radius:12px"></iframe>`, setCopiedEmbedCode)}
@@ -1615,12 +1626,12 @@ export default function SettingsPage() {
 
           {/* Trainer & Personal */}
           <div className={sectionCls}>
-            <SectionHeader icon={<Users size={12} />} title="Trainer & Personal" />
+            <SectionHeader icon={<Users size={12} />} title={t('settings', 'staffSection')} />
             <div className="p-5 space-y-4">
               <form onSubmit={handleStaffInvite} className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">Name</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">{lang === 'en' ? 'Name' : 'Name'}</label>
                     <input value={staffName} onChange={e => setStaffName(e.target.value)} required placeholder="Max Mustermann" className={inputCls} />
                   </div>
                   <div>
@@ -1630,26 +1641,26 @@ export default function SettingsPage() {
                 </div>
                 <button type="submit" disabled={staffInviting} className={saveBtnCls}>
                   <UserPlus size={14} />
-                  {staffInviting ? 'Einladung wird erstellt…' : 'Trainer einladen'}
+                  {staffInviting ? t('settings', 'inviting') : t('settings', 'inviteStaffBtn')}
                 </button>
               </form>
 
               {staffInviteUrl && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
                   <p className="text-xs font-medium text-amber-800 flex items-center gap-1.5">
-                    <Link2 size={11} /> Einladungs-Link (jetzt kopieren)
+                    <Link2 size={11} /> {t('settings', 'inviteLinkNote')}
                   </p>
                   <CopyRow label="" value={staffInviteUrl} copied={copiedStaff} onCopy={() => copyWithFeedback(staffInviteUrl, setCopiedStaff)} />
                   {staffEmailSent
-                    ? <p className="text-xs text-zinc-500">✓ Einladungs-E-Mail wurde gesendet.</p>
-                    : <p className="text-xs text-amber-700">Kein Resend konfiguriert — Link manuell senden.</p>
+                    ? <p className="text-xs text-zinc-500">{t('settings', 'emailSent')}</p>
+                    : <p className="text-xs text-amber-700">{t('settings', 'noResend')}</p>
                   }
                 </div>
               )}
 
               {staffList.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-zinc-500">Aktuelles Personal ({staffList.length})</p>
+                  <p className="text-xs font-medium text-zinc-500">{t('settings', 'currentStaff')} ({staffList.length})</p>
                   <div className="divide-y divide-gray-100 rounded-lg border border-zinc-200 overflow-hidden">
                     {staffList.map(s => {
                       const inviteLink = s.invite_token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/staff/accept?token=${s.invite_token}` : null
@@ -1661,7 +1672,7 @@ export default function SettingsPage() {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.accepted_at ? 'bg-zinc-200 text-zinc-700 border border-zinc-300' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
-                              {s.accepted_at ? 'Aktiv' : 'Eingeladen'}
+                              {s.accepted_at ? t('settings', 'staffActive') : t('settings', 'staffInvited')}
                             </span>
                             {!s.accepted_at && inviteLink && (
                               <button type="button"
@@ -1693,39 +1704,39 @@ export default function SettingsPage() {
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                <Package size={12} /> Mitgliedschafts-Tarife
+                <Package size={12} /> {t('settings', 'membershipPlansSection')}
               </p>
               {!planFormOpen && (
                 <button type="button" onClick={() => { setPlanFormOpen(true); setEditingPlanId(null); setPlanForm({ name: '', description: '', price: '', billingInterval: 'monthly', contractMonths: '0' }) }}
                   className="flex items-center gap-1 text-xs text-amber-600 hover:text-amber-500 font-medium">
-                  <Plus size={12} /> Tarif hinzufügen
+                  <Plus size={12} /> {t('settings', 'addPlanBtn')}
                 </button>
               )}
             </div>
             <div className="p-5 space-y-4">
               <p className="text-xs text-zinc-500">
-                Definiere Tarife mit Preis, Laufzeit und Abrechnungsintervall. Mitglieder können über ihr Portal einen Wechsel anfordern.
+                {t('settings', 'membershipPlansDesc')}
               </p>
 
               {/* Plan form */}
               {planFormOpen && (
                 <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 space-y-3">
                   <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">
-                    {editingPlanId ? 'Tarif bearbeiten' : 'Neuer Tarif'}
+                    {editingPlanId ? t('settings', 'editPlan') : t('settings', 'newPlan')}
                   </p>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">Name *</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">{lang === 'en' ? 'Name *' : 'Name *'}</label>
                     <input value={planForm.name} onChange={e => setPlanForm(p => ({ ...p, name: e.target.value }))}
-                      placeholder="z.B. Jahresvertrag" className={inputCls} />
+                      placeholder={lang === 'en' ? 'e.g. Annual plan' : 'z.B. Jahresvertrag'} className={inputCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">Beschreibung</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">{t('settings', 'description')}</label>
                     <input value={planForm.description} onChange={e => setPlanForm(p => ({ ...p, description: e.target.value }))}
-                      placeholder="z.B. Günstigster Preis, volle Flexibilität" className={inputCls} />
+                      placeholder={lang === 'en' ? 'e.g. Best price, full flexibility' : 'z.B. Günstigster Preis, volle Flexibilität'} className={inputCls} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-zinc-600 mb-1">Preis (€) *</label>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">{lang === 'en' ? 'Price (€) *' : 'Preis (€) *'}</label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">€</span>
                         <input value={planForm.price} onChange={e => setPlanForm(p => ({ ...p, price: e.target.value }))}
@@ -1733,32 +1744,32 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-zinc-600 mb-1">Abrechnungsintervall</label>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">{t('settings', 'billingInterval')}</label>
                       <select value={planForm.billingInterval} onChange={e => setPlanForm(p => ({ ...p, billingInterval: e.target.value }))} className={inputCls}>
-                        <option value="monthly">Monatlich</option>
-                        <option value="biannual">Halbjährlich</option>
-                        <option value="annual">Jährlich</option>
+                        <option value="monthly">{t('settings', 'monthly')}</option>
+                        <option value="biannual">{t('settings', 'biannual')}</option>
+                        <option value="annual">{t('settings', 'annual')}</option>
                       </select>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-600 mb-1">Mindestlaufzeit</label>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1">{t('settings', 'minTerm')}</label>
                     <select value={planForm.contractMonths} onChange={e => setPlanForm(p => ({ ...p, contractMonths: e.target.value }))} className={inputCls}>
-                      <option value="0">Jederzeit kündbar</option>
-                      <option value="3">3 Monate</option>
-                      <option value="6">6 Monate</option>
-                      <option value="12">12 Monate</option>
-                      <option value="24">24 Monate</option>
+                      <option value="0">{t('settings', 'cancelAnytimeOpt')}</option>
+                      <option value="3">{lang === 'en' ? '3 months' : '3 Monate'}</option>
+                      <option value="6">{lang === 'en' ? '6 months' : '6 Monate'}</option>
+                      <option value="12">{lang === 'en' ? '12 months' : '12 Monate'}</option>
+                      <option value="24">{lang === 'en' ? '24 months' : '24 Monate'}</option>
                     </select>
                   </div>
                   <div className="flex gap-2 pt-1">
                     <button type="button" onClick={() => { setPlanFormOpen(false); setEditingPlanId(null) }}
                       className="flex-1 py-2.5 rounded-lg border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-white transition-colors">
-                      Abbrechen
+                      {t('common', 'cancel')}
                     </button>
                     <button type="button" onClick={handlePlanSave} disabled={planSaving || !planForm.name || !planForm.price}
                       className="flex-1 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors">
-                      {planSaving ? 'Wird gespeichert…' : editingPlanId ? 'Speichern' : 'Tarif anlegen'}
+                      {planSaving ? t('settings', 'saving') : editingPlanId ? t('settings', 'savePlan') : t('settings', 'createPlan')}
                     </button>
                   </div>
                 </div>
@@ -1767,26 +1778,26 @@ export default function SettingsPage() {
               {/* Plans list */}
               {plans.length === 0 && !planFormOpen ? (
                 <div className="text-center py-6 text-zinc-400 text-sm">
-                  Noch keine Tarife angelegt. Klicke auf „Tarif hinzufügen".
+                  {t('settings', 'noPlans')}
                 </div>
               ) : (
                 <div className="space-y-2">
                   {plans.map(plan => {
                     const months = plan.billing_interval === 'annual' ? 12 : plan.billing_interval === 'biannual' ? 6 : 1
-                    const perMonth = months > 1 ? ` (≈ €${(plan.price_cents / 100 / months).toFixed(2).replace('.', ',')}/Mo)` : ''
+                    const perMonth = months > 1 ? ` (≈ €${(plan.price_cents / 100 / months).toFixed(2).replace('.', ',')}/${lang === 'en' ? 'mo' : 'Mo'})` : ''
                     return (
                       <div key={plan.id} className="flex items-start gap-3 p-3 rounded-xl border border-zinc-200 bg-zinc-50">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-semibold text-zinc-800">{plan.name}</p>
-                            {!plan.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-zinc-500">Inaktiv</span>}
+                            {!plan.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-zinc-500">{t('settings', 'inactive')}</span>}
                           </div>
                           <p className="text-xs text-zinc-500 mt-0.5">
                             €{(plan.price_cents / 100).toFixed(2).replace('.', ',')}
-                            {plan.billing_interval === 'monthly' ? '/Monat' : plan.billing_interval === 'biannual' ? '/6 Monate' : '/Jahr'}
+                            {plan.billing_interval === 'monthly' ? t('settings', 'perMonth') : plan.billing_interval === 'biannual' ? t('settings', 'per6Months') : t('settings', 'perYear')}
                             {perMonth}
                             {' · '}
-                            {plan.contract_months === 0 ? 'Jederzeit kündbar' : `${plan.contract_months} Mo. Laufzeit`}
+                            {plan.contract_months === 0 ? t('settings', 'cancelAnytimeLabel') : `${plan.contract_months}${t('settings', 'monthsTerm')}`}
                           </p>
                           {plan.description && <p className="text-xs text-zinc-400 mt-0.5">{plan.description}</p>}
                         </div>
@@ -1824,45 +1835,6 @@ export default function SettingsPage() {
 }
 
 /* ─── UpgradeModal ───────────────────────────────────────────────────────── */
-const UPGRADE_PLANS = [
-  {
-    name: 'Free',
-    planKey: 'free',
-    price: '0',
-    period: '',
-    members: 'Bis zu 30 Mitglieder',
-    highlight: false,
-    features: ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & GPS Check-in', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite + Einbettung', 'Member-Portal: Buchung & Check-in', 'Lead-Management & Pipeline', '2% Plattformgebühr'],
-  },
-  {
-    name: 'Starter',
-    planKey: 'starter',
-    price: '29',
-    period: '/Monat',
-    members: 'Bis zu 50 Mitglieder',
-    highlight: false,
-    features: ['Alles aus Free', 'Automatische Zahlungserinnerungen', 'Geburtstags-E-Mails', '1 Trainer-Account', '2% Plattformgebühr'],
-  },
-  {
-    name: 'Grow',
-    planKey: 'grow',
-    price: '59',
-    period: '/Monat',
-    members: 'Bis zu 150 Mitglieder',
-    highlight: true,
-    features: ['Alles aus Starter', 'Unbegrenzte Trainer-Accounts', 'Erweiterte Berichte', '2% Plattformgebühr'],
-  },
-  {
-    name: 'Pro',
-    planKey: 'pro',
-    price: '99',
-    period: '/Monat',
-    members: 'Unbegrenzte Mitglieder',
-    highlight: false,
-    features: ['Alles aus Grow', 'Unbegrenzte Mitglieder', 'Prioritäts-Support', 'Frühzeitiger Zugang zu neuen Features', '2% Plattformgebühr'],
-  },
-]
-
 const PLAN_ORDER: Record<string, number> = { free: 0, starter: 1, grow: 2, pro: 3 }
 
 function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
@@ -1871,15 +1843,64 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
   onUpgrade: (plan: string) => void
   onClose: () => void
 }) {
+  const { lang, t } = useLanguage()
   const currentRank = PLAN_ORDER[currentPlan] ?? 0
+
+  const UPGRADE_PLANS = [
+    {
+      name: 'Free',
+      planKey: 'free',
+      price: '0',
+      period: '',
+      members: lang === 'en' ? 'Up to 30 members' : 'Bis zu 30 Mitglieder',
+      highlight: false,
+      features: lang === 'en'
+        ? ['Member management', 'Belt tracking & promotions', 'Attendance & GPS check-in', 'Schedule & iCal export', 'Public gym page + embedding', 'Member portal: booking & check-in', 'Lead management & pipeline', '2% platform fee']
+        : ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & GPS Check-in', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite + Einbettung', 'Member-Portal: Buchung & Check-in', 'Lead-Management & Pipeline', '2% Plattformgebühr'],
+    },
+    {
+      name: 'Starter',
+      planKey: 'starter',
+      price: '29',
+      period: lang === 'en' ? '/month' : '/Monat',
+      members: lang === 'en' ? 'Up to 50 members' : 'Bis zu 50 Mitglieder',
+      highlight: false,
+      features: lang === 'en'
+        ? ['Everything in Free', 'Automatic payment reminders', 'Birthday emails', '1 trainer account', '2% platform fee']
+        : ['Alles aus Free', 'Automatische Zahlungserinnerungen', 'Geburtstags-E-Mails', '1 Trainer-Account', '2% Plattformgebühr'],
+    },
+    {
+      name: 'Grow',
+      planKey: 'grow',
+      price: '59',
+      period: lang === 'en' ? '/month' : '/Monat',
+      members: lang === 'en' ? 'Up to 150 members' : 'Bis zu 150 Mitglieder',
+      highlight: true,
+      features: lang === 'en'
+        ? ['Everything in Starter', 'Unlimited trainer accounts', 'Advanced reports', '2% platform fee']
+        : ['Alles aus Starter', 'Unbegrenzte Trainer-Accounts', 'Erweiterte Berichte', '2% Plattformgebühr'],
+    },
+    {
+      name: 'Pro',
+      planKey: 'pro',
+      price: '99',
+      period: lang === 'en' ? '/month' : '/Monat',
+      members: lang === 'en' ? 'Unlimited members' : 'Unbegrenzte Mitglieder',
+      highlight: false,
+      features: lang === 'en'
+        ? ['Everything in Grow', 'Unlimited members', 'Priority support', 'Early access to new features', '2% platform fee']
+        : ['Alles aus Grow', 'Unbegrenzte Mitglieder', 'Prioritäts-Support', 'Frühzeitiger Zugang zu neuen Features', '2% Plattformgebühr'],
+    },
+  ]
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-zinc-100">
           <div>
-            <h2 className="text-lg font-black text-zinc-900 tracking-tight">Plan auswählen</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Wähle den passenden Plan für dein Gym</p>
+            <h2 className="text-lg font-black text-zinc-900 tracking-tight">{t('settings', 'selectPlan')}</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">{t('settings', 'selectPlanDesc')}</p>
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 transition-colors p-1">
             <X size={18} />
@@ -1901,12 +1922,12 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
               }`}>
                 {plan.highlight && isUpgrade && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-zinc-950 text-[10px] font-black px-3 py-1 rounded-full tracking-wide whitespace-nowrap">
-                    BELIEBT
+                    {t('settings', 'popular')}
                   </div>
                 )}
                 {isCurrent && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-700 text-white text-[10px] font-black px-3 py-1 rounded-full tracking-wide whitespace-nowrap">
-                    AKTUELL
+                    {t('settings', 'current')}
                   </div>
                 )}
                 <div className="mb-4">
@@ -1927,11 +1948,11 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
                 </ul>
                 {isCurrent ? (
                   <div className="w-full text-center py-2 rounded-xl text-xs font-bold text-zinc-400 bg-zinc-100">
-                    Aktueller Plan
+                    {t('settings', 'currentPlanLabel')}
                   </div>
                 ) : isLower ? (
                   <div className="w-full text-center py-2 rounded-xl text-xs font-bold text-zinc-300 bg-zinc-50">
-                    Downgrade
+                    {t('settings', 'downgrade')}
                   </div>
                 ) : (
                   <button
@@ -1943,7 +1964,7 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
                         : 'bg-zinc-900 hover:bg-zinc-700 text-white'
                     }`}
                   >
-                    {loadingPlan === plan.planKey ? 'Wird geladen…' : `${plan.name} wählen`}
+                    {loadingPlan === plan.planKey ? t('settings', 'loading') : t('settings', 'choosePlan').replace('{name}', plan.name)}
                   </button>
                 )}
               </div>
@@ -1951,7 +1972,7 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
           })}
         </div>
 
-        <p className="text-center text-xs text-zinc-400 pb-6">Jederzeit kündbar · DSGVO-konform · Daten in der EU</p>
+        <p className="text-center text-xs text-zinc-400 pb-6">{t('settings', 'upgradeModalFooter')}</p>
       </div>
     </div>
   )
@@ -1963,21 +1984,23 @@ function UpgradeGate({ plan, feature, onUpgrade }: {
   feature: string
   onUpgrade: (plan: string) => void
 }) {
+  const { lang, t } = useLanguage()
+  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
   return (
     <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/60 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
       <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
         <Zap size={16} className="text-amber-600" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-zinc-900">{feature} — {plan.charAt(0).toUpperCase() + plan.slice(1)} oder höher</p>
-        <p className="text-xs text-zinc-500 mt-0.5">Upgrade um diese Funktion freizuschalten.</p>
+        <p className="text-sm font-bold text-zinc-900">{feature} — {planLabel} {lang === 'en' ? 'or higher' : 'oder höher'}</p>
+        <p className="text-xs text-zinc-500 mt-0.5">{t('settings', 'upgradeToUnlock')}</p>
       </div>
       <button
         type="button"
         onClick={() => onUpgrade(plan)}
         className="flex-shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
       >
-        <Zap size={12} /> Upgrade auf {plan.charAt(0).toUpperCase() + plan.slice(1)}
+        <Zap size={12} /> {t('settings', 'upgradeToLabel')} {planLabel}
       </button>
     </div>
   )
