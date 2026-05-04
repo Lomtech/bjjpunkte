@@ -44,6 +44,9 @@ interface Member {
   cancellation_requested_at: string | null
   cancellation_note: string | null
   requested_plan_id: string | null
+  monthly_fee_override_cents: number | null
+  plan_id: string | null
+  stripe_subscription_id: string | null
 }
 
 interface Promotion {
@@ -105,7 +108,6 @@ export default function MemberDetailPage() {
       if (!gym) { setLoading(false); return }
 
       setGymId(gym.id)
-      setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
       setStripesEnabled((gym as any)?.stripes_enabled ?? true)
@@ -116,6 +118,17 @@ export default function MemberDetailPage() {
       if (!memberData) { setNotFound(true); setLoading(false); return }
       const m = memberData as unknown as Member
       setMember(m)
+
+      // Prefer: member override → assigned plan price → gym default
+      if (m.monthly_fee_override_cents != null) {
+        setMonthlyFeeCents(m.monthly_fee_override_cents)
+      } else if (m.plan_id) {
+        const { data: plan } = await (supabase.from('membership_plans') as any)
+          .select('price_cents').eq('id', m.plan_id).single()
+        setMonthlyFeeCents((plan as any)?.price_cents ?? gym.monthly_fee_cents ?? 0)
+      } else {
+        setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
+      }
 
       // Load parent and children for family section
       const familyQueries: Promise<void>[] = []
