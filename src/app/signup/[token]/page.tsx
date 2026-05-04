@@ -128,6 +128,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone]       = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError]     = useState('')
 
   const [firstName,      setFirstName]      = useState('')
@@ -198,11 +199,19 @@ export default function SignupPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Unbekannter Fehler')
+
+      // If there's a Stripe checkout URL, redirect directly — no email/WhatsApp link needed
+      if (data.checkoutUrl) {
+        setRedirecting(true)
+        window.location.href = data.checkoutUrl
+        return
+      }
+
       setDone(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fehler')
+      setSubmitting(false)
     }
-    setSubmitting(false)
   }
 
   /* ── Loading / error states ─────────────────────────────────────── */
@@ -224,6 +233,24 @@ export default function SignupPage() {
     </div>
   )
 
+  if (redirecting) return (
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
+      <div className="text-center max-w-sm">
+        <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
+          <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <h2 className="font-bold text-zinc-900 text-xl mb-2">
+          {lang === 'en' ? 'Almost done…' : 'Fast fertig…'}
+        </h2>
+        <p className="text-zinc-500 text-sm leading-relaxed">
+          {lang === 'en'
+            ? 'You are being redirected to our secure payment provider to complete your membership.'
+            : 'Du wirst zur sicheren Zahlungsabwicklung weitergeleitet, um deine Mitgliedschaft abzuschließen.'}
+        </p>
+      </div>
+    </div>
+  )
+
   if (done) return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
       <div className="text-center max-w-sm">
@@ -233,8 +260,8 @@ export default function SignupPage() {
         <h2 className="font-bold text-zinc-900 text-2xl mb-2">{lang === 'en' ? 'Registration successful!' : 'Anmeldung erfolgreich!'}</h2>
         <p className="text-zinc-500 text-sm leading-relaxed mb-4">
           {lang === 'en'
-            ? <><strong>{gymInfo?.gymName}</strong>{' '}has received your registration. The gym will contact you and activate your account shortly.</>
-            : <>Deine Anmeldung bei <strong>{gymInfo?.gymName}</strong> wurde übermittelt. Das Gym wird dich in Kürze kontaktieren und freischalten.</>
+            ? <><strong>{gymInfo?.gymName}</strong>{' '}has received your registration. Your membership is active — check your email for your member portal link.</>
+            : <>Deine Mitgliedschaft bei <strong>{gymInfo?.gymName}</strong> ist aktiv! Schau in deine E-Mails für den Link zu deinem Mitglieder-Portal.</>
           }
         </p>
         <p className="text-xs text-zinc-400">
@@ -533,7 +560,12 @@ export default function SignupPage() {
               </button>
               <button disabled={!step4Valid || !agbAccepted || submitting} onClick={submit}
                 className="flex-1 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-base transition-colors flex items-center justify-center gap-2">
-                {submitting ? (lang === 'en' ? 'Submitting…' : 'Wird gesendet…') : (lang === 'en' ? '🥋 Sign up now' : '🥋 Jetzt anmelden')}
+                {submitting
+                  ? (lang === 'en' ? 'Submitting…' : 'Wird gesendet…')
+                  : selectedPlanId
+                    ? (lang === 'en' ? '🥋 Sign up & pay now' : '🥋 Anmelden & jetzt bezahlen')
+                    : (lang === 'en' ? '🥋 Sign up now' : '🥋 Jetzt anmelden')
+                }
               </button>
             </div>
 

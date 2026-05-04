@@ -297,5 +297,5 @@ export async function POST(req: Request) {
     whatsappText: `🎉 Neue Anmeldung!\n${fullName}\n${email.toLowerCase().trim()}${phone ? '\n' + phone.trim() : ''}\n\nhttps://www.osss.pro/dashboard`,
   })
 
-  return NextResponse.json({ success: true, memberId: member.id })
+  return NextResponse.json({ success: true, memberId: member.id, checkoutUrl })
 }
