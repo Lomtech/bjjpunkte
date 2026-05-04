@@ -44,6 +44,19 @@ export async function POST(req: Request) {
 
   if (!member) return NextResponse.json({ error: 'Mitglied nicht gefunden' }, { status: 404 })
 
+  // Dedup: if class_id provided, don't create a second attendance record for the same class
+  if (class_id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existing } = await (svc.from('attendance') as any)
+      .select('id, checked_in_at, class_type')
+      .eq('member_id', member_id)
+      .eq('class_id', class_id)
+      .maybeSingle()
+    if (existing) {
+      return NextResponse.json({ ok: true, entry: existing, already_checked_in: true })
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: entry, error } = await (svc.from('attendance') as any)
     .insert({

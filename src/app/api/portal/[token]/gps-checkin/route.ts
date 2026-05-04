@@ -70,52 +70,43 @@ export async function POST(
     )
   }
 
-  // Find current or upcoming class (starts within ±60 min)
+  // Find class: started at most 3 h ago OR starts within the next 30 min
   const now = new Date()
-  const windowStart = new Date(now.getTime() - 60 * 60 * 1000).toISOString()
-  const windowEnd   = new Date(now.getTime() + 60 * 60 * 1000).toISOString()
+  const retroStart = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString() // now − 3 h
+  const aheadEnd   = new Date(now.getTime() + 30 * 60 * 1000).toISOString()     // now + 30 min
 
   const { data: classes } = await supabase
     .from('classes')
     .select('id, title, starts_at, ends_at, class_type')
     .eq('gym_id', member.gym_id)
     .eq('is_cancelled', false)
-    .gte('starts_at', windowStart)
-    .lte('starts_at', windowEnd)
-    .order('starts_at', { ascending: true })
+    .lte('starts_at', aheadEnd)  // started before now+30min
+    .gte('ends_at', retroStart)  // ended at most 3 h ago
+    .order('starts_at', { ascending: false }) // prefer most recent class
     .limit(1)
 
   const cls = classes?.[0] ?? null
 
-  const checkedInAt = now.toISOString()
-
-  // Dedup: if already checked in for this class (or today without a class), return early
-  if (cls) {
-    const { data: existing } = await supabase
-      .from('attendance')
-      .select('id')
-      .eq('member_id', member.id)
-      .eq('class_id', cls.id)
-      .maybeSingle()
-    if (existing) {
-      return NextResponse.json({ success: true, attendance: existing, class: cls, distance_m: Math.round(dist), already_checked_in: true })
-    }
-  } else {
-    // No class — dedup by same calendar day
-    const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0)
-    const dayEnd   = new Date(now); dayEnd.setHours(23, 59, 59, 999)
-    const { data: existing } = await supabase
-      .from('attendance')
-      .select('id')
-      .eq('member_id', member.id)
-      .is('class_id', null)
-      .gte('checked_in_at', dayStart.toISOString())
-      .lte('checked_in_at', dayEnd.toISOString())
-      .maybeSingle()
-    if (existing) {
-      return NextResponse.json({ success: true, attendance: existing, class: null, distance_m: Math.round(dist), already_checked_in: true })
-    }
+  // Require a class — no check-in without a schedule entry
+  if (!cls) {
+    return NextResponse.json(
+      { error: 'Kein aktiver Kurs. Check-in ist nur während oder bis zu 3 Std. nach einem Training möglich.' },
+      { status: 422 }
+    )
   }
+
+  // Dedup: already checked in for this class → return silently
+  const { data: existing } = await supabase
+    .from('attendance')
+    .select('id')
+    .eq('member_id', member.id)
+    .eq('class_id', cls.id)
+    .maybeSingle()
+  if (existing) {
+    return NextResponse.json({ success: true, attendance: existing, class: cls, distance_m: Math.round(dist), already_checked_in: true })
+  }
+
+  const checkedInAt = now.toISOString()
 
   // Insert attendance record
   const { data: att, error: attErr } = await supabase
@@ -123,8 +114,8 @@ export async function POST(
     .insert({
       gym_id:        member.gym_id,
       member_id:     member.id,
-      class_id:      cls?.id ?? null,
-      class_type:    cls?.class_type ?? null,
+      class_id:      cls.id,
+      class_type:    cls.class_type ?? null,
       checked_in_at: checkedInAt,
     })
     .select()
@@ -134,25 +125,18 @@ export async function POST(
     return NextResponse.json({ error: attErr.message }, { status: 500 })
   }
 
-  // If there's a class, also upsert a booking as checked_in
-  if (cls) {
-    await supabase
-      .from('class_bookings')
-      .upsert(
-        {
-          gym_id:    member.gym_id,
-          member_id: member.id,
-          class_id:  cls.id,
-          status:    'checked_in',
-        },
-        { onConflict: 'member_id,class_id' }
-      )
-  }
+  // Upsert booking so member appears in schedule roster
+  await supabase
+    .from('class_bookings')
+    .upsert(
+      { gym_id: member.gym_id, member_id: member.id, class_id: cls.id, status: 'checked_in' },
+      { onConflict: 'member_id,class_id' }
+    )
 
   return NextResponse.json({
-    success:      true,
-    attendance:   att,
-    class:        cls ?? null,
-    distance_m:   Math.round(dist),
+    success:    true,
+    attendance: att,
+    class:      cls,
+    distance_m: Math.round(dist),
   })
 }

@@ -164,7 +164,7 @@ export default function MembersPage() {
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
-      // Load members + current running class in parallel
+      // Load members + classes in parallel (look back 3 h for retroactive check-in)
       const now = new Date()
       const [membersRes, classesRes] = await Promise.all([
         supabase
@@ -172,19 +172,20 @@ export default function MembersPage() {
           .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id')
           .eq('gym_id', gym.id).order('last_name').limit(1000),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString() }),
+        (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() }),
       ])
       setMembers((membersRes.data as unknown as Member[]) ?? [])
 
-      // Eligible = not cancelled, ends in the future, starts ≤ now + 30 min
+      // Eligible = not cancelled, ends at most 3 h ago, starts ≤ now + 30 min
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const classes = (classesRes.data ?? []) as any[]
-      const windowEnd   = new Date(now.getTime() + 30 * 60 * 1000) // now + 30 min
+      const windowEnd   = new Date(now.getTime() + 30 * 60 * 1000)         // now + 30 min
+      const retroLimit  = new Date(now.getTime() - 3 * 60 * 60 * 1000)     // now − 3 h
       const eligible = classes
         .filter(c => {
           const start = new Date(c.starts_at)
           const end   = new Date(c.ends_at)
-          return !c.is_cancelled && start <= windowEnd && end >= now
+          return !c.is_cancelled && start <= windowEnd && end >= retroLimit
         })
         .sort((a: any, b: any) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
       setEligibleClasses(eligible.map((c: any) => ({

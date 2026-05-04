@@ -9,7 +9,7 @@ import type { Belt } from '@/types/database'
 import {
   Calendar, CreditCard, Dumbbell, Clock, CheckCircle, BookOpen, Flame,
   Trophy, Megaphone, Pin, Package, ChevronDown, ChevronUp, X, AlertTriangle, Navigation,
-  ChevronLeft, ChevronRight, Users,
+  ChevronLeft, ChevronRight, Users, User,
 } from 'lucide-react'
 
 // ── types ────────────────────────────────────────────────────────────────────
@@ -147,7 +147,9 @@ function formatDateTime(iso: string) {
 
 function canCheckin(startsAt: string, endsAt: string) {
   const now = Date.now()
-  return now >= new Date(startsAt).getTime() - 60 * 60 * 1000 && now <= new Date(endsAt).getTime()
+  const RETRO_MS = 3 * 60 * 60 * 1000
+  return now >= new Date(startsAt).getTime() - 60 * 60 * 1000 &&
+         now <= new Date(endsAt).getTime() + RETRO_MS
 }
 
 function isCheckoutExpired(p: { created_at: string; status: string }) {
@@ -294,6 +296,8 @@ export default function MemberPortalPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
   const [checkinBannerDismissed, setCheckinBannerDismissed] = useState(false)
+
+  const [activeTab, setActiveTab] = useState<'schedule' | 'profile' | 'verwaltung' | 'logbuch'>('schedule')
 
   const [classes, setClasses]               = useState<UpcomingClass[]>([])
   const [classesLoading, setClassesLoading] = useState(false)
@@ -488,6 +492,8 @@ export default function MemberPortalPage() {
     return age < 10 * 60 * 1000 ? latest : null
   })()
 
+  const eligibleForCheckin = classes.some(c => canCheckin(c.starts_at, c.ends_at))
+
   const beltSystem    = resolveBeltSystem((gym as any)?.belt_system)
   const beltEnabled   = (gym as any)?.belt_system_enabled ?? true
   const beltSlot      = beltSystem.find(s => s.key === member.belt) ?? beltSystem[0]
@@ -529,7 +535,8 @@ export default function MemberPortalPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-3">
+      {/* Always visible section */}
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-3">
 
         {/* PWA install */}
         <PWAInstallButton gymName={gym?.name ?? ''} />
@@ -562,535 +569,587 @@ export default function MemberPortalPage() {
           <p className="text-slate-400 text-xs mb-4">Im Gym? Einmal tippen — automatisch eingecheckt.</p>
           <button
             onClick={handleGpsCheckin}
-            disabled={gpsState === 'locating'}
-            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl py-3 transition-colors"
+            disabled={gpsState === 'locating' || !eligibleForCheckin}
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl py-3 transition-colors"
           >
             <Navigation size={14} />
             {gpsState === 'locating' ? 'Standort wird ermittelt…' : 'GPS Check-in starten'}
           </button>
+          {!eligibleForCheckin && gpsState === 'idle' && (
+            <p className="mt-2 text-xs text-center text-slate-400">Kein aktiver Kurs – Check-in ist nur während oder bis zu 3 Std. nach dem Training möglich.</p>
+          )}
           {gpsMessage && (
             <p className={`mt-3 text-xs text-center px-3 py-2 rounded-xl ${gpsState === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
               {gpsMessage}
             </p>
           )}
         </div>
+      </div>
 
-        {/* Announcements */}
-        {announcements.length > 0 && (
-          <div className="space-y-2">
-            {announcements.map(a => (
-              <div key={a.id} className={`rounded-2xl p-4 border ${a.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'}`}>
-                <div className="flex items-start gap-2.5">
-                  <div className="flex-shrink-0 mt-0.5">
-                    {a.is_pinned ? <Pin size={13} className="text-amber-500" /> : <Megaphone size={13} className="text-slate-400" />}
+      {/* Sticky tab bar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-slate-100 shadow-sm">
+        <div className="max-w-2xl mx-auto flex">
+          {[
+            { id: 'schedule',   label: 'Stundenplan', Icon: Calendar },
+            { id: 'profile',    label: 'Profil',       Icon: User },
+            { id: 'verwaltung', label: 'Verwaltung',   Icon: CreditCard },
+            { id: 'logbuch',    label: 'Logbuch',      Icon: BookOpen },
+          ].map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id as any)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors border-b-2 ${
+                activeTab === id
+                  ? 'border-amber-500 text-amber-600'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <Icon size={16} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab content */}
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+
+        {/* ── Stundenplan tab ── */}
+        {activeTab === 'schedule' && (
+          <>
+            {/* Announcements */}
+            {announcements.length > 0 && (
+              <div className="space-y-2">
+                {announcements.map(a => (
+                  <div key={a.id} className={`rounded-2xl p-4 border ${a.is_pinned ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'}`}>
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex-shrink-0 mt-0.5">
+                        {a.is_pinned ? <Pin size={13} className="text-amber-500" /> : <Megaphone size={13} className="text-slate-400" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold ${a.is_pinned ? 'text-amber-900' : 'text-slate-800'}`}>{a.title}</p>
+                        {a.body && <p className={`text-xs mt-1 leading-relaxed ${a.is_pinned ? 'text-amber-800' : 'text-slate-500'}`}>{a.body}</p>}
+                        <p className="text-xs text-slate-400 mt-1.5">
+                          {new Date(a.created_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold ${a.is_pinned ? 'text-amber-900' : 'text-slate-800'}`}>{a.title}</p>
-                    {a.body && <p className={`text-xs mt-1 leading-relaxed ${a.is_pinned ? 'text-amber-800' : 'text-slate-500'}`}>{a.body}</p>}
-                    <p className="text-xs text-slate-400 mt-1.5">
-                      {new Date(a.created_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
+                ))}
+              </div>
+            )}
+
+            {/* Posts */}
+            {(posts ?? []).length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-1 mb-2">News vom Gym</h2>
+                {(posts ?? []).map(post => (
+                  <div key={post.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    {post.cover_url && (
+                      <img src={post.cover_url} alt={post.title} className="w-full h-40 object-cover" />
+                    )}
+                    <div className="p-4">
+                      <p className="text-xs text-slate-400 mb-1">
+                        {new Date(post.published_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                      <h3 className="font-bold text-slate-900 text-base leading-snug mb-2">{post.title}</h3>
+                      {post.blocks.slice(0, 2).map((block, i) => {
+                        if (block.type === 'paragraph' && block.content) {
+                          return <p key={i} className="text-sm text-slate-600 leading-relaxed line-clamp-3">{block.content}</p>
+                        }
+                        return null
+                      })}
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {/* Stundenplan / Kalender */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                <h2 className="font-semibold text-slate-900 flex items-center gap-2 text-sm">
+                  <Calendar size={14} className="text-amber-500" /> Stundenplan
+                </h2>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      const prev = addDays(weekStart, -7)
+                      setWeekStart(prev); setSelectedDay(addDays(selectedDay, -7)); loadClasses(prev)
+                    }}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const w = startOfWeek(new Date())
+                      setWeekStart(w); setSelectedDay(todayDate); loadClasses(w)
+                    }}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
+                    Heute
+                  </button>
+                  <button
+                    onClick={() => {
+                      const next = addDays(weekStart, 7)
+                      setWeekStart(next); setSelectedDay(addDays(selectedDay, 7)); loadClasses(next)
+                    }}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Posts */}
-        {(posts ?? []).length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest px-1 mb-2">News vom Gym</h2>
-            {(posts ?? []).map(post => (
-              <div key={post.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                {post.cover_url && (
-                  <img src={post.cover_url} alt={post.title} className="w-full h-40 object-cover" />
-                )}
-                <div className="p-4">
-                  <p className="text-xs text-slate-400 mb-1">
-                    {new Date(post.published_at).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </p>
-                  <h3 className="font-bold text-slate-900 text-base leading-snug mb-2">{post.title}</h3>
-                  {post.blocks.slice(0, 2).map((block, i) => {
-                    if (block.type === 'paragraph' && block.content) {
-                      return <p key={i} className="text-sm text-slate-600 leading-relaxed line-clamp-3">{block.content}</p>
-                    }
-                    return null
+              {/* Day strip */}
+              <div className="border-b border-slate-100 bg-white overflow-x-auto">
+                <div className="flex min-w-max px-2 gap-1 py-2">
+                  {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, idx) => {
+                    const isToday = isSameDay(day, todayDate)
+                    const isSel   = isSameDay(day, selectedDay)
+                    const hasCls  = classes.some(c => isSameDay(new Date(c.starts_at), day))
+                    return (
+                      <button key={idx} onClick={() => setSelectedDay(day)}
+                        className={`flex flex-col items-center px-4 py-2 rounded-xl transition-colors min-w-[52px] ${
+                          isSel ? 'bg-amber-500 text-white' : isToday ? 'bg-amber-50 text-amber-700' : 'text-slate-500 hover:bg-slate-50'
+                        }`}>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide">{WEEKDAYS[idx]}</span>
+                        <span className="text-sm font-bold mt-0.5">{day.getDate()}</span>
+                        {hasCls && !isSel && <span className="w-1 h-1 rounded-full bg-amber-400 mt-1" />}
+                      </button>
+                    )
                   })}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Profile card */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div
-              className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
-              style={{ backgroundColor: beltEnabled ? beltSlot.bg : '#e2e8f0', color: beltEnabled ? beltSlot.text : '#94a3b8' }}
-            >
-              {member.first_name[0]}{member.last_name[0]}
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold text-slate-900">{member.first_name} {member.last_name}</h1>
-              {beltEnabled && (
-                <div className="mt-1">
-                  <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />
-                </div>
-              )}
-              {member.email && <p className="text-slate-400 text-xs mt-1 truncate">{member.email}</p>}
-            </div>
-          </div>
-        </div>
-
-        {/* Contract banner */}
-        {member.contract_end_date && <ContractBanner contractEndDate={member.contract_end_date} />}
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard icon={<Calendar size={15} />} label="Mitglied seit" value={new Date(member.join_date).toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })} />
-          <StatCard icon={<Dumbbell size={15} />} label="Gesamt" value={String(totalSessions ?? 0)} />
-          <StatCard icon={<Flame size={15} />} label="Diesen Monat" value={`${sessionsThisMonth}${sessionsThisMonth > 0 ? ' 🔥' : ''}`} />
-          <StatCard icon={<Trophy size={15} />} label="Wochen-Streak" value={`${streak}${streak >= 4 ? ' 🏆' : ''}`} />
-        </div>
-
-        {/* Membership plans */}
-        {plans.length > 0 && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-            <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
-              <Package size={15} className="text-slate-400" /> Mitgliedschaft
-            </h2>
-            {currentPlan ? (
-              <p className="text-xs text-slate-400 mb-4">
-                Aktuell: <span className="font-medium text-slate-600">{currentPlan.name}</span>
-              </p>
-            ) : (
-              <p className="text-xs text-slate-400 mb-4">Wähle einen Tarif oder fordere einen Wechsel an.</p>
-            )}
-
-            {requestedPlan && (
-              <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5">
-                <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-amber-800 text-sm font-medium">Wechsel zu „{requestedPlan.name}" angefordert</p>
-                  <p className="text-amber-700 text-xs mt-0.5">Dein Gym wird die Änderung bearbeiten.</p>
-                </div>
-                <button onClick={handleWithdrawPlanRequest} className="text-amber-500 hover:text-amber-700 flex-shrink-0">
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {plans.map(plan => {
-                const { total, perMonth } = formatPrice(plan.price_cents, plan.billing_interval)
-                const isCurrentPlan   = plan.id === member.plan_id
-                const isRequested     = plan.id === localRequestedPlanId
-                const isLoading       = planRequesting === plan.id
-
-                return (
-                  <div key={plan.id} className={`rounded-xl border-2 p-4 transition-all ${
-                    isCurrentPlan ? 'border-amber-400 bg-amber-50' :
-                    isRequested   ? 'border-amber-200 bg-amber-50/50' :
-                    'border-slate-100 bg-slate-50'
-                  }`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-slate-900 text-sm">{plan.name}</p>
-                          {isCurrentPlan && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold">Aktuell</span>
-                          )}
-                          {isRequested && !isCurrentPlan && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-800 font-bold">Angefordert</span>
-                          )}
-                        </div>
-                        <div className="flex items-baseline gap-2 mt-1">
-                          <span className="text-lg font-black text-slate-900">{total}</span>
-                          {perMonth && <span className="text-xs text-slate-400">{perMonth}</span>}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {plan.contract_months === 0
-                            ? 'Jederzeit kündbar'
-                            : `${plan.contract_months} Monate Mindestlaufzeit`}
-                        </p>
-                        {plan.description && (
-                          <p className="text-xs text-slate-500 mt-1">{plan.description}</p>
-                        )}
-                      </div>
-                      {!isCurrentPlan && !isRequested && (
-                        <button
-                          onClick={() => handleRequestPlan(plan.id)}
-                          disabled={!!isLoading}
-                          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
-                        >
-                          {isLoading ? '…' : 'Wählen'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── Stundenplan / Kalender ─────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-900 flex items-center gap-2 text-sm">
-              <Calendar size={14} className="text-amber-500" /> Stundenplan
-            </h2>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  const prev = addDays(weekStart, -7)
-                  setWeekStart(prev); setSelectedDay(addDays(selectedDay, -7)); loadClasses(prev)
-                }}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                onClick={() => {
-                  const w = startOfWeek(new Date())
-                  setWeekStart(w); setSelectedDay(todayDate); loadClasses(w)
-                }}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors">
-                Heute
-              </button>
-              <button
-                onClick={() => {
-                  const next = addDays(weekStart, 7)
-                  setWeekStart(next); setSelectedDay(addDays(selectedDay, 7)); loadClasses(next)
-                }}
-                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-
-          {/* Day strip */}
-          <div className="border-b border-slate-100 bg-white overflow-x-auto">
-            <div className="flex min-w-max px-2 gap-1 py-2">
-              {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, idx) => {
-                const isToday = isSameDay(day, todayDate)
-                const isSel   = isSameDay(day, selectedDay)
-                const hasCls  = classes.some(c => isSameDay(new Date(c.starts_at), day))
-                return (
-                  <button key={idx} onClick={() => setSelectedDay(day)}
-                    className={`flex flex-col items-center px-4 py-2 rounded-xl transition-colors min-w-[52px] ${
-                      isSel ? 'bg-amber-500 text-white' : isToday ? 'bg-amber-50 text-amber-700' : 'text-slate-500 hover:bg-slate-50'
-                    }`}>
-                    <span className="text-[10px] font-semibold uppercase tracking-wide">{WEEKDAYS[idx]}</span>
-                    <span className="text-sm font-bold mt-0.5">{day.getDate()}</span>
-                    {hasCls && !isSel && <span className="w-1 h-1 rounded-full bg-amber-400 mt-1" />}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Class list for selected day */}
-          <div className="p-4">
-            {classesLoading ? (
-              <p className="text-slate-400 text-sm text-center py-8">Lädt…</p>
-            ) : (() => {
-              const dayClasses = classes.filter(c => isSameDay(new Date(c.starts_at), selectedDay))
-              if (dayClasses.length === 0) {
-                return (
-                  <p className="text-slate-400 text-sm text-center py-8">
-                    Kein Training an diesem Tag.
-                  </p>
-                )
-              }
-              return (
-                <div className="space-y-3">
-                  {dayClasses.map(cls => {
-                    const now        = new Date()
-                    const isLive     = new Date(cls.starts_at) <= now && new Date(cls.ends_at) >= now
-                    const spotsLeft  = cls.max_capacity != null ? cls.max_capacity - cls.confirmed_count : null
-                    const isFull     = spotsLeft != null && spotsLeft <= 0
-                    const isBooked   = cls.my_status === 'confirmed'
-                    const isWaitlist = cls.my_status === 'waitlist'
-                    const isLoading  = bookingId === cls.id
-                    const attState   = attendanceMap[cls.id]
-                    const showCheckin = (isBooked || !!attState) && canCheckin(cls.starts_at, cls.ends_at) && !attState
-
-                    const isExpanded = expandedClassId === cls.id
-                    const hasParticipants = cls.participants.length > 0
-
+              {/* Class list for selected day */}
+              <div className="p-4">
+                {classesLoading ? (
+                  <p className="text-slate-400 text-sm text-center py-8">Lädt…</p>
+                ) : (() => {
+                  const dayClasses = classes.filter(c => isSameDay(new Date(c.starts_at), selectedDay))
+                  if (dayClasses.length === 0) {
                     return (
-                      <div key={cls.id} className="rounded-xl border border-slate-100 overflow-hidden shadow-sm">
-                        {/* Card top — tappable to expand participants */}
-                        <button
-                          className="w-full text-left p-4 hover:bg-slate-50/60 transition-colors"
-                          onClick={() => setExpandedClassId(isExpanded ? null : cls.id)}
-                        >
-                          <div className="flex items-start gap-3">
-                            {/* Type dot */}
-                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${TYPE_DOT[cls.class_type] ?? 'bg-slate-300'}`} />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border font-semibold tracking-wide ${TYPE_BADGE[cls.class_type] ?? TYPE_BADGE.gi}`}>
-                                  {TYPE_LABEL[cls.class_type] ?? cls.class_type}
-                                </span>
-                                {isLive && (
-                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    LIVE
-                                  </span>
-                                )}
-                                {isBooked && !attState && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-green-50 text-green-700 border border-green-200">Angemeldet</span>
-                                )}
-                                {isWaitlist && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-700 border border-amber-200">Warteliste</span>
-                                )}
-                                {attState && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Eingecheckt ✓</span>
-                                )}
-                              </div>
-                              <p className="text-slate-900 text-sm font-bold leading-tight">{cls.title}</p>
-                              <p className="text-slate-500 text-xs mt-0.5 tabular-nums">
-                                {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
-                              </p>
-                              {cls.instructor && (
-                                <p className="text-slate-400 text-xs truncate">{cls.instructor}</p>
-                              )}
-                              <div className="flex items-center justify-between mt-1.5">
-                                <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                                  <Users size={10} />
-                                  <span>{cls.confirmed_count}{cls.max_capacity ? `/${cls.max_capacity}` : ''}</span>
-                                  {cls.waitlist_count > 0 && <span className="text-amber-600 font-medium">+{cls.waitlist_count} WL</span>}
-                                  {isFull && !isBooked && !isWaitlist && (
-                                    <span className="text-red-500 font-medium">· Ausgebucht</span>
+                      <p className="text-slate-400 text-sm text-center py-8">
+                        Kein Training an diesem Tag.
+                      </p>
+                    )
+                  }
+                  return (
+                    <div className="space-y-3">
+                      {dayClasses.map(cls => {
+                        const now        = new Date()
+                        const isLive     = new Date(cls.starts_at) <= now && new Date(cls.ends_at) >= now
+                        const spotsLeft  = cls.max_capacity != null ? cls.max_capacity - cls.confirmed_count : null
+                        const isFull     = spotsLeft != null && spotsLeft <= 0
+                        const isBooked   = cls.my_status === 'confirmed'
+                        const isWaitlist = cls.my_status === 'waitlist'
+                        const isLoading  = bookingId === cls.id
+                        const attState   = attendanceMap[cls.id]
+                        const showCheckin = (isBooked || !!attState) && canCheckin(cls.starts_at, cls.ends_at) && !attState
+
+                        const isExpanded = expandedClassId === cls.id
+                        const hasParticipants = cls.participants.length > 0
+
+                        return (
+                          <div key={cls.id} className="rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                            {/* Card top — tappable to expand participants */}
+                            <button
+                              className="w-full text-left p-4 hover:bg-slate-50/60 transition-colors"
+                              onClick={() => setExpandedClassId(isExpanded ? null : cls.id)}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Type dot */}
+                                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${TYPE_DOT[cls.class_type] ?? 'bg-slate-300'}`} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border font-semibold tracking-wide ${TYPE_BADGE[cls.class_type] ?? TYPE_BADGE.gi}`}>
+                                      {TYPE_LABEL[cls.class_type] ?? cls.class_type}
+                                    </span>
+                                    {isLive && (
+                                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        LIVE
+                                      </span>
+                                    )}
+                                    {isBooked && !attState && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-green-50 text-green-700 border border-green-200">Angemeldet</span>
+                                    )}
+                                    {isWaitlist && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-700 border border-amber-200">Warteliste</span>
+                                    )}
+                                    {attState && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Eingecheckt ✓</span>
+                                    )}
+                                  </div>
+                                  <p className="text-slate-900 text-sm font-bold leading-tight">{cls.title}</p>
+                                  <p className="text-slate-500 text-xs mt-0.5 tabular-nums">
+                                    {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
+                                  </p>
+                                  {cls.instructor && (
+                                    <p className="text-slate-400 text-xs truncate">{cls.instructor}</p>
                                   )}
+                                  <div className="flex items-center justify-between mt-1.5">
+                                    <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                                      <Users size={10} />
+                                      <span>{cls.confirmed_count}{cls.max_capacity ? `/${cls.max_capacity}` : ''}</span>
+                                      {cls.waitlist_count > 0 && <span className="text-amber-600 font-medium">+{cls.waitlist_count} WL</span>}
+                                      {isFull && !isBooked && !isWaitlist && (
+                                        <span className="text-red-500 font-medium">· Ausgebucht</span>
+                                      )}
+                                    </div>
+                                    {hasParticipants && (
+                                      <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
+                                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                {hasParticipants && (
-                                  <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
-                                    {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                  </span>
+                              </div>
+                            </button>
+
+                            {/* Participant list */}
+                            {isExpanded && (
+                              <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/50">
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Wer kommt</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {cls.participants.map((p, i) => (
+                                    <span key={i} className={`text-xs px-2 py-1 rounded-lg font-medium ${
+                                      p.status === 'checked_in'
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                        : 'bg-white text-slate-700 border border-slate-200'
+                                    }`}>
+                                      {p.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Action row */}
+                            {!attState && (
+                              <div className="px-4 pb-4">
+                                {showCheckin ? (
+                                  <button onClick={() => handleCheckin(cls.id)} disabled={checkinLoading === cls.id}
+                                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                                    <CheckCircle size={14} />
+                                    {checkinLoading === cls.id ? 'Einchecken…' : 'Jetzt einchecken'}
+                                  </button>
+                                ) : isBooked ? (
+                                  <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
+                                    className="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors disabled:opacity-50">
+                                    {isLoading ? '…' : 'Abmelden'}
+                                  </button>
+                                ) : isWaitlist ? (
+                                  <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
+                                    className="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors disabled:opacity-50">
+                                    {isLoading ? '…' : 'Von Warteliste abmelden'}
+                                  </button>
+                                ) : isFull ? (
+                                  <button onClick={() => handleBook(cls.id)} disabled={isLoading}
+                                    className="w-full py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-sm font-medium transition-colors disabled:opacity-50">
+                                    {isLoading ? '…' : 'Auf Warteliste'}
+                                  </button>
+                                ) : (
+                                  <button onClick={() => handleBook(cls.id)} disabled={isLoading}
+                                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold transition-colors disabled:opacity-50">
+                                    {isLoading ? '…' : 'Anmelden'}
+                                  </button>
                                 )}
                               </div>
-                            </div>
-                          </div>
-                        </button>
-
-                        {/* Participant list */}
-                        {isExpanded && (
-                          <div className="border-t border-slate-100 px-4 py-3 bg-slate-50/50">
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Wer kommt</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {cls.participants.map((p, i) => (
-                                <span key={i} className={`text-xs px-2 py-1 rounded-lg font-medium ${
-                                  p.status === 'checked_in'
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                    : 'bg-white text-slate-700 border border-slate-200'
-                                }`}>
-                                  {p.name}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Action row */}
-                        {!attState && (
-                          <div className="px-4 pb-4">
-                            {showCheckin ? (
-                              <button onClick={() => handleCheckin(cls.id)} disabled={checkinLoading === cls.id}
-                                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                                <CheckCircle size={14} />
-                                {checkinLoading === cls.id ? 'Einchecken…' : 'Jetzt einchecken'}
-                              </button>
-                            ) : isBooked ? (
-                              <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
-                                className="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors disabled:opacity-50">
-                                {isLoading ? '…' : 'Abmelden'}
-                              </button>
-                            ) : isWaitlist ? (
-                              <button onClick={() => handleCancelBooking(cls.id)} disabled={isLoading}
-                                className="w-full py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 text-sm font-medium transition-colors disabled:opacity-50">
-                                {isLoading ? '…' : 'Von Warteliste abmelden'}
-                              </button>
-                            ) : isFull ? (
-                              <button onClick={() => handleBook(cls.id)} disabled={isLoading}
-                                className="w-full py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-sm font-medium transition-colors disabled:opacity-50">
-                                {isLoading ? '…' : 'Auf Warteliste'}
-                              </button>
-                            ) : (
-                              <button onClick={() => handleBook(cls.id)} disabled={isLoading}
-                                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-sm font-semibold transition-colors disabled:opacity-50">
-                                {isLoading ? '…' : 'Anmelden'}
-                              </button>
                             )}
                           </div>
-                        )}
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Profil tab ── */}
+        {activeTab === 'profile' && (
+          <>
+            {/* Profile card */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
+                  style={{ backgroundColor: beltEnabled ? beltSlot.bg : '#e2e8f0', color: beltEnabled ? beltSlot.text : '#94a3b8' }}
+                >
+                  {member.first_name[0]}{member.last_name[0]}
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-xl font-bold text-slate-900">{member.first_name} {member.last_name}</h1>
+                  {beltEnabled && (
+                    <div className="mt-1">
+                      <BeltBadge belt={member.belt as Belt} stripes={member.stripes} beltSystem={beltSystem} />
+                    </div>
+                  )}
+                  {member.email && <p className="text-slate-400 text-xs mt-1 truncate">{member.email}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Contract banner */}
+            {member.contract_end_date && <ContractBanner contractEndDate={member.contract_end_date} />}
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatCard icon={<Calendar size={15} />} label="Mitglied seit" value={new Date(member.join_date).toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })} />
+              <StatCard icon={<Dumbbell size={15} />} label="Gesamt" value={String(totalSessions ?? 0)} />
+              <StatCard icon={<Flame size={15} />} label="Diesen Monat" value={`${sessionsThisMonth}${sessionsThisMonth > 0 ? ' 🔥' : ''}`} />
+              <StatCard icon={<Trophy size={15} />} label="Wochen-Streak" value={`${streak}${streak >= 4 ? ' 🏆' : ''}`} />
+            </div>
+          </>
+        )}
+
+        {/* ── Verwaltung tab ── */}
+        {activeTab === 'verwaltung' && (
+          <>
+            {/* Membership plans */}
+            {plans.length > 0 && (
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+                  <Package size={15} className="text-slate-400" /> Mitgliedschaft
+                </h2>
+                {currentPlan ? (
+                  <p className="text-xs text-slate-400 mb-4">
+                    Aktuell: <span className="font-medium text-slate-600">{currentPlan.name}</span>
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-400 mb-4">Wähle einen Tarif oder fordere einen Wechsel an.</p>
+                )}
+
+                {requestedPlan && (
+                  <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5">
+                    <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-amber-800 text-sm font-medium">Wechsel zu „{requestedPlan.name}" angefordert</p>
+                      <p className="text-amber-700 text-xs mt-0.5">Dein Gym wird die Änderung bearbeiten.</p>
+                    </div>
+                    <button onClick={handleWithdrawPlanRequest} className="text-amber-500 hover:text-amber-700 flex-shrink-0">
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {plans.map(plan => {
+                    const { total, perMonth } = formatPrice(plan.price_cents, plan.billing_interval)
+                    const isCurrentPlan   = plan.id === member.plan_id
+                    const isRequested     = plan.id === localRequestedPlanId
+                    const isLoading       = planRequesting === plan.id
+
+                    return (
+                      <div key={plan.id} className={`rounded-xl border-2 p-4 transition-all ${
+                        isCurrentPlan ? 'border-amber-400 bg-amber-50' :
+                        isRequested   ? 'border-amber-200 bg-amber-50/50' :
+                        'border-slate-100 bg-slate-50'
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-slate-900 text-sm">{plan.name}</p>
+                              {isCurrentPlan && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold">Aktuell</span>
+                              )}
+                              {isRequested && !isCurrentPlan && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-800 font-bold">Angefordert</span>
+                              )}
+                            </div>
+                            <div className="flex items-baseline gap-2 mt-1">
+                              <span className="text-lg font-black text-slate-900">{total}</span>
+                              {perMonth && <span className="text-xs text-slate-400">{perMonth}</span>}
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {plan.contract_months === 0
+                                ? 'Jederzeit kündbar'
+                                : `${plan.contract_months} Monate Mindestlaufzeit`}
+                            </p>
+                            {plan.description && (
+                              <p className="text-xs text-slate-500 mt-1">{plan.description}</p>
+                            )}
+                          </div>
+                          {!isCurrentPlan && !isRequested && (
+                            <button
+                              onClick={() => handleRequestPlan(plan.id)}
+                              disabled={!!isLoading}
+                              className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                            >
+                              {isLoading ? '…' : 'Wählen'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
                 </div>
-              )
-            })()}
-          </div>
-        </div>
+              </div>
+            )}
 
-        {/* Payments */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <CreditCard size={15} className="text-slate-400" /> Zahlungshistorie
-          </h2>
-          {payments?.length > 0 ? (
-            <div className="space-y-2">
-              {payments.map(p => (
-                <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0 gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${STATUS_COLORS[p.status] ?? STATUS_COLORS.pending}`}>
-                      {STATUS_LABELS[p.status] ?? p.status}
-                    </span>
-                    <span className="text-slate-700 text-sm font-medium flex-shrink-0">
-                      {(p.amount_cents / 100).toFixed(2).replace('.', ',')} €
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-slate-400 text-xs">{new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}</span>
-                    {p.status === 'pending' && p.checkout_url && (
-                      isCheckoutExpired(p) ? (
-                        <span className="text-slate-400 text-xs opacity-60">Link abgelaufen</span>
-                      ) : (
-                        <a href={p.checkout_url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors">
-                          Jetzt bezahlen
-                        </a>
-                      )
-                    )}
-                  </div>
+            {/* Payments */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+              <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <CreditCard size={15} className="text-slate-400" /> Zahlungshistorie
+              </h2>
+              {payments?.length > 0 ? (
+                <div className="space-y-2">
+                  {payments.map(p => (
+                    <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0 gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${STATUS_COLORS[p.status] ?? STATUS_COLORS.pending}`}>
+                          {STATUS_LABELS[p.status] ?? p.status}
+                        </span>
+                        <span className="text-slate-700 text-sm font-medium flex-shrink-0">
+                          {(p.amount_cents / 100).toFixed(2).replace('.', ',')} €
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-slate-400 text-xs">{new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}</span>
+                        {p.status === 'pending' && p.checkout_url && (
+                          isCheckoutExpired(p) ? (
+                            <span className="text-slate-400 text-xs opacity-60">Link abgelaufen</span>
+                          ) : (
+                            <a href={p.checkout_url} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors">
+                              Jetzt bezahlen
+                            </a>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-slate-400 text-sm">Keine Zahlungen vorhanden.</p>
-          )}
-        </div>
-
-        {/* Attendance history */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <Dumbbell size={15} className="text-slate-400" /> Trainingsverlauf
-            <span className="text-sm font-normal text-slate-400">({totalSessions ?? 0} gesamt)</span>
-          </h2>
-          {attendance?.length > 0 ? (
-            <div>
-              {attendance.slice(0, 20).map(a => (
-                <div key={a.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
-                  <span className="text-slate-700 text-sm font-medium">{CLASS_LABELS[a.class_type] ?? a.class_type}</span>
-                  <span className="text-slate-400 text-xs">
-                    {new Date(a.checked_in_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
-                    {' · '}
-                    {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              ))}
-              {(totalSessions ?? 0) > 20 && (
-                <p className="text-slate-400 text-xs pt-3 text-center">+ {(totalSessions ?? 0) - 20} weitere Einträge</p>
+              ) : (
+                <p className="text-slate-400 text-sm">Keine Zahlungen vorhanden.</p>
               )}
             </div>
-          ) : (
-            <p className="text-slate-400 text-sm">Noch keine Trainings aufgezeichnet.</p>
-          )}
-        </div>
 
-        {/* Training log */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <BookOpen size={15} className="text-slate-400" /> Technik-Logbuch
-          </h2>
-          <div className="space-y-3 mb-5">
-            <textarea value={logNote} onChange={e => setLogNote(e.target.value)}
-              placeholder="Was hast du heute gelernt oder geübt?" rows={3}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
-            <div className="flex gap-2">
-              <select value={logClassType} onChange={e => setLogClassType(e.target.value)}
-                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
-                <option value="">Klasse (optional)</option>
-                {CLASS_TYPE_OPTIONS.map(t => <option key={t} value={t}>{CLASS_LABELS[t] ?? t}</option>)}
-              </select>
-              <button onClick={handleSaveLog} disabled={logSaving || !logNote.trim()}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium transition-colors disabled:opacity-50">
-                {logSaving ? '…' : 'Speichern'}
-              </button>
-            </div>
-          </div>
-          {logs.length === 0 ? (
-            <p className="text-slate-400 text-sm">Noch keine Notizen gespeichert.</p>
-          ) : (
-            <div className="space-y-3">
-              {logs.slice(0, 10).map(log => (
-                <div key={log.id} className="rounded-xl border border-slate-100 p-3 bg-slate-50">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-slate-400 text-xs">
-                      {new Date(log.logged_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
-                      {' · '}{new Date(log.logged_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    {log.class_type && (
-                      <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${TYPE_COLORS[log.class_type] ?? TYPE_COLORS.gi}`}>
-                        {CLASS_LABELS[log.class_type] ?? log.class_type}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-slate-700 text-sm whitespace-pre-wrap">{log.note}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Cancellation */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
-            <AlertTriangle size={15} className="text-slate-400" /> Mitgliedschaft kündigen
-          </h2>
-          <p className="text-xs text-slate-400 mb-4">
-            Eine Kündigung muss vom Gym bestätigt werden. Deine Mitgliedschaft läuft bis zur Bearbeitung weiter.
-          </p>
-
-          {localCancelledAt ? (
-            <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-              <p className="text-red-700 text-sm font-semibold">Kündigung angefordert</p>
-              <p className="text-red-600 text-xs mt-1">
-                Eingereicht am {new Date(localCancelledAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}. Dein Gym wird sich melden.
+            {/* Cancellation */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+              <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+                <AlertTriangle size={15} className="text-slate-400" /> Mitgliedschaft kündigen
+              </h2>
+              <p className="text-xs text-slate-400 mb-4">
+                Eine Kündigung muss vom Gym bestätigt werden. Deine Mitgliedschaft läuft bis zur Bearbeitung weiter.
               </p>
-              <button onClick={handleWithdrawCancel}
-                className="mt-3 text-xs text-red-400 hover:text-red-600 underline">
-                Kündigung zurückziehen
-              </button>
+
+              {localCancelledAt ? (
+                <div className="rounded-xl bg-red-50 border border-red-200 p-4">
+                  <p className="text-red-700 text-sm font-semibold">Kündigung angefordert</p>
+                  <p className="text-red-600 text-xs mt-1">
+                    Eingereicht am {new Date(localCancelledAt).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}. Dein Gym wird sich melden.
+                  </p>
+                  <button onClick={handleWithdrawCancel}
+                    className="mt-3 text-xs text-red-400 hover:text-red-600 underline">
+                    Kündigung zurückziehen
+                  </button>
+                </div>
+              ) : showCancelForm ? (
+                <div className="space-y-3">
+                  <textarea value={cancelNote} onChange={e => setCancelNote(e.target.value)}
+                    placeholder="Grund (optional)…" rows={3}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowCancelForm(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
+                      Abbrechen
+                    </button>
+                    <button onClick={handleRequestCancel} disabled={cancelRequesting}
+                      className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white text-sm font-semibold transition-colors disabled:opacity-50">
+                      {cancelRequesting ? 'Wird gesendet…' : 'Kündigung senden'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowCancelForm(true)}
+                  className="w-full py-2.5 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 text-sm font-semibold transition-colors">
+                  Kündigung anfordern
+                </button>
+              )}
             </div>
-          ) : showCancelForm ? (
-            <div className="space-y-3">
-              <textarea value={cancelNote} onChange={e => setCancelNote(e.target.value)}
-                placeholder="Grund (optional)…" rows={3}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
-              <div className="flex gap-2">
-                <button onClick={() => setShowCancelForm(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
-                  Abbrechen
-                </button>
-                <button onClick={handleRequestCancel} disabled={cancelRequesting}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white text-sm font-semibold transition-colors disabled:opacity-50">
-                  {cancelRequesting ? 'Wird gesendet…' : 'Kündigung senden'}
-                </button>
+          </>
+        )}
+
+        {/* ── Logbuch tab ── */}
+        {activeTab === 'logbuch' && (
+          <>
+            {/* Attendance history */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+              <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <Dumbbell size={15} className="text-slate-400" /> Trainingsverlauf
+                <span className="text-sm font-normal text-slate-400">({totalSessions ?? 0} gesamt)</span>
+              </h2>
+              {attendance?.length > 0 ? (
+                <div>
+                  {attendance.slice(0, 20).map(a => (
+                    <div key={a.id} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+                      <span className="text-slate-700 text-sm font-medium">{CLASS_LABELS[a.class_type] ?? a.class_type}</span>
+                      <span className="text-slate-400 text-xs">
+                        {new Date(a.checked_in_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
+                        {' · '}
+                        {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ))}
+                  {(totalSessions ?? 0) > 20 && (
+                    <p className="text-slate-400 text-xs pt-3 text-center">+ {(totalSessions ?? 0) - 20} weitere Einträge</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-sm">Noch keine Trainings aufgezeichnet.</p>
+              )}
+            </div>
+
+            {/* Training log */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+              <h2 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <BookOpen size={15} className="text-slate-400" /> Technik-Logbuch
+              </h2>
+              <div className="space-y-3 mb-5">
+                <textarea value={logNote} onChange={e => setLogNote(e.target.value)}
+                  placeholder="Was hast du heute gelernt oder geübt?" rows={3}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                <div className="flex gap-2">
+                  <select value={logClassType} onChange={e => setLogClassType(e.target.value)}
+                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <option value="">Klasse (optional)</option>
+                    {CLASS_TYPE_OPTIONS.map(t => <option key={t} value={t}>{CLASS_LABELS[t] ?? t}</option>)}
+                  </select>
+                  <button onClick={handleSaveLog} disabled={logSaving || !logNote.trim()}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium transition-colors disabled:opacity-50">
+                    {logSaving ? '…' : 'Speichern'}
+                  </button>
+                </div>
               </div>
+              {logs.length === 0 ? (
+                <p className="text-slate-400 text-sm">Noch keine Notizen gespeichert.</p>
+              ) : (
+                <div className="space-y-3">
+                  {logs.slice(0, 10).map(log => (
+                    <div key={log.id} className="rounded-xl border border-slate-100 p-3 bg-slate-50">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-slate-400 text-xs">
+                          {new Date(log.logged_at).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
+                          {' · '}{new Date(log.logged_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {log.class_type && (
+                          <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${TYPE_COLORS[log.class_type] ?? TYPE_COLORS.gi}`}>
+                            {CLASS_LABELS[log.class_type] ?? log.class_type}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-700 text-sm whitespace-pre-wrap">{log.note}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <button onClick={() => setShowCancelForm(true)}
-              className="w-full py-2.5 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 text-sm font-semibold transition-colors">
-              Kündigung anfordern
-            </button>
-          )}
-        </div>
+          </>
+        )}
 
         <p className="text-center text-slate-300 text-xs pb-4">Powered by <span className="font-bold italic">Osss</span></p>
       </div>
