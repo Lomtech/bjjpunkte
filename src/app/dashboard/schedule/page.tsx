@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw, Upload, Trash2, Download } from 'lucide-react'
 import { NewClassModal } from './NewClassModal'
 import { EditClassModal } from './EditClassModal'
 import Link from 'next/link'
@@ -70,6 +70,10 @@ export default function SchedulePage() {
   const [editingClass, setEditingClass] = useState<ClassRow | null>(null)
   // Cancel / delete confirmation modal
   const [cancelTarget, setCancelTarget] = useState<ClassRow | null>(null)
+  // Bulk delete
+  const [showClearModal, setShowClearModal] = useState(false)
+  const [clearStep, setClearStep]           = useState<'confirm' | 'downloading' | 'deleting' | 'done'>('confirm')
+  const [clearCount, setClearCount]         = useState(0)
 
   // Refs so loadClasses can access gymId without stale closure
   const gymIdRef       = useRef('')
@@ -143,6 +147,35 @@ export default function SchedulePage() {
     })
     setCancellingId(null)
     loadClasses(weekStart)
+  }
+
+  async function doClearAll() {
+    setClearStep('downloading')
+    // 1. Download CSV backup
+    const backupRes = await fetch('/api/classes/bulk', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (backupRes.ok) {
+      const blob = await backupRes.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a'); a.href = url
+      a.download = `stundenplan-backup-${new Date().toISOString().split('T')[0]}.csv`
+      a.click(); URL.revokeObjectURL(url)
+    }
+    // 2. Delete all future classes
+    setClearStep('deleting')
+    const delRes = await fetch('/api/classes/bulk', {
+      method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (delRes.ok) {
+      const json = await delRes.json()
+      setClearCount(json.deleted ?? 0)
+      setClearStep('done')
+      loadClasses(weekStart)
+    } else {
+      setShowClearModal(false)
+      setClearStep('confirm')
+    }
   }
 
   async function loadLeadCounts(classIds: string[]): Promise<Record<string, number>> {
@@ -267,6 +300,10 @@ export default function SchedulePage() {
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-zinc-50 transition-colors">
             <Upload size={13} /> Import
           </Link>
+          <button onClick={() => { setShowClearModal(true); setClearStep('confirm') }}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-50 transition-colors">
+            <Trash2 size={13} /> Löschen
+          </button>
           <button onClick={() => openAddModal(selectedDay)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-colors ml-1">
             <Plus size={14} /> Klasse
@@ -374,6 +411,73 @@ export default function SchedulePage() {
           </>
         )}
       </div>
+
+      {/* Bulk clear modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => { if (clearStep === 'confirm' || clearStep === 'done') { setShowClearModal(false); setClearStep('confirm') } }}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+
+            {clearStep === 'confirm' && (
+              <>
+                <div className="px-5 pt-5 pb-4">
+                  <div className="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-3">
+                    <Trash2 size={20} className="text-red-500" />
+                  </div>
+                  <p className="font-bold text-zinc-900 text-sm mb-1">Stundenplan komplett löschen?</p>
+                  <p className="text-zinc-500 text-sm">
+                    Alle <strong>zukünftigen</strong> Kurstermine werden unwiderruflich gelöscht.<br />
+                    Eine <strong>CSV-Sicherheitskopie</strong> wird automatisch vorher heruntergeladen — sie kann direkt wieder importiert werden.
+                  </p>
+                </div>
+                <div className="px-4 pb-4 space-y-2">
+                  <button onClick={doClearAll}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold text-sm transition-colors">
+                    <Download size={14} /> Backup laden & Stundenplan löschen
+                  </button>
+                  <button onClick={() => setShowClearModal(false)}
+                    className="w-full py-2.5 rounded-xl text-zinc-400 text-sm hover:text-zinc-600 transition-colors">
+                    Abbrechen
+                  </button>
+                </div>
+              </>
+            )}
+
+            {(clearStep === 'downloading' || clearStep === 'deleting') && (
+              <div className="px-5 py-8 text-center">
+                <div className="w-8 h-8 border-2 border-zinc-200 border-t-amber-400 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-sm font-medium text-zinc-700">
+                  {clearStep === 'downloading' ? 'Sicherheitskopie wird heruntergeladen…' : 'Stundenplan wird gelöscht…'}
+                </p>
+              </div>
+            )}
+
+            {clearStep === 'done' && (
+              <>
+                <div className="px-5 pt-5 pb-4 text-center">
+                  <div className="w-11 h-11 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
+                    <Download size={20} className="text-green-500" />
+                  </div>
+                  <p className="font-bold text-zinc-900 text-sm mb-1">{clearCount} Termine gelöscht</p>
+                  <p className="text-zinc-500 text-sm">
+                    Die CSV-Sicherheitskopie liegt in deinem Download-Ordner und kann jederzeit über <strong>Import</strong> wieder eingespielt werden.
+                  </p>
+                </div>
+                <div className="px-4 pb-4 space-y-2">
+                  <Link href="/dashboard/schedule/import"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors">
+                    <Upload size={14} /> Jetzt neu importieren
+                  </Link>
+                  <button onClick={() => { setShowClearModal(false); setClearStep('confirm') }}
+                    className="w-full py-2.5 rounded-xl text-zinc-400 text-sm hover:text-zinc-600 transition-colors">
+                    Schließen
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Cancel / Delete confirmation modal */}
       {cancelTarget && (
