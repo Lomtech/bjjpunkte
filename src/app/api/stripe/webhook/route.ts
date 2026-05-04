@@ -95,6 +95,18 @@ export async function POST(req: Request) {
       }).eq('id', gymId)
     }
 
+    // Member subscription checkout completed — set subscription_id + status immediately.
+    // Avoids waiting for customer.subscription.created which may not arrive if the webhook
+    // is not yet configured as a Stripe Connect webhook.
+    if (memberId && session.mode === 'subscription') {
+      const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null
+      if (subscriptionId) {
+        await supabase.from('members')
+          .update({ stripe_subscription_id: subscriptionId, subscription_status: 'active' })
+          .eq('id', memberId)
+      }
+    }
+
     if (session.payment_status === 'paid') {
       const now = new Date().toISOString()
 

@@ -397,6 +397,24 @@ export default function MemberPortalPage() {
   // Reload classes when week changes
   useEffect(() => { loadClasses(weekStart) }, [weekStart]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // After Stripe redirects back with ?sub=success or ?payment=success, reload
+  // portal data after a short delay so the webhook has time to update the DB.
+  const [paymentSuccess, setPaymentSuccess] = useState(false)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('sub') || params.has('payment')) {
+      setPaymentSuccess(true)
+      // Remove query params from URL without reload
+      const clean = window.location.pathname
+      window.history.replaceState({}, '', clean)
+      // Reload data after 3 s to pick up webhook-updated subscription status
+      const t1 = setTimeout(() => loadPortal(), 3000)
+      // Try once more after 8 s in case webhook was slow
+      const t2 = setTimeout(() => loadPortal(), 8000)
+      return () => { clearTimeout(t1); clearTimeout(t2) }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleSaveLog() {
     if (!logNote.trim()) return
     setLogSaving(true)
@@ -1045,8 +1063,18 @@ export default function MemberPortalPage() {
               </div>
             )}
 
-            {/* Subscription restart banner */}
-            {member.plan_id && member.subscription_status !== 'active' && (
+            {/* Payment success banner */}
+            {paymentSuccess && member.subscription_status === 'active' && (
+              <div className="bg-green-50 rounded-2xl p-4 border border-green-200 flex items-center gap-3">
+                <span className="text-green-500 text-lg">✓</span>
+                <p className="text-green-700 text-sm font-semibold">
+                  {lang === 'en' ? 'Payment successful! Your subscription is now active.' : 'Zahlung erfolgreich! Dein Abo ist jetzt aktiv.'}
+                </p>
+              </div>
+            )}
+
+            {/* Subscription restart banner — only if no active sub and not just paid */}
+            {member.plan_id && member.subscription_status !== 'active' && !paymentSuccess && (
               <div className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm flex items-start gap-3">
                 <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CreditCard size={15} className="text-amber-600" />
