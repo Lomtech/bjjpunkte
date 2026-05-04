@@ -68,6 +68,8 @@ export default function SchedulePage() {
   const [rosterLoading, setRosterLoading] = useState(false)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [editingClass, setEditingClass] = useState<ClassRow | null>(null)
+  // Cancel / delete confirmation modal
+  const [cancelTarget, setCancelTarget] = useState<ClassRow | null>(null)
 
   // Refs so loadClasses can access gymId without stale closure
   const gymIdRef       = useRef('')
@@ -127,19 +129,19 @@ export default function SchedulePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekStart])
 
-  async function handleCancel(cls: ClassRow) {
-    let scope = 'single'
-    if (cls.recurrence_parent_id) {
-      const choice = window.confirm(`"${cls.title}" ist ein Serientermin.\n\nOK = Nur diesen Termin absagen\nAbbrechen = Diesen und alle zukünftigen`)
-      scope = choice ? 'single' : 'future'
-    } else {
-      if (!confirm('Klasse wirklich absagen?')) return
-    }
+  function handleCancel(cls: ClassRow) {
+    // Open modal — modal calls doCancel with chosen scope
+    setCancelTarget(cls)
+    setExpandedId(null)
+  }
+
+  async function doCancel(cls: ClassRow, scope: 'single' | 'future' | 'delete_all') {
+    setCancelTarget(null)
     setCancellingId(cls.id)
     await fetch(`/api/classes/${cls.id}?scope=${scope}`, {
       method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` },
     })
-    setCancellingId(null); setExpandedId(null)
+    setCancellingId(null)
     loadClasses(weekStart)
   }
 
@@ -372,6 +374,90 @@ export default function SchedulePage() {
           </>
         )}
       </div>
+
+      {/* Cancel / Delete confirmation modal */}
+      {cancelTarget && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setCancelTarget(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-5 pt-5 pb-4">
+              <p className="font-bold text-zinc-900 text-sm mb-1">
+                {cancelTarget.recurrence_parent_id ? 'Serientermin' : 'Termin absagen'}
+              </p>
+              <p className="text-zinc-500 text-sm">
+                <span className="font-semibold text-zinc-700">{cancelTarget.title}</span>
+                {' — '}
+                {new Date(cancelTarget.starts_at).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })}
+                {', '}
+                {formatTime(cancelTarget.starts_at)}
+              </p>
+            </div>
+
+            <div className="px-4 pb-4 space-y-2">
+              {/* Single */}
+              <button
+                onClick={() => doCancel(cancelTarget, 'single')}
+                disabled={cancellingId === cancelTarget.id}
+                className="w-full flex items-start gap-3 px-4 py-3 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-colors text-left group disabled:opacity-50"
+              >
+                <span className="w-7 h-7 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <X size={13} className="text-amber-600" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-zinc-800">Nur diesen Termin absagen</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">Bleibt in der Serie, wird als abgesagt markiert</p>
+                </div>
+              </button>
+
+              {/* Future — only for recurring */}
+              {cancelTarget.recurrence_parent_id && (
+                <button
+                  onClick={() => doCancel(cancelTarget, 'future')}
+                  disabled={cancellingId === cancelTarget.id}
+                  className="w-full flex items-start gap-3 px-4 py-3 rounded-xl border border-zinc-200 hover:bg-zinc-50 transition-colors text-left disabled:opacity-50"
+                >
+                  <span className="w-7 h-7 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <X size={13} className="text-orange-500" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-800">Diesen und alle zukünftigen</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">Alle ab diesem Datum werden abgesagt</p>
+                  </div>
+                </button>
+              )}
+
+              {/* Delete all series — only for recurring */}
+              {cancelTarget.recurrence_parent_id && (
+                <button
+                  onClick={() => doCancel(cancelTarget, 'delete_all')}
+                  disabled={cancellingId === cancelTarget.id}
+                  className="w-full flex items-start gap-3 px-4 py-3 rounded-xl border border-red-100 bg-red-50 hover:bg-red-100 transition-colors text-left disabled:opacity-50"
+                >
+                  <span className="w-7 h-7 rounded-full bg-red-100 border border-red-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <X size={13} className="text-red-600" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-red-700">Gesamte Serie löschen</p>
+                    <p className="text-xs text-red-400 mt-0.5">Alle Termine dieser Serie werden unwiderruflich gelöscht</p>
+                  </div>
+                </button>
+              )}
+
+              <button
+                onClick={() => setCancelTarget(null)}
+                className="w-full py-2.5 rounded-xl text-zinc-400 text-sm hover:text-zinc-600 transition-colors"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <NewClassModal defaultDate={modalDate} accessToken={accessToken}

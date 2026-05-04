@@ -124,21 +124,23 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  if (scope === 'future' || scope === 'all') {
-    // Get this class to find parent + starts_at
+  if (scope === 'delete_all' || scope === 'future' || scope === 'all') {
     const { data: cls } = await supabase
       .from('classes').select('recurrence_parent_id, starts_at').eq('id', id).single()
 
     const parentId = (cls as { recurrence_parent_id: string | null } | null)?.recurrence_parent_id
 
     if (parentId) {
-      if (scope === 'all') {
-        // Cancel all in series
+      if (scope === 'delete_all') {
+        // Hard-delete the entire series from the database
+        await supabase.from('classes').delete().eq('recurrence_parent_id', parentId)
+      } else if (scope === 'all') {
+        // Soft-cancel all in series
         await supabase.from('classes')
           .update({ is_cancelled: true })
           .eq('recurrence_parent_id', parentId)
       } else {
-        // Cancel this and all future in series
+        // scope === 'future': cancel this and all future occurrences
         const startsAt = (cls as { starts_at: string }).starts_at
         await supabase.from('classes')
           .update({ is_cancelled: true })
@@ -149,7 +151,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     }
   }
 
-  // Default: cancel single
+  // Default: cancel single occurrence
   const { error } = await supabase.from('classes').update({ is_cancelled: true }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
