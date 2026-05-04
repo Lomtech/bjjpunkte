@@ -1156,9 +1156,8 @@ export default function SettingsPage() {
                       <p className="text-zinc-600 text-sm">{t('settings', 'platformFeeDesc')}</p>
                       <div className="text-xs text-zinc-500 bg-zinc-50 rounded-lg p-3 space-y-1">
                         <p>{t('settings', 'feeExample')}</p>
-                        <p>→ <strong className="text-zinc-700">~77,00 €</strong> {t('settings', 'feeYourAccount')}</p>
-                        <p>→ <strong className="text-zinc-700">1,60 €</strong> {t('settings', 'feePlatform')}</p>
-                        <p>→ <strong className="text-zinc-700">~1,37 €</strong> {t('settings', 'feeStripe')}</p>
+                        <p>→ <strong className="text-zinc-700">~78,63 €</strong> {t('settings', 'feeYourAccount')}</p>
+                        <p>→ <strong className="text-zinc-700">~1,37 €</strong> {t('settings', 'feePlatform')}</p>
                       </div>
                       <button type="button" onClick={handleConnect} disabled={connectLoading || !stripeConfigured}
                         className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
@@ -1856,8 +1855,8 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
       members: lang === 'en' ? 'Up to 30 members' : 'Bis zu 30 Mitglieder',
       highlight: false,
       features: lang === 'en'
-        ? ['Member management', 'Belt tracking & promotions', 'Attendance & GPS check-in', 'Schedule & iCal export', 'Public gym page + embedding', 'Member portal: booking & check-in', 'Lead management & pipeline', '2% platform fee']
-        : ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & GPS Check-in', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite + Einbettung', 'Member-Portal: Buchung & Check-in', 'Lead-Management & Pipeline', '2% Plattformgebühr'],
+        ? ['Member management', 'Belt tracking & promotions', 'Attendance & GPS check-in', 'Schedule & iCal export', 'Public gym page + embedding', 'Member portal: booking & check-in', 'Lead management & pipeline']
+        : ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & GPS Check-in', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite + Einbettung', 'Member-Portal: Buchung & Check-in', 'Lead-Management & Pipeline'],
     },
     {
       name: 'Starter',
@@ -1867,8 +1866,8 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
       members: lang === 'en' ? 'Up to 50 members' : 'Bis zu 50 Mitglieder',
       highlight: false,
       features: lang === 'en'
-        ? ['Everything in Free', 'Automatic payment reminders', 'Birthday emails', '1 trainer account', '2% platform fee']
-        : ['Alles aus Free', 'Automatische Zahlungserinnerungen', 'Geburtstags-E-Mails', '1 Trainer-Account', '2% Plattformgebühr'],
+        ? ['Everything in Free', 'Automatic payment reminders', 'Birthday emails', '1 trainer account']
+        : ['Alles aus Free', 'Automatische Zahlungserinnerungen', 'Geburtstags-E-Mails', '1 Trainer-Account'],
     },
     {
       name: 'Grow',
@@ -1878,8 +1877,8 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
       members: lang === 'en' ? 'Up to 150 members' : 'Bis zu 150 Mitglieder',
       highlight: true,
       features: lang === 'en'
-        ? ['Everything in Starter', 'Unlimited trainer accounts', 'Advanced reports', '2% platform fee']
-        : ['Alles aus Starter', 'Unbegrenzte Trainer-Accounts', 'Erweiterte Berichte', '2% Plattformgebühr'],
+        ? ['Everything in Starter', 'Unlimited trainer accounts', 'Advanced reports']
+        : ['Alles aus Starter', 'Unbegrenzte Trainer-Accounts', 'Erweiterte Berichte'],
     },
     {
       name: 'Pro',
@@ -1889,8 +1888,8 @@ function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
       members: lang === 'en' ? 'Unlimited members' : 'Unbegrenzte Mitglieder',
       highlight: false,
       features: lang === 'en'
-        ? ['Everything in Grow', 'Unlimited members', 'Priority support', 'Early access to new features', '2% platform fee']
-        : ['Alles aus Grow', 'Unbegrenzte Mitglieder', 'Prioritäts-Support', 'Frühzeitiger Zugang zu neuen Features', '2% Plattformgebühr'],
+        ? ['Everything in Grow', 'Unlimited members', 'Priority support', 'Early access to new features']
+        : ['Alles aus Grow', 'Unbegrenzte Mitglieder', 'Prioritäts-Support', 'Frühzeitiger Zugang zu neuen Features'],
     },
   ]
 

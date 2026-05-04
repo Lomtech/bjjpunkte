@@ -4,8 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import type { Database } from '@/types/database'
 
-const PLATFORM_FEE_PERCENT = 0.02
-
 function authClient(accessToken: string) {
   return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,10 +89,8 @@ export async function POST(req: Request) {
     }
 
     if (connectedAccountId) {
-      // on_behalf_of: subscription is settled on the gym's account; gym pays Stripe fees
       sessionParams.subscription_data = {
         ...sessionParams.subscription_data,
-        application_fee_percent: PLATFORM_FEE_PERCENT * 100,
         on_behalf_of: connectedAccountId,
       }
     }

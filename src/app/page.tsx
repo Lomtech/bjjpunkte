@@ -345,12 +345,12 @@ export default function Home() {
                 {(lang === 'en' ? [
                   { val: '€0',     label: 'Setup cost' },
                   { val: '10 min', label: 'Setup' },
-                  { val: '2%',     label: 'Platform fee' },
+                  { val: '0%',     label: 'Transaction fee' },
                   { val: 'GDPR',   label: 'compliant' },
                 ] : [
                   { val: '€0',     label: 'Startkosten' },
                   { val: '10 Min', label: 'Setup' },
-                  { val: '2%',     label: 'Plattformgebühr' },
+                  { val: '0%',     label: 'Transaktionsgebühr' },
                   { val: 'DSGVO',  label: 'konform' },
                 ]).map(s => (
                   <div key={s.label}>

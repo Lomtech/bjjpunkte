@@ -80,8 +80,9 @@ export default function AgbPage() {
               zur außerordentlichen Kündigung.
             </p>
             <p className="mt-3">
-              Bei Zahlungsabwicklung über Stripe Connect erhebt Osss eine Plattformgebühr gemäß dem
-              jeweils gültigen Tarif. Diese wird automatisch bei jeder Transaktion einbehalten.
+              Bei Zahlungsabwicklung über Stripe Connect fallen die üblichen Stripe-Gebühren direkt
+              auf dem verbundenen Stripe-Konto des Gym-Betreibers an. Osss erhebt keine zusätzliche
+              Transaktionsgebühr auf Mitgliedszahlungen.
             </p>
           </section>
 

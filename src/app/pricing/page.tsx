@@ -37,7 +37,6 @@ export default function PricingPage() {
             'Member portal: booking & check-in per class',
             'Lead management & pipeline',
             'Invoice generation & CSV export',
-            '2% platform fee on payments',
           ]
         : [
             'Mitgliederverwaltung',
@@ -49,7 +48,6 @@ export default function PricingPage() {
             'Member-Portal: Buchung & Check-in per Klasse',
             'Lead-Management & Pipeline',
             'Rechnungsgenerierung & CSV-Export',
-            '2% Plattformgebühr bei Zahlungen',
           ],
       cta: en ? 'Start for free' : 'Kostenlos starten',
       ctaHref: '/register',
@@ -67,14 +65,12 @@ export default function PricingPage() {
             'Automatic payment reminders',
             'Birthday emails',
             '1 trainer account',
-            '2% platform fee',
           ]
         : [
             'Alles aus Free',
             'Automatische Zahlungserinnerungen',
             'Geburtstags-E-Mails',
             '1 Trainer-Account',
-            '2% Plattformgebühr',
           ],
       cta: en ? 'Choose Starter' : 'Starter wählen',
       ctaHref: '/register?plan=starter',
@@ -91,13 +87,11 @@ export default function PricingPage() {
             'Everything in Starter',
             'Announcements & noticeboard',
             'Unlimited trainer accounts',
-            '2% platform fee',
           ]
         : [
             'Alles aus Starter',
             'Ankündigungen & Pinnwand',
             'Unbegrenzte Trainer-Accounts',
-            '2% Plattformgebühr',
           ],
       cta: en ? 'Choose Grow' : 'Grow wählen',
       ctaHref: '/register?plan=grow',
@@ -115,14 +109,12 @@ export default function PricingPage() {
             'Unlimited members',
             'Priority support',
             'Early access to new features',
-            '2% platform fee',
           ]
         : [
             'Alles aus Grow',
             'Unbegrenzte Mitglieder',
             'Prioritäts-Support',
             'Frühzeitiger Zugang zu neuen Features',
-            '2% Plattformgebühr',
           ],
       cta: en ? 'Choose Pro' : 'Pro wählen',
       ctaHref: '/register?plan=pro',
@@ -144,10 +136,10 @@ export default function PricingPage() {
         : 'Ja. Monatliche Abos laufen bis zum Ende des bezahlten Monats. Danach wechselst du automatisch auf den Free-Plan — deine Daten bleiben erhalten.',
     },
     {
-      q: en ? 'What is the platform fee?' : 'Was ist die Plattformgebühr?',
+      q: en ? 'Are there any transaction fees?' : 'Gibt es Transaktionsgebühren?',
       a: en
-        ? 'Osss charges 2% on every payment collected from your members via Stripe. Standard Stripe fees (approx. 1.4% + €0.25) apply on top.'
-        : 'Osss berechnet 2% auf jeden Zahlungseingang deiner Mitglieder, der über Stripe abgewickelt wird. Zusätzlich fallen die üblichen Stripe-Gebühren (ca. 1,4% + 0,25€) an.',
+        ? 'No. Osss does not charge a fee on member payments. Standard Stripe fees (approx. 1.4% + €0.25 for EU cards) apply directly on your Stripe account.'
+        : 'Nein. Osss erhebt keine Gebühr auf Mitgliedszahlungen. Die üblichen Stripe-Gebühren (ca. 1,4 % + 0,25 € für EU-Karten) fallen direkt auf deinem Stripe-Konto an.',
     },
     {
       q: en ? 'Do I need a Stripe account?' : 'Brauche ich ein Stripe-Konto?',
