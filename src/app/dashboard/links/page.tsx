@@ -18,6 +18,7 @@ interface LinkCardProps {
 }
 
 function LinkCard({ icon, iconBg, iconColor, title, description, url, emptyText, copied, onCopy }: LinkCardProps) {
+  const { t } = useLanguage()
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
       {/* Header */}
@@ -45,7 +46,7 @@ function LinkCard({ icon, iconBg, iconColor, title, description, url, emptyText,
                   : 'bg-zinc-950 hover:bg-zinc-800 text-white'
               }`}
             >
-              {copied ? <><Check size={15} /> Kopiert!</> : <><Copy size={15} /> Link kopieren</>}
+              {copied ? <><Check size={15} /> {t('links', 'copied')}</> : <><Copy size={15} /> {t('links', 'copyLink')}</>}
             </button>
             <a
               href={url}
@@ -53,7 +54,7 @@ function LinkCard({ icon, iconBg, iconColor, title, description, url, emptyText,
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 text-sm font-medium transition-colors"
             >
-              <ExternalLink size={14} /> Öffnen
+              <ExternalLink size={14} /> {t('links', 'open')}
             </a>
           </div>
         </>
@@ -149,14 +150,14 @@ export default function LinksPage() {
             <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
               <UserPlus size={14} className="text-amber-600" />
             </div>
-            <p className="text-xs font-semibold text-zinc-700">Anmeldelink — Ablauf</p>
+            <p className="text-xs font-semibold text-zinc-700">{t('links', 'signupTitle')} — {t('links', 'howItWorks')}</p>
           </div>
           <div className="space-y-3">
             {[
-              { n: '01', title: 'Link teilen', desc: 'Per WhatsApp, Instagram oder als Aushang.' },
-              { n: '02', title: 'Formular ausfüllen', desc: 'Name, Adresse, Geburtsdatum — komplett digital.' },
-              { n: '03', title: 'Vertrag unterschreiben', desc: 'Mitglied liest Vertrag und unterschreibt.' },
-              { n: '04', title: 'Du aktivierst', desc: 'Erscheint in der Mitgliederliste — ein Klick.' },
+              { n: '01', title: t('links', 'signupStep1Title'), desc: t('links', 'signupStep1Desc') },
+              { n: '02', title: t('links', 'signupStep2Title'), desc: t('links', 'signupStep2Desc') },
+              { n: '03', title: t('links', 'signupStep3Title'), desc: t('links', 'signupStep3Desc') },
+              { n: '04', title: t('links', 'signupStep4Title'), desc: t('links', 'signupStep4Desc') },
             ].map(s => (
               <div key={s.n} className="flex gap-2.5 items-start">
                 <span className="w-5 h-5 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0 text-amber-600 text-[10px] font-black mt-0.5">{s.n}</span>
@@ -174,14 +175,14 @@ export default function LinksPage() {
             <div className="w-7 h-7 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0">
               <Dumbbell size={14} className="text-zinc-600" />
             </div>
-            <p className="text-xs font-semibold text-zinc-700">Probetraining — Ablauf</p>
+            <p className="text-xs font-semibold text-zinc-700">{t('links', 'trialTitle')} — {t('links', 'howItWorks')}</p>
           </div>
           <div className="space-y-3">
             {[
-              { n: '01', title: 'Link teilen', desc: 'Instagram-Bio, Stories oder direkt per WhatsApp.' },
-              { n: '02', title: 'Gym entdecken', desc: 'Interessent sieht dein Gym, Stundenplan & Preise.' },
-              { n: '03', title: 'Klasse buchen', desc: 'Interessent trägt sich für ein Probetraining ein.' },
-              { n: '04', title: 'Du siehst es', desc: 'Neuer Lead erscheint automatisch unter Interessenten.' },
+              { n: '01', title: t('links', 'trialStep1Title'), desc: t('links', 'trialStep1Desc') },
+              { n: '02', title: t('links', 'trialStep2Title'), desc: t('links', 'trialStep2Desc') },
+              { n: '03', title: t('links', 'trialStep3Title'), desc: t('links', 'trialStep3Desc') },
+              { n: '04', title: t('links', 'trialStep4Title'), desc: t('links', 'trialStep4Desc') },
             ].map(s => (
               <div key={s.n} className="flex gap-2.5 items-start">
                 <span className="w-5 h-5 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center flex-shrink-0 text-zinc-600 text-[10px] font-black mt-0.5">{s.n}</span>
@@ -200,17 +201,17 @@ export default function LinksPage() {
         <div className="flex items-start gap-3">
           <QrCode size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-amber-800 font-semibold text-sm mb-1">QR-Code erstellen</p>
+            <p className="text-amber-800 font-semibold text-sm mb-1">{t('links', 'qrTitle')}</p>
             <p className="text-amber-700 text-xs leading-relaxed">
-              Kopiere einen der Links und erstelle kostenlos einen QR-Code auf{' '}
+              {t('links', 'qrDesc')}{' '}
               <a href="https://www.qr-code-generator.com" target="_blank" rel="noopener noreferrer" className="underline font-medium">
                 qr-code-generator.com
               </a>
-              {' '}— ausdrucken und am Empfang oder auf Social Media teilen.
+              {' '}{t('links', 'qrAfterLink')}
             </p>
             <a href="https://www.qr-code-generator.com" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 mt-2 text-amber-700 hover:text-amber-900 text-xs font-semibold transition-colors">
-              QR-Code erstellen <ArrowRight size={11} />
+              {t('links', 'qrCta')} <ArrowRight size={11} />
             </a>
           </div>
         </div>
