@@ -11,6 +11,7 @@ type Role = 'owner' | 'trainer' | null
 interface RoleCache {
   role: Role
   gymName: string
+  gymId: string | null
   logoUrl: string | null
   onboardingDone: boolean
   cachedAt: number
@@ -26,6 +27,14 @@ function readCache(): RoleCache | null {
 }
 function writeCache(c: RoleCache) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)) } catch { /* ignore */ }
+}
+
+/** Read gymId synchronously from cache — pages use this to skip the gym query */
+export function readCachedGymId(): string | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    return raw ? (JSON.parse(raw) as RoleCache).gymId ?? null : null
+  } catch { return null }
 }
 
 export function RoleShell({ children }: { children: React.ReactNode }) {
@@ -70,11 +79,12 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
         .select('id, name, logo_url, onboarding_completed_at')
         .eq('owner_id', userId)
         .maybeSingle()
+      // gym.id already selected above
 
       if (gym) {
         const g = gym as any // eslint-disable-line @typescript-eslint/no-explicit-any
         const done = !!g.onboarding_completed_at
-        writeCache({ role: 'owner', gymName: g.name ?? '', logoUrl: g.logo_url ?? null, onboardingDone: done, cachedAt: Date.now() })
+        writeCache({ role: 'owner', gymName: g.name ?? '', gymId: g.id ?? null, logoUrl: g.logo_url ?? null, onboardingDone: done, cachedAt: Date.now() })
         setState({ role: 'owner', gymName: g.name ?? '', logoUrl: g.logo_url ?? null, onboardingDone: done, ready: true })
         if (!done && pathname !== '/dashboard/onboarding') router.push('/dashboard/onboarding')
         return
@@ -85,14 +95,15 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
         .from('gym_staff').select('id, gym_id').eq('user_id', userId).maybeSingle()
 
       if (staff) {
-        const { data: staffGym } = await supabase.from('gyms').select('name, logo_url').eq('id', (staff as any).gym_id).maybeSingle() // eslint-disable-line @typescript-eslint/no-explicit-any
+        const staffGymId = (staff as any).gym_id // eslint-disable-line @typescript-eslint/no-explicit-any
+        const { data: staffGym } = await supabase.from('gyms').select('name, logo_url').eq('id', staffGymId).maybeSingle() // eslint-disable-line @typescript-eslint/no-explicit-any
         const gName = (staffGym as any)?.name ?? '' // eslint-disable-line @typescript-eslint/no-explicit-any
         const gLogo = (staffGym as any)?.logo_url ?? null // eslint-disable-line @typescript-eslint/no-explicit-any
-        writeCache({ role: 'trainer', gymName: gName, logoUrl: gLogo, onboardingDone: true, cachedAt: Date.now() })
+        writeCache({ role: 'trainer', gymName: gName, gymId: staffGymId ?? null, logoUrl: gLogo, onboardingDone: true, cachedAt: Date.now() })
         setState({ role: 'trainer', gymName: gName, logoUrl: gLogo, onboardingDone: true, ready: true })
       } else {
         // Brand-new Google OAuth user
-        writeCache({ role: 'owner', gymName: '', logoUrl: null, onboardingDone: false, cachedAt: Date.now() })
+        writeCache({ role: 'owner', gymName: '', gymId: null, logoUrl: null, onboardingDone: false, cachedAt: Date.now() })
         setState({ role: 'owner', gymName: '', logoUrl: null, onboardingDone: false, ready: true })
         if (pathname !== '/dashboard/onboarding') router.push('/dashboard/onboarding')
       }

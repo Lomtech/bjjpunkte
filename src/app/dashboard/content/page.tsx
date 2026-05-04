@@ -7,6 +7,7 @@ import {
   ImagePlus, Save, X, Edit2, Globe, AlignLeft, Megaphone, Pin,
 } from 'lucide-react'
 import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
+import { readCachedGymId } from '../_components/RoleShell'
 
 interface Announcement {
   id:         string
@@ -259,17 +260,23 @@ export default function ContentPage() {
     setAnnoLoading(true)
     const supabase = createClient()
 
-    // Step 1: get gym (need gymId for both queries)
-    const { data: gym } = await supabase.from('gyms').select('id').single()
-    if (!gym) { setPostsLoading(false); setAnnoLoading(false); return }
-    setGymId(gym.id)
+    // Get gymId from cache (sync) — if missing, fetch gym first
+    const cachedGymId = readCachedGymId()
+    let gId = cachedGymId
 
-    // Step 2: posts + announcements in parallel — no Lambda cold start
+    if (!gId) {
+      const { data: gym } = await supabase.from('gyms').select('id').single()
+      if (!gym) { setPostsLoading(false); setAnnoLoading(false); return }
+      gId = gym.id
+    }
+    setGymId(gId)
+
+    // posts + announcements in parallel — no Lambda cold start
     const [postsRes, annosRes] = await Promise.all([
-      supabase.from('posts').select('*').eq('gym_id', gym.id).order('created_at', { ascending: false }),
+      supabase.from('posts').select('*').eq('gym_id', gId).order('created_at', { ascending: false }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase.from('gym_announcements') as any)
-        .select('*').eq('gym_id', gym.id)
+        .select('*').eq('gym_id', gId)
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false }),
     ])

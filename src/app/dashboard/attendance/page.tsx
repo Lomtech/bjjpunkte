@@ -6,6 +6,7 @@ import { BeltBadge } from '@/components/BeltBadge'
 import { Trash2, UserCheck, CalendarDays, Clock } from 'lucide-react'
 import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
+import { readCachedGymId } from '../_components/RoleShell'
 
 interface AttendanceEntry {
   id: string
@@ -41,32 +42,42 @@ export default function AttendancePage() {
   const loadData = useCallback(async () => {
     const supabase = createClient()
 
-    // Step 1: get gym (need gymId + settings)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: gym } = await (supabase.from('gyms') as any)
-      .select('id, class_types, belt_system').single()
-    if (!gym) { setLoading(false); return }
+    // Get gymId from cache (sync) — if missing, fetch gym first
+    const cachedGymId = readCachedGymId()
+    let gymId: string | null = cachedGymId
 
-    setGymId(gym.id)
-    setBeltSystem(resolveBeltSystem(gym.belt_system))
+    if (!gymId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: g } = await (supabase.from('gyms') as any).select('id, class_types, belt_system').single()
+      if (!g) { setLoading(false); return }
+      gymId = g.id
+      setBeltSystem(resolveBeltSystem(g.belt_system))
+    }
+
+    if (!gymId) { setLoading(false); return }
+    setGymId(gymId)
 
     const today    = new Date(); today.setHours(0, 0, 0, 0)
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
 
-    // Step 2: 3 queries in parallel — direct Supabase, no Lambda cold start
-    const [membersRes, attendanceRes, classesRes] = await Promise.all([
+    // All 4 queries in parallel — gym settings + members + attendance + classes
+    const [gymSettingsRes, membersRes, attendanceRes, classesRes] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cachedGymId ? (supabase.from('gyms') as any).select('belt_system').eq('id', gymId).single() : Promise.resolve({ data: null }),
       supabase.from('members')
         .select('id, first_name, last_name, belt, stripes')
-        .eq('gym_id', gym.id).eq('is_active', true).order('last_name'),
+        .eq('gym_id', gymId).eq('is_active', true).order('last_name'),
       supabase.from('attendance')
         .select('id, checked_in_at, class_type, member_id, class_id')
-        .eq('gym_id', gym.id)
+        .eq('gym_id', gymId)
         .gte('checked_in_at', today.toISOString())
         .order('checked_in_at', { ascending: false }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: today.toISOString() }),
+      (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gymId, p_from: today.toISOString() }),
     ])
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (gymSettingsRes.data) setBeltSystem(resolveBeltSystem((gymSettingsRes.data as any).belt_system))
     setMembers(membersRes.data as Member[] ?? [])
     setTodayLog(attendanceRes.data as AttendanceEntry[] ?? [])
     setTodayClasses(
@@ -113,7 +124,21 @@ export default function AttendancePage() {
   if (remaining.length > 0) groups.push({ classId: null, cls: null, entries: remaining })
 
   if (loading) return (
-    <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
+    <div className="p-4 md:p-6 max-w-3xl animate-pulse">
+      <div className="mb-6">
+        <div className="h-7 w-36 bg-zinc-200 rounded mb-2" />
+        <div className="h-3 w-48 bg-zinc-100 rounded" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm h-20" />
+        <div className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm h-20" />
+      </div>
+      <div className="space-y-4">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-zinc-100 shadow-sm h-32" />
+        ))}
+      </div>
+    </div>
   )
   if (!gymId) return null
 

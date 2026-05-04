@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
+import { readCachedGymId } from './_components/RoleShell'
 import type { Belt } from '@/types/database'
 
 interface AttendanceRow   { id: string; checked_in_at: string; class_type: string; member_id: string }
@@ -62,23 +63,29 @@ export default function DashboardPage() {
     async function load() {
       const supabase = createClient()
 
-      // Step 1: get gym (need gymId for all other queries)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: gym } = await (supabase.from('gyms') as any)
-        .select('id, signup_token, slug').single()
-      if (!gym) { setLoading(false); return }
+      // Get gymId from cache (sync) — if missing, fetch it first (one round trip)
+      const cachedGymId = readCachedGymId()
+      let gymId: string | null = cachedGymId
 
-      setSignupToken(gym.signup_token ?? null)
-      setGymSlug(gym.slug ?? null)
+      if (!gymId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: g } = await (supabase.from('gyms') as any).select('id, signup_token, slug').single()
+        if (!g) { setLoading(false); return }
+        gymId = g.id
+        setSignupToken(g.signup_token ?? null)
+        setGymSlug(g.slug ?? null)
+      }
 
-      const gymId         = gym.id
+      if (!gymId) { setLoading(false); return }
+
       const today         = new Date().toISOString().split('T')[0]
       const in30          = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       const startOfMonth  = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
       const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
 
-      // Step 2: all 12 queries fire in parallel — direct Supabase, no Lambda cold start
+      // All 12 data queries + gym meta (slug/token) fire in parallel
       const [
+        { data: gymMeta },
         { count: total },
         { count: active },
         { data: todayAttendanceData },
@@ -92,6 +99,8 @@ export default function DashboardPage() {
         { data: monthAttendanceData },
         { data: allAttendanceData },
       ] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('gyms') as any).select('signup_token, slug').eq('id', gymId).single(),
         supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gymId),
         supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gymId).eq('is_active', true),
         supabase.from('attendance').select('id, checked_in_at, class_type, member_id').eq('gym_id', gymId).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),
@@ -105,6 +114,14 @@ export default function DashboardPage() {
         supabase.from('attendance').select('member_id').eq('gym_id', gymId).gte('checked_in_at', startOfMonth),
         supabase.from('attendance').select('member_id, checked_in_at').eq('gym_id', gymId).gte('checked_in_at', ninetyDaysAgo).order('checked_in_at', { ascending: false }),
       ])
+
+      // Set signup_token/slug from the parallel gym meta fetch
+      if (gymMeta) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setSignupToken((gymMeta as any).signup_token ?? null)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setGymSlug((gymMeta as any).slug ?? null)
+      }
 
       setTotalMembers(total ?? 0)
       setActiveMembers(active ?? 0)
@@ -169,8 +186,25 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
-        Lädt…
+      <div className="p-4 md:p-6 max-w-5xl animate-pulse">
+        <div className="mb-6">
+          <div className="h-3 w-32 bg-zinc-200 rounded mb-2" />
+          <div className="h-7 w-40 bg-zinc-200 rounded" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-zinc-100 mb-3" />
+              <div className="h-7 w-16 bg-zinc-100 rounded mb-2" />
+              <div className="h-3 w-24 bg-zinc-100 rounded" />
+            </div>
+          ))}
+        </div>
+        <div className="grid lg:grid-cols-2 gap-4">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm h-48" />
+          ))}
+        </div>
       </div>
     )
   }
