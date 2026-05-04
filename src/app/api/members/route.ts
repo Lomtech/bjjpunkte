@@ -134,7 +134,7 @@ export async function POST(req: Request) {
         ${belt ? `<tr><td style="padding:8px 0;color:#6b7280">Gürtel</td><td style="padding:8px 0;text-transform:capitalize">${belt}</td></tr>` : ''}
       </table>
     `,
-    whatsappText: `🥋 Neues Mitglied!\n${fullName}${email ? '\n' + email : ''}${phone ? '\n' + phone : ''}\n${gymName}`,
+    whatsappText: `🥋 Neues Mitglied!\n${fullName}${email ? '\n' + email : ''}${phone ? '\n' + phone : ''}\n\nhttps://www.osss.pro/dashboard`,
   }).catch(() => {/* best-effort */})
 
   return NextResponse.json({ id: memberId }, { status: 201 })

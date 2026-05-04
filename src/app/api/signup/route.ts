@@ -213,7 +213,7 @@ export async function POST(req: Request) {
       </table>
       <p style="margin:20px 0 0;font-size:14px;color:#64748b">Der Interessent wurde automatisch in deinem Dashboard unter <strong>Interessenten</strong> angelegt.</p>
     `,
-    whatsappText: `🎉 Neue Anmeldung!\n${fullName}\n${email.toLowerCase().trim()}${phone ? '\n' + phone.trim() : ''}\n\nosss.pro Dashboard`,
+    whatsappText: `🎉 Neue Anmeldung!\n${fullName}\n${email.toLowerCase().trim()}${phone ? '\n' + phone.trim() : ''}\n\nhttps://www.osss.pro/dashboard`,
   })
 
   return NextResponse.json({ success: true, memberId: member.id })

@@ -82,7 +82,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
         ${message ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Nachricht</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${message.trim()}</td></tr>` : ''}
       </table>
     `,
-    whatsappText: `🥋 Probetraining-Anfrage!\n${fullName}\n${email.trim().toLowerCase()}${phone ? '\n' + phone.trim() : ''}${bookedClass ? '\nSlot: ' + bookedClass.title : ''}\nosss.pro Dashboard`,
+    whatsappText: `🥋 Probetraining-Anfrage!\n${fullName}\n${email.trim().toLowerCase()}${phone ? '\n' + phone.trim() : ''}${bookedClass ? '\nSlot: ' + bookedClass.title : ''}\n\nhttps://www.osss.pro/dashboard`,
   })
 
   // Send portal link to lead via Resend
