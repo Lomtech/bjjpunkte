@@ -7,6 +7,7 @@ import { Trash2, UserCheck, CalendarDays, Clock, AlertTriangle } from 'lucide-re
 import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 import { readCachedGymId } from '../_components/RoleShell'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface AttendanceEntry {
   id: string
@@ -26,11 +27,13 @@ interface ClassEvent {
   is_cancelled: boolean
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+function formatTime(iso: string, locale: string) {
+  return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function AttendancePage() {
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const [loading, setLoading]       = useState(true)
   const [gymId, setGymId]           = useState<string | null>(null)
   const [members, setMembers]       = useState<Member[]>([])
@@ -149,10 +152,10 @@ export default function AttendancePage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6 gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Anwesenheit</h1>
+          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('attendance', 'title')}</h1>
           <p className="text-zinc-400 text-xs mt-0.5">
-            {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
-            {todayLog.length > 0 && ` · ${todayLog.length} eingecheckt`}
+            {new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+            {todayLog.length > 0 && ` · ${todayLog.length} ${t('attendance', 'todayLog')}`}
           </p>
         </div>
       </div>
@@ -164,7 +167,7 @@ export default function AttendancePage() {
             <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
               <UserCheck size={13} className="text-amber-600" />
             </span>
-            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Heute</p>
+            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">{t('common', 'today')}</p>
           </div>
           <p className="text-2xl font-black text-zinc-950 tracking-tight">{todayLog.length}</p>
         </div>
@@ -173,7 +176,7 @@ export default function AttendancePage() {
             <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
               <CalendarDays size={13} className="text-amber-600" />
             </span>
-            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">Klassen</p>
+            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">{t('attendance', 'todayClasses')}</p>
           </div>
           <p className="text-2xl font-black text-zinc-950 tracking-tight">{todayClasses.length}</p>
         </div>
@@ -182,7 +185,7 @@ export default function AttendancePage() {
       {/* Attendance grouped by class */}
       {groups.length === 0 ? (
         <div className="bg-white rounded-2xl p-8 border border-zinc-100 shadow-sm text-center">
-          <p className="text-zinc-400 text-sm">Heute noch niemand eingecheckt.</p>
+          <p className="text-zinc-400 text-sm">{t('attendance', 'noEntries')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -196,23 +199,23 @@ export default function AttendancePage() {
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-zinc-800 truncate">
-                      {cls ? cls.title : 'Manuell'}
+                      {cls ? cls.title : t('attendance', 'manualCheckin')}
                     </p>
                     {cls && (
                       <p className="text-[11px] text-zinc-400 tabular-nums">
-                        {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
+                        {formatTime(cls.starts_at, locale)} – {formatTime(cls.ends_at, locale)}
                       </p>
                     )}
                   </div>
                 </div>
                 <span className="text-xs font-semibold text-zinc-400 flex-shrink-0">
-                  {entries.length} {entries.length === 1 ? 'Person' : 'Personen'}
+                  {entries.length} {t('nav', 'members')}
                 </span>
               </div>
 
               {/* Entries */}
               {entries.length === 0 ? (
-                <p className="text-zinc-400 text-sm text-center py-5">Noch niemand eingecheckt.</p>
+                <p className="text-zinc-400 text-sm text-center py-5">{t('attendance', 'noEntries')}</p>
               ) : (
                 <div>
                   {entries.map(a => {
@@ -232,7 +235,7 @@ export default function AttendancePage() {
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <p className="text-zinc-400 text-xs tabular-nums">
-                            {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(a.checked_in_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                           </p>
                           <button
                             onClick={() => setConfirmDeleteId(a.id)}
@@ -266,8 +269,8 @@ export default function AttendancePage() {
               <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={20} className="text-red-500" />
               </div>
-              <h2 className="text-zinc-900 font-bold text-base mb-1">Eintrag löschen?</h2>
-              <p className="text-zinc-400 text-sm">Dieser Check-in wird unwiderruflich entfernt.</p>
+              <h2 className="text-zinc-900 font-bold text-base mb-1">{t('attendance', 'confirmDelete')}</h2>
+              <p className="text-zinc-400 text-sm">{t('attendance', 'deleteEntry')}</p>
             </div>
             <div className="flex border-t border-zinc-100">
               <button
@@ -275,14 +278,14 @@ export default function AttendancePage() {
                 disabled={!!deletingId}
                 className="flex-1 py-3.5 text-sm font-medium text-zinc-500 hover:bg-zinc-50 transition-colors border-r border-zinc-100"
               >
-                Abbrechen
+                {t('attendance', 'cancel')}
               </button>
               <button
                 onClick={() => deleteAttendance(confirmDeleteId)}
                 disabled={!!deletingId}
                 className="flex-1 py-3.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
               >
-                {deletingId === confirmDeleteId ? 'Löschen…' : 'Löschen'}
+                {deletingId === confirmDeleteId ? `${t('attendance', 'delete')}…` : t('attendance', 'delete')}
               </button>
             </div>
           </div>

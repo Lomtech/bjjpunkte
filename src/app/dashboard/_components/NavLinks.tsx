@@ -6,37 +6,7 @@ import {
   LayoutDashboard, Users, Calendar,
   TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2, Globe, FileText, Rocket,
 } from 'lucide-react'
-
-const NAV = [
-  { href: '/dashboard',             label: 'Dashboard',     icon: LayoutDashboard, ownerOnly: false },
-  { href: '/dashboard/members',     label: 'Mitglieder',    icon: Users,           ownerOnly: false },
-  { href: '/dashboard/leads',       label: 'Interessenten', icon: UserPlus,        ownerOnly: true  },
-  { href: '/dashboard/schedule',    label: 'Stundenplan',   icon: Calendar,        ownerOnly: false },
-  { href: '/dashboard/attendance',  label: 'Anwesenheit',   icon: UserCheck,       ownerOnly: false },
-  { href: '/dashboard/revenue',     label: 'Einnahmen',     icon: TrendingUp,      ownerOnly: true  },
-  { href: '/dashboard/website',     label: 'Webseite',      icon: Globe,           ownerOnly: true  },
-  { href: '/dashboard/content',     label: 'Inhalte',       icon: FileText,        ownerOnly: true  },
-  { href: '/dashboard/links',       label: 'Anmeldelink',   icon: Link2,           ownerOnly: true  },
-  { href: '/dashboard/settings',    label: 'Einstellungen', icon: Settings,        ownerOnly: true  },
-]
-
-const TRAINER_NAV = [
-  { href: '/dashboard/schedule',    label: 'Stundenplan', icon: Calendar   },
-  { href: '/dashboard/attendance',  label: 'Anwesenheit', icon: UserCheck  },
-]
-
-const BOTTOM_NAV = [
-  { href: '/dashboard',             label: 'Übersicht',   icon: LayoutDashboard, ownerOnly: false },
-  { href: '/dashboard/members',     label: 'Mitglieder',  icon: Users,           ownerOnly: false },
-  { href: '/dashboard/schedule',    label: 'Stundenplan', icon: Calendar,        ownerOnly: false },
-  { href: '/dashboard/links',       label: 'Anmeldelink', icon: Link2,           ownerOnly: true  },
-  { href: '/dashboard/settings',    label: 'Einstellungen', icon: Settings,      ownerOnly: true  },
-]
-
-const TRAINER_BOTTOM_NAV = [
-  { href: '/dashboard/schedule',    label: 'Stundenplan', icon: Calendar  },
-  { href: '/dashboard/attendance',  label: 'Anwesenheit', icon: UserCheck },
-]
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 function isActive(href: string, pathname: string) {
   if (href === '/dashboard') return pathname === '/dashboard'
@@ -45,6 +15,26 @@ function isActive(href: string, pathname: string) {
 
 export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTrainer?: boolean; onboardingDone?: boolean }) {
   const pathname = usePathname()
+  const { t } = useLanguage()
+
+  const NAV = [
+    { href: '/dashboard',             label: t('nav', 'dashboard'),   icon: LayoutDashboard, ownerOnly: false },
+    { href: '/dashboard/members',     label: t('nav', 'members'),     icon: Users,           ownerOnly: false },
+    { href: '/dashboard/leads',       label: t('nav', 'leads'),       icon: UserPlus,        ownerOnly: true  },
+    { href: '/dashboard/schedule',    label: t('nav', 'schedule'),    icon: Calendar,        ownerOnly: false },
+    { href: '/dashboard/attendance',  label: t('nav', 'attendance'),  icon: UserCheck,       ownerOnly: false },
+    { href: '/dashboard/revenue',     label: t('nav', 'revenue'),     icon: TrendingUp,      ownerOnly: true  },
+    { href: '/dashboard/website',     label: t('nav', 'website'),     icon: Globe,           ownerOnly: true  },
+    { href: '/dashboard/content',     label: t('nav', 'content'),     icon: FileText,        ownerOnly: true  },
+    { href: '/dashboard/links',       label: t('nav', 'links'),       icon: Link2,           ownerOnly: true  },
+    { href: '/dashboard/settings',    label: t('nav', 'settings'),    icon: Settings,        ownerOnly: true  },
+  ]
+
+  const TRAINER_NAV = [
+    { href: '/dashboard/schedule',    label: t('nav', 'schedule'),    icon: Calendar  },
+    { href: '/dashboard/attendance',  label: t('nav', 'attendance'),  icon: UserCheck },
+  ]
+
   const items = isTrainer ? TRAINER_NAV : NAV.filter(n => !n.ownerOnly || !isTrainer)
   const onboardingActive = pathname === '/dashboard/onboarding'
 
@@ -67,7 +57,7 @@ export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTra
                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
               )}
             </div>
-            <span className="font-semibold">Einrichtung</span>
+            <span className="font-semibold">{t('nav', 'setup')}</span>
           </Link>
         )}
 
@@ -96,7 +86,7 @@ export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTra
         <Link href="/auth/signout"
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150 text-sm w-full">
           <LogOut size={16} strokeWidth={1.75} className="flex-shrink-0" />
-          Abmelden
+          {t('nav', 'signout')}
         </Link>
       </div>
     </>
@@ -105,11 +95,26 @@ export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTra
 
 export function BottomNav({ isTrainer = false, onboardingDone = true }: { isTrainer?: boolean; onboardingDone?: boolean }) {
   const pathname = usePathname()
+  const { t } = useLanguage()
+
+  const BOTTOM_NAV = [
+    { href: '/dashboard',             label: t('nav', 'overview'),    icon: LayoutDashboard, ownerOnly: false },
+    { href: '/dashboard/members',     label: t('nav', 'members'),     icon: Users,           ownerOnly: false },
+    { href: '/dashboard/schedule',    label: t('nav', 'schedule'),    icon: Calendar,        ownerOnly: false },
+    { href: '/dashboard/links',       label: t('nav', 'links'),       icon: Link2,           ownerOnly: true  },
+    { href: '/dashboard/settings',    label: t('nav', 'settings'),    icon: Settings,        ownerOnly: true  },
+  ]
+
+  const TRAINER_BOTTOM_NAV = [
+    { href: '/dashboard/schedule',    label: t('nav', 'schedule'),    icon: Calendar  },
+    { href: '/dashboard/attendance',  label: t('nav', 'attendance'),  icon: UserCheck },
+  ]
+
   const baseItems = isTrainer ? TRAINER_BOTTOM_NAV : BOTTOM_NAV.filter(n => !n.ownerOnly || !isTrainer)
 
   // Prepend onboarding tab for owners who haven't finished setup
   const items = (!isTrainer && !onboardingDone)
-    ? [{ href: '/dashboard/onboarding', label: 'Einrichtung', icon: Rocket, ownerOnly: true }, ...baseItems]
+    ? [{ href: '/dashboard/onboarding', label: t('nav', 'setup'), icon: Rocket, ownerOnly: true }, ...baseItems]
     : baseItems
 
   return (

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { ClassType } from '@/types/database'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 const CLASS_TYPES: { value: ClassType; label: string }[] = [
   { value: 'gi',          label: 'Gi' },
@@ -47,6 +48,7 @@ function toTimeString(iso: string) {
 }
 
 export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
+  const { lang } = useLanguage()
   const isRecurring = !!cls.recurrence_parent_id
   const [reactivating, setReactivating] = useState(false)
 
@@ -96,7 +98,7 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
 
     const data = await res.json()
     setSaving(false)
-    if (!res.ok) { setError(data.error ?? 'Fehler beim Speichern'); return }
+    if (!res.ok) { setError(data.error ?? (lang === 'en' ? 'Error saving' : 'Fehler beim Speichern')); return }
     onSaved()
   }
 
@@ -111,7 +113,11 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
     onSaved()
   }
 
-  const scopeLabel: Record<Scope, string> = {
+  const scopeLabel: Record<Scope, string> = lang === 'en' ? {
+    single: 'Only this occurrence',
+    future: 'This + all future',
+    all:    'All occurrences in the series',
+  } : {
     single: 'Nur dieser Termin',
     future: 'Dieser + alle zukünftigen',
     all:    'Alle Termine der Serie',
@@ -121,7 +127,7 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-200 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">Klasse bearbeiten</h2>
+          <h2 className="font-semibold text-slate-900">{lang === 'en' ? 'Edit class' : 'Klasse bearbeiten'}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors">
             <X size={18} />
           </button>
@@ -131,7 +137,7 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
           {/* Scope selector for recurring classes */}
           {isRecurring && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-              <p className="text-xs font-medium text-amber-800 mb-2">Serientermin – welche Termine bearbeiten?</p>
+              <p className="text-xs font-medium text-amber-800 mb-2">{lang === 'en' ? 'Recurring class – which occurrences to edit?' : 'Serientermin – welche Termine bearbeiten?'}</p>
               <div className="flex flex-col gap-1.5">
                 {(['single', 'future', 'all'] as Scope[]).map(s => (
                   <label key={s} className="flex items-center gap-2 cursor-pointer">
@@ -152,7 +158,7 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
 
           {/* Class type */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Trainingstyp</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Class type' : 'Trainingstyp'}</label>
             <div className="flex flex-wrap gap-2">
               {CLASS_TYPES.map(ct => (
                 <button key={ct.value} type="button" onClick={() => setClassType(ct.value)}
@@ -169,7 +175,7 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Titel</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Title' : 'Titel'}</label>
             <input type="text" required value={title} onChange={e => setTitle(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
@@ -177,7 +183,7 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
           {/* Date — only for single edit */}
           {(!isRecurring || scope === 'single') && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Datum</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Date' : 'Datum'}</label>
               <input type="date" required value={date} onChange={e => setDate(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
             </div>
@@ -186,12 +192,12 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
           {/* Times */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Startzeit</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Start time' : 'Startzeit'}</label>
               <input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Endzeit</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'End time' : 'Endzeit'}</label>
               <input type="time" required value={endTime} onChange={e => setEndTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
             </div>
@@ -199,23 +205,23 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
 
           {/* Instructor */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Trainer (optional)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Instructor (optional)' : 'Trainer (optional)'}</label>
             <input type="text" value={instructor} onChange={e => setInstructor(e.target.value)}
-              placeholder="z. B. Max Mustermann"
+              placeholder={lang === 'en' ? 'e.g. John Smith' : 'z. B. Max Mustermann'}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
 
           {/* Max capacity */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Max. Teilnehmer (optional)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Max. participants (optional)' : 'Max. Teilnehmer (optional)'}</label>
             <input type="number" min="1" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)}
-              placeholder="Unbegrenzt"
+              placeholder={lang === 'en' ? 'Unlimited' : 'Unbegrenzt'}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Beschreibung (optional)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Description (optional)' : 'Beschreibung (optional)'}</label>
             <textarea rows={2} value={description} onChange={e => setDescription(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none" />
           </div>
@@ -225,14 +231,14 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
           {/* Reactivate cancelled class */}
           {cls.is_cancelled && (
             <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 flex items-center justify-between">
-              <p className="text-sm text-zinc-600 font-medium">Diese Klasse ist abgesagt.</p>
+              <p className="text-sm text-zinc-600 font-medium">{lang === 'en' ? 'This class is cancelled.' : 'Diese Klasse ist abgesagt.'}</p>
               <button
                 type="button"
                 onClick={handleReactivate}
                 disabled={reactivating}
                 className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
               >
-                {reactivating ? '…' : '✓ Reaktivieren'}
+                {reactivating ? '…' : (lang === 'en' ? '✓ Reactivate' : '✓ Reaktivieren')}
               </button>
             </div>
           )}
@@ -240,11 +246,11 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
-              Abbrechen
+              {lang === 'en' ? 'Cancel' : 'Abbrechen'}
             </button>
             <button type="submit" disabled={saving}
               className="flex-1 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium transition-colors disabled:opacity-60">
-              {saving ? 'Wird gespeichert…' : 'Speichern'}
+              {saving ? (lang === 'en' ? 'Saving…' : 'Wird gespeichert…') : (lang === 'en' ? 'Save' : 'Speichern')}
             </button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { translations } from './translations'
 import type { Lang } from './translations'
 
 interface LangCtx {
@@ -12,42 +13,16 @@ interface LangCtx {
 const LanguageContext = createContext<LangCtx>({
   lang: 'de',
   setLang: () => {},
-  t: (_s, _k) => '',
+  t: (_s, k) => k,
 })
 
-// Flat import so we can navigate by section.key at runtime
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _translations: any = null
-async function getTranslations() {
-  if (!_translations) {
-    _translations = (await import('./translations')).translations
-  }
-  return _translations
-}
-
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('de')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [trans, setTrans] = useState<any>(null)
-
-  useEffect(() => {
-    // Read from localStorage
-    const saved = (typeof window !== 'undefined' ? localStorage.getItem('lang') : null) as Lang | null
-    if (saved === 'en' || saved === 'de') setLangState(saved)
-    // Load translations
-    getTranslations().then(setTrans)
-  }, [])
-
-  function setLang(l: Lang) {
-    setLangState(l)
-    if (typeof window !== 'undefined') localStorage.setItem('lang', l)
-  }
-
-  function t(section: string, key: string, vars?: Record<string, string | number>): string {
-    if (!trans) return key
-    const sectionObj = trans[section]
+function buildT(lang: Lang) {
+  return function t(section: string, key: string, vars?: Record<string, string | number>): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sectionObj = (translations as any)[section]
     if (!sectionObj) return key
-    const entry = sectionObj[key]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const entry = (sectionObj as any)[key]
     if (!entry) return key
     let str: string = entry[lang] ?? entry['de'] ?? key
     if (vars) {
@@ -57,9 +32,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
     return str
   }
+}
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [lang, setLangState] = useState<Lang>('de')
+
+  useEffect(() => {
+    const saved = (typeof window !== 'undefined' ? localStorage.getItem('lang') : null) as Lang | null
+    if (saved === 'en' || saved === 'de') setLangState(saved)
+  }, [])
+
+  function setLang(l: Lang) {
+    setLangState(l)
+    if (typeof window !== 'undefined') localStorage.setItem('lang', l)
+  }
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, t: buildT(lang) }}>
       {children}
     </LanguageContext.Provider>
   )
@@ -67,4 +56,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
 export function useLanguage() {
   return useContext(LanguageContext)
+}
+
+/** Tiny helper for non-component contexts — reads lang from localStorage directly */
+export function getLang(): Lang {
+  if (typeof window === 'undefined') return 'de'
+  const s = localStorage.getItem('lang')
+  return s === 'en' ? 'en' : 'de'
 }

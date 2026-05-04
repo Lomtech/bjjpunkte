@@ -7,21 +7,29 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { LogoMark } from '@/components/Logo'
 import { ArrowRight, Check } from 'lucide-react'
-
-const BULLETS = [
-  'Mitglieder & Beiträge auf einen Blick',
-  'Zahlungen per Stripe — automatisch',
-  'Member-Portal ohne App',
-  'Stundenplan & Gürtel-Tracking',
-]
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { t, lang } = useLanguage()
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
+
+  const BULLETS = lang === 'en' ? [
+    'Members & fees at a glance',
+    'Payments via Stripe — automatic',
+    'Member portal without an app',
+    'Schedule & belt tracking',
+  ] : [
+    'Mitglieder & Beiträge auf einen Blick',
+    'Zahlungen per Stripe — automatisch',
+    'Member-Portal ohne App',
+    'Stundenplan & Gürtel-Tracking',
+  ]
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault()
@@ -65,11 +73,10 @@ export default function LoginPage() {
         {/* Headline + bullets */}
         <div className="relative flex-1 flex flex-col justify-center px-10 py-12">
           <h2 className="text-3xl xl:text-4xl font-black tracking-tight text-white mb-3 leading-tight">
-            Willkommen<br />
-            <span className="text-amber-400">zurück.</span>
+            {lang === 'en' ? <>Welcome<br /><span className="text-amber-400">back.</span></> : <>Willkommen<br /><span className="text-amber-400">zurück.</span></>}
           </h2>
           <p className="text-zinc-400 text-sm leading-relaxed mb-8 max-w-xs">
-            Dein Gym wartet. Alles was du brauchst auf einen Blick.
+            {lang === 'en' ? 'Your gym awaits. Everything you need at a glance.' : 'Dein Gym wartet. Alles was du brauchst auf einen Blick.'}
           </p>
           <ul className="space-y-3">
             {BULLETS.map(b => (
@@ -110,7 +117,7 @@ export default function LoginPage() {
       {/* ── Right panel — form ── */}
       <div className="flex-1 flex flex-col">
         {/* Top bar — safe-area-inset-top keeps content below iOS status bar in PWA mode */}
-        <div className="flex items-center justify-between px-6 border-b border-zinc-100 lg:border-b-0 lg:justify-end"
+        <div className="flex items-center justify-between px-6 border-b border-zinc-100 lg:border-b-0 lg:justify-end gap-3"
           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)', paddingBottom: '1rem' }}>
           <Link href="/" className="flex items-center gap-2.5 group lg:hidden">
             <div className="w-8 h-8 rounded-xl bg-amber-400 group-hover:bg-amber-300 flex items-center justify-center transition-colors">
@@ -118,17 +125,20 @@ export default function LoginPage() {
             </div>
             <span className="font-black text-lg tracking-tight text-zinc-950">Osss</span>
           </Link>
-          <Link href="/register" className="text-sm text-zinc-500 hover:text-zinc-900 font-medium transition-colors lg:px-6 lg:py-4">
-            Noch kein Konto? <span className="text-amber-600 font-semibold">Registrieren</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher variant="minimal" />
+            <Link href="/register" className="text-sm text-zinc-500 hover:text-zinc-900 font-medium transition-colors lg:px-6 lg:py-4">
+              {lang === 'en' ? <>No account? <span className="text-amber-600 font-semibold">Register</span></> : <>Noch kein Konto? <span className="text-amber-600 font-semibold">Registrieren</span></>}
+            </Link>
+          </div>
         </div>
 
         {/* Center card */}
         <div className="flex-1 flex items-center justify-center px-5 py-12">
           <div className="w-full max-w-sm">
             <div className="mb-8">
-              <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-1">Willkommen zurück</h1>
-              <p className="text-zinc-400 text-sm">Meld dich in deinem Gym-Account an.</p>
+              <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-1">{lang === 'en' ? 'Welcome back' : 'Willkommen zurück'}</h1>
+              <p className="text-zinc-400 text-sm">{lang === 'en' ? 'Sign in to your gym account.' : 'Meld dich in deinem Gym-Account an.'}</p>
             </div>
 
             {/* Google OAuth */}
@@ -144,12 +154,12 @@ export default function LoginPage() {
                 <path d="M10.948 28.5A14.52 14.52 0 0 1 10.16 24c0-1.564.272-3.08.788-4.5V13.308H3.044A23.988 23.988 0 0 0 .48 24c0 3.876.924 7.548 2.564 10.692L10.948 28.5z" fill="#FBBC05"/>
                 <path d="M24.48 9.528c3.548 0 6.728 1.22 9.232 3.62l6.908-6.908C36.392 2.38 30.96 0 24.48 0 15.116 0 7.004 5.42 3.044 13.308l7.904 6.192c1.904-5.72 7.236-9.972 13.532-9.972z" fill="#EA4335"/>
               </svg>
-              {oauthLoading ? 'Weiterleitung…' : 'Mit Google anmelden'}
+              {oauthLoading ? (lang === 'en' ? 'Redirecting…' : 'Weiterleitung…') : (lang === 'en' ? 'Continue with Google' : 'Mit Google anmelden')}
             </button>
 
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-1 h-px bg-zinc-100" />
-              <span className="text-xs text-zinc-400 font-medium">oder</span>
+              <span className="text-xs text-zinc-400 font-medium">{lang === 'en' ? 'or' : 'oder'}</span>
               <div className="flex-1 h-px bg-zinc-100" />
             </div>
 
@@ -164,8 +174,8 @@ export default function LoginPage() {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-semibold text-zinc-700">Passwort</label>
-                  <Link href="/auth/reset" className="text-xs text-zinc-400 hover:text-amber-600 transition-colors">Passwort vergessen?</Link>
+                  <label className="block text-sm font-semibold text-zinc-700">{lang === 'en' ? 'Password' : 'Passwort'}</label>
+                  <Link href="/auth/reset" className="text-xs text-zinc-400 hover:text-amber-600 transition-colors">{lang === 'en' ? 'Forgot password?' : 'Passwort vergessen?'}</Link>
                 </div>
                 <input
                   type="password" value={password} onChange={e => setPassword(e.target.value)} required
@@ -182,12 +192,12 @@ export default function LoginPage() {
                 type="submit" disabled={loading}
                 className="w-full py-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 disabled:opacity-50 text-white font-bold transition-all text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
               >
-                {loading ? 'Wird angemeldet…' : <>Anmelden <ArrowRight size={15} /></>}
+                {loading ? (lang === 'en' ? 'Signing in…' : 'Wird angemeldet…') : <>{lang === 'en' ? 'Sign in' : 'Anmelden'} <ArrowRight size={15} /></>}
               </button>
             </form>
 
             <div className="mt-8 pt-6 border-t border-zinc-100 text-center">
-              <p className="text-zinc-400 text-xs">Durch das Anmelden stimmst du den <Link href="/datenschutz" className="underline hover:text-zinc-700">Datenschutzbestimmungen</Link> zu.</p>
+              <p className="text-zinc-400 text-xs">{lang === 'en' ? <>By signing in you agree to our <Link href="/datenschutz" className="underline hover:text-zinc-700">Privacy Policy</Link>.</> : <>Durch das Anmelden stimmst du den <Link href="/datenschutz" className="underline hover:text-zinc-700">Datenschutzbestimmungen</Link> zu.</>}</p>
             </div>
           </div>
         </div>

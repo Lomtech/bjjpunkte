@@ -6,117 +6,168 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { OsssLogo } from '@/components/Logo'
 import { ArrowLeft, Check, Zap, Shield, CreditCard, Clock } from 'lucide-react'
-
-const PLANS = [
-  {
-    name: 'Free',
-    price: '0',
-    period: '',
-    members: 'Bis zu 30 Mitglieder',
-    planKey: 'free',
-    highlight: false,
-    features: [
-      'Mitgliederverwaltung',
-      'Belt-Tracking & Promotions',
-      'Anwesenheit & GPS Check-in',
-      'Stundenplan & iCal-Export',
-      'Öffentliche Gym-Seite + Stundenplan-Einbettung',
-      'Digitaler Mitglieder-Anmeldelink',
-      'Member-Portal: Buchung & Check-in per Klasse',
-      'Lead-Management & Pipeline',
-      'Rechnungsgenerierung & CSV-Export',
-      '2% Plattformgebühr bei Zahlungen',
-    ],
-    cta: 'Kostenlos starten',
-    ctaHref: '/register',
-  },
-  {
-    name: 'Starter',
-    price: '29',
-    period: '/Monat',
-    members: 'Bis zu 50 Mitglieder',
-    planKey: 'starter',
-    highlight: false,
-    features: [
-      'Alles aus Free',
-      'Automatische Zahlungserinnerungen',
-      'Geburtstags-E-Mails',
-      '1 Trainer-Account',
-      '2% Plattformgebühr',
-    ],
-    cta: 'Starter wählen',
-    ctaHref: '/register?plan=starter',
-  },
-  {
-    name: 'Grow',
-    price: '59',
-    period: '/Monat',
-    members: 'Bis zu 150 Mitglieder',
-    planKey: 'grow',
-    highlight: true,
-    features: [
-      'Alles aus Starter',
-      'Ankündigungen & Pinnwand',
-      'Unbegrenzte Trainer-Accounts',
-      '2% Plattformgebühr',
-    ],
-    cta: 'Grow wählen',
-    ctaHref: '/register?plan=grow',
-  },
-  {
-    name: 'Pro',
-    price: '99',
-    period: '/Monat',
-    members: 'Unbegrenzte Mitglieder',
-    planKey: 'pro',
-    highlight: false,
-    features: [
-      'Alles aus Grow',
-      'Unbegrenzte Mitglieder',
-      'Prioritäts-Support',
-      'Frühzeitiger Zugang zu neuen Features',
-      '2% Plattformgebühr',
-    ],
-    cta: 'Pro wählen',
-    ctaHref: '/register?plan=pro',
-  },
-]
-
-const TRUST = [
-  { icon: CreditCard, label: 'Keine Kreditkarte beim Start' },
-  { icon: Clock,      label: 'Jederzeit kündbar' },
-  { icon: Shield,     label: 'DSGVO-konform · Daten in der EU' },
-  { icon: Zap,        label: 'Zahlungen via Stripe' },
-]
-
-const FAQS = [
-  {
-    q: 'Kann ich jederzeit kündigen?',
-    a: 'Ja. Monatliche Abos laufen bis zum Ende des bezahlten Monats. Danach wechselst du automatisch auf den Free-Plan — deine Daten bleiben erhalten.',
-  },
-  {
-    q: 'Was ist die Plattformgebühr?',
-    a: 'Osss berechnet 2% auf jeden Zahlungseingang deiner Mitglieder, der über Stripe abgewickelt wird. Zusätzlich fallen die üblichen Stripe-Gebühren (ca. 1,4% + 0,25€) an.',
-  },
-  {
-    q: 'Brauche ich ein Stripe-Konto?',
-    a: 'Nur wenn du Beiträge online einziehen möchtest. Mitgliederverwaltung, Stundenplan und Anwesenheit funktionieren auch ohne Stripe-Integration.',
-  },
-  {
-    q: 'Ist Osss DSGVO-konform?',
-    a: 'Ja. Alle Daten liegen auf europäischen Servern (Supabase EU). Mitgliederdaten werden ausschließlich für die Gym-Verwaltung verarbeitet und nicht an Dritte weitergegeben.',
-  },
-  {
-    q: 'Funktioniert Osss für andere Kampfsportarten?',
-    a: 'Absolut. BJJ, MMA, Kickboxen, Judo, Karate — Osss ist für alle Kampfsport-Gyms ausgelegt. Das Gürtelsystem ist flexibel konfigurierbar.',
-  },
-]
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 export default function PricingPage() {
   const router = useRouter()
+  const { lang } = useLanguage()
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [annual, setAnnual] = useState(false)
+
+  const en = lang === 'en'
+
+  const PLANS = [
+    {
+      name: 'Free',
+      price: '0',
+      period: '',
+      members: en ? 'Up to 30 members' : 'Bis zu 30 Mitglieder',
+      planKey: 'free',
+      highlight: false,
+      features: en
+        ? [
+            'Member management',
+            'Belt tracking & promotions',
+            'Attendance & GPS check-in',
+            'Schedule & iCal export',
+            'Public gym page + schedule embed',
+            'Digital member sign-up link',
+            'Member portal: booking & check-in per class',
+            'Lead management & pipeline',
+            'Invoice generation & CSV export',
+            '2% platform fee on payments',
+          ]
+        : [
+            'Mitgliederverwaltung',
+            'Belt-Tracking & Promotions',
+            'Anwesenheit & GPS Check-in',
+            'Stundenplan & iCal-Export',
+            'Öffentliche Gym-Seite + Stundenplan-Einbettung',
+            'Digitaler Mitglieder-Anmeldelink',
+            'Member-Portal: Buchung & Check-in per Klasse',
+            'Lead-Management & Pipeline',
+            'Rechnungsgenerierung & CSV-Export',
+            '2% Plattformgebühr bei Zahlungen',
+          ],
+      cta: en ? 'Start for free' : 'Kostenlos starten',
+      ctaHref: '/register',
+    },
+    {
+      name: 'Starter',
+      price: '29',
+      period: en ? '/month' : '/Monat',
+      members: en ? 'Up to 50 members' : 'Bis zu 50 Mitglieder',
+      planKey: 'starter',
+      highlight: false,
+      features: en
+        ? [
+            'Everything in Free',
+            'Automatic payment reminders',
+            'Birthday emails',
+            '1 trainer account',
+            '2% platform fee',
+          ]
+        : [
+            'Alles aus Free',
+            'Automatische Zahlungserinnerungen',
+            'Geburtstags-E-Mails',
+            '1 Trainer-Account',
+            '2% Plattformgebühr',
+          ],
+      cta: en ? 'Choose Starter' : 'Starter wählen',
+      ctaHref: '/register?plan=starter',
+    },
+    {
+      name: 'Grow',
+      price: '59',
+      period: en ? '/month' : '/Monat',
+      members: en ? 'Up to 150 members' : 'Bis zu 150 Mitglieder',
+      planKey: 'grow',
+      highlight: true,
+      features: en
+        ? [
+            'Everything in Starter',
+            'Announcements & noticeboard',
+            'Unlimited trainer accounts',
+            '2% platform fee',
+          ]
+        : [
+            'Alles aus Starter',
+            'Ankündigungen & Pinnwand',
+            'Unbegrenzte Trainer-Accounts',
+            '2% Plattformgebühr',
+          ],
+      cta: en ? 'Choose Grow' : 'Grow wählen',
+      ctaHref: '/register?plan=grow',
+    },
+    {
+      name: 'Pro',
+      price: '99',
+      period: en ? '/month' : '/Monat',
+      members: en ? 'Unlimited members' : 'Unbegrenzte Mitglieder',
+      planKey: 'pro',
+      highlight: false,
+      features: en
+        ? [
+            'Everything in Grow',
+            'Unlimited members',
+            'Priority support',
+            'Early access to new features',
+            '2% platform fee',
+          ]
+        : [
+            'Alles aus Grow',
+            'Unbegrenzte Mitglieder',
+            'Prioritäts-Support',
+            'Frühzeitiger Zugang zu neuen Features',
+            '2% Plattformgebühr',
+          ],
+      cta: en ? 'Choose Pro' : 'Pro wählen',
+      ctaHref: '/register?plan=pro',
+    },
+  ]
+
+  const TRUST = [
+    { icon: CreditCard, label: en ? 'No credit card to start' : 'Keine Kreditkarte beim Start' },
+    { icon: Clock,      label: en ? 'Cancel any time' : 'Jederzeit kündbar' },
+    { icon: Shield,     label: en ? 'GDPR compliant · Data in the EU' : 'DSGVO-konform · Daten in der EU' },
+    { icon: Zap,        label: en ? 'Payments via Stripe' : 'Zahlungen via Stripe' },
+  ]
+
+  const FAQS = [
+    {
+      q: en ? 'Can I cancel at any time?' : 'Kann ich jederzeit kündigen?',
+      a: en
+        ? 'Yes. Monthly subscriptions run until the end of the paid month. After that you automatically switch to the Free plan — your data stays intact.'
+        : 'Ja. Monatliche Abos laufen bis zum Ende des bezahlten Monats. Danach wechselst du automatisch auf den Free-Plan — deine Daten bleiben erhalten.',
+    },
+    {
+      q: en ? 'What is the platform fee?' : 'Was ist die Plattformgebühr?',
+      a: en
+        ? 'Osss charges 2% on every payment collected from your members via Stripe. Standard Stripe fees (approx. 1.4% + €0.25) apply on top.'
+        : 'Osss berechnet 2% auf jeden Zahlungseingang deiner Mitglieder, der über Stripe abgewickelt wird. Zusätzlich fallen die üblichen Stripe-Gebühren (ca. 1,4% + 0,25€) an.',
+    },
+    {
+      q: en ? 'Do I need a Stripe account?' : 'Brauche ich ein Stripe-Konto?',
+      a: en
+        ? 'Only if you want to collect membership fees online. Member management, scheduling, and attendance all work without Stripe.'
+        : 'Nur wenn du Beiträge online einziehen möchtest. Mitgliederverwaltung, Stundenplan und Anwesenheit funktionieren auch ohne Stripe-Integration.',
+    },
+    {
+      q: en ? 'Is Osss GDPR compliant?' : 'Ist Osss DSGVO-konform?',
+      a: en
+        ? 'Yes. All data is stored on European servers (Supabase EU). Member data is used exclusively for gym management and is never shared with third parties.'
+        : 'Ja. Alle Daten liegen auf europäischen Servern (Supabase EU). Mitgliederdaten werden ausschließlich für die Gym-Verwaltung verarbeitet und nicht an Dritte weitergegeben.',
+    },
+    {
+      q: en ? 'Does Osss work for other martial arts?' : 'Funktioniert Osss für andere Kampfsportarten?',
+      a: en
+        ? 'Absolutely. BJJ, MMA, kickboxing, judo, karate — Osss is built for all martial arts gyms. The belt system is flexibly configurable.'
+        : 'Absolut. BJJ, MMA, Kickboxen, Judo, Karate — Osss ist für alle Kampfsport-Gyms ausgelegt. Das Gürtelsystem ist flexibel konfigurierbar.',
+    },
+  ]
 
   async function handleUpgrade(plan: string) {
     setLoadingPlan(plan)
@@ -145,18 +196,21 @@ export default function PricingPage() {
               className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-900 transition-colors font-medium"
             >
               <ArrowLeft size={15} />
-              <span className="hidden sm:inline">Zurück</span>
+              <span className="hidden sm:inline">{en ? 'Back' : 'Zurück'}</span>
             </button>
             <span className="text-zinc-200 hidden sm:block">|</span>
             <OsssLogo variant="dark" />
           </div>
-          <Link
-            href="/register"
-            className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
-          >
-            <Zap size={13} />
-            Kostenlos starten
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher variant="minimal" />
+            <Link
+              href="/register"
+              className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
+            >
+              <Zap size={13} />
+              {en ? 'Start for free' : 'Kostenlos starten'}
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -168,31 +222,38 @@ export default function PricingPage() {
         />
         <div className="max-w-xl mx-auto relative">
           <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-6">
-            <span className="text-zinc-300 text-xs font-semibold tracking-wide">Keine versteckten Gebühren</span>
+            <span className="text-zinc-300 text-xs font-semibold tracking-wide">
+              {en ? 'No hidden fees' : 'Keine versteckten Gebühren'}
+            </span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tighter mb-4">
-            Einfache, faire Preise
+            {en ? 'Simple, fair pricing' : 'Einfache, faire Preise'}
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed mb-8">
-            Starte kostenlos mit bis zu 30 Mitgliedern.<br />Zahle erst wenn dein Gym wächst.
+            {en
+              ? <>Start free with up to 30 members.<br />Pay only when your gym grows.</>
+              : <>Starte kostenlos mit bis zu 30 Mitgliedern.<br />Zahle erst wenn dein Gym wächst.</>
+            }
           </p>
 
           {/* Monthly / Annual toggle */}
           <div className="flex items-center justify-center gap-3">
-            <span className={`text-sm font-semibold transition-colors ${!annual ? 'text-white' : 'text-zinc-500'}`}>Monatlich</span>
+            <span className={`text-sm font-semibold transition-colors ${!annual ? 'text-white' : 'text-zinc-500'}`}>
+              {en ? 'Monthly' : 'Monatlich'}
+            </span>
             <button
               onClick={() => setAnnual(a => !a)}
               className={`relative w-12 h-6 rounded-full transition-colors ${annual ? 'bg-amber-400' : 'bg-zinc-700'}`}
-              aria-label="Jährliche Abrechnung"
+              aria-label={en ? 'Annual billing' : 'Jährliche Abrechnung'}
             >
               <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${annual ? 'left-6' : 'left-0.5'}`} />
             </button>
             <span className={`text-sm font-semibold transition-colors ${annual ? 'text-white' : 'text-zinc-500'}`}>
-              Jährlich
+              {en ? 'Annual' : 'Jährlich'}
             </span>
             {annual && (
               <span className="bg-amber-400 text-zinc-950 text-[10px] font-black px-2.5 py-1 rounded-full tracking-wide">
-                2 MONATE GRATIS
+                {en ? '2 MONTHS FREE' : '2 MONATE GRATIS'}
               </span>
             )}
           </div>
@@ -213,7 +274,7 @@ export default function PricingPage() {
             >
               {plan.highlight && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-400 text-zinc-950 text-[11px] font-black px-3 py-1 rounded-full tracking-wide">
-                  BELIEBT
+                  {en ? 'POPULAR' : 'BELIEBT'}
                 </div>
               )}
 
@@ -230,9 +291,13 @@ export default function PricingPage() {
                       <span className="text-4xl font-black text-zinc-900 tracking-tight">
                         €{Math.round(parseInt(plan.price) * 10)}
                       </span>
-                      <span className="text-zinc-400 text-sm pb-1.5">/Jahr</span>
+                      <span className="text-zinc-400 text-sm pb-1.5">{en ? '/year' : '/Jahr'}</span>
                     </div>
-                    <p className="text-zinc-400 text-xs">€{plan.price}/Monat · 2 Monate gratis</p>
+                    <p className="text-zinc-400 text-xs">
+                      {en
+                        ? `€${plan.price}/month · 2 months free`
+                        : `€${plan.price}/Monat · 2 Monate gratis`}
+                    </p>
                   </div>
                 ) : (
                   <div className="flex items-end gap-0.5 mb-1">
@@ -273,7 +338,7 @@ export default function PricingPage() {
                       : 'bg-zinc-900 hover:bg-zinc-700 text-white'
                   }`}
                 >
-                  {loadingPlan === plan.planKey ? 'Wird geladen…' : plan.cta}
+                  {loadingPlan === plan.planKey ? (en ? 'Loading…' : 'Wird geladen…') : plan.cta}
                 </button>
               )}
             </div>
@@ -300,7 +365,7 @@ export default function PricingPage() {
       {/* FAQ */}
       <div className="max-w-2xl mx-auto px-5 py-20">
         <h2 className="text-2xl font-black text-zinc-900 tracking-tight text-center mb-10">
-          Häufige Fragen
+          {en ? 'Frequently asked questions' : 'Häufige Fragen'}
         </h2>
         <div className="divide-y divide-zinc-100">
           {FAQS.map((faq, i) => (
@@ -324,7 +389,7 @@ export default function PricingPage() {
         </div>
         <div className="mt-12 text-center">
           <p className="text-zinc-400 text-sm">
-            Weitere Fragen?{' '}
+            {en ? 'More questions?' : 'Weitere Fragen?'}{' '}
             <a href="mailto:oss@osss.pro" className="text-amber-600 hover:text-amber-700 font-semibold transition-colors">
               oss@osss.pro
             </a>
@@ -339,16 +404,20 @@ export default function PricingPage() {
           style={{ background: 'radial-gradient(ellipse 60% 60% at 50% 110%, rgba(251,191,36,0.08) 0%, transparent 65%)' }}
         />
         <div className="max-w-md mx-auto relative">
-          <h2 className="text-3xl font-black tracking-tight mb-3">Bereit loszulegen?</h2>
+          <h2 className="text-3xl font-black tracking-tight mb-3">
+            {en ? 'Ready to get started?' : 'Bereit loszulegen?'}
+          </h2>
           <p className="text-zinc-400 mb-8 text-sm leading-relaxed">
-            Kostenlos starten — kein Risiko, keine Kreditkarte. Dein Gym läuft in 10 Minuten.
+            {en
+              ? 'Start for free — no risk, no credit card. Your gym is live in 10 minutes.'
+              : 'Kostenlos starten — kein Risiko, keine Kreditkarte. Dein Gym läuft in 10 Minuten.'}
           </p>
           <Link
             href="/register"
             className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Zap size={16} />
-            Jetzt kostenlos starten
+            {en ? 'Start for free now' : 'Jetzt kostenlos starten'}
           </Link>
         </div>
       </div>
@@ -356,11 +425,11 @@ export default function PricingPage() {
       {/* Footer */}
       <footer className="bg-white border-t border-zinc-100 py-6 px-5">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-400">
-          <p>© {new Date().getFullYear()} Osss · Die Kampfsport-Gym-Software</p>
+          <p>© {new Date().getFullYear()} Osss · {en ? 'The martial arts gym software' : 'Die Kampfsport-Gym-Software'}</p>
           <div className="flex gap-5">
-            <Link href="/datenschutz" className="hover:text-zinc-700 transition-colors">Datenschutz</Link>
-            <Link href="/impressum" className="hover:text-zinc-700 transition-colors">Impressum</Link>
-            <a href="mailto:oss@osss.pro" className="hover:text-zinc-700 transition-colors">Kontakt</a>
+            <Link href="/datenschutz" className="hover:text-zinc-700 transition-colors">{en ? 'Privacy' : 'Datenschutz'}</Link>
+            <Link href="/impressum" className="hover:text-zinc-700 transition-colors">{en ? 'Imprint' : 'Impressum'}</Link>
+            <a href="mailto:oss@osss.pro" className="hover:text-zinc-700 transition-colors">{en ? 'Contact' : 'Kontakt'}</a>
           </div>
         </div>
       </footer>

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { SidebarNav, BottomNav } from './NavLinks'
 import { LogoMark } from '@/components/Logo'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import Image from 'next/image'
 
 type Role = 'owner' | 'trainer' | null
@@ -160,13 +161,14 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
                   <LogoMark className="w-4 h-3 text-zinc-950" />
                 </div>
               )}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-black text-zinc-950 text-sm leading-tight tracking-tight truncate">{gymName || 'Osss'}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                   <p className="text-[10px] text-zinc-400 tracking-wide font-medium">{isTrainer ? 'Trainer' : 'Owner'}</p>
                 </div>
               </div>
+              <LanguageSwitcher variant="minimal" className="flex-shrink-0" />
             </div>
           </div>
           <div className="mx-4 h-px bg-zinc-100" />

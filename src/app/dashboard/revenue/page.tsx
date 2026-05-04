@@ -7,6 +7,7 @@ import {
   Euro, Users, Calendar, ArrowUpRight, Download,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface PaymentFull {
   id: string
@@ -48,6 +49,8 @@ function daysSince(dateStr: string) {
 type Tab = 'overview' | 'members' | 'history'
 
 export default function RevenuePage() {
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const [loading, setLoading]           = useState(true)
   const [tab, setTab]                   = useState<Tab>('overview')
   const [allTimeCents, setAllTimeCents] = useState(0)
@@ -104,7 +107,7 @@ export default function RevenuePage() {
       const monthGroups = Array.from(map.entries()).map(([month, stats]) => {
         const [year, m] = month.split('-')
         const date = new Date(Number(year), Number(m) - 1, 1)
-        return { month, label: date.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }), ...stats }
+        return { month, label: date.toLocaleDateString(locale, { month: 'long', year: 'numeric' }), ...stats }
       }).sort((a, b) => b.month.localeCompare(a.month))
       setMonths(monthGroups)
 
@@ -153,7 +156,7 @@ export default function RevenuePage() {
       setAllPayments(
         payments
           .filter(p => p.status === 'paid' && p.paid_at)
-          .map(p => ({ ...p, member_name: nameMap.get(p.member_id) ?? 'Unbekannt' }))
+          .map(p => ({ ...p, member_name: nameMap.get(p.member_id) ?? t('revenue', 'unknown') }))
       )
 
       setLoading(false)
@@ -162,12 +165,12 @@ export default function RevenuePage() {
   }, [])
 
   function downloadPaymentsCSV() {
-    const headers = ['Datum', 'Mitglied', 'Betrag (€)', 'Status', 'Zahlungs-ID']
+    const headers = [t('revenue', 'csvHeaderDate'), t('revenue', 'csvHeaderMember'), t('revenue', 'csvHeaderAmount'), t('revenue', 'csvHeaderStatus'), t('revenue', 'csvHeaderId')]
     const rows = allPayments.map(p => [
-      p.paid_at ? new Date(p.paid_at).toLocaleDateString('de-DE') : new Date(p.created_at).toLocaleDateString('de-DE'),
+      p.paid_at ? new Date(p.paid_at).toLocaleDateString(locale) : new Date(p.created_at).toLocaleDateString(locale),
       p.member_name,
       (p.amount_cents / 100).toFixed(2).replace('.', ','),
-      p.status === 'paid' ? 'Bezahlt' : p.status === 'pending' ? 'Ausstehend' : p.status,
+      p.status === 'paid' ? t('revenue', 'paid') : p.status === 'pending' ? t('revenue', 'pending') : p.status,
       p.id,
     ])
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
@@ -238,7 +241,7 @@ export default function RevenuePage() {
     URL.revokeObjectURL(a.href)
   }
 
-  if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
+  if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">{t('common', 'loading')}</div>
 
   const paidCount    = members.filter(m => m.status === 'paid').length
   const pendingCount = members.filter(m => m.status === 'pending').length
@@ -247,26 +250,26 @@ export default function RevenuePage() {
   const maxMonthCents = Math.max(...months.map(m => m.total_cents), 1)
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'overview', label: 'Übersicht' },
-    { key: 'members',  label: 'Mitglieder' },
-    { key: 'history',  label: 'Verlauf' },
+    { key: 'overview', label: t('revenue', 'overview') },
+    { key: 'members',  label: t('revenue', 'memberStatus') },
+    { key: 'history',  label: t('revenue', 'history') },
   ]
 
   return (
     <div className="p-4 md:p-6 max-w-3xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Einnahmen</h1>
-        <p className="text-zinc-400 text-xs mt-0.5 font-medium">Zahlungsübersicht und Mitgliederstatus</p>
+        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('revenue', 'title')}</h1>
+        <p className="text-zinc-400 text-xs mt-0.5 font-medium">{t('revenue', 'subtitle')}</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
-          { icon: <Euro size={18} />, value: formatCents(allTimeCents), label: 'Gesamt', primary: true },
-          { icon: <Calendar size={18} />, value: formatCents(monthCents), label: new Date().toLocaleDateString('de-DE', { month: 'long' }), sub: monthDelta !== 0 ? `${monthDelta > 0 ? '+' : ''}${formatCents(monthDelta)}` : null, primary: false },
-          { icon: <Users size={18} />, value: formatCents(expectedMonthlyCents), label: 'Soll / Monat', primary: false },
-          { icon: <AlertCircle size={18} />, value: String(pendingCount + neverCount), label: 'Ausstehend', primary: false },
+          { icon: <Euro size={18} />, value: formatCents(allTimeCents), label: t('revenue', 'allTime'), primary: true },
+          { icon: <Calendar size={18} />, value: formatCents(monthCents), label: new Date().toLocaleDateString(locale, { month: 'long' }), sub: monthDelta !== 0 ? `${monthDelta > 0 ? '+' : ''}${formatCents(monthDelta)}` : null, primary: false },
+          { icon: <Users size={18} />, value: formatCents(expectedMonthlyCents), label: t('revenue', 'expectedMonthly'), primary: false },
+          { icon: <AlertCircle size={18} />, value: String(pendingCount + neverCount), label: t('revenue', 'pending'), primary: false },
         ].map((card, i) => (
           <div key={i} className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm min-w-0 hover:shadow-md transition-shadow duration-200">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${card.primary ? 'bg-amber-400 shadow-sm shadow-amber-200' : 'bg-zinc-100'}`}>
@@ -285,14 +288,14 @@ export default function RevenuePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-100 p-1 rounded-2xl mb-5">
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
+        {tabs.map(tabItem => (
+          <button key={tabItem.key} onClick={() => setTab(tabItem.key)}
             className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-150 ${
-              tab === t.key
+              tab === tabItem.key
                 ? 'bg-white text-zinc-900 shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-600'
             }`}>
-            {t.label}
+            {tabItem.label}
           </button>
         ))}
       </div>
@@ -302,7 +305,7 @@ export default function RevenuePage() {
         <div className="space-y-4">
           {/* Payment health */}
           <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
-            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Zahlungsstatus · Aktive Mitglieder</h2>
+            <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">{t('revenue', 'paymentStatus')}</h2>
             <div className="flex rounded-full overflow-hidden h-2 bg-zinc-100 mb-4">
               {paidCount    > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${members.length ? (paidCount / members.length) * 100 : 0}%` }} />}
               {pendingCount > 0 && <div className="bg-zinc-300 transition-all" style={{ width: `${members.length ? (pendingCount / members.length) * 100 : 0}%` }} />}
@@ -310,9 +313,9 @@ export default function RevenuePage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Bezahlt',     count: paidCount,    dot: 'bg-amber-400' },
-                { label: 'Ausstehend',  count: pendingCount, dot: 'bg-zinc-300' },
-                { label: 'Nie bezahlt', count: neverCount,   dot: 'bg-zinc-200' },
+                { label: t('revenue', 'paid'),    count: paidCount,    dot: 'bg-amber-400' },
+                { label: t('revenue', 'pending'), count: pendingCount, dot: 'bg-zinc-300' },
+                { label: t('revenue', 'never'),   count: neverCount,   dot: 'bg-zinc-200' },
               ].map(s => (
                 <div key={s.label} className="rounded-xl p-3 bg-zinc-50 border border-zinc-100 text-center">
                   <div className="text-2xl font-bold text-zinc-900">{s.count}</div>
@@ -328,7 +331,7 @@ export default function RevenuePage() {
           {/* Monthly bar chart */}
           {months.length > 0 && (
             <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm">
-              <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Monatsübersicht</h2>
+              <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">{t('revenue', 'monthlyOverview')}</h2>
               <div className="space-y-3">
                 {months.slice(0, 6).map(m => (
                   <div key={m.month} className="flex items-center gap-3">
@@ -352,14 +355,14 @@ export default function RevenuePage() {
           {months.length > 0 && (
             <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50">
-                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Details nach Monat</p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{t('revenue', 'monthlyDetails')}</p>
               </div>
               <div className="divide-y divide-gray-100">
                 {months.map(m => (
                   <div key={m.month} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50">
                     <span className="text-sm font-medium text-zinc-900">{m.label}</span>
                     <div className="flex items-center gap-4 min-w-0">
-                      <span className="text-xs text-zinc-400 flex-shrink-0">{m.count} Zahlung{m.count !== 1 ? 'en' : ''}</span>
+                      <span className="text-xs text-zinc-400 flex-shrink-0">{m.count} {m.count !== 1 ? t('revenue', 'paymentPlural') : t('revenue', 'paymentSingular')}</span>
                       <span className="text-sm font-semibold text-zinc-900 flex-shrink-0">{formatCents(m.total_cents)}</span>
                     </div>
                   </div>
@@ -373,8 +376,8 @@ export default function RevenuePage() {
               <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
                 <Euro size={20} className="text-amber-500" />
               </div>
-              <p className="text-zinc-900 font-semibold text-sm mb-1">Noch keine Einnahmen</p>
-              <p className="text-zinc-400 text-xs">Erstelle Zahlungslinks in den Mitgliederprofilen.</p>
+              <p className="text-zinc-900 font-semibold text-sm mb-1">{t('revenue', 'noRevenue')}</p>
+              <p className="text-zinc-400 text-xs">{t('revenue', 'noRevenueHint')}</p>
             </div>
           )}
         </div>
@@ -384,8 +387,8 @@ export default function RevenuePage() {
       {tab === 'members' && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Mitglieder · Zahlungsstatus</p>
-            <span className="text-xs text-zinc-400">{members.length} aktiv</span>
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{t('revenue', 'membersPayStatus')}</p>
+            <span className="text-xs text-zinc-400">{members.length} {t('revenue', 'activeCount')}</span>
           </div>
           <div className="divide-y divide-gray-100">
             {members.map(m => (
@@ -405,10 +408,10 @@ export default function RevenuePage() {
                   </p>
                   <p className="text-xs text-zinc-400 truncate">
                     {m.status === 'paid' && m.last_paid_at
-                      ? `Bezahlt vor ${daysSince(m.last_paid_at)} Tagen · ${m.total_payments}× insgesamt`
+                      ? t('revenue', 'paidDaysAgo').replace('{n}', String(daysSince(m.last_paid_at))).replace('{total}', String(m.total_payments))
                       : m.status === 'pending' && m.last_paid_at
-                      ? `Zuletzt vor ${daysSince(m.last_paid_at)} Tagen · überfällig`
-                      : 'Noch nie bezahlt'}
+                      ? t('revenue', 'pendingDaysAgo').replace('{n}', String(daysSince(m.last_paid_at)))
+                      : t('revenue', 'neverPaid')}
                   </p>
                 </div>
 
@@ -419,14 +422,14 @@ export default function RevenuePage() {
                     m.status === 'paid'    ? 'bg-amber-50 text-amber-700' :
                                             'bg-zinc-100 text-zinc-500'
                   }`}>
-                    {m.status === 'paid' ? 'Aktuell' : m.status === 'pending' ? 'Ausstehend' : 'Nie bezahlt'}
+                    {m.status === 'paid' ? t('revenue', 'paidCurrent') : m.status === 'pending' ? t('revenue', 'pending') : t('revenue', 'never')}
                   </span>
                 </div>
                 <ChevronRight size={14} className="text-zinc-300 flex-shrink-0" />
               </Link>
             ))}
             {members.length === 0 && (
-              <div className="py-12 text-center text-zinc-400 text-sm">Keine aktiven Mitglieder.</div>
+              <div className="py-12 text-center text-zinc-400 text-sm">{t('revenue', 'noActiveMembers')}</div>
             )}
           </div>
         </div>
@@ -436,19 +439,19 @@ export default function RevenuePage() {
       {tab === 'history' && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Zahlungshistorie</p>
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{t('revenue', 'paymentHistory')}</p>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-zinc-400">{allPayments.length} Transaktionen · {formatCents(allTimeCents)}</span>
+              <span className="text-xs text-zinc-400">{allPayments.length} {t('revenue', 'transactions')} · {formatCents(allTimeCents)}</span>
               {allPayments.length > 0 && (
                 <div className="flex items-center gap-2">
                   <button onClick={downloadPaymentsCSV}
                     className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
-                    title="CSV exportieren">
+                    title={t('revenue', 'exportCsv')}>
                     <Download size={12} /> CSV
                   </button>
                   <button onClick={downloadDATEV}
                     className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
-                    title="DATEV Buchungsstapel exportieren">
+                    title="DATEV">
                     <Download size={12} /> DATEV
                   </button>
                 </div>
@@ -466,7 +469,7 @@ export default function RevenuePage() {
                     <p className="text-sm font-medium text-zinc-900 truncate">{p.member_name}</p>
                     <p className="text-xs text-zinc-400">
                       {p.paid_at
-                        ? new Date(p.paid_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                        ? new Date(p.paid_at).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                         : '–'}
                       {p.invoice_number && <span className="ml-2 text-zinc-300">#{p.invoice_number}</span>}
                     </p>
@@ -476,14 +479,14 @@ export default function RevenuePage() {
                 {p.status === 'paid' && (
                   <a href={`/api/invoices/${p.id}?print=1`} target="_blank" rel="noopener noreferrer"
                     className="flex-shrink-0 p-1.5 rounded-lg text-zinc-300 hover:text-amber-600 hover:bg-amber-50 transition-colors opacity-0 group-hover:opacity-100"
-                    title="Rechnung herunterladen">
+                    title={t('revenue', 'download')}>
                     <Download size={13} />
                   </a>
                 )}
               </div>
             ))}
             {allPayments.length === 0 && (
-              <div className="py-12 text-center text-zinc-400 text-sm">Noch keine Zahlungen vorhanden.</div>
+              <div className="py-12 text-center text-zinc-400 text-sm">{t('revenue', 'noPayments')}</div>
             )}
           </div>
         </div>

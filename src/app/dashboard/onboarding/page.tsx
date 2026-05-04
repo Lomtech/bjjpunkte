@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { SPORT_PRESETS, isBeltFreeSport, type SportType } from '@/lib/belt-system'
 import { Check, Copy, ChevronRight, X, Plus, Zap } from 'lucide-react'
 import { OsssLogo } from '@/components/Logo'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,40 +32,18 @@ type MembershipPlan = {
 
 // ─── Sport options ─────────────────────────────────────────────────────────────
 
-const SPORTS: { key: SportType; label: string; emoji: string }[] = [
-  { key: 'bjj',       label: 'BJJ',       emoji: '🥋' },
-  { key: 'judo',      label: 'Judo',      emoji: '🥇' },
-  { key: 'karate',    label: 'Karate',    emoji: '🥊' },
-  { key: 'taekwondo', label: 'Taekwondo', emoji: '🦵' },
-  { key: 'mma',       label: 'MMA',       emoji: '🤼' },
-  { key: 'muaythai',  label: 'Muay Thai', emoji: '🥊' },
-  { key: 'boxing',    label: 'Boxen',     emoji: '🥊' },
-  { key: 'wrestling', label: 'Ringen',    emoji: '🤼' },
-]
-
-const INTERVAL_LABELS: Record<MembershipPlan['interval'], string> = {
-  monthly:     'Monatlich',
-  halfyearly:  'Halbjährlich',
-  yearly:      'Jährlich',
-}
-
-const DURATION_LABELS: Record<number, string> = {
-  0:  'Monatlich kündbar',
-  3:  '3 Monate',
-  6:  '6 Monate',
-  12: '12 Monate',
-  24: '24 Monate',
-}
+// SPORTS is defined inside the component so it can use lang
 
 // ─── Progress bar ─────────────────────────────────────────────────────────────
 
-const STEPS = ['Sport', 'Profil', 'Beiträge', 'Stripe', 'Fertig']
+const STEPS_DE = ['Sport', 'Profil', 'Beiträge', 'Stripe', 'Fertig']
+const STEPS_EN = ['Sport', 'Profile', 'Plans', 'Stripe', 'Done']
 
-function ProgressBar({ step }: { step: number }) {
+function ProgressBar({ step, steps }: { step: number; steps: string[] }) {
   return (
     <div className="w-full mb-8">
       <div className="flex items-center justify-between mb-2">
-        {STEPS.map((label, i) => {
+        {steps.map((label, i) => {
           const idx = i + 1
           const done = idx < step
           const active = idx === step
@@ -89,7 +68,7 @@ function ProgressBar({ step }: { step: number }) {
       <div className="relative h-1 bg-gray-200 rounded-full">
         <div
           className="absolute left-0 top-0 h-1 bg-amber-500 rounded-full transition-all duration-500"
-          style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
+          style={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
         />
       </div>
     </div>
@@ -101,6 +80,34 @@ function ProgressBar({ step }: { step: number }) {
 export default function OnboardingPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { t, lang } = useLanguage()
+
+  const INTERVAL_LABELS: Record<MembershipPlan['interval'], string> = {
+    monthly:    lang === 'en' ? 'Monthly'     : 'Monatlich',
+    halfyearly: lang === 'en' ? 'Half-yearly' : 'Halbjährlich',
+    yearly:     lang === 'en' ? 'Yearly'      : 'Jährlich',
+  }
+
+  const DURATION_LABELS: Record<number, string> = {
+    0:  lang === 'en' ? 'Cancel anytime' : 'Monatlich kündbar',
+    3:  lang === 'en' ? '3 months'       : '3 Monate',
+    6:  lang === 'en' ? '6 months'       : '6 Monate',
+    12: lang === 'en' ? '12 months'      : '12 Monate',
+    24: lang === 'en' ? '24 months'      : '24 Monate',
+  }
+
+  const STEPS = lang === 'en' ? STEPS_EN : STEPS_DE
+
+  const SPORTS: { key: SportType; label: string; emoji: string }[] = [
+    { key: 'bjj',       label: 'BJJ',                           emoji: '🥋' },
+    { key: 'judo',      label: 'Judo',                          emoji: '🥇' },
+    { key: 'karate',    label: 'Karate',                        emoji: '🥊' },
+    { key: 'taekwondo', label: 'Taekwondo',                     emoji: '🦵' },
+    { key: 'mma',       label: 'MMA',                           emoji: '🤼' },
+    { key: 'muaythai',  label: 'Muay Thai',                     emoji: '🥊' },
+    { key: 'boxing',    label: lang === 'en' ? 'Boxing' : 'Boxen',   emoji: '🥊' },
+    { key: 'wrestling', label: lang === 'en' ? 'Wrestling' : 'Ringen', emoji: '🤼' },
+  ]
 
   const [step, setStep] = useState(1)
   const [gym, setGym] = useState<GymData | null>(null)
@@ -333,12 +340,12 @@ export default function OnboardingPage() {
       {/* Header */}
       <div className="w-full max-w-xl mb-6 flex items-center">
         <OsssLogo variant="dark" href="/" />
-        <span className="ml-auto text-sm text-gray-400">Einrichtung</span>
+        <span className="ml-auto text-sm text-gray-400">{t('nav', 'setup')}</span>
       </div>
 
       {/* Card */}
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-sm p-6 md:p-8">
-        <ProgressBar step={step} />
+        <ProgressBar step={step} steps={STEPS} />
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-center gap-2">
@@ -350,8 +357,8 @@ export default function OnboardingPage() {
         {/* ── Step 1: Sport ── */}
         {step === 1 && (
           <div>
-            <h1 className="text-2xl font-black text-gray-900 mb-1">Welchen Sport trainierst du?</h1>
-            <p className="text-gray-500 text-sm mb-6">Wähle deinen Hauptsport — das bestimmt das Gürtelsystem.</p>
+            <h1 className="text-2xl font-black text-gray-900 mb-1">{lang === 'en' ? 'Which sport do you train?' : 'Welchen Sport trainierst du?'}</h1>
+            <p className="text-gray-500 text-sm mb-6">{lang === 'en' ? 'Choose your main sport — this determines the belt system.' : 'Wähle deinen Hauptsport — das bestimmt das Gürtelsystem.'}</p>
 
             <div className="grid grid-cols-4 gap-3 mb-8">
               {SPORTS.map(sport => {
@@ -371,7 +378,7 @@ export default function OnboardingPage() {
                     <span className="text-xs font-semibold text-gray-700 text-center leading-tight">{sport.label}</span>
                     {beltFree && (
                       <span className="text-[9px] text-gray-400 bg-gray-100 rounded px-1 py-0.5 leading-none">
-                        Kein Gürtel
+                        {lang === 'en' ? 'No belt' : 'Kein Gürtel'}
                       </span>
                     )}
                   </button>
@@ -384,7 +391,7 @@ export default function OnboardingPage() {
               disabled={!activeSport || saving}
               className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
-              {saving ? 'Speichern…' : 'Weiter'} <ChevronRight size={16} />
+              {saving ? t('common', 'loading') : t('onboarding', 'continue')} <ChevronRight size={16} />
             </button>
           </div>
         )}
@@ -392,12 +399,12 @@ export default function OnboardingPage() {
         {/* ── Step 2: Profile ── */}
         {step === 2 && (
           <div>
-            <h1 className="text-2xl font-black text-gray-900 mb-1">Stell dich vor</h1>
-            <p className="text-gray-500 text-sm mb-6">Deine Gym-Informationen — sichtbar für Mitglieder.</p>
+            <h1 className="text-2xl font-black text-gray-900 mb-1">{lang === 'en' ? 'Introduce yourself' : 'Stell dich vor'}</h1>
+            <p className="text-gray-500 text-sm mb-6">{lang === 'en' ? 'Your gym information — visible to members.' : 'Deine Gym-Informationen — sichtbar für Mitglieder.'}</p>
 
             <div className="space-y-4 mb-8">
               <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-1">Gym-Name</label>
+                <label className="text-sm font-semibold text-gray-700 block mb-1">{t('settings', 'gymName')}</label>
                 <input
                   type="text"
                   value={gymName}
@@ -407,7 +414,7 @@ export default function OnboardingPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-1">Adresse</label>
+                <label className="text-sm font-semibold text-gray-700 block mb-1">{t('settings', 'address')}</label>
                 <input
                   type="text"
                   value={address}
@@ -418,7 +425,7 @@ export default function OnboardingPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-1">Telefon</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-1">{t('settings', 'phone')}</label>
                   <input
                     type="tel"
                     value={phone}
@@ -428,7 +435,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-gray-700 block mb-1">E-Mail</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-1">{t('settings', 'email')}</label>
                   <input
                     type="email"
                     value={email}
@@ -445,14 +452,14 @@ export default function OnboardingPage() {
                 onClick={() => { setError(null); setStep(1) }}
                 className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
-                Zurück
+                {t('common', 'back')}
               </button>
               <button
                 onClick={saveStep2}
                 disabled={saving}
                 className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                {saving ? 'Speichern…' : 'Weiter'} <ChevronRight size={16} />
+                {saving ? t('common', 'loading') : t('onboarding', 'continue')} <ChevronRight size={16} />
               </button>
             </div>
           </div>
@@ -461,16 +468,16 @@ export default function OnboardingPage() {
         {/* ── Step 3: Membership plans ── */}
         {step === 3 && (
           <div>
-            <h1 className="text-2xl font-black text-gray-900 mb-1">Deine Mitgliedschafts-Optionen</h1>
+            <h1 className="text-2xl font-black text-gray-900 mb-1">{lang === 'en' ? 'Your membership options' : 'Deine Mitgliedschafts-Optionen'}</h1>
             <p className="text-gray-500 text-sm mb-6">
-              Definiere deine Preise. Du kannst sie jederzeit unter Einstellungen → Verträge ändern.
+              {lang === 'en' ? 'Define your prices. You can change them anytime under Settings → Contracts.' : 'Definiere deine Preise. Du kannst sie jederzeit unter Einstellungen → Verträge ändern.'}
             </p>
 
             {/* Add plan form */}
             <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Name</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">{lang === 'en' ? 'Name' : 'Name'}</label>
                   <input
                     type="text"
                     value={planName}
@@ -480,7 +487,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Preis (€)</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">{lang === 'en' ? 'Price (€)' : 'Preis (€)'}</label>
                   <input
                     type="number"
                     min="0"
@@ -494,29 +501,29 @@ export default function OnboardingPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Intervall</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">{lang === 'en' ? 'Interval' : 'Intervall'}</label>
                   <select
                     value={planInterval}
                     onChange={e => setPlanInterval(e.target.value as MembershipPlan['interval'])}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
                   >
-                    <option value="monthly">Monatlich</option>
-                    <option value="halfyearly">Halbjährlich</option>
-                    <option value="yearly">Jährlich</option>
+                    <option value="monthly">{lang === 'en' ? 'Monthly' : 'Monatlich'}</option>
+                    <option value="halfyearly">{lang === 'en' ? 'Half-yearly' : 'Halbjährlich'}</option>
+                    <option value="yearly">{lang === 'en' ? 'Yearly' : 'Jährlich'}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Vertragslaufzeit</label>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">{lang === 'en' ? 'Contract term' : 'Vertragslaufzeit'}</label>
                   <select
                     value={planDuration}
                     onChange={e => setPlanDuration(Number(e.target.value))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
                   >
-                    <option value={0}>Monatlich kündbar</option>
-                    <option value={3}>3 Monate</option>
-                    <option value={6}>6 Monate</option>
-                    <option value={12}>12 Monate</option>
-                    <option value={24}>24 Monate</option>
+                    <option value={0}>{lang === 'en' ? 'Cancel anytime' : 'Monatlich kündbar'}</option>
+                    <option value={3}>{lang === 'en' ? '3 months' : '3 Monate'}</option>
+                    <option value={6}>{lang === 'en' ? '6 months' : '6 Monate'}</option>
+                    <option value={12}>{lang === 'en' ? '12 months' : '12 Monate'}</option>
+                    <option value={24}>{lang === 'en' ? '24 months' : '24 Monate'}</option>
                   </select>
                 </div>
               </div>
@@ -525,7 +532,7 @@ export default function OnboardingPage() {
                 disabled={!planName.trim() || !planPrice.trim()}
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white text-sm font-semibold transition-colors"
               >
-                <Plus size={14} /> Tarif hinzufügen
+                <Plus size={14} /> {t('settings', 'addPlan')}
               </button>
             </div>
 
@@ -553,14 +560,14 @@ export default function OnboardingPage() {
                 onClick={() => { setError(null); setStep(2) }}
                 className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
-                Zurück
+                {t('common', 'back')}
               </button>
               <button
                 onClick={saveStep3}
                 disabled={saving}
                 className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                {saving ? 'Speichern…' : 'Weiter'} <ChevronRight size={16} />
+                {saving ? t('common', 'loading') : t('onboarding', 'continue')} <ChevronRight size={16} />
               </button>
             </div>
             <div className="text-center mt-3">
@@ -568,7 +575,7 @@ export default function OnboardingPage() {
                 onClick={() => { setError(null); setStep(4) }}
                 className="text-sm text-gray-400 hover:text-amber-500 transition-colors"
               >
-                Überspringen →
+                {t('onboarding', 'skipForNow')} →
               </button>
             </div>
           </div>
@@ -577,9 +584,9 @@ export default function OnboardingPage() {
         {/* ── Step 4: Stripe ── */}
         {step === 4 && (
           <div>
-            <h1 className="text-2xl font-black text-gray-900 mb-1">Zahlungen einrichten</h1>
+            <h1 className="text-2xl font-black text-gray-900 mb-1">{lang === 'en' ? 'Set up payments' : 'Zahlungen einrichten'}</h1>
             <p className="text-gray-500 text-sm mb-6">
-              Mit Stripe kannst du Beiträge direkt einziehen und Rechnungen versenden. Du kannst diesen Schritt auch später in den Einstellungen nachholen.
+              {lang === 'en' ? 'With Stripe you can collect fees directly and send invoices. You can also do this step later in the settings.' : 'Mit Stripe kannst du Beiträge direkt einziehen und Rechnungen versenden. Du kannst diesen Schritt auch später in den Einstellungen nachholen.'}
             </p>
 
             {gym?.stripe_account_id ? (
@@ -588,8 +595,8 @@ export default function OnboardingPage() {
                   <Check size={16} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-green-800">Stripe ist verbunden ✓</p>
-                  <p className="text-xs text-green-600">Dein Stripe-Konto ist aktiv und bereit.</p>
+                  <p className="text-sm font-bold text-green-800">{lang === 'en' ? 'Stripe connected ✓' : 'Stripe ist verbunden ✓'}</p>
+                  <p className="text-xs text-green-600">{lang === 'en' ? 'Your Stripe account is active and ready.' : 'Dein Stripe-Konto ist aktiv und bereit.'}</p>
                 </div>
               </div>
             ) : (
@@ -599,7 +606,7 @@ export default function OnboardingPage() {
                 className="w-full flex items-center justify-center gap-3 py-4 rounded-xl bg-[#635bff] hover:bg-[#5750e3] disabled:opacity-60 text-white font-bold text-base transition-colors mb-4"
               >
                 <Zap size={18} />
-                {stripeLoading ? 'Weiterleitung…' : 'Stripe verbinden'}
+                {stripeLoading ? (lang === 'en' ? 'Redirecting…' : 'Weiterleitung…') : t('onboarding', 'stripeConnect')}
               </button>
             )}
 
@@ -608,13 +615,13 @@ export default function OnboardingPage() {
                 onClick={() => { setError(null); setStep(3) }}
                 className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
-                Zurück
+                {t('common', 'back')}
               </button>
               <button
                 onClick={() => setStep(5)}
                 className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                Weiter <ChevronRight size={16} />
+                {t('onboarding', 'continue')} <ChevronRight size={16} />
               </button>
             </div>
             <div className="text-center mt-3">
@@ -622,7 +629,7 @@ export default function OnboardingPage() {
                 onClick={() => setStep(5)}
                 className="text-sm text-gray-400 hover:text-amber-500 transition-colors"
               >
-                Später einrichten →
+                {lang === 'en' ? 'Set up later →' : 'Später einrichten →'}
               </button>
             </div>
           </div>
@@ -631,14 +638,14 @@ export default function OnboardingPage() {
         {/* ── Step 5: Done ── */}
         {step === 5 && (
           <div>
-            <h1 className="text-2xl font-black text-gray-900 mb-1">Alles bereit! 🎉</h1>
+            <h1 className="text-2xl font-black text-gray-900 mb-1">{lang === 'en' ? 'All set! 🎉' : 'Alles bereit! 🎉'}</h1>
             <p className="text-gray-500 text-sm mb-6">
-              Teile diesen Link mit neuen Mitgliedern — sie können sich direkt anmelden.
+              {lang === 'en' ? 'Share this link with new members — they can sign up directly.' : 'Teile diesen Link mit neuen Mitgliedern — sie können sich direkt anmelden.'}
             </p>
 
             {gym?.signup_token && (
               <div className="mb-6">
-                <label className="text-sm font-semibold text-gray-700 block mb-2">Dein Anmelde-Link</label>
+                <label className="text-sm font-semibold text-gray-700 block mb-2">{lang === 'en' ? 'Your signup link' : 'Dein Anmelde-Link'}</label>
                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
                   <span className="flex-1 text-sm text-gray-700 font-mono truncate">
                     {(process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== 'undefined' ? window.location.origin : ''))}/signup/{gym.signup_token}
@@ -650,14 +657,14 @@ export default function OnboardingPage() {
                     {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1.5">Teile diesen Link per WhatsApp, E-Mail oder auf Instagram.</p>
+                <p className="text-xs text-gray-400 mt-1.5">{lang === 'en' ? 'Share this link via WhatsApp, email, or Instagram.' : 'Teile diesen Link per WhatsApp, E-Mail oder auf Instagram.'}</p>
               </div>
             )}
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-              <p className="text-sm text-amber-800 font-semibold mb-1">Du bist startklar 🚀</p>
+              <p className="text-sm text-amber-800 font-semibold mb-1">{lang === 'en' ? "You're ready to go 🚀" : 'Du bist startklar 🚀'}</p>
               <p className="text-xs text-amber-700">
-                Mitglieder, Trainingsplan, Gürtelprüfungen — alles wartet im Dashboard auf dich.
+                {lang === 'en' ? 'Members, training schedule, belt promotions — everything awaits in the dashboard.' : 'Mitglieder, Trainingsplan, Gürtelprüfungen — alles wartet im Dashboard auf dich.'}
               </p>
             </div>
 
@@ -666,14 +673,14 @@ export default function OnboardingPage() {
                 onClick={() => { setError(null); setStep(4) }}
                 className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
               >
-                Zurück
+                {t('common', 'back')}
               </button>
               <button
                 onClick={completeOnboarding}
                 disabled={saving}
                 className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
               >
-                {saving ? 'Moment…' : 'Zum Dashboard'}
+                {saving ? (lang === 'en' ? 'Just a moment…' : 'Moment…') : t('onboarding', 'toDashboard')}
               </button>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, Repeat } from 'lucide-react'
 import type { ClassType } from '@/types/database'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 const CLASS_TYPES: { value: ClassType; label: string }[] = [
   { value: 'gi', label: 'Gi' },
@@ -22,13 +23,6 @@ const DEFAULT_TITLES: Record<ClassType, string> = {
 
 type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly'
 
-const RECURRENCE_OPTIONS: { value: RecurrenceType; label: string }[] = [
-  { value: 'none',    label: 'Einmalig' },
-  { value: 'daily',   label: 'Täglich' },
-  { value: 'weekly',  label: 'Wöchentlich' },
-  { value: 'monthly', label: 'Monatlich' },
-]
-
 // Default recurrence_until: 3 months from today
 function defaultUntil() {
   const d = new Date()
@@ -44,6 +38,7 @@ interface Props {
 }
 
 export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: Props) {
+  const { lang } = useLanguage()
   const [classType, setClassType]       = useState<ClassType>('gi')
   const [title, setTitle]               = useState(DEFAULT_TITLES['gi'])
   const [date, setDate]                 = useState(defaultDate)
@@ -56,6 +51,13 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
   const [until, setUntil]               = useState(defaultUntil())
   const [saving, setSaving]             = useState(false)
   const [error, setError]               = useState('')
+
+  const RECURRENCE_OPTIONS: { value: RecurrenceType; label: string }[] = [
+    { value: 'none',    label: lang === 'en' ? 'Once' : 'Einmalig' },
+    { value: 'daily',   label: lang === 'en' ? 'Daily' : 'Täglich' },
+    { value: 'weekly',  label: lang === 'en' ? 'Weekly' : 'Wöchentlich' },
+    { value: 'monthly', label: lang === 'en' ? 'Monthly' : 'Monatlich' },
+  ]
 
   function handleTypeChange(t: ClassType) {
     setClassType(t)
@@ -86,7 +88,7 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
 
     const data = await res.json()
     setSaving(false)
-    if (!res.ok) { setError(data.error ?? 'Fehler beim Speichern'); return }
+    if (!res.ok) { setError(data.error ?? (lang === 'en' ? 'Error saving' : 'Fehler beim Speichern')); return }
     onCreated()
   }
 
@@ -94,7 +96,7 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-200 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">Neue Klasse erstellen</h2>
+          <h2 className="font-semibold text-slate-900">{lang === 'en' ? 'Create new class' : 'Neue Klasse erstellen'}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors">
             <X size={18} />
           </button>
@@ -103,7 +105,7 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Class type */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Trainingstyp</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Class type' : 'Trainingstyp'}</label>
             <div className="flex flex-wrap gap-2">
               {CLASS_TYPES.map(ct => (
                 <button key={ct.value} type="button" onClick={() => handleTypeChange(ct.value)}
@@ -120,14 +122,14 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Titel</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Title' : 'Titel'}</label>
             <input type="text" required value={title} onChange={e => setTitle(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Datum (erster Termin)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Date (first occurrence)' : 'Datum (erster Termin)'}</label>
             <input type="date" required value={date} onChange={e => setDate(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
@@ -135,12 +137,12 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
           {/* Times */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Startzeit</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Start time' : 'Startzeit'}</label>
               <input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Endzeit</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'End time' : 'Endzeit'}</label>
               <input type="time" required value={endTime} onChange={e => setEndTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
             </div>
@@ -150,7 +152,7 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
               <Repeat size={13} className="text-slate-400" />
-              Wiederholung
+              {lang === 'en' ? 'Recurrence' : 'Wiederholung'}
             </label>
             <div className="flex gap-2 flex-wrap">
               {RECURRENCE_OPTIONS.map(r => (
@@ -167,14 +169,14 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
 
             {recurrence !== 'none' && (
               <div className="mt-3">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Wiederholen bis</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Repeat until' : 'Wiederholen bis'}</label>
                 <input type="date" required value={until} onChange={e => setUntil(e.target.value)}
                   min={date}
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
                 <p className="text-xs text-slate-400 mt-1">
-                  {recurrence === 'weekly'  && 'Jede Woche am gleichen Wochentag'}
-                  {recurrence === 'daily'   && 'Jeden Tag zur gleichen Zeit'}
-                  {recurrence === 'monthly' && 'Jeden Monat am gleichen Tag'}
+                  {recurrence === 'weekly'  && (lang === 'en' ? 'Every week on the same weekday' : 'Jede Woche am gleichen Wochentag')}
+                  {recurrence === 'daily'   && (lang === 'en' ? 'Every day at the same time' : 'Jeden Tag zur gleichen Zeit')}
+                  {recurrence === 'monthly' && (lang === 'en' ? 'Every month on the same day' : 'Jeden Monat am gleichen Tag')}
                 </p>
               </div>
             )}
@@ -182,23 +184,23 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
 
           {/* Instructor */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Trainer (optional)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Instructor (optional)' : 'Trainer (optional)'}</label>
             <input type="text" value={instructor} onChange={e => setInstructor(e.target.value)}
-              placeholder="z. B. Max Mustermann"
+              placeholder={lang === 'en' ? 'e.g. John Smith' : 'z. B. Max Mustermann'}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
 
           {/* Max capacity */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Max. Teilnehmer (optional)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Max. participants (optional)' : 'Max. Teilnehmer (optional)'}</label>
             <input type="number" min="1" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)}
-              placeholder="Unbegrenzt"
+              placeholder={lang === 'en' ? 'Unlimited' : 'Unbegrenzt'}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Beschreibung (optional)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Description (optional)' : 'Beschreibung (optional)'}</label>
             <textarea rows={2} value={description} onChange={e => setDescription(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none" />
           </div>
@@ -208,11 +210,15 @@ export function NewClassModal({ defaultDate, onClose, onCreated, accessToken }: 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
-              Abbrechen
+              {lang === 'en' ? 'Cancel' : 'Abbrechen'}
             </button>
             <button type="submit" disabled={saving}
               className="flex-1 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-sm font-medium transition-colors disabled:opacity-60">
-              {saving ? 'Wird erstellt…' : recurrence !== 'none' ? 'Serie erstellen' : 'Erstellen'}
+              {saving
+                ? (lang === 'en' ? 'Creating…' : 'Wird erstellt…')
+                : recurrence !== 'none'
+                  ? (lang === 'en' ? 'Create series' : 'Serie erstellen')
+                  : (lang === 'en' ? 'Create' : 'Erstellen')}
             </button>
           </div>
         </form>

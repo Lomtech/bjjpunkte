@@ -9,14 +9,7 @@ import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 import { toWaPhone } from '@/lib/phone'
-
-const BULK_TEMPLATES = [
-  { id: 'info',    label: '📢 Allgemeine Info',        text: () => `Hallo! Kurze Nachricht von eurem Gym. 👋` },
-  { id: 'payment', label: '💰 Beitragserinnerung',     text: () => `Hallo! Euer monatlicher Mitgliedsbeitrag ist fällig. Bitte überweist ihn diese Woche. Danke! 🙏` },
-  { id: 'event',   label: '🥋 Trainings-Erinnerung',  text: () => `Hey! Heute Abend Training – wir sehen uns auf der Matte! Oss! 💪` },
-  { id: 'comp',    label: '🏆 Wettkampf-Ankündigung', text: () => `Hey Leute! Wir nehmen am nächsten Wettkampf teil. Wer Interesse hat – meldet euch! Details folgen. Oss! 🏆` },
-  { id: 'custom',  label: '✏️ Eigene Nachricht',       text: () => `` },
-]
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 const SUB_COLORS: Record<string, string> = {
   active:    'bg-amber-50 text-amber-700 border border-amber-200',
@@ -24,9 +17,6 @@ const SUB_COLORS: Record<string, string> = {
   past_due:  'bg-zinc-100 text-zinc-500 border border-zinc-200',
   cancelled: 'bg-zinc-100 text-zinc-500',
   none:      '',
-}
-const SUB_LABELS: Record<string, string> = {
-  active: 'Aktiv', trial: 'Testphase', past_due: 'Überfällig', cancelled: 'Gekündigt', none: '',
 }
 
 interface Member {
@@ -54,6 +44,17 @@ function formatCents(cents: number) {
 
 export default function MembersPage() {
   const router = useRouter()
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
+
+  const SUB_LABELS: Record<string, string> = {
+    active:    t('members', 'subActive'),
+    trial:     t('members', 'subTrial'),
+    past_due:  t('members', 'subPastDue'),
+    cancelled: t('members', 'subCancelled'),
+    none:      '',
+  }
+
   const [loading, setLoading]               = useState(true)
   const [members, setMembers]               = useState<Member[]>([])
   const [gymId, setGymId]                   = useState('')
@@ -94,13 +95,15 @@ export default function MembersPage() {
       if (cached && Date.now() - cached.ts < GPS_CACHE_MS) {
         resolve({ lat: cached.lat, lng: cached.lng }); return
       }
-      if (!navigator.geolocation) { reject(new Error('GPS nicht verfügbar')); return }
+      if (!navigator.geolocation) { reject(new Error(t('portal', 'gpsNotAvailable'))); return }
       navigator.geolocation.getCurrentPosition(
         pos => {
           cachedGps.current = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now() }
           resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude })
         },
-        err => reject(new Error(err.code === 1 ? 'GPS-Zugriff verweigert. Bitte Standortfreigabe erlauben.' : 'GPS-Standort konnte nicht ermittelt werden.')),
+        err => reject(new Error(err.code === 1
+          ? (lang === 'en' ? 'GPS access denied. Please allow location access.' : 'GPS-Zugriff verweigert. Bitte Standortfreigabe erlauben.')
+          : (lang === 'en' ? 'Could not determine GPS location.' : 'GPS-Standort konnte nicht ermittelt werden.'))),
         { enableHighAccuracy: true, timeout: 10_000 }
       )
     })
@@ -127,7 +130,7 @@ export default function MembersPage() {
       coords = await getGps()
     } catch (e) {
       setCheckingInId(null)
-      setGpsError(e instanceof Error ? e.message : 'GPS-Fehler')
+      setGpsError(e instanceof Error ? e.message : t('portal', 'gpsError'))
       return
     }
 
@@ -151,7 +154,7 @@ export default function MembersPage() {
       setTimeout(() => setCheckedInIds(prev => { const n = new Set(prev); n.delete(memberId); return n }), 3000)
     } else {
       const json = await res.json().catch(() => ({}))
-      setGpsError(json.error ?? 'Check-in fehlgeschlagen')
+      setGpsError(json.error ?? (lang === 'en' ? 'Check-in failed' : 'Check-in fehlgeschlagen'))
     }
   }
 
@@ -211,11 +214,9 @@ export default function MembersPage() {
   const activeWithEmail = active.filter(m => m.email)
 
   function downloadCSV() {
-    const headers = [
-      'Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Geburtsdatum',
-      'Gürtel', 'Stripes', 'Mitglied seit', 'Status', 'Abo-Status',
-      'Vertrag bis', 'Beitrag (€)',
-    ]
+    const headers = lang === 'en'
+      ? ['First name', 'Last name', 'Email', 'Phone', 'Date of birth', 'Belt', 'Stripes', 'Member since', 'Status', 'Subscription status', 'Contract until', 'Fee (€)']
+      : ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Geburtsdatum', 'Gürtel', 'Stripes', 'Mitglied seit', 'Status', 'Abo-Status', 'Vertrag bis', 'Beitrag (€)']
     const rows = members.map(m => [
       m.first_name,
       m.last_name,
@@ -225,7 +226,7 @@ export default function MembersPage() {
       m.belt,
       String(m.stripes),
       m.join_date,
-      m.is_active ? 'Aktiv' : 'Inaktiv',
+      m.is_active ? t('members', 'active') : t('members', 'inactive'),
       (m as { subscription_status?: string }).subscription_status ?? '',
       m.contract_end_date ?? '',
       ((m as { monthly_fee_override_cents?: number | null }).monthly_fee_override_cents ?? 0) > 0
@@ -236,7 +237,7 @@ export default function MembersPage() {
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
-    a.download = `mitglieder-${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `${lang === 'en' ? 'members' : 'mitglieder'}-${new Date().toISOString().split('T')[0]}.csv`
     a.click(); URL.revokeObjectURL(url)
   }
 
@@ -256,13 +257,13 @@ export default function MembersPage() {
       })
       const json = await res.json()
       if (res.ok) {
-        setBulkResult(`${json.count} Zahlungslinks erstellt.`)
+        setBulkResult(lang === 'en' ? `${json.count} payment links created.` : `${json.count} Zahlungslinks erstellt.`)
         setBulkMembers(json.members ?? [])
         setShowBulkResults(true)
       } else {
-        setBulkResult(`Fehler: ${json.error}`)
+        setBulkResult(`${lang === 'en' ? 'Error' : 'Fehler'}: ${json.error}`)
       }
-    } catch { setBulkResult('Fehler beim Erstellen der Zahlungslinks.') }
+    } catch { setBulkResult(lang === 'en' ? 'Error creating payment links.' : 'Fehler beim Erstellen der Zahlungslinks.') }
     finally { setBulkLoading(false); setShowBulkConfirm(false) }
   }
 
@@ -313,13 +314,15 @@ export default function MembersPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5 gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Mitglieder</h1>
+          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('members', 'title')}</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-zinc-400 text-xs font-medium">{active.length} aktiv · {inactive.length} inaktiv</p>
+            <p className="text-zinc-400 text-xs font-medium">{active.length} {t('members', 'active').toLowerCase()} · {inactive.length} {t('members', 'inactive').toLowerCase()}</p>
             {eligibleClasses.length > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                {eligibleClasses.length === 1 ? `${eligibleClasses[0].title} läuft` : `${eligibleClasses.length} Kurse aktiv`}
+                {eligibleClasses.length === 1
+                  ? `${eligibleClasses[0].title} ${lang === 'en' ? 'is live' : 'läuft'}`
+                  : `${eligibleClasses.length} ${lang === 'en' ? 'classes active' : 'Kurse aktiv'}`}
               </span>
             )}
           </div>
@@ -331,33 +334,33 @@ export default function MembersPage() {
           </Link>
           <button onClick={handleEmailAll}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors shadow-sm"
-            title={`E-Mail an ${activeWithEmail.length} Mitglieder`}>
-            <Mail size={14} /> E-Mail
+            title={`${t('members', 'email')} — ${activeWithEmail.length} ${t('members', 'title').toLowerCase()}`}>
+            <Mail size={14} /> {t('members', 'email')}
           </button>
           <button onClick={() => setShowWaModal(true)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors shadow-sm"
-            title="WhatsApp Nachrichten vorbereiten">
-            <MessageCircle size={14} /> WhatsApp
+            title={t('members', 'bulkMessage')}>
+            <MessageCircle size={14} /> {t('members', 'whatsapp')}
           </button>
           <button onClick={downloadCSV}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors shadow-sm"
-            title="Mitgliederliste als CSV exportieren">
-            <Download size={14} /> Export
+            title={t('members', 'exportCsv')}>
+            <Download size={14} /> {lang === 'en' ? 'Export' : 'Export'}
           </button>
           <button onClick={() => setShowBulkConfirm(true)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm transition-colors border border-amber-200">
-            Alle anfordern
+            {lang === 'en' ? 'Request all' : 'Alle anfordern'}
           </button>
           <Link href="/dashboard/members/new"
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-semibold text-sm transition-colors shadow-sm">
-            <Plus size={14} /> Mitglied
+            <Plus size={14} /> {lang === 'en' ? 'Member' : 'Mitglied'}
           </Link>
         </div>
       </div>
 
       {/* Search */}
       <input
-        type="search" placeholder="Name oder E-Mail suchen…"
+        type="search" placeholder={lang === 'en' ? 'Search by name or email…' : 'Name oder E-Mail suchen…'}
         value={search} onChange={e => setSearch(e.target.value)}
         className="w-full mb-4 px-4 py-2.5 rounded-xl bg-white border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 shadow-sm"
       />
@@ -379,7 +382,7 @@ export default function MembersPage() {
       {pendingRequests.length > 0 && (
         <div className="mb-4 bg-zinc-50 rounded-xl border border-zinc-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-zinc-200 flex items-center gap-2">
-            <span className="text-xs font-semibold text-zinc-700 uppercase tracking-wider">Offene Mitglieder-Anfragen</span>
+            <span className="text-xs font-semibold text-zinc-700 uppercase tracking-wider">{lang === 'en' ? 'Open member requests' : 'Offene Mitglieder-Anfragen'}</span>
             <span className="ml-auto text-xs font-semibold text-zinc-600 bg-zinc-200 px-2 py-0.5 rounded-full border border-zinc-300">{pendingRequests.length}</span>
           </div>
           <div className="divide-y divide-zinc-100">
@@ -392,15 +395,15 @@ export default function MembersPage() {
                   <p className="text-sm font-semibold text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
                   <div className="flex gap-2 mt-0.5">
                     {m.cancellation_requested_at && (
-                      <span className="text-xs text-zinc-500 font-medium">Kündigung beantragt</span>
+                      <span className="text-xs text-zinc-500 font-medium">{t('members', 'cancellation')}</span>
                     )}
                     {m.requested_plan_id && (
-                      <span className="text-xs text-amber-600 font-medium">Plan-Änderung beantragt</span>
+                      <span className="text-xs text-amber-600 font-medium">{t('members', 'planChange')}</span>
                     )}
                   </div>
                 </div>
                 <Link href={`/dashboard/members/${m.id}`}
-                  className="text-xs text-zinc-600 hover:text-zinc-900 font-medium flex-shrink-0">Details →</Link>
+                  className="text-xs text-zinc-600 hover:text-zinc-900 font-medium flex-shrink-0">{lang === 'en' ? 'Details →' : 'Details →'}</Link>
               </div>
             ))}
           </div>
@@ -412,7 +415,7 @@ export default function MembersPage() {
         <div className="mb-4 bg-amber-50 rounded-xl border border-amber-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
             <Clock size={13} className="text-amber-600" />
-            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Ausstehende Anmeldungen</span>
+            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">{lang === 'en' ? 'Pending sign-ups' : 'Ausstehende Anmeldungen'}</span>
             <span className="ml-auto text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">{pending.length}</span>
           </div>
           <div className="divide-y divide-amber-100">
@@ -427,12 +430,12 @@ export default function MembersPage() {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <Link href={`/dashboard/members/${m.id}`}
-                    className="text-xs text-amber-700 hover:text-amber-600 font-medium">Details</Link>
+                    className="text-xs text-amber-700 hover:text-amber-600 font-medium">{lang === 'en' ? 'Details' : 'Details'}</Link>
                   <button
                     onClick={() => activateMember(m.id)}
                     disabled={activatingId === m.id}
                     className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-xs font-semibold transition-colors">
-                    {activatingId === m.id ? '…' : 'Aktivieren'}
+                    {activatingId === m.id ? '…' : t('members', 'activate')}
                   </button>
                 </div>
               </div>
@@ -445,18 +448,21 @@ export default function MembersPage() {
       {showBulkConfirm && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 border border-zinc-200 shadow-lg max-w-sm w-full">
-            <h2 className="font-bold text-zinc-900 mb-2">Beiträge anfordern</h2>
+            <h2 className="font-bold text-zinc-900 mb-2">{lang === 'en' ? 'Request fees' : 'Beiträge anfordern'}</h2>
             <p className="text-zinc-600 text-sm mb-5">
-              Zahlungslinks für <span className="font-semibold">{activeWithEmail.length} Mitglieder</span> erstellen? Die Links werden angezeigt, damit du sie per WhatsApp oder E-Mail versenden kannst.
+              {lang === 'en'
+                ? <>Create payment links for <span className="font-semibold">{activeWithEmail.length} members</span>? The links will be displayed so you can send them via WhatsApp or email.</>
+                : <>Zahlungslinks für <span className="font-semibold">{activeWithEmail.length} Mitglieder</span> erstellen? Die Links werden angezeigt, damit du sie per WhatsApp oder E-Mail versenden kannst.</>
+              }
             </p>
             <div className="flex gap-3">
               <button onClick={handleBulkCheckout} disabled={bulkLoading}
                 className="flex-1 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm">
-                {bulkLoading ? 'Wird gesendet…' : 'Bestätigen'}
+                {bulkLoading ? (lang === 'en' ? 'Sending…' : 'Wird gesendet…') : (lang === 'en' ? 'Confirm' : 'Bestätigen')}
               </button>
               <button onClick={() => setShowBulkConfirm(false)}
                 className="px-4 py-2.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm">
-                Abbrechen
+                {t('common', 'cancel')}
               </button>
             </div>
           </div>
@@ -470,11 +476,11 @@ export default function MembersPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/80">
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Name</th>
-                  {beltEnabled && <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Gürtel</th>}
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Seit</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Beitrag</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">Status</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">{lang === 'en' ? 'Name' : 'Name'}</th>
+                  {beltEnabled && <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">{lang === 'en' ? 'Belt' : 'Gürtel'}</th>}
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">{t('members', 'joinDate')}</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">{t('members', 'fee')}</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-zinc-400 uppercase tracking-widest">{t('members', 'subscriptionStatus')}</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -490,13 +496,13 @@ export default function MembersPage() {
                       <td className="px-4 py-3.5 max-w-[180px]">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="font-medium text-zinc-900 text-sm truncate">{m.first_name} {m.last_name}</span>
-                          {cs === 'expired' && <span title="Vertrag abgelaufen" className="flex-shrink-0"><AlertTriangle size={12} className="text-red-500" /></span>}
-                          {cs === 'expiring' && <span title="Vertrag läuft ab" className="flex-shrink-0"><AlertTriangle size={12} className="text-amber-500" /></span>}
+                          {cs === 'expired' && <span title={t('members', 'contractExpired')} className="flex-shrink-0"><AlertTriangle size={12} className="text-red-500" /></span>}
+                          {cs === 'expiring' && <span title={t('members', 'contractExpiring')} className="flex-shrink-0"><AlertTriangle size={12} className="text-amber-500" /></span>}
                         </div>
                         {m.email && <div className="text-xs text-zinc-400 truncate max-w-full">{m.email}</div>}
                       </td>
                       {beltEnabled && <td className="px-4 py-3.5"><BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} /></td>}
-                      <td className="px-4 py-3.5 text-zinc-500 text-sm">{new Date(m.join_date).toLocaleDateString('de-DE')}</td>
+                      <td className="px-4 py-3.5 text-zinc-500 text-sm">{new Date(m.join_date).toLocaleDateString(locale)}</td>
                       <td className="px-4 py-3.5">
                         {feeCents > 0 ? (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SUB_COLORS[subStatus] || 'text-zinc-500'}`}>
@@ -510,13 +516,13 @@ export default function MembersPage() {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           m.is_active ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-zinc-100 text-zinc-400'
                         }`}>
-                          {m.is_active ? 'Aktiv' : 'Inaktiv'}
+                          {m.is_active ? t('members', 'active') : t('members', 'inactive')}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">
                           {m.phone && (
-                            <a href={`https://wa.me/${toWaPhone(m.phone)}?text=${encodeURIComponent(`Hallo ${m.first_name}! 👋`)}`}
+                            <a href={`https://wa.me/${toWaPhone(m.phone)}?text=${encodeURIComponent(`${lang === 'en' ? `Hello ${m.first_name}! 👋` : `Hallo ${m.first_name}! 👋`}`)}`}
                               target="_blank" rel="noopener noreferrer"
                               title="WhatsApp"
                               className="text-[#25D366] hover:text-[#1ebe57] transition-colors">
@@ -528,9 +534,9 @@ export default function MembersPage() {
                               onClick={() => handleCheckInClick(m.id)}
                               disabled={checkingInId === m.id || eligibleClasses.length === 0}
                               title={
-                                eligibleClasses.length === 0 ? 'Kein Kurs gerade aktiv'
-                                : eligibleClasses.length === 1 ? `Einchecken für ${eligibleClasses[0].title}`
-                                : 'Kurs auswählen'
+                                eligibleClasses.length === 0 ? (lang === 'en' ? 'No class active right now' : 'Kein Kurs gerade aktiv')
+                                : eligibleClasses.length === 1 ? (lang === 'en' ? `Check in for ${eligibleClasses[0].title}` : `Einchecken für ${eligibleClasses[0].title}`)
+                                : t('members', 'selectClass')
                               }
                               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                                 checkedInIds.has(m.id)
@@ -590,7 +596,7 @@ export default function MembersPage() {
                     <button
                       onClick={() => handleCheckInClick(m.id)}
                       disabled={checkingInId === m.id || eligibleClasses.length === 0}
-                      title={eligibleClasses.length === 0 ? 'Kein Kurs aktiv' : undefined}
+                      title={eligibleClasses.length === 0 ? (lang === 'en' ? 'No class active' : 'Kein Kurs aktiv') : undefined}
                       className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                         checkedInIds.has(m.id)
                           ? 'bg-green-500 text-white'
@@ -615,15 +621,17 @@ export default function MembersPage() {
             <Users size={20} className="text-amber-500" />
           </div>
           <p className="text-zinc-900 font-semibold text-sm mb-1">
-            {search ? 'Keine Ergebnisse' : 'Noch keine Mitglieder'}
+            {search ? (lang === 'en' ? 'No results' : 'Keine Ergebnisse') : (lang === 'en' ? 'No members yet' : 'Noch keine Mitglieder')}
           </p>
           <p className="text-zinc-400 text-xs mb-4">
-            {search ? `Keine Mitglieder für "${search}"` : 'Füge dein erstes Mitglied hinzu.'}
+            {search
+              ? (lang === 'en' ? `No members for "${search}"` : `Keine Mitglieder für "${search}"`)
+              : (lang === 'en' ? 'Add your first member.' : 'Füge dein erstes Mitglied hinzu.')}
           </p>
           {!search && (
             <Link href="/dashboard/members/new"
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm">
-              <Plus size={14} /> Mitglied hinzufügen
+              <Plus size={14} /> {t('members', 'addMember')}
             </Link>
           )}
         </div>
@@ -640,7 +648,7 @@ export default function MembersPage() {
             onClick={e => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-zinc-100">
-              <p className="font-bold text-zinc-900 text-sm">Für welchen Kurs?</p>
+              <p className="font-bold text-zinc-900 text-sm">{lang === 'en' ? 'Which class?' : 'Für welchen Kurs?'}</p>
               <p className="text-zinc-400 text-xs mt-0.5">
                 {(() => { const m = members.find(x => x.id === selectingMemberId); return m ? `${m.first_name} ${m.last_name}` : '' })()}
               </p>
@@ -661,9 +669,9 @@ export default function MembersPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-zinc-900 group-hover:text-amber-700 truncate">{cls.title}</p>
                       <p className="text-xs text-zinc-400 mt-0.5">
-                        {isLive ? 'Läuft gerade' : `Beginnt in ${minsUntil} Min.`}
+                        {isLive ? (lang === 'en' ? 'Live now' : 'Läuft gerade') : (lang === 'en' ? `Starts in ${minsUntil} min.` : `Beginnt in ${minsUntil} Min.`)}
                         {' · '}
-                        {new Date(cls.starts_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(cls.starts_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                     <UserCheck size={15} className="text-zinc-300 group-hover:text-amber-500 flex-shrink-0 transition-colors" />
@@ -676,7 +684,7 @@ export default function MembersPage() {
                 onClick={() => setSelectingMemberId(null)}
                 className="w-full py-2.5 rounded-xl border border-zinc-200 text-zinc-500 text-sm hover:bg-zinc-50 transition-colors"
               >
-                Abbrechen
+                {t('common', 'cancel')}
               </button>
             </div>
           </div>
@@ -703,8 +711,8 @@ export default function MembersPage() {
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 flex-shrink-0">
               <div>
-                <p className="font-bold text-zinc-900 text-sm">Zahlungslinks erstellt</p>
-                <p className="text-zinc-400 text-xs">{bulkMembers.length} Links — per WhatsApp oder Kopieren versenden</p>
+                <p className="font-bold text-zinc-900 text-sm">{lang === 'en' ? 'Payment links created' : 'Zahlungslinks erstellt'}</p>
+                <p className="text-zinc-400 text-xs">{bulkMembers.length} {lang === 'en' ? 'links — send via WhatsApp or copy' : 'Links — per WhatsApp oder Kopieren versenden'}</p>
               </div>
               <button onClick={() => setShowBulkResults(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors"><X size={18} /></button>
             </div>
@@ -712,7 +720,9 @@ export default function MembersPage() {
               {bulkMembers.map(m => {
                 const memberRecord = members.find(mem => mem.id === m.memberId)
                 const phone = memberRecord?.phone ?? null
-                const waText = `Hallo ${m.memberName}, hier ist dein Zahlungslink für diesen Monat: ${m.checkoutUrl}`
+                const waText = lang === 'en'
+                  ? `Hello ${m.memberName}, here is your payment link for this month: ${m.checkoutUrl}`
+                  : `Hallo ${m.memberName}, hier ist dein Zahlungslink für diesen Monat: ${m.checkoutUrl}`
                 const waUrl = phone
                   ? `https://wa.me/${toWaPhone(phone)}?text=${encodeURIComponent(waText)}`
                   : null
@@ -731,13 +741,13 @@ export default function MembersPage() {
                       {m.checkoutUrl && (
                         <>
                           <a href={m.checkoutUrl} target="_blank" rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors" title="Link öffnen">
+                            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors" title={lang === 'en' ? 'Open link' : 'Link öffnen'}>
                             <ExternalLink size={14} />
                           </a>
                           <button
                             onClick={() => handleCopy(m.checkoutUrl!, `checkout-${m.memberId}`)}
                             className={`p-1.5 rounded-lg transition-colors ${copiedId === `checkout-${m.memberId}` ? 'text-green-600 bg-green-50' : 'text-zinc-500 hover:bg-zinc-100'}`}
-                            title="Link kopieren">
+                            title={t('members', 'copyLink')}>
                             {copiedId === `checkout-${m.memberId}` ? <Check size={14} /> : <Copy size={14} />}
                           </button>
                         </>
@@ -752,9 +762,9 @@ export default function MembersPage() {
                         <button
                           onClick={() => handleCopy(waText, `wa-${m.memberId}`)}
                           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${copiedId === `wa-${m.memberId}` ? 'bg-green-100 text-green-700' : 'bg-zinc-100 hover:bg-slate-200 text-zinc-700'}`}
-                          title="Nachricht + Link kopieren">
+                          title={lang === 'en' ? 'Copy message + link' : 'Nachricht + Link kopieren'}>
                           {copiedId === `wa-${m.memberId}` ? <Check size={12} /> : <Copy size={12} />}
-                          {copiedId === `wa-${m.memberId}` ? 'Kopiert!' : 'Kopieren'}
+                          {copiedId === `wa-${m.memberId}` ? (lang === 'en' ? 'Copied!' : 'Kopiert!') : (lang === 'en' ? 'Copy' : 'Kopieren')}
                         </button>
                       )}
                     </div>
@@ -771,11 +781,16 @@ export default function MembersPage() {
 
 function ActivationModal({ member, onClose }: { member: Member; onClose: () => void }) {
   const [copiedPortal, setCopiedPortal] = useState(false)
+  const { lang } = useLanguage()
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const portalUrl = member.portal_token ? `${origin}/portal/${member.portal_token}` : null
-  const waText = `Hallo ${member.first_name}! 🥋 Willkommen im Gym – dein Profil ist jetzt aktiv.\n\nHier findest du deine Trainings, Zahlungen und Statistiken:\n${portalUrl ?? origin}`
+  const waText = lang === 'en'
+    ? `Hello ${member.first_name}! 🥋 Welcome to the gym – your profile is now active.\n\nHere you'll find your training sessions, payments and stats:\n${portalUrl ?? origin}`
+    : `Hallo ${member.first_name}! 🥋 Willkommen im Gym – dein Profil ist jetzt aktiv.\n\nHier findest du deine Trainings, Zahlungen und Statistiken:\n${portalUrl ?? origin}`
   const mailtoUrl = member.email
-    ? `mailto:${member.email}?subject=${encodeURIComponent('Willkommen im Gym – dein Profil ist aktiv!')}&body=${encodeURIComponent(`Hallo ${member.first_name}!\n\nDein Mitgliedsprofil ist jetzt aktiv.\n\nHier ist dein persönlicher Bereich:\n${portalUrl ?? origin}\n\nOss! 🥋`)}`
+    ? lang === 'en'
+      ? `mailto:${member.email}?subject=${encodeURIComponent('Welcome to the gym – your profile is active!')}&body=${encodeURIComponent(`Hello ${member.first_name}!\n\nYour membership profile is now active.\n\nHere is your personal area:\n${portalUrl ?? origin}\n\nOss! 🥋`)}`
+      : `mailto:${member.email}?subject=${encodeURIComponent('Willkommen im Gym – dein Profil ist aktiv!')}&body=${encodeURIComponent(`Hallo ${member.first_name}!\n\nDein Mitgliedsprofil ist jetzt aktiv.\n\nHier ist dein persönlicher Bereich:\n${portalUrl ?? origin}\n\nOss! 🥋`)}`
     : null
 
   return (
@@ -783,8 +798,8 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-zinc-100 bg-zinc-50">
-          <p className="font-bold text-zinc-900 text-sm">✓ {member.first_name} {member.last_name} aktiviert!</p>
-          <p className="text-zinc-500 text-xs mt-0.5">Jetzt benachrichtigen:</p>
+          <p className="font-bold text-zinc-900 text-sm">✓ {member.first_name} {member.last_name} {lang === 'en' ? 'activated!' : 'aktiviert!'}</p>
+          <p className="text-zinc-500 text-xs mt-0.5">{lang === 'en' ? 'Notify now:' : 'Jetzt benachrichtigen:'}</p>
         </div>
         <div className="p-5 space-y-3">
           {member.phone && (
@@ -794,7 +809,7 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] text-white font-semibold text-sm transition-colors">
               <MessageCircle size={18} />
               <div className="text-left">
-                <p>Per WhatsApp senden</p>
+                <p>{lang === 'en' ? 'Send via WhatsApp' : 'Per WhatsApp senden'}</p>
                 <p className="text-white/70 text-xs font-normal">{member.phone}</p>
               </div>
             </a>
@@ -804,7 +819,7 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-zinc-100 hover:bg-slate-200 text-zinc-700 font-semibold text-sm transition-colors">
               <Mail size={18} />
               <div className="text-left">
-                <p>Per E-Mail senden</p>
+                <p>{lang === 'en' ? 'Send via email' : 'Per E-Mail senden'}</p>
                 <p className="text-zinc-400 text-xs font-normal">{member.email}</p>
               </div>
             </a>
@@ -818,13 +833,13 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
               className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border font-semibold text-sm transition-colors ${copiedPortal ? 'border-green-200 bg-green-50 text-green-700' : 'border-zinc-200 hover:bg-zinc-50 text-zinc-700'}`}>
               {copiedPortal ? <Check size={18} /> : <Copy size={18} />}
               <div className="text-left">
-                <p>{copiedPortal ? 'Kopiert!' : 'Profillink kopieren'}</p>
+                <p>{copiedPortal ? (lang === 'en' ? 'Copied!' : 'Kopiert!') : (lang === 'en' ? 'Copy profile link' : 'Profillink kopieren')}</p>
                 <p className="text-xs font-normal truncate max-w-[200px] opacity-60">{portalUrl}</p>
               </div>
             </button>
           )}
           <button onClick={onClose} className="w-full py-2 text-zinc-400 text-sm hover:text-zinc-600">
-            Später senden
+            {lang === 'en' ? 'Send later' : 'Später senden'}
           </button>
         </div>
       </div>
@@ -836,6 +851,16 @@ function WhatsAppBulkModal({ members, onClose }: {
   members: { id: string; first_name: string; last_name: string; phone: string | null }[]
   onClose: () => void
 }) {
+  const { lang } = useLanguage()
+
+  const BULK_TEMPLATES = [
+    { id: 'info',    label: `📢 ${lang === 'en' ? 'General Info' : 'Allgemeine Info'}`,        text: () => lang === 'en' ? `Hello! Quick message from your gym. 👋` : `Hallo! Kurze Nachricht von eurem Gym. 👋` },
+    { id: 'payment', label: `💰 ${lang === 'en' ? 'Payment reminder' : 'Beitragserinnerung'}`, text: () => lang === 'en' ? `Hello! Your monthly membership fee is due. Please transfer it this week. Thanks! 🙏` : `Hallo! Euer monatlicher Mitgliedsbeitrag ist fällig. Bitte überweist ihn diese Woche. Danke! 🙏` },
+    { id: 'event',   label: `🥋 ${lang === 'en' ? 'Training reminder' : 'Trainings-Erinnerung'}`,  text: () => lang === 'en' ? `Hey! Training tonight – see you on the mat! Oss! 💪` : `Hey! Heute Abend Training – wir sehen uns auf der Matte! Oss! 💪` },
+    { id: 'comp',    label: `🏆 ${lang === 'en' ? 'Competition announcement' : 'Wettkampf-Ankündigung'}`, text: () => lang === 'en' ? `Hey guys! We're entering the next competition. Interested? Let us know! Details to follow. Oss! 🏆` : `Hey Leute! Wir nehmen am nächsten Wettkampf teil. Wer Interesse hat – meldet euch! Details folgen. Oss! 🏆` },
+    { id: 'custom',  label: `✏️ ${lang === 'en' ? 'Custom message' : 'Eigene Nachricht'}`,       text: () => `` },
+  ]
+
   const [templateId, setTemplateId] = useState(BULK_TEMPLATES[0].id)
   const [customMsg, setCustomMsg]   = useState('')
   const [step, setStep]             = useState<'compose' | 'send'>('compose')
@@ -855,8 +880,8 @@ function WhatsAppBulkModal({ members, onClose }: {
           <div className="flex items-center gap-2">
             <MessageCircle size={18} />
             <div>
-              <p className="font-bold text-sm">WhatsApp Nachrichten vorbereiten</p>
-              <p className="text-white/70 text-xs">{members.length} Mitglieder mit Nummer</p>
+              <p className="font-bold text-sm">{lang === 'en' ? 'Prepare WhatsApp messages' : 'WhatsApp Nachrichten vorbereiten'}</p>
+              <p className="text-white/70 text-xs">{members.length} {lang === 'en' ? 'members with phone number' : 'Mitglieder mit Nummer'}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors"><X size={18} /></button>
@@ -867,7 +892,7 @@ function WhatsAppBulkModal({ members, onClose }: {
             <div className="p-5 space-y-4">
               {/* Template picker */}
               <div>
-                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Vorlage wählen</p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{lang === 'en' ? 'Choose template' : 'Vorlage wählen'}</p>
                 <div className="space-y-1.5">
                   {BULK_TEMPLATES.map(t => (
                     <button key={t.id} onClick={() => setTemplateId(t.id)}
@@ -883,7 +908,7 @@ function WhatsAppBulkModal({ members, onClose }: {
               </div>
               {/* Message */}
               <div>
-                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Nachricht</p>
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{lang === 'en' ? 'Message' : 'Nachricht'}</p>
                 <textarea
                   value={templateId === 'custom' ? customMsg : tmpl.text()}
                   onChange={e => { setTemplateId('custom'); setCustomMsg(e.target.value) }}
@@ -893,16 +918,16 @@ function WhatsAppBulkModal({ members, onClose }: {
               </div>
               <button onClick={() => setStep('send')} disabled={!message.trim()}
                 className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] disabled:opacity-40 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
-                <MessageCircle size={16} /> Weiter → Nachrichten senden
+                <MessageCircle size={16} /> {lang === 'en' ? 'Next → Send messages' : 'Weiter → Nachrichten senden'}
               </button>
             </div>
           ) : (
             <div className="p-5">
               <div className="mb-4 p-3 rounded-lg bg-[#25D366]/10 border border-[#25D366]/20">
-                <p className="text-xs font-semibold text-[#128C7E] mb-1">Deine Nachricht:</p>
+                <p className="text-xs font-semibold text-[#128C7E] mb-1">{lang === 'en' ? 'Your message:' : 'Deine Nachricht:'}</p>
                 <p className="text-sm text-zinc-700">{message}</p>
               </div>
-              <p className="text-xs text-zinc-500 mb-3">Klicke pro Mitglied auf den Button — WhatsApp öffnet sich mit der Nachricht vorausgefüllt.</p>
+              <p className="text-xs text-zinc-500 mb-3">{lang === 'en' ? 'Click the button per member — WhatsApp opens with the message pre-filled.' : 'Klicke pro Mitglied auf den Button — WhatsApp öffnet sich mit der Nachricht vorausgefüllt.'}</p>
               <div className="space-y-2">
                 {members.map(m => {
                   const done = sentIdx.has(m.id)
@@ -926,14 +951,14 @@ function WhatsAppBulkModal({ members, onClose }: {
                             : 'bg-[#25D366] hover:bg-[#1ebe57] text-white'
                         }`}>
                         <MessageCircle size={12} />
-                        {done ? '✓ Gesendet' : 'Senden'}
+                        {done ? (lang === 'en' ? '✓ Sent' : '✓ Gesendet') : (lang === 'en' ? 'Send' : 'Senden')}
                       </a>
                     </div>
                   )
                 })}
               </div>
               {sentIdx.size > 0 && (
-                <p className="mt-4 text-center text-xs text-zinc-400">{sentIdx.size} von {members.length} gesendet</p>
+                <p className="mt-4 text-center text-xs text-zinc-400">{sentIdx.size} {lang === 'en' ? 'of' : 'von'} {members.length} {lang === 'en' ? 'sent' : 'gesendet'}</p>
               )}
             </div>
           )}

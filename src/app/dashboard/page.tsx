@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 import {
   Users, TrendingUp, Calendar, Award, Cake, FileWarning,
   Euro, CheckCircle2, Clock, AlertCircle, ChevronRight, Zap,
@@ -40,6 +41,8 @@ function upcomingBirthdays(members: MemberBirthday[]) {
 }
 
 export default function DashboardPage() {
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const [loading, setLoading]               = useState(true)
   const [totalMembers, setTotalMembers]     = useState(0)
   const [activeMembers, setActiveMembers]   = useState(0)
@@ -213,24 +216,24 @@ export default function DashboardPage() {
   const pendingCount = Array.from(memberPayStatus.values()).filter(s => s === 'pending').length
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Guten Morgen' : hour < 18 ? 'Guten Tag' : 'Guten Abend'
+  const greeting = hour < 12 ? t('dash', 'goodMorning') : hour < 18 ? t('dash', 'goodDay') : t('dash', 'goodEvening')
 
   return (
     <div className="p-4 md:p-6 max-w-5xl">
       {/* Header */}
       <div className="mb-6">
         <p className="text-xs text-zinc-400 font-medium mb-0.5">
-          {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+          {new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
         <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{greeting}</h1>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <StatCard icon={<Users size={18} />}       label="Aktive Mitglieder"  value={activeMembers} />
-        <StatCard icon={<Calendar size={18} />}    label="Heute im Training"  value={todayAttendance.length} />
-        <StatCard icon={<Euro size={18} />}        label={new Date().toLocaleDateString('de-DE', { month: 'long' })} valueCents={monthRevenue} primary />
-        <StatCard icon={<FileWarning size={18} />} label="Verträge laufen ab" value={expiringContracts} warn={expiringContracts > 0} />
+        <StatCard icon={<Users size={18} />}       label={t('dash', 'activeMembers')}  value={activeMembers} />
+        <StatCard icon={<Calendar size={18} />}    label={t('dash', 'todayTraining')}  value={todayAttendance.length} />
+        <StatCard icon={<Euro size={18} />}        label={new Date().toLocaleDateString(locale, { month: 'long' })} valueCents={monthRevenue} primary />
+        <StatCard icon={<FileWarning size={18} />} label={t('dash', 'contractsExpiring')} value={expiringContracts} warn={expiringContracts > 0} />
       </div>
 
       {/* Zugänge & Links */}
@@ -241,17 +244,17 @@ export default function DashboardPage() {
               <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center">
                 <Link2 size={12} className="text-zinc-500" />
               </span>
-              Zugänge & Links
+              {t('dash', 'accessLinks')}
             </h2>
             <Link href="/dashboard/settings?tab=zugaenge" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">
-              Verwalten →
+              {t('dash', 'manage')}
             </Link>
           </div>
           <div className="grid sm:grid-cols-2 gap-2">
             {signupToken && (
               <AccessLinkRow
-                label="Anmeldelink"
-                description="Für neue Mitglieder"
+                label={t('dash', 'signupLink')}
+                description={t('dash', 'signupLinkDesc')}
                 value={`${typeof window !== 'undefined' ? window.location.origin : ''}/signup/${signupToken}`}
                 copied={copiedSignup}
                 onCopy={() => {
@@ -263,8 +266,8 @@ export default function DashboardPage() {
             )}
             {gymSlug && (
               <AccessLinkRow
-                label="Öffentliche Gym-Seite"
-                description="Für Interessenten"
+                label={t('dash', 'publicPage')}
+                description={t('dash', 'publicPageDesc')}
                 value={`${typeof window !== 'undefined' ? window.location.origin : ''}/gym/${gymSlug}`}
                 copied={copiedSlug}
                 onCopy={() => {
@@ -278,7 +281,7 @@ export default function DashboardPage() {
           {!gymSlug && (
             <Link href="/dashboard/settings?tab=zugaenge"
               className="mt-3 inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-amber-600 transition-colors">
-              <ExternalLink size={11} /> Öffentliche Gym-Seite einrichten →
+              <ExternalLink size={11} /> {t('dash', 'setupPublicPage')}
             </Link>
           )}
         </div>
@@ -288,8 +291,8 @@ export default function DashboardPage() {
       {activeMembers > 0 && (
         <div className="bg-white rounded-2xl p-5 border border-zinc-100 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-zinc-700">Zahlungsstatus</p>
-            <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">Details →</Link>
+            <p className="text-sm font-semibold text-zinc-700">{t('dash', 'paymentStatus')}</p>
+            <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">{t('dash', 'details')}</Link>
           </div>
           <div className="flex rounded-full overflow-hidden h-2 bg-zinc-100 mb-3">
             {paidCount    > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${(paidCount / activeMembers) * 100}%` }} />}
@@ -298,15 +301,15 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-x-5 gap-y-1">
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
               <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-              Bezahlt <span className="font-bold text-zinc-800 ml-1">{paidCount}</span>
+              {t('dash', 'paid')} <span className="font-bold text-zinc-800 ml-1">{paidCount}</span>
             </span>
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
               <span className="w-2 h-2 rounded-full bg-zinc-300 flex-shrink-0" />
-              Ausstehend <span className="font-bold text-zinc-800 ml-1">{pendingCount}</span>
+              {t('dash', 'pending')} <span className="font-bold text-zinc-800 ml-1">{pendingCount}</span>
             </span>
             <span className="flex items-center gap-1.5 text-xs text-zinc-500">
               <span className="w-2 h-2 rounded-full bg-zinc-100 border border-zinc-300 flex-shrink-0" />
-              Nie bezahlt <span className="font-bold text-zinc-800 ml-1">{activeMembers - paidCount - pendingCount}</span>
+              {t('dash', 'neverPaid')} <span className="font-bold text-zinc-800 ml-1">{activeMembers - paidCount - pendingCount}</span>
             </span>
           </div>
         </div>
@@ -322,9 +325,9 @@ export default function DashboardPage() {
               <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
                 <Euro size={12} className="text-amber-600" />
               </span>
-              Letzte Zahlungen
+              {t('dash', 'recentPayments')}
             </h2>
-            <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">Alle →</Link>
+            <Link href="/dashboard/revenue" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">{t('dash', 'allPayments')}</Link>
           </div>
           {recentPayments.length > 0 ? (
             <div className="space-y-0">
@@ -341,7 +344,7 @@ export default function DashboardPage() {
                         {m ? `${m.first_name} ${m.last_name}` : '–'}
                       </p>
                       <p className="text-xs text-zinc-400">
-                        {p.paid_at ? new Date(p.paid_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '–'}
+                        {p.paid_at ? new Date(p.paid_at).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: '2-digit' }) : '–'}
                       </p>
                     </div>
                     <span className="text-sm font-semibold text-zinc-800 flex-shrink-0">{formatCents(p.amount_cents)}</span>
@@ -350,7 +353,7 @@ export default function DashboardPage() {
               })}
             </div>
           ) : (
-            <p className="text-zinc-400 text-sm">Noch keine Zahlungen.</p>
+            <p className="text-zinc-400 text-sm">{t('dash', 'noPayments')}</p>
           )}
         </div>
 
@@ -361,9 +364,9 @@ export default function DashboardPage() {
               <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center">
                 <Calendar size={12} className="text-zinc-500" />
               </span>
-              Heute im Training
+              {t('dash', 'todayTrainingCard')}
             </h2>
-            <Link href="/dashboard/attendance" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">Check-in →</Link>
+            <Link href="/dashboard/attendance" className="text-xs text-amber-600 hover:text-amber-500 font-semibold">{t('dash', 'checkin')}</Link>
           </div>
           {todayAttendance.length > 0 ? (
             <div className="space-y-0">
@@ -387,18 +390,18 @@ export default function DashboardPage() {
                       {payStatus === 'pending' && <Clock size={12} className="text-amber-400" />}
                       {!payStatus             && <AlertCircle size={12} className="text-zinc-300" />}
                       <span className="text-xs text-zinc-400">
-                        {new Date(a.checked_in_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(a.checked_in_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </Link>
                 )
               })}
               {todayAttendance.length > 7 && (
-                <p className="text-xs text-zinc-400 pt-2 text-center">+{todayAttendance.length - 7} weitere</p>
+                <p className="text-xs text-zinc-400 pt-2 text-center">{t('dash', 'more', { n: todayAttendance.length - 7 })}</p>
               )}
             </div>
           ) : (
-            <p className="text-zinc-400 text-sm">Noch niemand eingecheckt.</p>
+            <p className="text-zinc-400 text-sm">{t('dash', 'noneCheckedIn')}</p>
           )}
         </div>
       </div>
@@ -412,7 +415,7 @@ export default function DashboardPage() {
             <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center">
               <TrendingUp size={12} className="text-zinc-500" />
             </span>
-            Belt-Verteilung
+            {t('dash', 'beltDistribution')}
           </h2>
           <div className="space-y-3">
             {(['white', 'blue', 'purple', 'brown', 'black'] as Belt[]).map(belt => (
@@ -440,7 +443,7 @@ export default function DashboardPage() {
             <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
               <Zap size={12} className="text-amber-600" />
             </span>
-            Top-Trainingsbesucher · {new Date().toLocaleDateString('de-DE', { month: 'long' })}
+            {t('dash', 'topAttendees')} · {new Date().toLocaleDateString(locale, { month: 'long' })}
           </h2>
           {topAttenders.length > 0 ? (
             <div className="space-y-0">
@@ -472,7 +475,7 @@ export default function DashboardPage() {
               })}
             </div>
           ) : (
-            <p className="text-zinc-400 text-sm">Noch keine Trainingseinheiten diesen Monat.</p>
+            <p className="text-zinc-400 text-sm">{t('dash', 'noTrainingThisMonth')}</p>
           )}
         </div>
       </div>
@@ -485,9 +488,9 @@ export default function DashboardPage() {
               <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
                 <AlertCircle size={12} className="text-amber-500" />
               </span>
-              Abwesenheits-Warnung
+              {t('dash', 'absenceWarning')}
             </h2>
-            <span className="text-xs text-zinc-400 font-medium">{churnRisk.length} · 14+ Tage weg</span>
+            <span className="text-xs text-zinc-400 font-medium">{churnRisk.length} · {t('dash', 'daysLabel')}</span>
           </div>
           <div className="grid sm:grid-cols-2 gap-2">
             {churnRisk.map(m => (
@@ -499,7 +502,7 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-zinc-900 truncate">{m.first_name} {m.last_name}</p>
                   <p className="text-xs text-zinc-400">
-                    {m.days_ago >= 999 ? '90+ Tage nicht gesehen' : `${m.days_ago} Tage nicht da`}
+                    {m.days_ago >= 999 ? t('dash', 'ninetyPlusDays') : t('dash', 'daysAway', { n: m.days_ago })}
                   </p>
                 </div>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
@@ -520,7 +523,7 @@ export default function DashboardPage() {
             <span className="w-6 h-6 rounded-lg bg-zinc-100 flex items-center justify-center">
               <Cake size={12} className="text-zinc-500" />
             </span>
-            Geburtstage · nächste 7 Tage
+            {t('dash', 'birthdays')}
           </h2>
           <div className="grid sm:grid-cols-2 gap-2.5">
             {birthdayMembers.map(m => (
@@ -532,11 +535,11 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-zinc-900 font-medium text-sm truncate">{m.first_name} {m.last_name}</p>
                   <p className="text-zinc-500 text-xs">
-                    {m.nextBirthday.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                    {m.nextBirthday.toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit' })}
                   </p>
                 </div>
                 <span className="text-xs font-semibold text-amber-600 bg-white px-2 py-0.5 rounded-full border border-amber-200 flex-shrink-0">
-                  {m.age} J.
+                  {m.age} {t('dash', 'years')}
                 </span>
               </Link>
             ))}
@@ -551,7 +554,7 @@ export default function DashboardPage() {
             <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
               <Award size={12} className="text-amber-600" />
             </span>
-            Letzte Graduierungen
+            {t('dash', 'recentPromotions')}
           </h2>
           <div className="space-y-0">
             {recentPromotions.map(p => {
@@ -565,7 +568,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <BeltBadge belt={p.new_belt as Belt} stripes={p.new_stripes} />
                     <span className="text-zinc-400 text-xs whitespace-nowrap">
-                      {new Date(p.promoted_at).toLocaleDateString('de-DE')}
+                      {new Date(p.promoted_at).toLocaleDateString(locale)}
                     </span>
                   </div>
                 </Link>

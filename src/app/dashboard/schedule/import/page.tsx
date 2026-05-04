@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { Upload, Download, CheckCircle, AlertTriangle, ChevronLeft, Loader2, X } from 'lucide-react'
 import Link from 'next/link'
 
@@ -54,10 +55,6 @@ const DAY_MAP: Record<string, number> = {
   montag: 1, dienstag: 2, mittwoch: 3, donnerstag: 4,
   freitag: 5, samstag: 6, sonntag: 0,
 }
-const DAY_LABELS: Record<number, string> = {
-  1: 'Montag', 2: 'Dienstag', 3: 'Mittwoch', 4: 'Donnerstag',
-  5: 'Freitag', 6: 'Samstag', 0: 'Sonntag',
-}
 
 interface ParsedRow {
   line: number
@@ -72,7 +69,11 @@ interface ParsedRow {
   error?: string
 }
 
-function parseCSV(raw: string): ParsedRow[] {
+function parseCSV(
+  raw: string,
+  dayLabels: Record<number, string>,
+  err: { unknownDay: (tag: string) => string; invalidTime: string; noTitle: string },
+): ParsedRow[] {
   const lines = raw.trim().split('\n').map(l => l.trim()).filter(Boolean)
   const rows: ParsedRow[] = []
 
@@ -86,17 +87,17 @@ function parseCSV(raw: string): ParsedRow[] {
 
     const dayKey = (tagRaw ?? '').toLowerCase()
     if (!(dayKey in DAY_MAP)) {
-      rows.push({ line: lineNum, day: -1, dayLabel: tagRaw ?? '?', start: '', end: '', title: title ?? '', classType: '', instructor: '', capacity: null, error: `Unbekannter Tag: "${tagRaw}"` })
+      rows.push({ line: lineNum, day: -1, dayLabel: tagRaw ?? '?', start: '', end: '', title: title ?? '', classType: '', instructor: '', capacity: null, error: err.unknownDay(tagRaw ?? '?') })
       continue
     }
 
     if (!startT?.match(/^\d{1,2}:\d{2}$/) || !endT?.match(/^\d{1,2}:\d{2}$/)) {
-      rows.push({ line: lineNum, day: DAY_MAP[dayKey], dayLabel: DAY_LABELS[DAY_MAP[dayKey]], start: startT ?? '', end: endT ?? '', title: title ?? '', classType: '', instructor: '', capacity: null, error: 'Ungültige Uhrzeit (Format: HH:MM)' })
+      rows.push({ line: lineNum, day: DAY_MAP[dayKey], dayLabel: dayLabels[DAY_MAP[dayKey]], start: startT ?? '', end: endT ?? '', title: title ?? '', classType: '', instructor: '', capacity: null, error: err.invalidTime })
       continue
     }
 
     if (!title) {
-      rows.push({ line: lineNum, day: DAY_MAP[dayKey], dayLabel: DAY_LABELS[DAY_MAP[dayKey]], start: startT, end: endT, title: '', classType: '', instructor: '', capacity: null, error: 'Kein Titel angegeben' })
+      rows.push({ line: lineNum, day: DAY_MAP[dayKey], dayLabel: dayLabels[DAY_MAP[dayKey]], start: startT, end: endT, title: '', classType: '', instructor: '', capacity: null, error: err.noTitle })
       continue
     }
 
@@ -104,7 +105,7 @@ function parseCSV(raw: string): ParsedRow[] {
     rows.push({
       line: lineNum,
       day: DAY_MAP[dayKey],
-      dayLabel: DAY_LABELS[DAY_MAP[dayKey]],
+      dayLabel: dayLabels[DAY_MAP[dayKey]],
       start: startT.padStart(5, '0'),
       end:   endT.padStart(5, '0'),
       title: title.trim(),
@@ -137,6 +138,16 @@ type ImportStatus = 'idle' | 'running' | 'done' | 'error'
 export default function ScheduleImportPage() {
   const router  = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
+  const { lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
+
+  const DAY_LABELS: Record<number, string> = lang === 'en'
+    ? { 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 0: 'Sunday' }
+    : { 1: 'Montag', 2: 'Dienstag', 3: 'Mittwoch', 4: 'Donnerstag', 5: 'Freitag', 6: 'Samstag', 0: 'Sonntag' }
+
+  const parseErrors = lang === 'en'
+    ? { unknownDay: (tag: string) => `Unknown day: "${tag}"`, invalidTime: 'Invalid time (format: HH:MM)', noTitle: 'No title given' }
+    : { unknownDay: (tag: string) => `Unbekannter Tag: "${tag}"`, invalidTime: 'Ungültige Uhrzeit (Format: HH:MM)', noTitle: 'Kein Titel angegeben' }
 
   const [csvText, setCsvText]       = useState('')
   const [parsed, setParsed]         = useState<ParsedRow[] | null>(null)
@@ -160,14 +171,14 @@ export default function ScheduleImportPage() {
     reader.onload = e => {
       const text = e.target?.result as string
       setCsvText(text)
-      setParsed(parseCSV(text))
+      setParsed(parseCSV(text, DAY_LABELS, parseErrors))
     }
     reader.readAsText(file, 'utf-8')
   }
 
   function handlePaste(text: string) {
     setCsvText(text)
-    if (text.trim()) setParsed(parseCSV(text))
+    if (text.trim()) setParsed(parseCSV(text, DAY_LABELS, parseErrors))
     else setParsed(null)
   }
 
@@ -220,7 +231,7 @@ export default function ScheduleImportPage() {
           errors.push(`${row.dayLabel} ${row.start} ${row.title}: ${json.error ?? res.statusText}`)
         }
       } catch (e) {
-        errors.push(`${row.dayLabel} ${row.start} ${row.title}: Netzwerkfehler`)
+        errors.push(`${row.dayLabel} ${row.start} ${row.title}: ${lang === 'en' ? 'Network error' : 'Netzwerkfehler'}`)
       }
 
       setProgress({ done: i + 1, total: validRows.length, errors: [...errors] })
@@ -246,18 +257,18 @@ export default function ScheduleImportPage() {
           <ChevronLeft size={18} />
         </Link>
         <div>
-          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Kursplan importieren</h1>
-          <p className="text-zinc-400 text-xs mt-0.5">CSV hochladen oder einfügen → Vorschau prüfen → Importieren</p>
+          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{lang === 'en' ? 'Import Schedule' : 'Kursplan importieren'}</h1>
+          <p className="text-zinc-400 text-xs mt-0.5">{lang === 'en' ? 'Upload or paste CSV → Check preview → Import' : 'CSV hochladen oder einfügen → Vorschau prüfen → Importieren'}</p>
         </div>
       </div>
 
       {/* Step 1: Upload / Paste */}
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5 mb-4">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-zinc-800">1. CSV-Datei</p>
+          <p className="text-sm font-semibold text-zinc-800">{lang === 'en' ? '1. CSV File' : '1. CSV-Datei'}</p>
           <button onClick={downloadSample}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 text-zinc-600 text-xs font-medium transition-colors">
-            <Download size={13} /> Vorlage herunterladen
+            <Download size={13} /> {lang === 'en' ? 'Download template' : 'Vorlage herunterladen'}
           </button>
         </div>
 
@@ -269,14 +280,14 @@ export default function ScheduleImportPage() {
           onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
         >
           <Upload size={20} className="text-zinc-400 mx-auto mb-2" />
-          <p className="text-sm text-zinc-500 font-medium">CSV-Datei hier ablegen oder klicken</p>
-          <p className="text-xs text-zinc-400 mt-1">UTF-8, Komma-getrennt</p>
+          <p className="text-sm text-zinc-500 font-medium">{lang === 'en' ? 'Drop CSV file here or click' : 'CSV-Datei hier ablegen oder klicken'}</p>
+          <p className="text-xs text-zinc-400 mt-1">{lang === 'en' ? 'UTF-8, comma-separated' : 'UTF-8, Komma-getrennt'}</p>
           <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
         </div>
 
         {/* Or paste */}
-        <p className="text-xs text-zinc-400 text-center mb-3">— oder direkt einfügen —</p>
+        <p className="text-xs text-zinc-400 text-center mb-3">{lang === 'en' ? '— or paste directly —' : '— oder direkt einfügen —'}</p>
         <textarea
           value={csvText}
           onChange={e => handlePaste(e.target.value)}
@@ -287,30 +298,30 @@ export default function ScheduleImportPage() {
 
         {/* Format hint */}
         <div className="mt-3 p-3 rounded-xl bg-zinc-50 border border-zinc-100 text-xs text-zinc-500 space-y-1">
-          <p className="font-semibold text-zinc-600">Spaltenformat:</p>
+          <p className="font-semibold text-zinc-600">{lang === 'en' ? 'Column format:' : 'Spaltenformat:'}</p>
           <p><code className="bg-zinc-100 px-1 rounded">tag</code> — Montag · Dienstag · Mittwoch · Donnerstag · Freitag · Samstag · Sonntag</p>
-          <p><code className="bg-zinc-100 px-1 rounded">start / end</code> — Uhrzeit im Format <code className="bg-zinc-100 px-1 rounded">HH:MM</code> (24h)</p>
-          <p><code className="bg-zinc-100 px-1 rounded">typ</code> — z.B. gi · no-gi · open mat · kids · competition (oder eigener Text)</p>
-          <p><code className="bg-zinc-100 px-1 rounded">trainer / kapazitaet</code> — optional, leer lassen falls nicht benötigt</p>
+          <p><code className="bg-zinc-100 px-1 rounded">start / end</code> — {lang === 'en' ? 'Time in format' : 'Uhrzeit im Format'} <code className="bg-zinc-100 px-1 rounded">HH:MM</code> (24h)</p>
+          <p><code className="bg-zinc-100 px-1 rounded">typ</code> — {lang === 'en' ? 'e.g.' : 'z.B.'} gi · no-gi · open mat · kids · competition ({lang === 'en' ? 'or custom text' : 'oder eigener Text'})</p>
+          <p><code className="bg-zinc-100 px-1 rounded">trainer / kapazitaet</code> — {lang === 'en' ? 'optional, leave blank if not needed' : 'optional, leer lassen falls nicht benötigt'}</p>
         </div>
       </div>
 
       {/* Step 2: Date range */}
       {parsed && parsed.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5 mb-4">
-          <p className="text-sm font-semibold text-zinc-800 mb-4">2. Zeitraum für die Wiederholung</p>
+          <p className="text-sm font-semibold text-zinc-800 mb-4">{lang === 'en' ? '2. Recurrence date range' : '2. Zeitraum für die Wiederholung'}</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-zinc-500 block mb-1.5">Erste Woche ab</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1.5">{lang === 'en' ? 'First week from' : 'Erste Woche ab'}</label>
               <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
                 className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
-              <p className="text-[11px] text-zinc-400 mt-1">Erste Stunde = nächster passender Wochentag ab diesem Datum</p>
+              <p className="text-[11px] text-zinc-400 mt-1">{lang === 'en' ? 'First class = next matching weekday from this date' : 'Erste Stunde = nächster passender Wochentag ab diesem Datum'}</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-zinc-500 block mb-1.5">Wiederholen bis</label>
+              <label className="text-xs font-medium text-zinc-500 block mb-1.5">{lang === 'en' ? 'Repeat until' : 'Wiederholen bis'}</label>
               <input type="date" value={untilDate} onChange={e => setUntilDate(e.target.value)}
                 className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
-              <p className="text-[11px] text-zinc-400 mt-1">Jede Stunde wird als wöchentliche Serie angelegt</p>
+              <p className="text-[11px] text-zinc-400 mt-1">{lang === 'en' ? 'Each class is created as a weekly recurring series' : 'Jede Stunde wird als wöchentliche Serie angelegt'}</p>
             </div>
           </div>
         </div>
@@ -320,11 +331,11 @@ export default function ScheduleImportPage() {
       {grouped && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden mb-4">
           <div className="px-5 py-3.5 border-b border-zinc-100 flex items-center justify-between">
-            <p className="text-sm font-semibold text-zinc-800">3. Vorschau</p>
+            <p className="text-sm font-semibold text-zinc-800">{lang === 'en' ? '3. Preview' : '3. Vorschau'}</p>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-green-600 font-semibold">{validRows.length} gültig</span>
+              <span className="text-xs text-green-600 font-semibold">{validRows.length} {lang === 'en' ? 'valid' : 'gültig'}</span>
               {invalidRows.length > 0 && (
-                <span className="text-xs text-red-500 font-semibold">{invalidRows.length} Fehler</span>
+                <span className="text-xs text-red-500 font-semibold">{invalidRows.length} {lang === 'en' ? 'errors' : 'Fehler'}</span>
               )}
             </div>
           </div>
@@ -343,7 +354,7 @@ export default function ScheduleImportPage() {
                       <span className="text-xs tabular-nums text-zinc-400 w-24 flex-shrink-0 font-mono">{row.start} – {row.end}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-zinc-900 truncate">{row.title || <span className="text-zinc-300 italic">kein Titel</span>}</span>
+                          <span className="text-sm font-medium text-zinc-900 truncate">{row.title || <span className="text-zinc-300 italic">{lang === 'en' ? 'no title' : 'kein Titel'}</span>}</span>
                           {row.error && (
                             <span className="text-xs text-red-500 flex items-center gap-1 flex-shrink-0">
                               <AlertTriangle size={11} /> {row.error}
@@ -375,7 +386,9 @@ export default function ScheduleImportPage() {
           disabled={!fromDate || !untilDate}
           className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-bold text-sm transition-colors shadow-sm"
         >
-          {validRows.length} Kurse importieren (wöchentlich, bis {new Date(untilDate).toLocaleDateString('de-DE')})
+          {lang === 'en'
+            ? `Import ${validRows.length} classes (weekly, until ${new Date(untilDate).toLocaleDateString(locale)})`
+            : `${validRows.length} Kurse importieren (wöchentlich, bis ${new Date(untilDate).toLocaleDateString(locale)})`}
         </button>
       )}
 
@@ -383,7 +396,7 @@ export default function ScheduleImportPage() {
       {status === 'running' && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-6 text-center">
           <Loader2 size={24} className="text-amber-500 animate-spin mx-auto mb-3" />
-          <p className="text-sm font-semibold text-zinc-800">{progress.done} / {progress.total} importiert…</p>
+          <p className="text-sm font-semibold text-zinc-800">{progress.done} / {progress.total} {lang === 'en' ? 'imported…' : 'importiert…'}</p>
           <div className="mt-3 h-2 rounded-full bg-zinc-100 overflow-hidden">
             <div
               className="h-full bg-amber-500 rounded-full transition-all duration-300"
@@ -402,10 +415,12 @@ export default function ScheduleImportPage() {
             </span>
             <div>
               <p className="font-bold text-zinc-900 text-sm">
-                {progress.done - progress.errors.length} von {progress.total} erfolgreich importiert
+                {lang === 'en'
+                  ? `${progress.done - progress.errors.length} of ${progress.total} successfully imported`
+                  : `${progress.done - progress.errors.length} von ${progress.total} erfolgreich importiert`}
               </p>
               {progress.errors.length > 0 && (
-                <p className="text-xs text-red-500 mt-0.5">{progress.errors.length} Fehler</p>
+                <p className="text-xs text-red-500 mt-0.5">{progress.errors.length} {lang === 'en' ? 'errors' : 'Fehler'}</p>
               )}
             </div>
           </div>
@@ -420,7 +435,7 @@ export default function ScheduleImportPage() {
             onClick={() => router.push('/dashboard/schedule')}
             className="w-full py-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-semibold text-sm transition-colors"
           >
-            Zum Stundenplan →
+            {lang === 'en' ? 'Go to schedule →' : 'Zum Stundenplan →'}
           </button>
         </div>
       )}

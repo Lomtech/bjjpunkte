@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus, X, Users, Pencil, RefreshCw, Upload, T
 import { NewClassModal } from './NewClassModal'
 import { EditClassModal } from './EditClassModal'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface ClassRow {
   id: string; title: string; class_type: string; description: string | null
@@ -32,11 +33,6 @@ const TYPE_DOT: Record<string, string> = {
   gi: 'bg-zinc-400', 'no-gi': 'bg-zinc-500', 'open mat': 'bg-amber-500',
   kids: 'bg-zinc-300', competition: 'bg-zinc-900',
 }
-const TYPE_LABELS: Record<string, string> = {
-  gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat', kids: 'Kids', competition: 'Competition',
-}
-const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
-
 function startOfWeek(d: Date): Date {
   const r = new Date(d); const day = r.getDay()
   r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day)); r.setHours(0,0,0,0); return r
@@ -45,14 +41,25 @@ function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate()
 }
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})
+function formatTime(iso: string, locale = 'de-DE') {
+  return new Date(iso).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'})
 }
 function toLocalDateString(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
 export default function SchedulePage() {
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
+  const WEEKDAYS = lang === 'en'
+    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    : ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+  const TYPE_LABELS: Record<string, string> = {
+    gi: t('classType', 'gi'), 'no-gi': t('classType', 'no-gi'),
+    'open mat': t('classType', 'open mat'), kids: t('classType', 'kids'),
+    competition: t('classType', 'competition'),
+  }
+
   const today = new Date(); today.setHours(0,0,0,0)
 
   const [weekStart, setWeekStart]       = useState<Date>(() => startOfWeek(new Date()))
@@ -221,7 +228,7 @@ export default function SchedulePage() {
     for (const b of (bookingsData ?? []) as RawBooking[]) {
       memberMap.set(b.member_id, {
         id: b.id, status: b.status as BookingMember['status'], member_id: b.member_id,
-        member_name: b.members ? `${b.members.first_name} ${b.members.last_name}` : 'Unbekannt',
+        member_name: b.members ? `${b.members.first_name} ${b.members.last_name}` : (lang === 'en' ? 'Unknown' : 'Unbekannt'),
         belt: b.members?.belt ?? 'white',
         type: 'member',
       })
@@ -233,7 +240,7 @@ export default function SchedulePage() {
       } else {
         memberMap.set(a.member_id, {
           id: a.id, status: 'checked_in', member_id: a.member_id,
-          member_name: a.members ? `${a.members.first_name} ${a.members.last_name}` : 'Unbekannt',
+          member_name: a.members ? `${a.members.first_name} ${a.members.last_name}` : (lang === 'en' ? 'Unknown' : 'Unbekannt'),
           belt: a.members?.belt ?? 'white',
           type: 'member',
         })
@@ -244,7 +251,7 @@ export default function SchedulePage() {
         id: lb.id,
         status: lb.status === 'checked_in' ? 'checked_in' : 'confirmed',
         member_id: lb.lead_id,
-        member_name: lb.leads ? `${lb.leads.first_name} ${lb.leads.last_name}` : 'Interessent',
+        member_name: lb.leads ? `${lb.leads.first_name} ${lb.leads.last_name}` : t('schedule', 'leads'),
         belt: 'white',
         type: 'lead',
       })
@@ -263,7 +270,7 @@ export default function SchedulePage() {
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const selectedDayClasses = classes.filter(c => isSameDay(new Date(c.starts_at), selectedDay))
-  const weekLabel = `${weekStart.toLocaleDateString('de-DE',{day:'numeric',month:'short'})} – ${addDays(weekStart,6).toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'})}`
+  const weekLabel = `${weekStart.toLocaleDateString(locale,{day:'numeric',month:'short'})} – ${addDays(weekStart,6).toLocaleDateString(locale,{day:'numeric',month:'short',year:'numeric'})}`
 
   function openAddModal(day: Date) { setModalDate(toLocalDateString(day)); setShowModal(true) }
 
@@ -273,7 +280,7 @@ export default function SchedulePage() {
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 md:px-6 border-b border-zinc-200 bg-white flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-base font-bold text-zinc-900">Stundenplan</h1>
+          <h1 className="text-base font-bold text-zinc-900">{t('schedule', 'title')}</h1>
           <p className="text-zinc-400 text-xs mt-0.5 hidden sm:block">{weekLabel}</p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -283,7 +290,7 @@ export default function SchedulePage() {
           </button>
           <button onClick={() => { setWeekStart(startOfWeek(new Date())); setSelectedDay(today) }}
             className="px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-zinc-50 transition-colors">
-            Heute
+            {t('schedule', 'today')}
           </button>
           <button onClick={() => { setWeekStart(w => addDays(w,7)); setSelectedDay(s => addDays(s,7)) }}
             className="p-2 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition-colors">
@@ -292,21 +299,21 @@ export default function SchedulePage() {
           {gymId && (
             <a href={`/api/schedule/ical?gymId=${gymId}`}
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-zinc-50 transition-colors ml-1"
-              title="Stundenplan als iCal exportieren">
-              📅 iCal-Export
+              title={t('schedule', 'exportIcal')}>
+              📅 {t('schedule', 'exportIcal')}
             </a>
           )}
           <Link href="/dashboard/schedule/import"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-zinc-50 transition-colors">
-            <Upload size={13} /> Import
+            <Upload size={13} /> {t('schedule', 'importCsv')}
           </Link>
           <button onClick={() => { setShowClearModal(true); setClearStep('confirm') }}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-500 text-xs font-medium hover:bg-red-50 transition-colors">
-            <Trash2 size={13} /> Löschen
+            <Trash2 size={13} /> {t('schedule', 'delete')}
           </button>
           <button onClick={() => openAddModal(selectedDay)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-colors ml-1">
-            <Plus size={14} /> Klasse
+            <Plus size={14} /> {t('schedule', 'newClass')}
           </button>
         </div>
       </div>
@@ -335,17 +342,17 @@ export default function SchedulePage() {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {loading ? (
-          <div className="flex items-center justify-center h-40 text-zinc-400 text-sm">Lädt…</div>
+          <div className="flex items-center justify-center h-40 text-zinc-400 text-sm">{t('common', 'loading')}</div>
         ) : (
           <>
             {/* Mobile: single-day list */}
             <div className="md:hidden px-4 py-4 space-y-2">
               {selectedDayClasses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <p className="text-zinc-400 text-sm mb-3">Kein Training an diesem Tag</p>
+                  <p className="text-zinc-400 text-sm mb-3">{t('schedule', 'noClasses')}</p>
                   <button onClick={() => openAddModal(selectedDay)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300 text-zinc-400 hover:border-amber-400 hover:text-amber-600 text-sm transition-colors">
-                    <Plus size={14} /> Klasse hinzufügen
+                    <Plus size={14} /> {t('schedule', 'newClass')}
                   </button>
                 </div>
               ) : (
@@ -363,7 +370,7 @@ export default function SchedulePage() {
                   ))}
                   <button onClick={() => openAddModal(selectedDay)}
                     className="w-full py-2 rounded-lg text-zinc-400 hover:text-amber-600 text-sm border border-dashed border-zinc-200 hover:border-amber-300 transition-colors">
-                    + Hinzufügen
+                    + {t('schedule', 'newClass')}
                   </button>
                 </>
               )}
@@ -379,7 +386,7 @@ export default function SchedulePage() {
                     <div className="space-y-1.5">
                       {dayClasses.length === 0 && (
                         <div className="flex flex-col items-center py-6">
-                          <p className="text-[11px] text-zinc-300 mb-2">Kein Training</p>
+                          <p className="text-[11px] text-zinc-300 mb-2">{t('schedule', 'noClasses')}</p>
                           <button onClick={() => openAddModal(day)}
                             className="text-zinc-300 hover:text-amber-500 transition-colors">
                             <Plus size={15} />
@@ -400,7 +407,7 @@ export default function SchedulePage() {
                       {dayClasses.length > 0 && (
                         <button onClick={() => openAddModal(day)}
                           className="w-full py-1 rounded text-zinc-300 hover:text-amber-500 transition-colors text-xs">
-                          + Hinzufügen
+                          + {t('schedule', 'newClass')}
                         </button>
                       )}
                     </div>
@@ -424,20 +431,22 @@ export default function SchedulePage() {
                   <div className="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-3">
                     <Trash2 size={20} className="text-red-500" />
                   </div>
-                  <p className="font-bold text-zinc-900 text-sm mb-1">Stundenplan komplett löschen?</p>
+                  <p className="font-bold text-zinc-900 text-sm mb-1">{t('schedule', 'confirmDelete')}</p>
                   <p className="text-zinc-500 text-sm">
-                    Alle <strong>zukünftigen</strong> Kurstermine werden unwiderruflich gelöscht.<br />
-                    Eine <strong>CSV-Sicherheitskopie</strong> wird automatisch vorher heruntergeladen — sie kann direkt wieder importiert werden.
+                    {lang === 'en'
+                      ? <>All <strong>future</strong> class dates will be permanently deleted.<br />A <strong>CSV backup</strong> will be downloaded automatically — it can be re-imported at any time.</>
+                      : <>Alle <strong>zukünftigen</strong> Kurstermine werden unwiderruflich gelöscht.<br />Eine <strong>CSV-Sicherheitskopie</strong> wird automatisch vorher heruntergeladen — sie kann direkt wieder importiert werden.</>
+                    }
                   </p>
                 </div>
                 <div className="px-4 pb-4 space-y-2">
                   <button onClick={doClearAll}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold text-sm transition-colors">
-                    <Download size={14} /> Backup laden & Stundenplan löschen
+                    <Download size={14} /> {lang === 'en' ? 'Download backup & delete schedule' : 'Backup laden & Stundenplan löschen'}
                   </button>
                   <button onClick={() => setShowClearModal(false)}
                     className="w-full py-2.5 rounded-xl text-zinc-400 text-sm hover:text-zinc-600 transition-colors">
-                    Abbrechen
+                    {t('common', 'cancel')}
                   </button>
                 </div>
               </>
@@ -447,7 +456,9 @@ export default function SchedulePage() {
               <div className="px-5 py-8 text-center">
                 <div className="w-8 h-8 border-2 border-zinc-200 border-t-amber-400 rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-sm font-medium text-zinc-700">
-                  {clearStep === 'downloading' ? 'Sicherheitskopie wird heruntergeladen…' : 'Stundenplan wird gelöscht…'}
+                  {clearStep === 'downloading'
+                    ? (lang === 'en' ? 'Downloading backup…' : 'Sicherheitskopie wird heruntergeladen…')
+                    : (lang === 'en' ? 'Deleting schedule…' : 'Stundenplan wird gelöscht…')}
                 </p>
               </div>
             )}
@@ -458,19 +469,24 @@ export default function SchedulePage() {
                   <div className="w-11 h-11 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
                     <Download size={20} className="text-green-500" />
                   </div>
-                  <p className="font-bold text-zinc-900 text-sm mb-1">{clearCount} Termine gelöscht</p>
+                  <p className="font-bold text-zinc-900 text-sm mb-1">
+                    {lang === 'en' ? `${clearCount} events deleted` : `${clearCount} Termine gelöscht`}
+                  </p>
                   <p className="text-zinc-500 text-sm">
-                    Die CSV-Sicherheitskopie liegt in deinem Download-Ordner und kann jederzeit über <strong>Import</strong> wieder eingespielt werden.
+                    {lang === 'en'
+                      ? <>The CSV backup is in your downloads folder and can be re-imported at any time via <strong>Import</strong>.</>
+                      : <>Die CSV-Sicherheitskopie liegt in deinem Download-Ordner und kann jederzeit über <strong>Import</strong> wieder eingespielt werden.</>
+                    }
                   </p>
                 </div>
                 <div className="px-4 pb-4 space-y-2">
                   <Link href="/dashboard/schedule/import"
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors">
-                    <Upload size={14} /> Jetzt neu importieren
+                    <Upload size={14} /> {lang === 'en' ? 'Import now' : 'Jetzt neu importieren'}
                   </Link>
                   <button onClick={() => { setShowClearModal(false); setClearStep('confirm') }}
                     className="w-full py-2.5 rounded-xl text-zinc-400 text-sm hover:text-zinc-600 transition-colors">
-                    Schließen
+                    {t('common', 'close')}
                   </button>
                 </div>
               </>
@@ -491,14 +507,16 @@ export default function SchedulePage() {
           >
             <div className="px-5 pt-5 pb-4">
               <p className="font-bold text-zinc-900 text-sm mb-1">
-                {cancelTarget.recurrence_parent_id ? 'Serientermin' : 'Termin absagen'}
+                {cancelTarget.recurrence_parent_id
+                  ? (lang === 'en' ? 'Recurring class' : 'Serientermin')
+                  : t('schedule', 'cancel')}
               </p>
               <p className="text-zinc-500 text-sm">
                 <span className="font-semibold text-zinc-700">{cancelTarget.title}</span>
                 {' — '}
-                {new Date(cancelTarget.starts_at).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })}
+                {new Date(cancelTarget.starts_at).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })}
                 {', '}
-                {formatTime(cancelTarget.starts_at)}
+                {formatTime(cancelTarget.starts_at, locale)}
               </p>
             </div>
 
@@ -513,8 +531,8 @@ export default function SchedulePage() {
                   <X size={13} className="text-amber-600" />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-zinc-800">Nur diesen Termin absagen</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">Bleibt in der Serie, wird als abgesagt markiert</p>
+                  <p className="text-sm font-semibold text-zinc-800">{t('schedule', 'cancelThis')}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{lang === 'en' ? 'Stays in the series, marked as cancelled' : 'Bleibt in der Serie, wird als abgesagt markiert'}</p>
                 </div>
               </button>
 
@@ -529,8 +547,8 @@ export default function SchedulePage() {
                     <X size={13} className="text-orange-500" />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-zinc-800">Diesen und alle zukünftigen</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">Alle ab diesem Datum werden abgesagt</p>
+                    <p className="text-sm font-semibold text-zinc-800">{t('schedule', 'cancelAll')}</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">{lang === 'en' ? 'All from this date onwards will be cancelled' : 'Alle ab diesem Datum werden abgesagt'}</p>
                   </div>
                 </button>
               )}
@@ -546,8 +564,8 @@ export default function SchedulePage() {
                     <X size={13} className="text-red-600" />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-red-700">Gesamte Serie löschen</p>
-                    <p className="text-xs text-red-400 mt-0.5">Alle Termine dieser Serie werden unwiderruflich gelöscht</p>
+                    <p className="text-sm font-semibold text-red-700">{t('schedule', 'deleteAll')}</p>
+                    <p className="text-xs text-red-400 mt-0.5">{lang === 'en' ? 'All events in this series will be permanently deleted' : 'Alle Termine dieser Serie werden unwiderruflich gelöscht'}</p>
                   </div>
                 </button>
               )}
@@ -556,7 +574,7 @@ export default function SchedulePage() {
                 onClick={() => setCancelTarget(null)}
                 className="w-full py-2.5 rounded-xl text-zinc-400 text-sm hover:text-zinc-600 transition-colors"
               >
-                Abbrechen
+                {t('common', 'cancel')}
               </button>
             </div>
           </div>
@@ -589,6 +607,13 @@ function ClassCard({
   roster: BookingMember[]; rosterLoading: boolean; cancellingId: string | null
   onToggle: () => void; onCancel: () => void; onEdit: () => void
 }) {
+  const { t, lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
+  const TYPE_LABELS: Record<string, string> = {
+    gi: t('classType', 'gi'), 'no-gi': t('classType', 'no-gi'),
+    'open mat': t('classType', 'open mat'), kids: t('classType', 'kids'),
+    competition: t('classType', 'competition'),
+  }
   const now = new Date()
   const isLive = isToday && new Date(cls.starts_at) <= now && new Date(cls.ends_at) >= now
 
@@ -614,7 +639,7 @@ function ClassCard({
               <RefreshCw size={10} className="text-zinc-300" />
             )}
             {cls.is_cancelled && (
-              <span className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">Abgesagt</span>
+              <span className="text-[10px] text-red-500 font-semibold uppercase tracking-wide">{t('schedule', 'cancelled')}</span>
             )}
           </div>
         </div>
@@ -622,7 +647,7 @@ function ClassCard({
           {cls.title}
         </p>
         <p className="text-zinc-400 text-[11px] mt-0.5 tabular-nums">
-          {formatTime(cls.starts_at)} – {formatTime(cls.ends_at)}
+          {formatTime(cls.starts_at, locale)} – {formatTime(cls.ends_at, locale)}
         </p>
         {cls.instructor && (
           <p className="text-zinc-400 text-[11px] truncate">{cls.instructor}</p>
@@ -631,10 +656,10 @@ function ClassCard({
           <Users size={10} />
           <span>{cls.confirmed_count}{cls.max_capacity ? `/${cls.max_capacity}` : ''}</span>
           {cls.waitlist_count > 0 && (
-            <span className="text-amber-600 font-medium">+{cls.waitlist_count} WL</span>
+            <span className="text-amber-600 font-medium">+{cls.waitlist_count} {t('schedule', 'waitlist')}</span>
           )}
           {(cls.lead_count ?? 0) > 0 && (
-            <span className="text-violet-600 font-medium">+{cls.lead_count} Int.</span>
+            <span className="text-violet-600 font-medium">+{cls.lead_count} {t('schedule', 'leads')}</span>
           )}
         </div>
       </button>
@@ -646,12 +671,12 @@ function ClassCard({
           {/* Roster */}
           <div className="px-3 pt-3 pb-2">
             <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-              Teilnehmer
+              {t('schedule', 'participants')}
             </p>
             {rosterLoading ? (
-              <p className="text-xs text-zinc-400 py-1">Lädt…</p>
+              <p className="text-xs text-zinc-400 py-1">{t('common', 'loading')}</p>
             ) : roster.length === 0 ? (
-              <p className="text-xs text-zinc-300 py-1">Noch niemand angemeldet.</p>
+              <p className="text-xs text-zinc-300 py-1">{lang === 'en' ? 'Nobody registered yet.' : 'Noch niemand angemeldet.'}</p>
             ) : (
               <div className="space-y-2">
                 {roster.map(b => (
@@ -662,7 +687,7 @@ function ClassCard({
                     <div className="flex items-center gap-1 flex-wrap">
                       {b.type === 'lead' && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-violet-50 text-violet-700 border border-violet-100">
-                          Interessent
+                          {t('schedule', 'leads')}
                         </span>
                       )}
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
@@ -672,7 +697,11 @@ function ClassCard({
                           ? 'bg-zinc-100 text-zinc-500 border border-zinc-200'
                           : 'bg-amber-50 text-amber-700 border border-amber-100'
                       }`}>
-                        {b.status === 'checked_in' ? 'Eingecheckt' : b.status === 'confirmed' ? 'Angemeldet' : 'Warteliste'}
+                        {b.status === 'checked_in'
+                          ? t('portal', 'checkedInBadge')
+                          : b.status === 'confirmed'
+                          ? t('portal', 'booked')
+                          : t('schedule', 'waitlist')}
                       </span>
                     </div>
                   </div>
@@ -685,12 +714,12 @@ function ClassCard({
           <div className="px-3 pb-3 pt-2 border-t border-zinc-100 space-y-1.5 mt-1">
             <button onClick={onEdit}
               className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 transition-colors border border-zinc-200">
-              <Pencil size={11} /> Bearbeiten
+              <Pencil size={11} /> {t('schedule', 'edit')}
             </button>
             {!cls.is_cancelled && (
               <button onClick={onCancel} disabled={cancellingId === cls.id}
                 className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 transition-colors border border-red-100 disabled:opacity-50">
-                <X size={11} /> Absagen
+                <X size={11} /> {t('schedule', 'cancel')}
               </button>
             )}
           </div>
