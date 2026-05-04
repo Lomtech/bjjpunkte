@@ -85,6 +85,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           sessionParams.subscription_data = {
             ...sessionParams.subscription_data,
             on_behalf_of: gym.stripe_account_id,
+            transfer_data: { destination: gym.stripe_account_id },
           }
         }
 

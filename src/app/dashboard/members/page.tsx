@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download, UserCheck, Navigation } from 'lucide-react'
+import { Plus, Users, Upload, AlertTriangle, ChevronRight, Mail, Clock, MessageCircle, X, Copy, ExternalLink, Check, Download, UserCheck, Navigation, MoreHorizontal } from 'lucide-react'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
@@ -79,6 +79,7 @@ export default function MembersPage() {
   const [selectingMemberId, setSelectingMemberId] = useState<string | null>(null)
   // GPS toast
   const [gpsError, setGpsError]            = useState<string | null>(null)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   // Cached GPS position (valid 5 min) — avoids re-prompting for every check-in
   const cachedGps = useRef<{ lat: number; lng: number; ts: number } | null>(null)
   const GPS_CACHE_MS = 5 * 60 * 1000
@@ -329,6 +330,7 @@ export default function MembersPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Desktop buttons */}
           <Link href="/dashboard/members/import"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors shadow-sm">
             <Upload size={14} /> CSV
@@ -346,12 +348,48 @@ export default function MembersPage() {
           <button onClick={downloadCSV}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium text-sm transition-colors shadow-sm"
             title={t('members', 'exportCsv')}>
-            <Download size={14} /> {lang === 'en' ? 'Export' : 'Export'}
+            <Download size={14} /> Export
           </button>
           <button onClick={() => setShowBulkConfirm(true)}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-sm transition-colors border border-amber-200">
             {lang === 'en' ? 'Request all' : 'Alle anfordern'}
           </button>
+
+          {/* Mobile "⋯" menu */}
+          <div className="relative sm:hidden">
+            <button onClick={() => setShowMobileMenu(v => !v)}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-zinc-200 text-zinc-600 shadow-sm">
+              <MoreHorizontal size={16} />
+            </button>
+            {showMobileMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMobileMenu(false)} />
+                <div className="absolute right-0 top-11 z-50 w-52 bg-white rounded-2xl border border-zinc-100 shadow-xl overflow-hidden">
+                  <Link href="/dashboard/members/import" onClick={() => setShowMobileMenu(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50 border-b border-zinc-50">
+                    <Upload size={15} className="text-zinc-400 flex-shrink-0" /> CSV {lang === 'en' ? 'Import' : 'Import'}
+                  </Link>
+                  <button onClick={() => { handleEmailAll(); setShowMobileMenu(false) }}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50 w-full text-left border-b border-zinc-50">
+                    <Mail size={15} className="text-zinc-400 flex-shrink-0" /> {t('members', 'email')}
+                  </button>
+                  <button onClick={() => { setShowWaModal(true); setShowMobileMenu(false) }}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50 w-full text-left border-b border-zinc-50">
+                    <MessageCircle size={15} className="text-[#25D366] flex-shrink-0" /> WhatsApp
+                  </button>
+                  <button onClick={() => { downloadCSV(); setShowMobileMenu(false) }}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50 w-full text-left border-b border-zinc-50">
+                    <Download size={15} className="text-zinc-400 flex-shrink-0" /> Export CSV
+                  </button>
+                  <button onClick={() => { setShowBulkConfirm(true); setShowMobileMenu(false) }}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-amber-700 hover:bg-amber-50 w-full text-left">
+                    {lang === 'en' ? 'Request all payments' : 'Alle Zahlungen anfordern'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <Link href="/dashboard/members/new"
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-white font-semibold text-sm transition-colors shadow-sm">
             <Plus size={14} /> {lang === 'en' ? 'Member' : 'Mitglied'}

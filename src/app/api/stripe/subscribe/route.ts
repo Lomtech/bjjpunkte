@@ -93,6 +93,7 @@ export async function POST(req: Request) {
       sessionParams.subscription_data = {
         ...sessionParams.subscription_data,
         on_behalf_of: connectedAccountId,
+        transfer_data: { destination: connectedAccountId },
       }
     }
 

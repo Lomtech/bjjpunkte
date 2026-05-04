@@ -113,6 +113,7 @@ export async function POST(req: Request) {
       if (connectedAccountId) {
         sessionParams.payment_intent_data = {
           on_behalf_of: connectedAccountId,
+          transfer_data: { destination: connectedAccountId },
         }
       }
 

@@ -114,6 +114,7 @@ export async function POST(
         sessionParams.subscription_data = {
           ...sessionParams.subscription_data,
           on_behalf_of: gymData.stripe_account_id,
+          transfer_data: { destination: gymData.stripe_account_id },
         }
       }
 
