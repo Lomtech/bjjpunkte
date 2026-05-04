@@ -116,6 +116,7 @@ function Section({
 // ── Save button ───────────────────────────────────────────────────────────────
 
 function SaveBtn({ onClick, saving, saved }: { onClick: () => void; saving: boolean; saved: boolean }) {
+  const { t } = useLanguage()
   return (
     <button onClick={onClick} disabled={saving}
       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
@@ -124,7 +125,7 @@ function SaveBtn({ onClick, saving, saved }: { onClick: () => void; saving: bool
           : 'bg-zinc-950 hover:bg-zinc-800 text-white'
       }`}>
       {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <CheckCircle2 size={14} /> : <Save size={14} />}
-      {saving ? 'Speichern…' : saved ? 'Gespeichert' : 'Speichern'}
+      {saving ? t('settings', 'saving') : saved ? t('settings', 'saved') : t('settings', 'save')}
     </button>
   )
 }
@@ -137,6 +138,7 @@ function ImageUpload({
   label: string; url: string | null; onUploaded: (url: string) => void
   hint?: string; positionY?: number; onPositionChange?: (y: number) => void
 }) {
+  const { t } = useLanguage()
   const ref        = useRef<HTMLInputElement>(null)
   const imgRef     = useRef<HTMLDivElement>(null)
   const [uploading, setUploading]   = useState(false)
@@ -163,7 +165,7 @@ function ImageUpload({
       onUploaded(uploaded)
     } else {
       const data = await res.json().catch(() => ({}))
-      setUploadError(data.error ?? 'Upload fehlgeschlagen — bitte erneut versuchen.')
+      setUploadError(data.error ?? t('website', 'uploadFailed'))
       setPreview(url ?? '')
     }
     setUploading(false)
@@ -214,7 +216,7 @@ function ImageUpload({
             <div className="absolute inset-y-0 right-3 flex items-center">
               <div className="bg-black/50 backdrop-blur-sm rounded-lg px-2 py-1.5 flex flex-col items-center gap-0.5">
                 <span className="text-white text-[9px] font-medium leading-none">↑</span>
-                <span className="text-white/70 text-[8px] leading-none">Ziehen</span>
+                <span className="text-white/70 text-[8px] leading-none">{t('website', 'drag')}</span>
                 <span className="text-white text-[9px] font-medium leading-none">↓</span>
               </div>
             </div>
@@ -229,9 +231,9 @@ function ImageUpload({
       {canAdjustPos && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-zinc-400">Bildausschnitt</span>
+            <span className="text-[11px] text-zinc-400">{t('website', 'cropAdjust')}</span>
             <span className="text-[11px] text-zinc-400 tabular-nums">
-              {(positionY ?? 50) <= 15 ? 'Oben' : (positionY ?? 50) >= 85 ? 'Unten' : `${positionY}%`}
+              {(positionY ?? 50) <= 15 ? t('website', 'top') : (positionY ?? 50) >= 85 ? t('website', 'bottom') : `${positionY}%`}
             </span>
           </div>
           <input
@@ -240,7 +242,7 @@ function ImageUpload({
             className="w-full accent-amber-500 h-1.5 rounded-full cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-zinc-300">
-            <span>Oben</span><span>Mitte</span><span>Unten</span>
+            <span>{t('website', 'top')}</span><span>{t('website', 'middle')}</span><span>{t('website', 'bottom')}</span>
           </div>
         </div>
       )}
@@ -248,13 +250,13 @@ function ImageUpload({
         <input
           value={preview}
           onChange={e => { setPreview(e.target.value); onUploaded(e.target.value) }}
-          placeholder="https://… oder Datei hochladen →"
+          placeholder={t('website', 'urlPlaceholder')}
           className={INPUT + ' flex-1'}
         />
         <button type="button" onClick={() => ref.current?.click()} disabled={uploading}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-colors flex-shrink-0 disabled:opacity-50">
           {uploading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
-          {uploading ? 'Lädt…' : 'Hochladen'}
+          {uploading ? t('website', 'uploading') : t('website', 'uploadBtn')}
         </button>
         <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
@@ -267,6 +269,7 @@ function ImageUpload({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function WebsitePage() {
+  const { t } = useLanguage()
   const [gym,     setGym]     = useState<GymWebsite | null>(null)
   const [gymId,   setGymId]   = useState('')
   const [loading, setLoading] = useState(true)
@@ -338,7 +341,7 @@ export default function WebsitePage() {
   async function saveSlug() {
     setSlugError('')
     const clean = gymSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
-    if (!clean) { setSlugError('URL-Kürzel darf nicht leer sein.'); return }
+    if (!clean) { setSlugError(t('website', 'urlSlug') + ' darf nicht leer sein.'); return }
     setGymSlug(clean)
     setSaving(s => ({ ...s, slug: true }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -346,7 +349,7 @@ export default function WebsitePage() {
     // Check uniqueness (exclude own gym)
     const { data: existing } = await supabase.from('gyms').select('id').eq('slug', clean).neq('id', gymId).maybeSingle()
     if (existing) {
-      setSlugError('Dieses URL-Kürzel ist bereits vergeben. Bitte wähle ein anderes.')
+      setSlugError(t('website', 'urlSlug') + ' ist bereits vergeben.')
       setSaving(s => ({ ...s, slug: false }))
       return
     }
@@ -367,7 +370,9 @@ export default function WebsitePage() {
     setTimeout(() => setSaved(s => ({ ...s, [key]: false })), 2500)
   }
 
-  if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Lädt…</div>
+  const DAYS = getDays(t)
+
+  if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">{t('common', 'loading')}</div>
 
   const score = gym ? completionScore({
     ...gym,
@@ -391,14 +396,14 @@ export default function WebsitePage() {
             <Globe size={18} className="text-amber-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-zinc-900">Gym-Webseite</h1>
-            <p className="text-zinc-400 text-xs mt-0.5">Konfiguriere deine öffentliche Gym-Seite</p>
+            <h1 className="text-xl font-bold text-zinc-900">{t('website', 'title')}</h1>
+            <p className="text-zinc-400 text-xs mt-0.5">{t('website', 'subtitle')}</p>
           </div>
         </div>
         {publicUrl && (
           <a href={publicUrl} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-xs font-medium transition-colors flex-shrink-0">
-            <ExternalLink size={13} /> Vorschau
+            <ExternalLink size={13} /> {t('website', 'previewBtn')}
           </a>
         )}
       </div>
@@ -406,7 +411,7 @@ export default function WebsitePage() {
       {/* Progress bar */}
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4 mb-5">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-zinc-900">Profil-Vollständigkeit</p>
+          <p className="text-sm font-semibold text-zinc-900">{t('website', 'profileComplete')}</p>
           <span className={`text-sm font-bold ${score >= 75 ? 'text-emerald-600' : score >= 40 ? 'text-amber-600' : 'text-zinc-400'}`}>
             {score}%
           </span>
@@ -420,31 +425,31 @@ export default function WebsitePage() {
         {score < 100 && (
           <p className="text-xs text-zinc-400 mt-2">
             {score < 40
-              ? 'Fange mit Tagline, Beschreibung und Kontaktdaten an — das sind die wichtigsten Felder.'
+              ? t('website', 'hintLow')
               : score < 75
-              ? 'Gute Basis! Füge Fotos und Öffnungszeiten hinzu für einen professionellen Auftritt.'
-              : 'Fast fertig! Nur noch das Impressum fehlt, um die Seite rechtssicher zu machen.'}
+              ? t('website', 'hintMid')
+              : t('website', 'hintHigh')}
           </p>
         )}
       </div>
 
       <div className="space-y-4">
 
-        {/* 1 — Grundlagen */}
-        <Section num="1" title="Grundlagen" icon={<Info size={14} />}
-          subtitle="Name, URL-Kürzel, Tagline und Gründungsjahr"
+        {/* 1 — Basics */}
+        <Section num="1" title={t('website', 'basics')} icon={<Info size={14} />}
+          subtitle={t('website', 'basicsSubtitle')}
           done={!!tagline}>
           <div className="space-y-4 pt-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">Gym-Name</label>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">{t('website', 'gymName')}</label>
               <input value={gym?.name ?? ''} disabled
                 className={INPUT + ' opacity-60 cursor-not-allowed'} />
-              <p className="text-xs text-zinc-400 mt-1">Ändere den Namen unter Einstellungen → Allgemein.</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('website', 'gymNameHint')}</p>
             </div>
 
             {/* Slug */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">URL-Kürzel (Slug)</label>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">{t('website', 'urlSlug')}</label>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-zinc-400 whitespace-nowrap flex-shrink-0">osss.pro/gym/</span>
                 <input
@@ -460,21 +465,21 @@ export default function WebsitePage() {
                 </p>
               )}
               {slugError && <p className="text-xs text-red-500 mt-1">{slugError}</p>}
-              <p className="text-xs text-zinc-400 mt-1">Nur Kleinbuchstaben, Zahlen und Bindestriche. Ändere den Slug nur bewusst — bestehende Links werden ungültig.</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('website', 'slugHint')}</p>
               <div className="flex justify-end mt-3">
                 <SaveBtn onClick={saveSlug} saving={!!saving.slug} saved={!!saved.slug} />
               </div>
             </div>
 
             <div className="border-t border-zinc-100 pt-4">
-              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">Tagline *</label>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">{t('website', 'tagline')}</label>
               <input value={tagline} onChange={e => setTagline(e.target.value)}
-                placeholder="z.B. Kampfsport für alle Levels im Herzen von München"
+                placeholder={t('website', 'taglinePlaceholder')}
                 className={INPUT} maxLength={100} />
-              <p className="text-xs text-zinc-400 mt-1">Kurz und prägnant — erscheint groß im Hero-Bereich.</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('website', 'taglineHint')}</p>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">Gegründet</label>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1.5">{t('website', 'founded')}</label>
               <input value={foundedYear} onChange={e => setFoundedYear(e.target.value)}
                 type="number" placeholder="z.B. 2018" min="1900" max="2099"
                 className={INPUT} />

@@ -12,6 +12,7 @@ import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
 import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck } from 'lucide-react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 import { toWaPhone } from '@/lib/phone'
 

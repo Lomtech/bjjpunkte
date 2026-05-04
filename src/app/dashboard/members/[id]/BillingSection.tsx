@@ -14,9 +14,7 @@ const STATUS_COLORS: Record<string, string> = {
   failed:   'bg-zinc-100 text-zinc-500 border-zinc-200',
   refunded: 'bg-zinc-100 text-zinc-400 border-zinc-200',
 }
-const STATUS_LABELS: Record<string, string> = {
-  paid: 'Bezahlt', pending: 'Ausstehend', failed: 'Fehlgeschlagen', refunded: 'Erstattet',
-}
+// STATUS_LABELS are now resolved via t('paymentStatus', ...) inside the component
 
 export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memberName, subscriptionStatus, stripeCustomerId, monthlyFeeCents, payments: initialPayments, stripeSubscriptionId }: {
   memberId: string; gymId: string; memberEmail: string | null; memberPhone?: string | null; memberName: string
@@ -105,10 +103,10 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
         headers: { 'Authorization': `Bearer ${session?.access_token ?? ''}` },
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Fehler beim Löschen')
+      if (!res.ok) throw new Error(data.error || t('billing', 'confirmDeletePayment'))
       setPayments(prev => prev.filter(p => p.id !== paymentId))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fehler beim Löschen')
+      setError(e instanceof Error ? e.message : t('billing', 'confirmDeletePayment'))
     }
     setDeletingId(null)
   }
@@ -118,11 +116,13 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
       <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-sm mb-5">
         <h2 className="font-semibold text-zinc-900 mb-2 flex items-center gap-2">
           <CreditCard size={16} className="text-zinc-400" />
-          Mitgliedsbeitrag
+          {t('billing', 'memberFee')}
         </h2>
         <p className="text-zinc-400 text-sm">
-          Bitte zuerst den monatlichen Beitrag in den{' '}
-          <a href="/dashboard/settings" className="text-amber-600 hover:text-amber-500 font-medium">Einstellungen</a> festlegen.
+          {lang === 'en'
+            ? <>Please first set the monthly fee in <a href="/dashboard/settings" className="text-amber-600 hover:text-amber-500 font-medium">Settings</a>.</>
+            : <>Bitte zuerst den monatlichen Beitrag in den <a href="/dashboard/settings" className="text-amber-600 hover:text-amber-500 font-medium">Einstellungen</a> festlegen.</>
+          }
         </p>
       </div>
     )
@@ -133,22 +133,22 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-zinc-900 flex items-center gap-2">
           <CreditCard size={16} className="text-zinc-400" />
-          Mitgliedsbeitrag
+          {t('billing', 'memberFee')}
         </h2>
         <span className="text-sm font-semibold text-zinc-700">
-          {(monthlyFeeCents / 100).toFixed(2).replace('.', ',')} €/Monat
+          {(monthlyFeeCents / 100).toFixed(2).replace('.', ',')} {t('billing', 'perMonth')}
         </span>
       </div>
 
       {checkoutUrl ? (
         <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200 mb-4">
           <p className="text-zinc-800 text-sm font-medium mb-0.5">
-            {linkType === 'subscription' ? '🔄 Abo-Link erstellt!' : 'Zahlungslink erstellt!'}
+            {linkType === 'subscription' ? t('billing', 'subLinkCreated') : t('billing', 'otLinkCreated')}
           </p>
           <p className="text-zinc-600 text-xs mb-3">
             {linkType === 'subscription'
-              ? 'Mitglied öffnet Link, gibt Karte einmalig ein → danach automatische Abbuchung jeden Monat.'
-              : 'Einmalige Zahlung — Mitglied öffnet Link und zahlt.'}
+              ? t('billing', 'subLinkDesc')
+              : t('billing', 'otLinkDesc')}
           </p>
           <div className="flex flex-col gap-2">
             {memberPhone && (
@@ -159,7 +159,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
               )}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#25D366] hover:bg-[#1ebe57] text-white text-sm font-semibold transition-colors">
-                <MessageCircle size={14} /> Per WhatsApp senden
+                <MessageCircle size={14} /> {t('billing', 'sendWhatsApp')}
               </a>
             )}
             {memberEmail && (
@@ -171,13 +171,13 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
                   : `Hallo ${memberName.split(' ')[0]}!\n\nHier ist dein Zahlungslink:\n${checkoutUrl}`
               )}`}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-sm font-semibold transition-colors">
-                Link per E-Mail senden
+                {t('billing', 'sendEmail')}
               </a>
             )}
             <div className="flex gap-2">
               <a href={checkoutUrl} target="_blank" rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-xs font-medium transition-colors">
-                <ExternalLink size={12} /> Öffnen
+                <ExternalLink size={12} /> {t('billing', 'openLink')}
               </a>
               <button onClick={() => {
                   navigator.clipboard.writeText(checkoutUrl)
@@ -186,11 +186,11 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
                 }}
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${copiedLink ? 'border-green-200 bg-green-50 text-green-700' : 'border-zinc-200 hover:bg-zinc-50 text-zinc-600'}`}>
                 {copiedLink ? <Check size={12} /> : <Copy size={12} />}
-                {copiedLink ? 'Kopiert!' : 'Kopieren'}
+                {copiedLink ? t('billing', 'copiedLink') : t('billing', 'copyLink')}
               </button>
               <button onClick={() => { setCheckoutUrl(''); setLinkType('onetime') }}
                 className="flex-1 flex items-center justify-center px-3 py-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-400 text-xs transition-colors">
-                Neuer Link
+                {t('billing', 'newLink')}
               </button>
             </div>
           </div>
@@ -199,25 +199,25 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
         <div className="space-y-2 mb-4">
           <p className="text-xs text-zinc-400 mb-3 flex items-center gap-1">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-            Karte & SEPA-Lastschrift werden akzeptiert
+            {t('billing', 'acceptedMethods')}
           </p>
           {/* Subscription status */}
           {stripeSubscriptionId ? (
             <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-200">
               <div className="flex items-center gap-2">
                 <RefreshCw size={14} className="text-zinc-500" />
-                <span className="text-zinc-800 text-sm font-semibold">Automatische Abbuchung aktiv</span>
+                <span className="text-zinc-800 text-sm font-semibold">{t('billing', 'autoChargeActive')}</span>
               </div>
               <button onClick={cancelSubscription} disabled={subLoading}
                 className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium transition-colors disabled:opacity-50">
-                <X size={12} /> Kündigen
+                <X size={12} /> {t('billing', 'cancelSub')}
               </button>
             </div>
           ) : (
             <button onClick={setupSubscription} disabled={subLoading || !memberEmail}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-slate-800 text-white text-sm font-semibold transition-colors disabled:opacity-50">
               <RefreshCw size={14} />
-              {subLoading ? 'Öffnet Stripe…' : 'Automatische Abbuchung einrichten'}
+              {subLoading ? t('billing', 'openingStripe') : t('billing', 'setupAutoCharge')}
             </button>
           )}
 
@@ -225,13 +225,13 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
           <button onClick={sendPaymentLink} disabled={loading || !memberEmail}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-sm font-semibold transition-colors disabled:opacity-50">
             <Send size={14} />
-            {loading ? 'Wird erstellt…' : 'Einmaligen Zahlungslink erstellen'}
+            {loading ? t('billing', 'creating') : t('billing', 'createOneTime')}
           </button>
         </div>
       )}
 
       {!memberEmail && (
-        <p className="text-zinc-400 text-xs mb-3">Keine E-Mail-Adresse hinterlegt.</p>
+        <p className="text-zinc-400 text-xs mb-3">{t('billing', 'noEmail')}</p>
       )}
 
       {error && (
@@ -240,25 +240,25 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
 
       {payments.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Zahlungshistorie</p>
+          <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">{t('billing', 'paymentHistory')}</p>
           <div className="space-y-2">
             {payments.map(p => (
               <div key={p.id} className="flex items-center gap-2 py-2 border-b border-zinc-100 last:border-0">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${STATUS_COLORS[p.status] ?? STATUS_COLORS.pending}`}>
-                  {STATUS_LABELS[p.status] ?? p.status}
+                  {t('paymentStatus', p.status) || p.status}
                 </span>
                 <span className="text-zinc-700 text-sm font-semibold flex-shrink-0">
                   {(p.amount_cents / 100).toFixed(2).replace('.', ',')} €
                 </span>
                 <span className="text-zinc-400 text-xs flex-1 min-w-0 text-right truncate">
-                  {new Date(p.paid_at ?? p.created_at).toLocaleDateString('de-DE')}
+                  {new Date(p.paid_at ?? p.created_at).toLocaleDateString(locale)}
                 </span>
                 {p.status === 'paid' && (
                   <a
                     href={`/api/invoices/${p.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    title="Rechnung anzeigen"
+                    title={t('billing', 'viewInvoice')}
                     className="text-zinc-300 hover:text-zinc-600 transition-colors flex-shrink-0"
                   >
                     <FileText size={13} />
@@ -268,7 +268,7 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
                   <button
                     onClick={() => deletePayment(p.id)}
                     disabled={deletingId === p.id}
-                    title="Zahlung löschen"
+                    title={t('billing', 'confirmDeletePayment')}
                     className="text-zinc-300 hover:text-red-400 transition-colors disabled:opacity-40 flex-shrink-0"
                   >
                     <Trash2 size={13} />

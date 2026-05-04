@@ -593,9 +593,9 @@ export default function PublicGymPage() {
           <div className="max-w-6xl mx-auto px-5">
             <div data-reveal className="flex items-center gap-2 mb-3">
               <span className="w-6 h-px bg-amber-400" />
-              <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">Stundenplan</p>
+              <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">{lang === 'en' ? 'Schedule' : 'Stundenplan'}</p>
             </div>
-            <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12" style={{ transitionDelay: '60ms' }}>Kommende Trainings</h2>
+            <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12" style={{ transitionDelay: '60ms' }}>{lang === 'en' ? 'Upcoming classes' : 'Kommende Trainings'}</h2>
             <div className="space-y-8">
               {days.map(([day, dc]) => (
                 <div key={day}>
@@ -631,7 +631,7 @@ export default function PublicGymPage() {
                           onClick={() => setBookingClass(cls)}
                           className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-colors"
                         >
-                          Jetzt buchen
+                          {lang === 'en' ? 'Book now' : 'Jetzt buchen'}
                         </button>
                       </div>
                     ))}
@@ -650,24 +650,24 @@ export default function PublicGymPage() {
           <div className="max-w-6xl mx-auto px-5">
             <div data-reveal className="flex items-center gap-2 mb-3">
               <span className="w-6 h-px bg-amber-400" />
-              <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">Mitgliedschaft</p>
+              <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">{lang === 'en' ? 'Membership' : 'Mitgliedschaft'}</p>
             </div>
-            <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12" style={{ transitionDelay: '60ms' }}>Unsere Preise</h2>
+            <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12" style={{ transitionDelay: '60ms' }}>{lang === 'en' ? 'Our pricing' : 'Unsere Preise'}</h2>
             <div className={`grid gap-4 ${plans.length === 1 ? 'max-w-xs' : plans.length === 2 ? 'sm:grid-cols-2 max-w-xl' : 'sm:grid-cols-2 lg:grid-cols-3'}`}>
               {plans.map((p, i) => {
                 const featured = plans.length > 1 && i === Math.floor(plans.length / 2)
                 return (
                   <div key={p.id} className={`rounded-2xl p-6 ${featured ? 'bg-amber-500 shadow-lg shadow-amber-200' : 'bg-white border border-zinc-200 shadow-sm'}`}>
-                    {featured && <span className="text-[10px] font-black text-zinc-950/60 uppercase tracking-widest mb-3 block">Beliebt</span>}
+                    {featured && <span className="text-[10px] font-black text-zinc-950/60 uppercase tracking-widest mb-3 block">{lang === 'en' ? 'Popular' : 'Beliebt'}</span>}
                     <h3 className={`font-black text-xl mb-2 ${featured ? 'text-zinc-950' : 'text-zinc-900'}`}>{p.name}</h3>
                     {p.description && <p className={`text-sm mb-4 leading-relaxed ${featured ? 'text-zinc-800' : 'text-zinc-500'}`}>{p.description}</p>}
                     <p className={`text-4xl font-black mb-1 ${featured ? 'text-zinc-950' : 'text-zinc-900'}`}>
                       {(p.price_cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 })}
-                      <span className={`text-base font-medium ml-1 ${featured ? 'text-zinc-700' : 'text-zinc-400'}`}>{fmt(p.billing_interval)}</span>
+                      <span className={`text-base font-medium ml-1 ${featured ? 'text-zinc-700' : 'text-zinc-400'}`}>{fmt(p.billing_interval, lang)}</span>
                     </p>
-                    {p.contract_months > 0 && <p className={`text-xs mb-5 ${featured ? 'text-zinc-700' : 'text-zinc-400'}`}>{p.contract_months} Monate Mindestlaufzeit</p>}
+                    {p.contract_months > 0 && <p className={`text-xs mb-5 ${featured ? 'text-zinc-700' : 'text-zinc-400'}`}>{p.contract_months} {lang === 'en' ? 'month minimum term' : 'Monate Mindestlaufzeit'}</p>}
                     <a href="#contact" className={`flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl text-sm font-bold mt-4 transition-colors ${featured ? 'bg-zinc-950 text-white hover:bg-zinc-800' : 'bg-zinc-900 text-white hover:bg-zinc-700'}`}>
-                      Anfragen <ChevronRight size={14} />
+                      {lang === 'en' ? 'Enquire' : 'Anfragen'} <ChevronRight size={14} />
                     </a>
                   </div>
                 )
@@ -683,22 +683,22 @@ export default function PublicGymPage() {
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-6 h-px bg-amber-400" />
-            <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">Kontakt</p>
+            <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">{lang === 'en' ? 'Contact' : 'Kontakt'}</p>
           </div>
-          <h2 className="text-3xl font-black text-zinc-900 mb-12">Komm vorbei</h2>
+          <h2 className="text-3xl font-black text-zinc-900 mb-12">{lang === 'en' ? 'Come visit us' : 'Komm vorbei'}</h2>
 
           <div className="grid md:grid-cols-2 gap-12">
             {/* Left: channels + hours */}
             <div className="space-y-3">
               {gym.whatsapp_number && (
-                <a href={`https://wa.me/${toWa(gym.whatsapp_number)}?text=${encodeURIComponent(`Hallo! Ich interessiere mich für ${gym.name}.`)}`}
+                <a href={`https://wa.me/${toWa(gym.whatsapp_number)}?text=${encodeURIComponent(lang === 'en' ? `Hello! I am interested in ${gym.name}.` : `Hallo! Ich interessiere mich für ${gym.name}.`)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-4 p-4 rounded-2xl bg-[#25D366] hover:opacity-90 transition-opacity text-white">
                   <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
                     <MessageCircle size={18} />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-sm">WhatsApp schreiben</p>
+                    <p className="font-bold text-sm">{lang === 'en' ? 'Message on WhatsApp' : 'WhatsApp schreiben'}</p>
                     <p className="text-xs text-white/80">{gym.whatsapp_number}</p>
                   </div>
                   <ChevronRight size={16} />
@@ -711,7 +711,7 @@ export default function PublicGymPage() {
                     <Share2 size={18} />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-sm">Instagram folgen</p>
+                    <p className="font-bold text-sm">{lang === 'en' ? 'Follow on Instagram' : 'Instagram folgen'}</p>
                     <p className="text-xs text-white/80 truncate">{gym.instagram_url.replace(/^https?:\/\/(www\.)?instagram\.com\/?/, '@').replace(/\/$/, '')}</p>
                   </div>
                   <ChevronRight size={16} />
@@ -724,7 +724,7 @@ export default function PublicGymPage() {
                     <Share2 size={18} />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-sm">Facebook besuchen</p>
+                    <p className="font-bold text-sm">{lang === 'en' ? 'Visit on Facebook' : 'Facebook besuchen'}</p>
                   </div>
                   <ChevronRight size={16} />
                 </a>
@@ -733,7 +733,7 @@ export default function PublicGymPage() {
                 <a href={`mailto:${gym.email}`} className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-sm transition-all">
                   <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0"><Mail size={16} className="text-zinc-500" /></div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-zinc-900 text-sm">E-Mail schreiben</p>
+                    <p className="font-semibold text-zinc-900 text-sm">{lang === 'en' ? 'Send an email' : 'E-Mail schreiben'}</p>
                     <p className="text-xs text-zinc-400 truncate">{gym.email}</p>
                   </div>
                   <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
@@ -743,7 +743,7 @@ export default function PublicGymPage() {
                 <a href={`tel:${gym.phone}`} className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-sm transition-all">
                   <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0"><Phone size={16} className="text-zinc-500" /></div>
                   <div className="flex-1">
-                    <p className="font-semibold text-zinc-900 text-sm">Anrufen</p>
+                    <p className="font-semibold text-zinc-900 text-sm">{lang === 'en' ? 'Call us' : 'Anrufen'}</p>
                     <p className="text-xs text-zinc-400">{gym.phone}</p>
                   </div>
                   <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
@@ -754,7 +754,7 @@ export default function PublicGymPage() {
                   className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-sm transition-all">
                   <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0"><MapPin size={16} className="text-zinc-500" /></div>
                   <div className="flex-1">
-                    <p className="font-semibold text-zinc-900 text-sm">Route anzeigen</p>
+                    <p className="font-semibold text-zinc-900 text-sm">{lang === 'en' ? 'Get directions' : 'Route anzeigen'}</p>
                     <p className="text-xs text-zinc-400">{gym.address}</p>
                   </div>
                   <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
@@ -765,7 +765,7 @@ export default function PublicGymPage() {
                   className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-sm transition-all">
                   <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0"><Globe size={16} className="text-zinc-500" /></div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-zinc-900 text-sm">Website besuchen</p>
+                    <p className="font-semibold text-zinc-900 text-sm">{lang === 'en' ? 'Visit website' : 'Website besuchen'}</p>
                     <p className="text-xs text-zinc-400 truncate">{gym.website_url.replace(/^https?:\/\//, '')}</p>
                   </div>
                   <ChevronRight size={16} className="text-zinc-300 flex-shrink-0" />
@@ -775,17 +775,21 @@ export default function PublicGymPage() {
               {gym.opening_hours && (
                 <div className="pt-4">
                   <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Clock size={11} /> Öffnungszeiten
+                    <Clock size={11} /> {lang === 'en' ? 'Opening hours' : 'Öffnungszeiten'}
                   </p>
                   <div className="space-y-2">
                     {DAY_ORDER.map(key => {
                       const h = gym.opening_hours![key]
                       if (!h) return null
+                      const dayLabelsEn: Record<DayKey, string> = {
+                        mo: 'Monday', di: 'Tuesday', mi: 'Wednesday', do: 'Thursday',
+                        fr: 'Friday', sa: 'Saturday', so: 'Sunday',
+                      }
                       return (
                         <div key={key} className="flex items-center justify-between text-sm">
-                          <span className="text-zinc-400 w-24">{DAY_LABELS[key]}</span>
+                          <span className="text-zinc-400 w-24">{lang === 'en' ? dayLabelsEn[key] : DAY_LABELS[key]}</span>
                           {h.closed
-                            ? <span className="text-zinc-300 text-xs">Geschlossen</span>
+                            ? <span className="text-zinc-300 text-xs">{lang === 'en' ? 'Closed' : 'Geschlossen'}</span>
                             : <span className="text-zinc-700 font-medium tabular-nums">{h.open} – {h.close}</span>
                           }
                         </div>
@@ -798,8 +802,8 @@ export default function PublicGymPage() {
 
             {/* Right: form */}
             <div className="bg-white rounded-3xl border border-zinc-200 p-6 md:p-8 shadow-sm">
-              <h3 className="font-black text-zinc-900 text-xl mb-1">Probetraining anfragen</h3>
-              <p className="text-zinc-500 text-sm mb-6">Wir melden uns innerhalb von 24 Stunden.</p>
+              <h3 className="font-black text-zinc-900 text-xl mb-1">{lang === 'en' ? 'Request a trial class' : 'Probetraining anfragen'}</h3>
+              <p className="text-zinc-500 text-sm mb-6">{lang === 'en' ? 'We will get back to you within 24 hours.' : 'Wir melden uns innerhalb von 24 Stunden.'}</p>
               <ContactForm slug={slug} classes={classes} />
             </div>
           </div>
@@ -823,8 +827,8 @@ export default function PublicGymPage() {
             {gym.impressum_text && (
               <button onClick={() => setShowImpressum(true)} className="hover:text-zinc-700 transition-colors">Impressum</button>
             )}
-            <Link href="/datenschutz" target="_blank" className="hover:text-zinc-700 transition-colors">Datenschutz</Link>
-            <Link href="/agb" target="_blank" className="hover:text-zinc-700 transition-colors">AGB</Link>
+            <Link href="/datenschutz" target="_blank" className="hover:text-zinc-700 transition-colors">{lang === 'en' ? 'Privacy' : 'Datenschutz'}</Link>
+            <Link href="/agb" target="_blank" className="hover:text-zinc-700 transition-colors">{lang === 'en' ? 'Terms' : 'AGB'}</Link>
             <span className="text-zinc-300">Betrieben mit <span className="font-black text-amber-500">Osss</span></span>
           </div>
         </div>
@@ -863,10 +867,11 @@ function ClassBookingModal({ cls, gymName, onClose }: { cls: GymClass; gymName: 
   const [token, setToken]     = useState('')
   const [status, setStatus]   = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errMsg, setErrMsg]   = useState('')
+  const { lang } = useLanguage()
 
   async function bookAsMember() {
     const t = token.trim().replace(/.*\/portal\//, '').split('/')[0]
-    if (!t) { setErrMsg('Bitte Portal-Token eingeben.'); return }
+    if (!t) { setErrMsg(lang === 'en' ? 'Please enter your portal token.' : 'Bitte Portal-Token eingeben.'); return }
     setStatus('loading'); setErrMsg('')
     try {
       const res = await fetch(`/api/portal/${encodeURIComponent(t)}/book/${cls.id}`, { method: 'POST' })
