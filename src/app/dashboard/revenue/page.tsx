@@ -61,16 +61,13 @@ export default function RevenuePage() {
   const [allPayments, setAllPayments]   = useState<(PaymentFull & { member_name: string })[]>([])
   const [months, setMonths]             = useState<MonthGroup[]>([])
   const [expectedMonthlyCents, setExpectedMonthlyCents] = useState(0)
-  const [datevMeta, setDatevMeta] = useState<{ beraternummer: string; mandantennummer: string; gymName: string }>({ beraternummer: '', mandantennummer: '', gymName: '' })
-
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, name, datev_beraternummer, datev_mandantennummer').single()
+      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, name').single()
       if (!gym) { setLoading(false); return }
 
-      const gymData = gym as { id: string; monthly_fee_cents: number; name: string; datev_beraternummer: string | null; datev_mandantennummer: string | null }
-      setDatevMeta({ beraternummer: gymData.datev_beraternummer ?? '', mandantennummer: gymData.datev_mandantennummer ?? '', gymName: gymData.name ?? 'Osss' })
+      const gymData = gym as { id: string; monthly_fee_cents: number; name: string }
 
       const startOfMonth  = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
       const startOfPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
@@ -181,62 +178,23 @@ export default function RevenuePage() {
     a.click(); URL.revokeObjectURL(url)
   }
 
-  function downloadDATEV() {
-    const paid = allPayments.filter(p => p.paid_at)
-    if (paid.length === 0) return
+  async function downloadDATEV() {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) return
 
-    const now  = new Date()
-    const p2   = (n: number) => String(n).padStart(2, '0')
-    const p3   = (n: number) => String(n).padStart(3, '0')
-    const ts   = `${now.getFullYear()}${p2(now.getMonth()+1)}${p2(now.getDate())}${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}${p3(now.getMilliseconds())}`
-    const ymd  = (d: Date) => `${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}`
-
-    const dates   = paid.map(p => new Date(p.paid_at!))
-    const fromDate = ymd(new Date(Math.min(...dates.map(d => d.getTime()))))
-    const toDate   = ymd(new Date(Math.max(...dates.map(d => d.getTime()))))
-
-    // DATEV EXTF Vorlaufsatz (Zeile 1) — Format 700, Datenkategorie 21, Version 9
-    const berater   = datevMeta.beraternummer  || '0'
-    const mandant   = datevMeta.mandantennummer || '0'
-    const wjBeginn  = `${now.getFullYear()}0101`
-    const label     = `"${datevMeta.gymName} Zahlungen"`.replace(/[;]/g, ' ')
-    const vorlauf = [
-      '"EXTF"', '700', '21', '"Buchungsstapel"', '9',
-      ts, '', '"Osss"', '', '',
-      berater, mandant, wjBeginn, '4',
-      fromDate, toDate, label, '',
-      '1', '0', '"EUR"', '', '', '', '', '', '', '', '', '', '', '',
-    ].join(';')
-
-    // Spaltenüberschriften (Zeile 2)
-    const headers = [
-      'Umsatz (ohne Soll/Haben-Kz)','Soll/Haben-Kennzeichen','WKZ Umsatz',
-      'Kurs','Basis-Umsatz','WKZ Basis-Umsatz',
-      'Konto','Gegenkonto (ohne BU-Schlüssel)','BU-Schlüssel',
-      'Belegdatum','Belegfeld 1','Belegfeld 2','Skonto','Buchungstext',
-    ].join(';')
-
-    // Buchungszeilen
-    const rows = paid.map(p => {
-      const d          = new Date(p.paid_at!)
-      const belegdatum = `${p2(d.getDate())}${p2(d.getMonth()+1)}`
-      const betrag     = (p.amount_cents / 100).toFixed(2).replace('.', ',')
-      const text       = `Mitgliedsbeitrag ${p.member_name}`.substring(0, 60).replace(/[";]/g, ' ')
-      const beleg1     = (p.invoice_number ?? p.id.substring(0, 20)).replace(/[";]/g, '')
-      return [
-        betrag, 'H', 'EUR', '', '', '',
-        '10000',  // Debitorenkonto (generisch)
-        '8400',   // Erlöse Kleinunternehmer (SKR03) — ggf. anpassen
-        '',       // BU-Schlüssel leer = keine USt (§19 UStG)
-        belegdatum, beleg1, '', '', `"${text}"`,
-      ].join(';')
+    const year = new Date().getFullYear()
+    const res  = await fetch(`/api/datev/export?year=${year}`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
     })
-
-    const content = [vorlauf, headers, ...rows].join('\r\n')
-    const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' })
+    if (!res.ok) {
+      console.error('[datev] export failed:', await res.text())
+      return
+    }
+    const blob = await res.blob()
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `datev-buchungsstapel-${now.toISOString().split('T')[0]}.csv`
+    a.download = `datev-buchungsstapel-${year}.csv`
     a.click()
     URL.revokeObjectURL(a.href)
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { cronGuard } from '@/lib/cron-guard'
 
 const PAID_PLANS = ['starter', 'grow', 'pro']
@@ -12,19 +12,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ skipped: true, reason: 'Resend not configured' })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const supabase = createServiceClient()
 
-  const today    = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
-  const todayMD  = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const today   = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
+  const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
-  // Only Starter+ gyms get birthday emails
   const { data: eligibleGyms } = await supabase
     .from('gyms')
     .select('id, name')
-    .in('plan', PAID_PLANS)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .in('plan', PAID_PLANS as any)
 
   if (!eligibleGyms?.length) {
     return NextResponse.json({ date: todayMD, count: 0, reason: 'no eligible gyms' })
@@ -46,7 +43,9 @@ export async function GET(req: Request) {
   })
 
   const gymMap = new Map(eligibleGyms.map(g => [g.id, g.name]))
-  let sent = 0
+  let sent   = 0
+  let failed = 0
+  const errors: string[] = []
 
   for (const member of birthdayMembers as {
     first_name: string; email: string | null; date_of_birth: string; gym_id: string
@@ -91,9 +90,29 @@ export async function GET(req: Request) {
 </html>`,
         }),
       })
-      if (res.ok) sent++
-    } catch { /* continue */ }
+      if (res.ok) {
+        sent++
+      } else {
+        const body = await res.text().catch(() => '')
+        failed++
+        const msg = `Birthday email to ${member.email} (gym ${member.gym_id}): HTTP ${res.status} ${body}`
+        errors.push(msg)
+        console.error('[cron/birthday]', msg)
+      }
+    } catch (err) {
+      failed++
+      const msg = `Birthday email to ${member.email} (gym ${member.gym_id}): ${String(err)}`
+      errors.push(msg)
+      console.error('[cron/birthday]', msg)
+    }
   }
 
-  return NextResponse.json({ date: todayMD, found: birthdayMembers.length, sent })
+  return NextResponse.json({
+    ok:         errors.length === 0,
+    date:       todayMD,
+    found:      birthdayMembers.length,
+    sent,
+    failed,
+    errors:     errors.length > 0 ? errors : undefined,
+  })
 }

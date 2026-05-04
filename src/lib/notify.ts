@@ -1,12 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { sendWhatsApp } from '@/lib/whatsapp'
-
-function serviceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 interface NotifyPayload {
   gymId: string
@@ -15,39 +8,69 @@ interface NotifyPayload {
   whatsappText: string
 }
 
-export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPayload) {
-  const supabase = serviceClient()
+interface NotifyResult {
+  emailSent: boolean
+  whatsappSent: boolean
+  emailError?: string
+  whatsappError?: string
+}
+
+export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPayload): Promise<NotifyResult> {
+  const supabase = createServiceClient()
   const { data: gym } = await supabase
     .from('gyms')
     .select('name, email, phone, whatsapp_number, callmebot_api_key')
     .eq('id', gymId)
     .single()
 
-  if (!gym) return
+  const result: NotifyResult = { emailSent: false, whatsappSent: false }
+  if (!gym) return result
 
   // ── Email via Resend ─────────────────────────────────────────────────────
   if (gym.email && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL,
-        to:   gym.email,
-        subject,
-        html: wrapEmail(gym.name, html),
-      }),
-    }).catch(() => {/* best-effort */})
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL,
+          to:   gym.email,
+          subject,
+          html: wrapEmail(gym.name, html),
+        }),
+      })
+      if (res.ok) {
+        result.emailSent = true
+      } else {
+        const body = await res.text().catch(() => '')
+        result.emailError = `HTTP ${res.status}: ${body}`
+        console.error('[notify] Email failed:', result.emailError)
+      }
+    } catch (err) {
+      result.emailError = String(err)
+      console.error('[notify] Email error:', err)
+    }
   }
 
   // ── WhatsApp via Twilio ──────────────────────────────────────────────────
-  // Use gym.phone (profile field) first, fall back to gym.whatsapp_number
   const waPhone = (gym as Record<string, unknown>).phone as string | null
               ?? (gym as Record<string, unknown>).whatsapp_number as string | null
   if (waPhone) {
-    await sendWhatsApp({ to: waPhone, body: whatsappText }).catch(() => {/* best-effort */})
+    try {
+      const ok = await sendWhatsApp({ to: waPhone, body: whatsappText })
+      if (ok) {
+        result.whatsappSent = true
+      } else {
+        result.whatsappError = 'sendWhatsApp returned false'
+        console.error('[notify] WhatsApp not sent to', waPhone)
+      }
+    } catch (err) {
+      result.whatsappError = String(err)
+      console.error('[notify] WhatsApp error:', err)
+    }
   }
 
   // ── WhatsApp via CallMeBot (legacy fallback if configured) ───────────────
@@ -55,10 +78,23 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
   if (!waPhone && gym.whatsapp_number && callmebotKey) {
     const phone = String(gym.whatsapp_number).replace(/\D/g, '')
     const text  = encodeURIComponent(whatsappText)
-    await fetch(
-      `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${text}&apikey=${callmebotKey}`,
-    ).catch(() => {/* best-effort */})
+    try {
+      const res = await fetch(
+        `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${text}&apikey=${callmebotKey}`,
+      )
+      if (res.ok) {
+        result.whatsappSent = true
+      } else {
+        result.whatsappError = `CallMeBot HTTP ${res.status}`
+        console.error('[notify] CallMeBot failed:', result.whatsappError)
+      }
+    } catch (err) {
+      result.whatsappError = String(err)
+      console.error('[notify] CallMeBot error:', err)
+    }
   }
+
+  return result
 }
 
 function wrapEmail(gymName: string, body: string) {

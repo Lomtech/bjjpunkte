@@ -1,18 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { cronGuard } from '@/lib/cron-guard'
 
-function serviceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
-
-async function sendEmail(to: string, subject: string, html: string) {
-  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return false
+async function sendEmail(to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+    return { ok: false, error: 'Resend not configured' }
+  }
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -22,8 +17,14 @@ async function sendEmail(to: string, subject: string, html: string) {
       },
       body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL, to, subject, html }),
     })
-    return res.ok
-  } catch { return false }
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      return { ok: false, error: `HTTP ${res.status}: ${body}` }
+    }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: String(err) }
+  }
 }
 
 function reminderEmailHtml({
@@ -99,20 +100,22 @@ export async function GET(req: Request) {
   const guard = cronGuard(req)
   if (guard) return guard
 
-  const supabase = serviceClient()
+  const supabase = createServiceClient()
   const appUrl   = getAppUrl()
 
   const now        = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-  // Only Starter+ gyms get automated payment reminders
   const { data: gyms } = await supabase
     .from('gyms')
     .select('id, name, monthly_fee_cents, email')
     .in('plan', ['starter', 'grow', 'pro'])
 
-  let emailsSent = 0
-  let emailsSkipped = 0
+  let emailsSent    = 0
+  let emailsFailed  = 0
+  let whatsappSent  = 0
+  let whatsappFailed = 0
+  const errors: string[] = []
 
   for (const gym of gyms ?? []) {
     const { data: members } = await supabase
@@ -130,7 +133,6 @@ export async function GET(req: Request) {
 
     const paidIds = new Set((paid ?? []).map((p: { member_id: string }) => p.member_id))
 
-    // Pending checkout links created this month (give members a direct pay URL)
     const { data: pendingPayments } = await supabase
       .from('payments')
       .select('member_id, checkout_url')
@@ -164,45 +166,61 @@ export async function GET(req: Request) {
       monthly_fee_override_cents: number | null
       portal_token: string | null
     }[]) {
-      if (!member.email && !member.phone) { emailsSkipped++; continue }
-
       const amountCents = member.monthly_fee_override_cents ?? gym.monthly_fee_cents ?? 0
       const portalUrl   = member.portal_token ? `${appUrl}/portal/${member.portal_token}` : null
       const checkoutUrl = pendingByMember.get(member.id) ?? null
       const amount      = (amountCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
       const ctaUrl      = checkoutUrl ?? portalUrl ?? ''
 
-      // Email
       if (member.email) {
-        const sent = await sendEmail(
+        const result = await sendEmail(
           member.email,
           `Erinnerung: Mitgliedsbeitrag ${now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })} — ${gym.name}`,
-          reminderEmailHtml({
-            firstName:   member.first_name,
-            gymName:     gym.name,
-            amountCents,
-            portalUrl,
-            checkoutUrl,
-          })
+          reminderEmailHtml({ firstName: member.first_name, gymName: gym.name, amountCents, portalUrl, checkoutUrl })
         )
-        sent ? emailsSent++ : emailsSkipped++
+        if (result.ok) {
+          emailsSent++
+        } else {
+          emailsFailed++
+          const msg = `Email to ${member.email} (gym ${gym.id}): ${result.error}`
+          errors.push(msg)
+          console.error('[cron/payment-reminders]', msg)
+        }
       }
 
-      // WhatsApp
       if (member.phone) {
         const waBody = checkoutUrl
           ? `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).\n\nJetzt bezahlen: ${ctaUrl}\n\nOss! 🥋`
           : `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).${ctaUrl ? `\n\nZum Portal: ${ctaUrl}` : ''}\n\nBei Fragen melde dich bei deinem Gym. Oss! 🥋`
-        await sendWhatsApp({ to: member.phone, body: waBody }).catch(() => {/* best-effort */})
+        try {
+          const ok = await sendWhatsApp({ to: member.phone, body: waBody })
+          if (ok) {
+            whatsappSent++
+          } else {
+            whatsappFailed++
+            const msg = `WhatsApp to ${member.phone} (gym ${gym.id}): sendWhatsApp returned false`
+            errors.push(msg)
+            console.error('[cron/payment-reminders]', msg)
+          }
+        } catch (err) {
+          whatsappFailed++
+          const msg = `WhatsApp to ${member.phone} (gym ${gym.id}): ${String(err)}`
+          errors.push(msg)
+          console.error('[cron/payment-reminders]', msg)
+        }
       }
     }
   }
 
   return NextResponse.json({
-    ok:           true,
+    ok:             errors.length === 0,
     emailsSent,
-    emailsSkipped,
-    noResend:     !process.env.RESEND_API_KEY,
-    ranAt:        now.toISOString(),
+    emailsFailed,
+    whatsappSent,
+    whatsappFailed,
+    errorCount:     errors.length,
+    errors:         errors.length > 0 ? errors : undefined,
+    noResend:       !process.env.RESEND_API_KEY,
+    ranAt:          now.toISOString(),
   })
 }
