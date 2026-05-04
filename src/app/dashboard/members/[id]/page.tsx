@@ -480,10 +480,10 @@ export default function MemberDetailPage() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
-        <InfoCard label="Mitglied seit" value={new Date(member.join_date).toLocaleDateString('de-DE')} />
-        <InfoCard label="Trainings gesamt" value={String(totalSessions)} />
-        {member.phone && <InfoCard label="Telefon" value={member.phone} />}
-        {!member.phone && member.email && <InfoCard label="E-Mail" value={member.email} />}
+        <InfoCard label={t('memberDetail', 'memberSince')} value={new Date(member.join_date).toLocaleDateString(locale)} />
+        <InfoCard label={t('memberDetailExtra', 'totalSessions')} value={String(totalSessions)} />
+        {member.phone && <InfoCard label={t('memberDetailExtra', 'phone')} value={member.phone} />}
+        {!member.phone && member.email && <InfoCard label={t('memberDetailExtra', 'email')} value={member.email} />}
       </div>
 
       <ContractSection
@@ -498,7 +498,7 @@ export default function MemberDetailPage() {
             <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
               <StickyNote size={13} className="text-amber-600" />
             </span>
-            <p className="text-sm font-semibold text-zinc-800">Notizen</p>
+            <p className="text-sm font-semibold text-zinc-800">{t('memberDetail', 'notes')}</p>
           </div>
           <p className="text-zinc-600 text-sm">{member.notes}</p>
         </div>
@@ -512,7 +512,7 @@ export default function MemberDetailPage() {
               <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                 <Award size={13} className="text-amber-600" />
               </span>
-              <h2 className="text-sm font-semibold text-zinc-800">Belt-Promotion</h2>
+              <h2 className="text-sm font-semibold text-zinc-800">{t('memberDetailExtra', 'beltPromotion')}</h2>
             </div>
             <DemoteButton
               memberId={member.id} gymId={gymId}
@@ -554,7 +554,7 @@ export default function MemberDetailPage() {
             <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
               <History size={13} className="text-amber-600" />
             </span>
-            <h2 className="text-sm font-semibold text-zinc-800">Promotion-Verlauf</h2>
+            <h2 className="text-sm font-semibold text-zinc-800">{t('memberDetailExtra', 'promotionHistory')}</h2>
           </div>
           <div className="space-y-0">
             {promotions.map((p, i) => {
@@ -571,7 +571,7 @@ export default function MemberDetailPage() {
                     <button
                       onClick={() => deletePromotion(p.id, isLatest)}
                       disabled={deletingPromoId === p.id}
-                      title={isLatest ? 'Graduierung rückgängig machen' : 'Eintrag löschen'}
+                      title={isLatest ? t('memberDetailExtra', 'confirmDeletePromoLatest') : t('memberDetailExtra', 'confirmDeletePromoOld')}
                       className="opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 transition-all disabled:opacity-30"
                     >
                       <Undo2 size={13} />
