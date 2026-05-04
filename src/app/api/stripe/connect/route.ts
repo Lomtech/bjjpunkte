@@ -109,6 +109,24 @@ export async function POST(req: Request) {
     } catch { /* non-fatal */ }
   }
 
+  // Auto-enable SEPA on the connected account's payment method configuration.
+  // This avoids the gym owner having to manually activate it in Stripe Dashboard.
+  // Only possible after the capability is approved — non-fatal if it fails.
+  try {
+    const configs = await stripe.paymentMethodConfigurations.list(
+      {},
+      { stripeAccount: accountId },
+    )
+    const configId = configs.data[0]?.id
+    if (configId) {
+      await stripe.paymentMethodConfigurations.update(
+        configId,
+        { sepa_debit: { display_preference: { preference: 'on' } } },
+        { stripeAccount: accountId },
+      )
+    }
+  } catch { /* non-fatal — capability may not yet be approved */ }
+
   // Generate onboarding link (or re-onboard if incomplete)
   const link = await stripe.accountLinks.create({
     account: accountId,
