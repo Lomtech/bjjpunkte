@@ -73,10 +73,11 @@ export async function POST(req: Request) {
 
     if (connectedAccountId) {
       // 2% platform fee — minimum €0.50 to cover Stripe's own fixed fee
+      // on_behalf_of: charge is settled on the gym's account; gym pays Stripe fees
       const platformFeeCents = Math.max(50, Math.round(amountCents * PLATFORM_FEE_PERCENT))
       sessionParams.payment_intent_data = {
         application_fee_amount: platformFeeCents,
-        transfer_data: { destination: connectedAccountId },
+        on_behalf_of: connectedAccountId,
       }
     }
 

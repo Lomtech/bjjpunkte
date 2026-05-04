@@ -114,10 +114,11 @@ export async function POST(
       }
 
       if (gymData.stripe_account_id) {
+        // on_behalf_of: subscription is settled on the gym's account; gym pays Stripe fees
         sessionParams.subscription_data = {
           ...sessionParams.subscription_data,
           application_fee_percent: PLATFORM_FEE_PERCENT * 100,
-          transfer_data: { destination: gymData.stripe_account_id },
+          on_behalf_of: gymData.stripe_account_id,
         }
       }
 

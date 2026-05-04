@@ -112,10 +112,11 @@ export async function POST(req: Request) {
       }
 
       if (connectedAccountId) {
+        // on_behalf_of: charge is settled on the gym's account; gym pays Stripe fees
         const platformFeeCents = Math.max(50, Math.round(fee * PLATFORM_FEE_PERCENT))
         sessionParams.payment_intent_data = {
           application_fee_amount: platformFeeCents,
-          transfer_data: { destination: connectedAccountId },
+          on_behalf_of: connectedAccountId,
         }
       }
 
