@@ -61,43 +61,73 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setLoading(false); return }
 
-      // Single server-side API call — all 13 queries run in parallel server-side
-      // ~3× faster than the previous 3 sequential client→Supabase round trips
-      const res = await fetch('/api/dashboard/stats', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (!res.ok) { setLoading(false); return }
-      const d = await res.json()
+      // Step 1: get gym (need gymId for all other queries)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: gym } = await (supabase.from('gyms') as any)
+        .select('id, signup_token, slug').single()
+      if (!gym) { setLoading(false); return }
 
-      setSignupToken(d.gym.signup_token ?? null)
-      setGymSlug(d.gym.slug ?? null)
-      setTotalMembers(d.totalMembers)
-      setActiveMembers(d.activeMembers)
-      setTodayAttendance(d.todayAttendance as AttendanceRow[])
-      setRecentPromotions(d.recentPromotions as PromotionRow[])
-      setBeltCounts((d.beltStats as { belt: string }[]).reduce<Record<string, number>>((acc, m) => {
+      setSignupToken(gym.signup_token ?? null)
+      setGymSlug(gym.slug ?? null)
+
+      const gymId         = gym.id
+      const today         = new Date().toISOString().split('T')[0]
+      const in30          = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const startOfMonth  = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+
+      // Step 2: all 12 queries fire in parallel — direct Supabase, no Lambda cold start
+      const [
+        { count: total },
+        { count: active },
+        { data: todayAttendanceData },
+        { data: recentPromotionsData },
+        { data: beltStats },
+        { data: membersList },
+        { data: birthdayList },
+        { data: contractList },
+        { data: monthPaymentsData },
+        { data: allPaymentsData },
+        { data: monthAttendanceData },
+        { data: allAttendanceData },
+      ] = await Promise.all([
+        supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gymId),
+        supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gymId).eq('is_active', true),
+        supabase.from('attendance').select('id, checked_in_at, class_type, member_id').eq('gym_id', gymId).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),
+        supabase.from('belt_promotions').select('id, new_belt, new_stripes, promoted_at, member_id').eq('gym_id', gymId).order('promoted_at', { ascending: false }).limit(5),
+        supabase.from('members').select('belt').eq('gym_id', gymId).eq('is_active', true),
+        supabase.from('members').select('id, first_name, last_name').eq('gym_id', gymId).eq('is_active', true),
+        supabase.from('members').select('id, first_name, last_name, date_of_birth').eq('gym_id', gymId).eq('is_active', true).not('date_of_birth', 'is', null),
+        supabase.from('members').select('id, contract_end_date').eq('gym_id', gymId).eq('is_active', true).not('contract_end_date', 'is', null).lte('contract_end_date', in30),
+        supabase.from('payments').select('amount_cents').eq('gym_id', gymId).eq('status', 'paid').gte('paid_at', startOfMonth),
+        supabase.from('payments').select('id, member_id, amount_cents, paid_at, status').eq('gym_id', gymId).order('paid_at', { ascending: false }).limit(20),
+        supabase.from('attendance').select('member_id').eq('gym_id', gymId).gte('checked_in_at', startOfMonth),
+        supabase.from('attendance').select('member_id, checked_in_at').eq('gym_id', gymId).gte('checked_in_at', ninetyDaysAgo).order('checked_in_at', { ascending: false }),
+      ])
+
+      setTotalMembers(total ?? 0)
+      setActiveMembers(active ?? 0)
+      setTodayAttendance(todayAttendanceData as AttendanceRow[] ?? [])
+      setRecentPromotions(recentPromotionsData as PromotionRow[] ?? [])
+      setBeltCounts((beltStats as { belt: string }[] ?? []).reduce<Record<string, number>>((acc, m) => {
         acc[m.belt] = (acc[m.belt] ?? 0) + 1; return acc
       }, {}))
 
-      const mMap = new Map((d.membersList as { id: string; first_name: string; last_name: string }[]).map(m => [m.id, m]))
+      const mMap = new Map((membersList as { id: string; first_name: string; last_name: string }[] ?? []).map(m => [m.id, m]))
       setMemberMap(mMap)
-      setBirthdayMembers(upcomingBirthdays(d.birthdayList as MemberBirthday[]))
-      setExpiringContracts((d.contractList as { id: string }[]).length)
+      setBirthdayMembers(upcomingBirthdays(birthdayList as MemberBirthday[] ?? []))
+      setExpiringContracts((contractList as { id: string }[] ?? []).length)
+      setMonthRevenue((monthPaymentsData as { amount_cents: number }[] ?? []).reduce((s, p) => s + p.amount_cents, 0))
 
-      const mPay = d.monthPayments as { amount_cents: number }[]
-      setMonthRevenue(mPay.reduce((s, p) => s + p.amount_cents, 0))
-
-      const allPay = (d.allPayments as PaymentRow[]).filter(p => p.status === 'paid' && p.paid_at)
+      const allPay = (allPaymentsData as PaymentRow[] ?? []).filter(p => p.status === 'paid' && p.paid_at)
       setRecentPayments(allPay.slice(0, 6))
 
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const thirtyDaysAgo  = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
       const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
 
       const payStatusMap = new Map<string, 'paid' | 'pending' | 'never'>()
-      for (const p of d.allPayments as PaymentRow[]) {
+      for (const p of allPaymentsData as PaymentRow[] ?? []) {
         if (!payStatusMap.has(p.member_id) && p.status === 'paid' && p.paid_at) {
           payStatusMap.set(p.member_id, p.paid_at >= thirtyDaysAgo ? 'paid' : 'pending')
         }
@@ -105,7 +135,7 @@ export default function DashboardPage() {
       setMemberPayStatus(payStatusMap)
 
       const countMap = new Map<string, number>()
-      for (const row of d.monthAttendance as { member_id: string }[]) {
+      for (const row of monthAttendanceData as { member_id: string }[] ?? []) {
         countMap.set(row.member_id, (countMap.get(row.member_id) ?? 0) + 1)
       }
       setTopAttenders(
@@ -116,11 +146,11 @@ export default function DashboardPage() {
       )
 
       const lastSeenMap = new Map<string, string>()
-      for (const row of d.allAttendance as { member_id: string; checked_in_at: string }[]) {
+      for (const row of allAttendanceData as { member_id: string; checked_in_at: string }[] ?? []) {
         if (!lastSeenMap.has(row.member_id)) lastSeenMap.set(row.member_id, row.checked_in_at)
       }
       const churnList: ChurnMember[] = []
-      for (const m of d.membersList as { id: string; first_name: string; last_name: string }[]) {
+      for (const m of membersList as { id: string; first_name: string; last_name: string }[] ?? []) {
         const lastSeen = lastSeenMap.get(m.id)
         if (!lastSeen || lastSeen < fourteenDaysAgo) {
           churnList.push({

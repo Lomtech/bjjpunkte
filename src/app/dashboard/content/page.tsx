@@ -252,30 +252,42 @@ export default function ContentPage() {
   const [annoSaving,    setAnnoSaving]    = useState(false)
   const [annoForm, setAnnoForm] = useState({ title: '', body: '', isPinned: false, expiresAt: '' })
 
-  useEffect(() => {
-    loadPosts()
-    loadAnnouncements()
-  }, [])
+  useEffect(() => { loadAll() }, [])
 
-  async function loadPosts() {
+  async function loadAll() {
     setPostsLoading(true)
-    const headers = await getAuthHeaders()
-    const res = await fetch('/api/posts', { headers })
-    if (res.ok) setPosts(await res.json())
-    setPostsLoading(false)
-  }
-
-  async function loadAnnouncements() {
     setAnnoLoading(true)
     const supabase = createClient()
+
+    // Step 1: get gym (need gymId for both queries)
     const { data: gym } = await supabase.from('gyms').select('id').single()
-    if (!gym) { setAnnoLoading(false); return }
+    if (!gym) { setPostsLoading(false); setAnnoLoading(false); return }
     setGymId(gym.id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase.from('gym_announcements') as any)
-      .select('*').eq('gym_id', gym.id).order('is_pinned', { ascending: false }).order('created_at', { ascending: false })
-    if (data) setAnnouncements(data)
+
+    // Step 2: posts + announcements in parallel — no Lambda cold start
+    const [postsRes, annosRes] = await Promise.all([
+      supabase.from('posts').select('*').eq('gym_id', gym.id).order('created_at', { ascending: false }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('gym_announcements') as any)
+        .select('*').eq('gym_id', gym.id)
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false }),
+    ])
+
+    if (postsRes.data) setPosts(postsRes.data as unknown as Post[])
+    if (annosRes.data) setAnnouncements(annosRes.data)
+    setPostsLoading(false)
     setAnnoLoading(false)
+  }
+
+  // kept for individual refreshes (post save/delete calls this)
+  async function loadPosts() {
+    if (!gymId) return
+    setPostsLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase.from('posts').select('*').eq('gym_id', gymId).order('created_at', { ascending: false })
+    if (data) setPosts(data as unknown as Post[])
+    setPostsLoading(false)
   }
 
   async function handleAnnoSave() {
