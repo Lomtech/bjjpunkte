@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
+import { notifyGym } from '@/lib/notify'
 
 function authClient(accessToken: string) {
   return createClient(
@@ -45,41 +46,41 @@ export async function POST(req: Request) {
     belt, stripes, notes, contract_end_date, parent_member_id,
   } = body
 
-  // Eingabevalidierung
   if (!first_name?.trim()) return NextResponse.json({ error: 'Vorname fehlt' }, { status: 400 })
   if (!last_name?.trim()) return NextResponse.json({ error: 'Nachname fehlt' }, { status: 400 })
   if (!join_date) return NextResponse.json({ error: 'Eintrittsdatum fehlt' }, { status: 400 })
   const VALID_BELTS = ['white', 'blue', 'purple', 'brown', 'black']
   if (belt && !VALID_BELTS.includes(belt)) return NextResponse.json({ error: 'Ungültiger Gürtel' }, { status: 400 })
 
-  // Insert + get portal_token in one call (no separate SELECT needed)
+  // Insert — get portal_token in same call (no extra SELECT)
   const { data: member, error } = await (supabase.from('members') as any).insert({
-    gym_id: gymData.id,
+    gym_id:            gymData.id,
     first_name,
     last_name,
-    email: email || null,
-    phone: phone || null,
-    date_of_birth: date_of_birth || null,
+    email:             email || null,
+    phone:             phone || null,
+    date_of_birth:     date_of_birth || null,
     join_date,
     belt,
     stripes,
-    notes: notes || null,
+    notes:             notes || null,
     contract_end_date: contract_end_date || null,
-    is_active: true,
-    parent_member_id: parent_member_id || null,
+    is_active:         true,
+    parent_member_id:  parent_member_id || null,
   }).select('id, portal_token').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const memberId   = (member as { id: string; portal_token: string | null }).id
+  const memberId    = (member as { id: string; portal_token: string | null }).id
   const portalToken = (member as { id: string; portal_token: string | null }).portal_token
-  const appUrl     = getAppUrl()
-  const portalUrl  = portalToken ? `${appUrl}/portal/${portalToken}` : null
-  const gymName    = gymData.name ?? 'Deinem Gym'
+  const appUrl      = getAppUrl()
+  const portalUrl   = portalToken ? `${appUrl}/portal/${portalToken}` : null
+  const gymName     = gymData.name ?? 'Deinem Gym'
+  const fullName    = `${first_name} ${last_name}`
 
-  // Welcome email
+  // ── 1. Welcome email → member ────────────────────────────────────────────
   if (email && portalUrl && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
-    fetch('https://api.resend.com/emails', {
+    await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL,
-        to: email,
+        to:   email,
         subject: `Willkommen bei ${gymName}!`,
         html: `
           <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
@@ -109,13 +110,32 @@ export async function POST(req: Request) {
     }).catch(() => {/* best-effort */})
   }
 
-  // Welcome WhatsApp
+  // ── 2. Welcome WhatsApp → member (Twilio) ────────────────────────────────
   if (phone && portalUrl) {
-    sendWhatsApp({
-      to: phone,
+    await sendWhatsApp({
+      to:   phone,
       body: `Hallo ${first_name}! 🥋 Willkommen bei ${gymName}!\n\nDein persönlicher Mitglieder-Link:\n${portalUrl}\n\nOss!`,
     }).catch(() => {/* best-effort */})
   }
+
+  // ── 3. Notify gym owner (email + WhatsApp via gym settings) ─────────────
+  await notifyGym({
+    gymId: gymData.id,
+    subject: `Neues Mitglied: ${fullName}`,
+    html: `
+      <p style="margin:0 0 8px;font-size:20px;font-weight:800;color:#0f172a">Neues Mitglied hinzugefügt 🥋</p>
+      <p style="margin:0 0 20px;font-size:15px;color:#64748b;line-height:1.6">
+        <strong>${fullName}</strong> wurde als aktives Mitglied in <strong>${gymName}</strong> eingetragen.
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;color:#374151">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280;width:120px">Name</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-weight:600">${fullName}</td></tr>
+        ${email ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">E-Mail</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${email}</td></tr>` : ''}
+        ${phone ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f1f5f9;color:#6b7280">Telefon</td><td style="padding:8px 0;border-bottom:1px solid #f1f5f9">${phone}</td></tr>` : ''}
+        ${belt ? `<tr><td style="padding:8px 0;color:#6b7280">Gürtel</td><td style="padding:8px 0;text-transform:capitalize">${belt}</td></tr>` : ''}
+      </table>
+    `,
+    whatsappText: `🥋 Neues Mitglied!\n${fullName}${email ? '\n' + email : ''}${phone ? '\n' + phone : ''}\n${gymName}`,
+  }).catch(() => {/* best-effort */})
 
   return NextResponse.json({ id: memberId }, { status: 201 })
 }
