@@ -258,15 +258,17 @@ export default function SettingsPage() {
         if (plansData) setPlans(plansData)
       }
     })
-    fetch('/api/stripe/status').then(r => r.json()).then(d => {
-      setStripeConfigured(d.configured)
-      setWebhookActive(d.webhookActive)
-    })
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
       setUserAuthEmail(session.user.email ?? '')
       const res = await fetch('/api/staff', { headers: { Authorization: `Bearer ${session.access_token}` } })
       if (res.ok) setStaffList(await res.json())
+      // Platform Stripe key status (auth required since security hardening)
+      const stripeStatusRes = await fetch('/api/stripe/status', { headers: { Authorization: `Bearer ${session.access_token}` } })
+      if (stripeStatusRes.ok) {
+        const sd = await stripeStatusRes.json()
+        setStripeConfigured(sd.configured ?? false)
+      }
       // Check Stripe Connect account completion status
       const statusRes = await fetch('/api/stripe/connect', { headers: { Authorization: `Bearer ${session.access_token}` } })
       if (statusRes.ok) {
@@ -1146,12 +1148,6 @@ export default function SettingsPage() {
           <div className={sectionCls}>
             <SectionHeader icon={<CreditCard size={12} />} title="Stripe" />
             <div className="p-5 space-y-4">
-              <div className={`rounded-lg p-3 ${stripeConfigured ? 'bg-zinc-100 border border-zinc-200' : 'bg-amber-50 border border-amber-200'}`}>
-                <p className={`text-sm font-medium ${stripeConfigured ? 'text-zinc-800' : 'text-amber-800'}`}>
-                  {stripeConfigured ? t('settings', 'stripeApiActive') : t('settings', 'stripeApiMissing')}
-                </p>
-              </div>
-
               {/* Connect */}
               <div className="rounded-lg border border-zinc-200 overflow-hidden">
                 <div className="px-4 py-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
@@ -1271,7 +1267,7 @@ export default function SettingsPage() {
                         <p>→ <strong className="text-zinc-700">~78,63 €</strong> {t('settings', 'feeYourAccount')}</p>
                         <p>→ <strong className="text-zinc-700">~1,37 €</strong> {t('settings', 'feePlatform')}</p>
                       </div>
-                      <button type="button" onClick={handleConnect} disabled={connectLoading || !stripeConfigured}
+                      <button type="button" onClick={handleConnect} disabled={connectLoading}
                         className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
                         <Zap size={14} />
                         {connectLoading ? t('settings', 'stripeOpening') : t('settings', 'connectWithStripe')}
@@ -1281,15 +1277,6 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Webhook URL */}
-              {!webhookActive && (
-                <div>
-                  <p className="text-xs font-medium text-zinc-600 mb-1.5">
-                    {t('settings', 'webhookLabel').replace('Stripe Dashboard', '')} <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">Stripe Dashboard</a>:
-                  </p>
-                  <CopyRow label="" value={webhookUrl} copied={copiedWebhook} onCopy={() => copyWithFeedback(webhookUrl, setCopiedWebhook)} />
-                </div>
-              )}
             </div>
           </div>
 
