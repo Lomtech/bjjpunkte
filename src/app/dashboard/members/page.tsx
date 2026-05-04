@@ -72,7 +72,9 @@ export default function MembersPage() {
   const [copiedId, setCopiedId]             = useState<string | null>(null)
   const [checkingInId, setCheckingInId]     = useState<string | null>(null)
   const [checkedInIds, setCheckedInIds]     = useState<Set<string>>(new Set())
-  const [currentClass, setCurrentClass]     = useState<{ id: string; class_type: string; title: string } | null>(null)
+  const [eligibleClasses, setEligibleClasses] = useState<{ id: string; class_type: string; title: string; starts_at: string }[]>([])
+  // memberId waiting for class selection (when >1 eligible class)
+  const [selectingMemberId, setSelectingMemberId] = useState<string | null>(null)
 
   function handleCopy(text: string, key: string) {
     navigator.clipboard.writeText(text)
@@ -80,8 +82,19 @@ export default function MembersPage() {
     setTimeout(() => setCopiedId(prev => prev === key ? null : prev), 2000)
   }
 
-  async function handleCheckIn(memberId: string) {
+  /** Called when user taps Check-in on a member row */
+  function handleCheckInClick(memberId: string) {
     if (checkingInId) return
+    if (eligibleClasses.length === 0) return       // button should be disabled anyway
+    if (eligibleClasses.length === 1) {
+      doCheckIn(memberId, eligibleClasses[0])      // only one option → go directly
+    } else {
+      setSelectingMemberId(memberId)               // multiple → show picker
+    }
+  }
+
+  async function doCheckIn(memberId: string, cls: { id: string; class_type: string }) {
+    setSelectingMemberId(null)
     setCheckingInId(memberId)
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
@@ -90,8 +103,8 @@ export default function MembersPage() {
       headers: { Authorization: `Bearer ${session?.access_token ?? ''}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         member_id:  memberId,
-        class_type: currentClass?.class_type ?? 'gi',
-        class_id:   currentClass?.id ?? null,
+        class_type: cls.class_type ?? 'gi',
+        class_id:   cls.id,
       }),
     })
     setCheckingInId(null)
@@ -122,15 +135,20 @@ export default function MembersPage() {
       ])
       setMembers((membersRes.data as unknown as Member[]) ?? [])
 
-      // Find the class that is currently running (started ≤ now ≤ ends)
+      // Eligible = not cancelled, ends in the future, starts ≤ now + 30 min
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const classes = (classesRes.data ?? []) as any[]
-      const running = classes.find(c => {
-        const start = new Date(c.starts_at)
-        const end   = new Date(c.ends_at)
-        return !c.is_cancelled && start <= now && end >= now
-      })
-      if (running) setCurrentClass({ id: running.id, class_type: running.class_type ?? 'gi', title: running.title })
+      const windowEnd   = new Date(now.getTime() + 30 * 60 * 1000) // now + 30 min
+      const eligible = classes
+        .filter(c => {
+          const start = new Date(c.starts_at)
+          const end   = new Date(c.ends_at)
+          return !c.is_cancelled && start <= windowEnd && end >= now
+        })
+        .sort((a: any, b: any) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
+      setEligibleClasses(eligible.map((c: any) => ({
+        id: c.id, class_type: c.class_type ?? 'gi', title: c.title, starts_at: c.starts_at,
+      })))
 
       setLoading(false)
     }
@@ -256,10 +274,10 @@ export default function MembersPage() {
           <h1 className="text-2xl font-black text-zinc-950 tracking-tight">Mitglieder</h1>
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-zinc-400 text-xs font-medium">{active.length} aktiv · {inactive.length} inaktiv</p>
-            {currentClass && (
+            {eligibleClasses.length > 0 && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                {currentClass.title} läuft
+                {eligibleClasses.length === 1 ? `${eligibleClasses[0].title} läuft` : `${eligibleClasses.length} Kurse aktiv`}
               </span>
             )}
           </div>
@@ -456,14 +474,20 @@ export default function MembersPage() {
                           )}
                           {m.is_active && (
                             <button
-                              onClick={() => handleCheckIn(m.id)}
-                              disabled={checkingInId === m.id}
-                              title={currentClass ? `Einchecken für ${currentClass.title}` : 'Einchecken'}
+                              onClick={() => handleCheckInClick(m.id)}
+                              disabled={checkingInId === m.id || eligibleClasses.length === 0}
+                              title={
+                                eligibleClasses.length === 0 ? 'Kein Kurs gerade aktiv'
+                                : eligibleClasses.length === 1 ? `Einchecken für ${eligibleClasses[0].title}`
+                                : 'Kurs auswählen'
+                              }
                               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                                 checkedInIds.has(m.id)
                                   ? 'bg-green-500 text-white'
-                                  : 'bg-amber-400 hover:bg-amber-300 text-zinc-900'
-                              } disabled:opacity-50`}
+                                  : eligibleClasses.length === 0
+                                    ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                                    : 'bg-amber-400 hover:bg-amber-300 text-zinc-900'
+                              } disabled:opacity-60`}
                             >
                               {checkedInIds.has(m.id)
                                 ? <><Check size={12} /> ✓</>
@@ -513,13 +537,16 @@ export default function MembersPage() {
                   </div>
                   {m.is_active ? (
                     <button
-                      onClick={() => handleCheckIn(m.id)}
-                      disabled={checkingInId === m.id}
+                      onClick={() => handleCheckInClick(m.id)}
+                      disabled={checkingInId === m.id || eligibleClasses.length === 0}
+                      title={eligibleClasses.length === 0 ? 'Kein Kurs aktiv' : undefined}
                       className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                         checkedInIds.has(m.id)
                           ? 'bg-green-500 text-white'
-                          : 'bg-amber-400 hover:bg-amber-300 text-zinc-900'
-                      } disabled:opacity-50`}
+                          : eligibleClasses.length === 0
+                            ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                            : 'bg-amber-400 hover:bg-amber-300 text-zinc-900'
+                      } disabled:opacity-60`}
                     >
                       {checkedInIds.has(m.id) ? <Check size={13} /> : checkingInId === m.id ? '…' : <UserCheck size={13} />}
                     </button>
@@ -548,6 +575,60 @@ export default function MembersPage() {
               <Plus size={14} /> Mitglied hinzufügen
             </Link>
           )}
+        </div>
+      )}
+
+      {/* Class selection modal (shown when >1 eligible class) */}
+      {selectingMemberId && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectingMemberId(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-xs shadow-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-zinc-100">
+              <p className="font-bold text-zinc-900 text-sm">Für welchen Kurs?</p>
+              <p className="text-zinc-400 text-xs mt-0.5">
+                {(() => { const m = members.find(x => x.id === selectingMemberId); return m ? `${m.first_name} ${m.last_name}` : '' })()}
+              </p>
+            </div>
+            <div className="p-3 space-y-2">
+              {eligibleClasses.map(cls => {
+                const now = new Date()
+                const start = new Date(cls.starts_at)
+                const isLive = start <= now
+                const minsUntil = Math.round((start.getTime() - now.getTime()) / 60000)
+                return (
+                  <button
+                    key={cls.id}
+                    onClick={() => doCheckIn(selectingMemberId!, cls)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-50 hover:bg-amber-50 border border-zinc-100 hover:border-amber-200 transition-all text-left group"
+                  >
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-zinc-300'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-zinc-900 group-hover:text-amber-700 truncate">{cls.title}</p>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        {isLive ? 'Läuft gerade' : `Beginnt in ${minsUntil} Min.`}
+                        {' · '}
+                        {new Date(cls.starts_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <UserCheck size={15} className="text-zinc-300 group-hover:text-amber-500 flex-shrink-0 transition-colors" />
+                  </button>
+                )
+              })}
+            </div>
+            <div className="px-3 pb-3">
+              <button
+                onClick={() => setSelectingMemberId(null)}
+                className="w-full py-2.5 rounded-xl border border-zinc-200 text-zinc-500 text-sm hover:bg-zinc-50 transition-colors"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
