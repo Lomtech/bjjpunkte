@@ -9,7 +9,7 @@ function serviceClient() {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params
@@ -32,7 +32,31 @@ export async function GET(
   const leadId = lead.id
   const gymId  = lead.gym_id
 
-  const now14 = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+  // Optional ?from=ISO for week-based navigation; default = start of current week
+  const url     = new URL(req.url)
+  const fromRaw = url.searchParams.get('from')
+  const from    = fromRaw ? new Date(fromRaw) : (() => {
+    const d = new Date(); const day = d.getDay()
+    d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day)); d.setHours(0, 0, 0, 0); return d
+  })()
+  const to = new Date(from); to.setDate(from.getDate() + 7)
+
+  // If this is a classes-only refresh (has ?from), skip gym/bookings fetch
+  const classesOnly = !!fromRaw
+
+  const classesQuery = supabase
+    .from('classes')
+    .select('id, title, class_type, instructor, starts_at, ends_at, max_capacity')
+    .eq('gym_id', gymId)
+    .eq('is_cancelled', false)
+    .gte('starts_at', from.toISOString())
+    .lt('starts_at', to.toISOString())
+    .order('starts_at', { ascending: true })
+
+  if (classesOnly) {
+    const { data: classes } = await classesQuery
+    return NextResponse.json({ classes: classes ?? [] })
+  }
 
   const [
     { data: gym },
@@ -45,14 +69,7 @@ export async function GET(
       .eq('id', gymId)
       .single(),
 
-    supabase
-      .from('classes')
-      .select('id, title, class_type, instructor, starts_at, ends_at, max_capacity')
-      .eq('gym_id', gymId)
-      .eq('is_cancelled', false)
-      .gte('starts_at', new Date().toISOString())
-      .lte('starts_at', now14)
-      .order('starts_at', { ascending: true }),
+    classesQuery,
 
     supabase
       .from('lead_bookings')
