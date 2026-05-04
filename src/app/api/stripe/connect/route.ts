@@ -31,11 +31,18 @@ export async function GET(req: Request) {
   try {
     const stripe = new Stripe(stripeKey)
     const account = await stripe.accounts.retrieve(accountId)
+    const caps = account.capabilities ?? {}
     return NextResponse.json({
       connected: true,
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled,
       details_submitted: account.details_submitted,
+      capabilities: {
+        card:       caps.card_payments       ?? 'inactive',
+        sepa:       caps.sepa_debit_payments ?? 'inactive',
+        klarna:     caps.klarna_payments     ?? 'inactive',
+        transfers:  caps.transfers           ?? 'inactive',
+      },
     })
   } catch {
     return NextResponse.json({ connected: false })
@@ -73,13 +80,27 @@ export async function POST(req: Request) {
       email: gymData.email ?? undefined,
       business_type: 'individual',
       capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
+        card_payments:        { requested: true },
+        transfers:            { requested: true },
+        sepa_debit_payments:  { requested: true },
+        klarna_payments:      { requested: true },
       },
       metadata: { gymId: gymData.id, gymName: gymData.name },
     })
     accountId = account.id
     await supabase.from('gyms').update({ stripe_account_id: accountId }).eq('id', gymData.id)
+  } else {
+    // For existing accounts: request additional capabilities that may be missing
+    try {
+      await stripe.accounts.update(accountId, {
+        capabilities: {
+          card_payments:       { requested: true },
+          transfers:           { requested: true },
+          sepa_debit_payments: { requested: true },
+          klarna_payments:     { requested: true },
+        },
+      })
+    } catch { /* non-fatal */ }
   }
 
   // Generate onboarding link (or re-onboard if incomplete)
