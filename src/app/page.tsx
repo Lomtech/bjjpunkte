@@ -345,12 +345,12 @@ export default function Home() {
                 {(lang === 'en' ? [
                   { val: '€0',     label: 'Setup cost' },
                   { val: '10 min', label: 'Setup' },
-                  { val: '0%',     label: 'Osss transaction fee' },
+                  { val: '0%',     label: 'Osss fee — only Stripe costs' },
                   { val: 'GDPR',   label: 'compliant' },
                 ] : [
                   { val: '€0',     label: 'Startkosten' },
                   { val: '10 Min', label: 'Setup' },
-                  { val: '0%',     label: 'Osss-Transaktionsgebühr' },
+                  { val: '0%',     label: 'Osss-Gebühr — nur Stripe-Kosten' },
                   { val: 'DSGVO',  label: 'konform' },
                 ]).map(s => (
                   <div key={s.label}>
