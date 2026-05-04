@@ -9,7 +9,6 @@ import {
   Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
   Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
   Package, Megaphone, Edit2, FileSpreadsheet, Download, Upload, MapPin, Navigation,
-  ChevronDown,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
@@ -48,7 +47,6 @@ export default function SettingsPage() {
   const [stripeConfigured, setStripeConfigured] = useState(false)
   const [stripeAccountId, setStripeAccountId]   = useState<string | null>(null)
   const [connectLoading, setConnectLoading]     = useState(false)
-  const [showSepaGuide, setShowSepaGuide]       = useState(false)
   const [stripeChargesEnabled, setStripeChargesEnabled] = useState<boolean | null>(null)
 
   // Legal
@@ -1171,102 +1169,6 @@ export default function SettingsPage() {
                         </button>
                       </div>
 
-                      {/* SEPA guide accordion */}
-                      <div className="rounded-lg border border-zinc-200 overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => setShowSepaGuide(v => !v)}
-                          className="w-full flex items-center justify-between px-4 py-3 bg-zinc-50 hover:bg-zinc-100 transition-colors text-left"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">🏦</span>
-                            <div>
-                              <p className="text-xs font-semibold text-zinc-800">
-                                {lang === 'en' ? 'SEPA Direct Debit — how it works' : 'SEPA Lastschrift — so funktioniert es'}
-                              </p>
-                              <p className="text-[11px] text-zinc-500">
-                                {lang === 'en' ? 'Automatic monthly bank debits for your members' : 'Automatische monatliche Abbuchung vom Bankkonto'}
-                              </p>
-                            </div>
-                          </div>
-                          <ChevronDown size={14} className={`text-zinc-400 transition-transform flex-shrink-0 ${showSepaGuide ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {showSepaGuide && (
-                          <div className="px-4 py-4 space-y-4 text-xs text-zinc-600 border-t border-zinc-100">
-                            <p className="text-zinc-500 leading-relaxed">
-                              {lang === 'en'
-                                ? 'SEPA Direct Debit lets members pay by entering their IBAN once — Stripe then debits the monthly fee automatically. No credit card needed.'
-                                : 'Mit SEPA Lastschrift gibt das Mitglied einmalig seine IBAN ein — Stripe bucht den Monatsbeitrag dann automatisch ab. Keine Kreditkarte nötig.'}
-                            </p>
-
-                            {/* How SEPA gets activated */}
-                            <div className="bg-zinc-50 rounded-lg p-3 space-y-2">
-                              <p className="font-semibold text-zinc-700">
-                                {lang === 'en' ? 'How SEPA gets activated' : 'Wie SEPA freigeschaltet wird'}
-                              </p>
-                              <p className="text-zinc-500 leading-relaxed">
-                                {lang === 'en'
-                                  ? 'Stripe activates SEPA automatically for verified European accounts — no manual setup needed in your dashboard. Once your Stripe account is fully verified, SEPA will appear as a payment option in your members\' checkout.'
-                                  : 'Stripe schaltet SEPA automatisch für verifizierte europäische Konten frei — kein manuelles Einrichten im Dashboard nötig. Sobald dein Stripe-Konto vollständig verifiziert ist, erscheint SEPA automatisch als Zahlungsoption im Checkout deiner Mitglieder.'}
-                              </p>
-                            </div>
-
-                            {/* Checklist */}
-                            <ol className="space-y-3">
-                              {[
-                                {
-                                  n: '1',
-                                  title: lang === 'en' ? 'Complete your Stripe onboarding' : 'Stripe-Onboarding abschließen',
-                                  desc: lang === 'en'
-                                    ? 'Open your Stripe Express Dashboard (button above) and make sure all required information is submitted — ID verification, address, bank account for payouts.'
-                                    : 'Öffne dein Stripe Express Dashboard (Button oben) und stelle sicher, dass alle Pflichtangaben vollständig sind — Ausweisverifikation, Adresse, Bankverbindung für Auszahlungen.',
-                                },
-                                {
-                                  n: '2',
-                                  title: lang === 'en' ? 'Wait for Stripe approval' : 'Stripe-Freischaltung abwarten',
-                                  desc: lang === 'en'
-                                    ? 'After full verification, Stripe activates SEPA within 1–2 business days. You\'ll receive a confirmation email from Stripe.'
-                                    : 'Nach vollständiger Verifikation schaltet Stripe SEPA innerhalb von 1–2 Werktagen frei. Du erhältst eine Bestätigungs-E-Mail von Stripe.',
-                                },
-                                {
-                                  n: '3',
-                                  title: lang === 'en' ? 'SEPA appears automatically in checkout' : 'SEPA erscheint automatisch im Checkout',
-                                  desc: lang === 'en'
-                                    ? 'No further action needed. Members will see SEPA Direct Debit as a payment option when subscribing. They enter their IBAN once — Stripe handles all future monthly debits.'
-                                    : 'Kein weiterer Schritt nötig. Mitglieder sehen beim Abo-Abschluss SEPA Lastschrift als Option. Sie geben einmalig ihre IBAN ein — Stripe übernimmt alle weiteren monatlichen Abbuchungen.',
-                                },
-                              ].map(step => (
-                                <li key={step.n} className="flex gap-3">
-                                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center justify-center mt-0.5">
-                                    {step.n}
-                                  </span>
-                                  <div>
-                                    <p className="font-semibold text-zinc-700">{step.title}</p>
-                                    <p className="text-zinc-500 leading-relaxed mt-0.5">{step.desc}</p>
-                                  </div>
-                                </li>
-                              ))}
-                            </ol>
-
-                            <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 text-[11px] text-amber-800 leading-relaxed">
-                              💡 {lang === 'en'
-                                ? 'SEPA payments take 3–5 business days to settle. If a debit fails, Stripe retries automatically and notifies you by email.'
-                                : 'SEPA-Abbuchungen dauern 3–5 Werktage bis zur Gutschrift. Bei Fehlschlag versucht Stripe es automatisch erneut und benachrichtigt dich per E-Mail.'}
-                            </div>
-
-                            <a
-                              href="https://connect.stripe.com/express_login"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-900 text-white text-xs font-semibold hover:bg-zinc-700 transition-colors"
-                            >
-                              <ExternalLink size={11} />
-                              {lang === 'en' ? 'Open Stripe Express Dashboard →' : 'Stripe Express Dashboard öffnen →'}
-                            </a>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
