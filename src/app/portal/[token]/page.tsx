@@ -338,6 +338,7 @@ export default function MemberPortalPage() {
   const [cancelNote, setCancelNote]             = useState('')
   const [cancelRequesting, setCancelRequesting] = useState(false)
   const [localCancelledAt, setLocalCancelledAt] = useState<string | null>(null)
+  const [cancelError, setCancelError]           = useState<string | null>(null)
 
   const { lang, t } = useLanguage()
   const locale = lang === 'en' ? 'en-GB' : 'de-DE'
@@ -475,13 +476,24 @@ export default function MemberPortalPage() {
 
   async function handleRequestCancel() {
     setCancelRequesting(true)
-    await fetch(`/api/portal/${token}/cancel`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note: cancelNote }),
-    })
-    setLocalCancelledAt(new Date().toISOString())
-    setShowCancelForm(false)
-    setCancelRequesting(false)
+    setCancelError(null)
+    try {
+      const res = await fetch(`/api/portal/${token}/cancel`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: cancelNote }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setCancelError(data?.error ?? (lang === 'en' ? 'Cancellation failed. Please contact your gym.' : 'Kündigung fehlgeschlagen. Bitte kontaktiere dein Gym.'))
+      } else {
+        setLocalCancelledAt(new Date().toISOString())
+        setShowCancelForm(false)
+      }
+    } catch {
+      setCancelError(lang === 'en' ? 'Network error. Please try again.' : 'Netzwerkfehler. Bitte versuche es erneut.')
+    } finally {
+      setCancelRequesting(false)
+    }
   }
 
   async function handleWithdrawCancel() {
@@ -1079,8 +1091,11 @@ export default function MemberPortalPage() {
                   <textarea value={cancelNote} onChange={e => setCancelNote(e.target.value)}
                     placeholder={t('portal', 'reasonOptional')} rows={3}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
+                  {cancelError && (
+                    <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">{cancelError}</p>
+                  )}
                   <div className="flex gap-2">
-                    <button onClick={() => setShowCancelForm(false)}
+                    <button onClick={() => { setShowCancelForm(false); setCancelError(null) }}
                       className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
                       {lang === 'en' ? 'Cancel' : 'Abbrechen'}
                     </button>
