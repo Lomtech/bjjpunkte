@@ -84,6 +84,16 @@ function QrCard({
   const [title, setTitle]       = useState(defaultTitle)
   const [description, setDescription] = useState(defaultDescription)
   const svgRef  = useRef<HTMLDivElement>(null)
+
+  // Sync title/description when language changes (only if not manually edited)
+  const prevDefaultTitle = useRef(defaultTitle)
+  const prevDefaultDesc  = useRef(defaultDescription)
+  useEffect(() => {
+    if (title === prevDefaultTitle.current)       setTitle(defaultTitle)
+    if (description === prevDefaultDesc.current)  setDescription(defaultDescription)
+    prevDefaultTitle.current = defaultTitle
+    prevDefaultDesc.current  = defaultDescription
+  }, [defaultTitle, defaultDescription])
   const canvasId = `qr-dl-${defaultTitle.replace(/\s+/g, '')}`
 
   function handlePrint() {
