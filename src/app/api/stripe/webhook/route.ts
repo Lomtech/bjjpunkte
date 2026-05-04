@@ -67,12 +67,14 @@ export async function POST(req: Request) {
   const sig  = req.headers.get('stripe-signature')
   if (!sig) return new Response('Missing stripe-signature', { status: 400 })
 
-  let event: Stripe.Event
-  try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
-  } catch {
-    return NextResponse.json({ error: 'Webhook-Signatur ungültig' }, { status: 400 })
+  // Try platform webhook secret first, then Connect webhook secret.
+  // This allows a single URL to serve both account and Connect webhook endpoints.
+  let event: Stripe.Event | null = null
+  for (const secret of [webhookSecret, process.env.STRIPE_CONNECT_WEBHOOK_SECRET].filter(Boolean) as string[]) {
+    try { event = stripe.webhooks.constructEvent(body, sig, secret); break }
+    catch { /* try next */ }
   }
+  if (!event) return NextResponse.json({ error: 'Webhook-Signatur ungültig' }, { status: 400 })
 
   const supabase = adminClient()
 
