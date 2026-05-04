@@ -138,7 +138,7 @@ export async function DELETE(req: Request) {
   const { memberId } = await req.json()
 
   // Verify member belongs to the caller's gym
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  const { data: gym } = await (supabase.from('gyms') as any).select('id, stripe_account_id').eq('owner_id', user.id).single()
   if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { data: memberCheck } = await supabase.from('members').select('gym_id, stripe_subscription_id').eq('id', memberId).single()
@@ -148,7 +148,10 @@ export async function DELETE(req: Request) {
   if (!subId) return NextResponse.json({ error: 'Kein aktives Abonnement gefunden' }, { status: 404 })
 
   const stripe = new Stripe(stripeKey)
-  await stripe.subscriptions.cancel(subId)
+  // Subscriptions live on the connected account (direct charges model)
+  const connectedAccountId = (gym as any).stripe_account_id as string | null
+  const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+  await stripe.subscriptions.cancel(subId, {}, stripeOpts)
   await supabase.from('members').update({ stripe_subscription_id: null, subscription_status: 'cancelled' }).eq('id', memberId)
 
   return NextResponse.json({ success: true })

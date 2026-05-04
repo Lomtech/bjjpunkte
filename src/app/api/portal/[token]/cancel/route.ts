@@ -55,10 +55,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   if (process.env.STRIPE_SECRET_KEY) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 
+    // Fetch connected account ID — subscriptions live on the connected account (direct charges)
+    const { data: gymRow } = await supabase.from('gyms').select('stripe_account_id').eq('id', m.gym_id).single()
+    const connectedAccountId = (gymRow as any)?.stripe_account_id as string | null
+    const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+
     // Primary: use stored subscription ID
     if (m.stripe_subscription_id) {
       try {
-        await stripe.subscriptions.cancel(m.stripe_subscription_id)
+        await stripe.subscriptions.cancel(m.stripe_subscription_id, {}, stripeOpts)
         stripeCancelledId = m.stripe_subscription_id
       } catch (err: any) {
         // If subscription not found in Stripe, treat as already gone
@@ -74,25 +79,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         }
       }
     } else if (m.stripe_customer_id) {
-      // Fallback: look up active subscriptions via customer ID
+      // Fallback: look up active subscriptions via customer ID on connected account
       try {
-        const subs = await stripe.subscriptions.list({
-          customer: m.stripe_customer_id,
-          status: 'active',
-          limit: 10,
-        })
+        const subs = await stripe.subscriptions.list(
+          { customer: m.stripe_customer_id, status: 'active', limit: 10 },
+          stripeOpts,
+        )
         for (const sub of subs.data) {
-          await stripe.subscriptions.cancel(sub.id)
+          await stripe.subscriptions.cancel(sub.id, {}, stripeOpts)
           stripeCancelledId = sub.id
         }
         // Also check trialing subscriptions
-        const trialSubs = await stripe.subscriptions.list({
-          customer: m.stripe_customer_id,
-          status: 'trialing',
-          limit: 10,
-        })
+        const trialSubs = await stripe.subscriptions.list(
+          { customer: m.stripe_customer_id, status: 'trialing', limit: 10 },
+          stripeOpts,
+        )
         for (const sub of trialSubs.data) {
-          await stripe.subscriptions.cancel(sub.id)
+          await stripe.subscriptions.cancel(sub.id, {}, stripeOpts)
           if (!stripeCancelledId) stripeCancelledId = sub.id
         }
       } catch (err: any) {
