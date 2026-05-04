@@ -215,7 +215,7 @@ export default function PricingPage() {
         <div className="max-w-xl mx-auto relative">
           <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-6">
             <span className="text-zinc-300 text-xs font-semibold tracking-wide">
-              {en ? 'No hidden fees' : 'Keine versteckten Gebühren'}
+              {en ? 'No Osss transaction fees — Stripe fees apply' : 'Keine Osss-Transaktionsgebühren — Stripe-Gebühren fallen an'}
             </span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tighter mb-4">

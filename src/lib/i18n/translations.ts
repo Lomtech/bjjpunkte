@@ -461,7 +461,7 @@ export const translations = {
     continueSetup:    { de: 'Einrichtung fortsetzen', en: 'Continue setup' },
     stripeOpening:    { de: 'Stripe öffnet…',        en: 'Opening Stripe…' },
     disconnect:       { de: 'Trennen',               en: 'Disconnect' },
-    platformFeeDesc:  { de: 'Verbinde dein Konto — Mitgliedsbeiträge landen direkt auf deinem Stripe-Konto. Keine Transaktionsgebühr durch Osss.', en: 'Connect your account — member payments go directly to your Stripe account. No transaction fee from Osss.' },
+    platformFeeDesc:  { de: 'Verbinde dein Konto — Mitgliedsbeiträge landen direkt auf deinem Stripe-Konto. Osss erhebt keine Transaktionsgebühr; die üblichen Stripe-Gebühren fallen an.', en: 'Connect your account — member payments go directly to your Stripe account. No Osss transaction fee; standard Stripe fees apply.' },
     connectWithStripe: { de: 'Mit Stripe verbinden', en: 'Connect with Stripe' },
     webhookLabel:     { de: 'Webhook-URL — im Stripe Dashboard eintragen:', en: 'Webhook URL — enter in Stripe Dashboard:' },
     invoiceTax:       { de: 'Rechnungen & Steuer',   en: 'Invoices & Tax' },
