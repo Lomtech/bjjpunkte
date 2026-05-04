@@ -23,7 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   // Get gym
-  const { data: gym } = await supabase.from('gyms').select('id, name, email, stripe_account_id').single()
+  const { data: gym } = await (supabase.from('gyms') as any).select('id, name, email, stripe_account_id, payment_method_types').single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   // Get member (verify ownership)
@@ -67,8 +67,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             .eq('id', memberId)
         }
 
+        const gymPaymentMethods = (gym as any).payment_method_types as string[] | null
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
+          ...(gymPaymentMethods?.length ? { payment_method_types: gymPaymentMethods as Stripe.Checkout.SessionCreateParams['payment_method_types'] } : {}),
           line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
           mode: 'subscription',
           success_url: `${appUrl}/portal/${member.portal_token ?? ''}?payment=success`,

@@ -165,9 +165,8 @@ export async function POST(req: Request) {
         .eq('id', plan_id)
         .single()
 
-      const { data: gymStripe } = await supabase
-        .from('gyms')
-        .select('stripe_account_id')
+      const { data: gymStripe } = await (supabase.from('gyms') as any)
+        .select('stripe_account_id, payment_method_types')
         .eq('id', gymId)
         .single()
 
@@ -194,8 +193,10 @@ export async function POST(req: Request) {
           await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
         }
 
+        const gymPaymentMethods = (gymStripe as any)?.payment_method_types as string[] | null
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
           customer: customerId,
+          ...(gymPaymentMethods?.length ? { payment_method_types: gymPaymentMethods as Stripe.Checkout.SessionCreateParams['payment_method_types'] } : {}),
           line_items: [{ price: stripePrice, quantity: 1 }],
           mode: 'subscription',
           success_url: `${appUrl}/portal/${portalToken ?? ''}?payment=success`,

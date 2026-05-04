@@ -143,6 +143,17 @@ export default function SettingsPage() {
   const [deleteAccountError, setDeleteAccountError]       = useState<string | null>(null)
   const [userAuthEmail, setUserAuthEmail]                 = useState('')
 
+  // Payment methods
+  const PAYMENT_METHODS = [
+    { id: 'card',       labelDe: 'Kreditkarte / Debitkarte', labelEn: 'Credit / Debit card',   desc: 'Visa, Mastercard, Amex',       required: true },
+    { id: 'sepa_debit', labelDe: 'SEPA-Lastschrift',         labelEn: 'SEPA Direct Debit',      desc: 'DE/EU Bankeinzug',             required: false },
+    { id: 'klarna',     labelDe: 'Klarna',                   labelEn: 'Klarna',                 desc: 'Ratenkauf / Später bezahlen',  required: false },
+    { id: 'link',       labelDe: 'Stripe Link',              labelEn: 'Stripe Link',            desc: 'Schnell-Checkout für bekannte Kunden', required: false },
+  ]
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>(['card'])
+  const [paymentMethodsSaving, setPaymentMethodsSaving]     = useState(false)
+  const [paymentMethodsSaved, setPaymentMethodsSaved]       = useState(false)
+
   // GPS Check-in
   const [gpsLat, setGpsLat]                     = useState<number | null>(null)
   const [gpsLng, setGpsLng]                     = useState<number | null>(null)
@@ -236,6 +247,10 @@ export default function SettingsPage() {
         if ((data as any)?.latitude)  setGpsLat((data as any).latitude)
         if ((data as any)?.longitude) setGpsLng((data as any).longitude)
         setGpsRadius((data as any)?.gps_radius_meters ?? 300)
+        const savedPaymentMethods = (data as any)?.payment_method_types as string[] | null
+        if (Array.isArray(savedPaymentMethods) && savedPaymentMethods.length > 0) {
+          setSelectedPaymentMethods(savedPaymentMethods)
+        }
         setGymPlan((data as any)?.plan ?? 'free')
         setPlanLimit((data as any)?.plan_member_limit ?? 30)
         const { count } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', data.id).eq('is_active', true)
@@ -379,6 +394,17 @@ export default function SettingsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     await (supabase.from('gyms') as any).update({ callmebot_api_key: callmebotKey.trim() || null }).eq('owner_id', user?.id ?? '')
     setCallmebotSaving(false); setCallmebotSaved(true); setTimeout(() => setCallmebotSaved(false), 2000)
+  }
+
+  async function handlePaymentMethodsSave() {
+    setPaymentMethodsSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    // Always ensure 'card' is included
+    const methods = Array.from(new Set(['card', ...selectedPaymentMethods]))
+    await (supabase.from('gyms') as any).update({ payment_method_types: methods }).eq('owner_id', user?.id ?? '')
+    setSelectedPaymentMethods(methods)
+    setPaymentMethodsSaving(false); setPaymentMethodsSaved(true); setTimeout(() => setPaymentMethodsSaved(false), 2000)
   }
 
   async function handleLegalSave() {
@@ -1178,6 +1204,53 @@ export default function SettingsPage() {
                   <CopyRow label="" value={webhookUrl} copied={copiedWebhook} onCopy={() => copyWithFeedback(webhookUrl, setCopiedWebhook)} />
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Zahlungsmethoden */}
+          <div className={sectionCls}>
+            <SectionHeader icon={<CreditCard size={12} />} title={lang === 'en' ? 'Payment methods' : 'Zahlungsmethoden'} />
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-zinc-500">
+                {lang === 'en'
+                  ? 'Choose which payment methods your members can use at checkout. Card is always required.'
+                  : 'Wähle welche Zahlungsmethoden deine Mitglieder beim Checkout nutzen können. Kreditkarte ist immer aktiv.'}
+              </p>
+              <div className="space-y-2">
+                {PAYMENT_METHODS.map(pm => {
+                  const isSelected = selectedPaymentMethods.includes(pm.id)
+                  return (
+                    <label key={pm.id} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                      pm.required ? 'border-zinc-200 bg-zinc-50 cursor-not-allowed opacity-70' :
+                      isSelected ? 'border-amber-400 bg-amber-50' : 'border-zinc-200 bg-white hover:border-zinc-300'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        disabled={pm.required}
+                        onChange={e => {
+                          if (pm.required) return
+                          setSelectedPaymentMethods(prev =>
+                            e.target.checked ? [...prev, pm.id] : prev.filter(m => m !== pm.id)
+                          )
+                        }}
+                        className="w-4 h-4 rounded border-zinc-300 text-amber-500 focus:ring-amber-400 flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-zinc-800">
+                          {lang === 'en' ? pm.labelEn : pm.labelDe}
+                          {pm.required && <span className="ml-2 text-xs text-zinc-400">{lang === 'en' ? '(required)' : '(Pflicht)'}</span>}
+                        </p>
+                        <p className="text-xs text-zinc-400 mt-0.5">{pm.desc}</p>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+              <button type="button" onClick={handlePaymentMethodsSave} disabled={paymentMethodsSaving} className={saveBtnCls}>
+                <Save size={14} />
+                {paymentMethodsSaved ? t('settings', 'saved') : paymentMethodsSaving ? t('settings', 'saving') : (lang === 'en' ? 'Save payment methods' : 'Zahlungsmethoden speichern')}
+              </button>
             </div>
           </div>
 

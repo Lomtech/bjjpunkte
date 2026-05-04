@@ -28,8 +28,9 @@ export async function POST(req: Request) {
 
   const stripe = new Stripe(stripeKey)
 
-  const { data: gymData } = await supabase.from('gyms').select('stripe_account_id').eq('id', gymId).single()
+  const { data: gymData } = await (supabase.from('gyms') as any).select('stripe_account_id, payment_method_types').eq('id', gymId).single()
   const connectedAccountId = gymData?.stripe_account_id
+  const paymentMethodTypes = (gymData as any)?.payment_method_types as string[] | null
 
   // Active members with email, no active subscription
   const { data: members } = await supabase
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
       const memberName = `${member.first_name} ${member.last_name}`
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
+        ...(paymentMethodTypes?.length ? { payment_method_types: paymentMethodTypes as Stripe.Checkout.SessionCreateParams['payment_method_types'] } : {}),
         line_items: [{
           price_data: {
             currency: 'eur',
