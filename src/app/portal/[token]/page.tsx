@@ -395,6 +395,36 @@ export default function MemberPortalPage() {
 
   useEffect(() => { loadPortal(); loadClasses(); loadLogs() }, [loadPortal, loadClasses, loadLogs])
 
+  // Auto GPS check-in: fires once after portal + classes load, when a class is eligible
+  const autoCheckinDone = useRef(false)
+  useEffect(() => {
+    if (autoCheckinDone.current) return           // only once per session
+    if (loading) return                            // portal not loaded yet
+    if (classes.length === 0) return              // classes not loaded yet
+    if (!navigator.geolocation) return            // GPS not available
+    const hasEligible = classes.some(c => canCheckin(c.starts_at, c.ends_at))
+    if (!hasEligible) return                      // no active class right now
+    autoCheckinDone.current = true
+    // Silently attempt GPS check-in — member sees result only if successful
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const res = await fetch(`/api/portal/${token}/gps-checkin`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        })
+        const data = await res.json()
+        if (res.ok && !data.already_checked_in) {
+          const clsName = data.class?.title ? ` · ${data.class.title}` : ''
+          setGpsMessage(`${lang === 'en' ? 'Automatically checked in' : 'Automatisch eingecheckt'} ✓${clsName}`)
+          setGpsState('success')
+          loadPortal(); loadClasses()
+        }
+      },
+      () => { /* silent fail — member can always check in manually */ },
+      { enableHighAccuracy: true, timeout: 10_000 },
+    )
+  }, [loading, classes]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Reload classes when week changes
   useEffect(() => { loadClasses(weekStart) }, [weekStart]) // eslint-disable-line react-hooks/exhaustive-deps
 
