@@ -17,9 +17,27 @@ function serviceClient() {
   )
 }
 
+// Run up to `limit` async tasks concurrently.
+async function pLimit<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
+  const results: T[] = []
+  let i = 0
+  async function run(): Promise<void> {
+    while (i < tasks.length) {
+      const idx = i++
+      results[idx] = await tasks[idx]()
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, run))
+  return results
+}
+
 // POST /api/stripe/sync-payments
 // Fetches all paid Stripe invoices from the connected account and
 // inserts any missing records into the payments table.
+//
+// Performance: instead of N individual DB existence-checks (one per invoice),
+// we batch all payment_intent IDs per page into a single IN-query, then only
+// resolve member names and insert for the truly new ones.
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
   if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert' }, { status: 400 })
@@ -31,42 +49,67 @@ export async function POST(req: Request) {
   const { data: { user } } = await authed.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  // Fetch gym + connected account
   const { data: gym } = await authed.from('gyms').select('id, stripe_account_id').single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const connectedAccountId = (gym as any).stripe_account_id as string | null
   if (!connectedAccountId) return NextResponse.json({ error: 'Kein Stripe-Konto verbunden' }, { status: 400 })
 
-  const stripe = new Stripe(stripeKey)
-  const supabase = serviceClient()
+  const stripe     = new Stripe(stripeKey)
+  const supabase   = serviceClient()
   const stripeOpts = { stripeAccount: connectedAccountId }
 
   let inserted     = 0
   let alreadyHad   = 0
   let noMemberId   = 0
-  let insertErrors: string[] = []
+  const insertErrors: string[] = []
   let startingAfter: string | undefined = undefined
 
-  // Paginate through all paid invoices on the connected account
   while (true) {
     const invoices: Stripe.ApiList<Stripe.Invoice> = await stripe.invoices.list(
       { status: 'paid', limit: 100, ...(startingAfter ? { starting_after: startingAfter } : {}) },
       stripeOpts,
     )
 
-    for (const inv of invoices.data) {
-      const amountCents = inv.amount_paid
-      if (amountCents <= 0) { noMemberId++; continue }
+    // ── Step 1: collect all payment_intent IDs from this page ──────────────
+    const pageInvoices = invoices.data.filter(inv => inv.amount_paid > 0)
+    const piIds = pageInvoices
+      .map(inv => (inv as any).payment_intent)
+      .filter((id): id is string => typeof id === 'string')
 
-      // Extract memberId + gymId — try multiple sources:
-      // 1. subscription_details.metadata (newer Stripe API)
-      // 2. inv.metadata directly
-      // 3. Expand the subscription object to read its metadata
+    // ── Step 2: single batch query — which payment_intents are already recorded ──
+    const existingPiIds = new Set<string>()
+    if (piIds.length > 0) {
+      const { data: existing } = await supabase
+        .from('payments')
+        .select('stripe_payment_intent_id')
+        .in('stripe_payment_intent_id', piIds)
+      for (const row of existing ?? []) {
+        if ((row as any).stripe_payment_intent_id) {
+          existingPiIds.add((row as any).stripe_payment_intent_id)
+        }
+      }
+    }
+
+    // ── Step 3: resolve memberId for invoices that need it (Stripe API calls) ──
+    // Only for invoices without metadata — run up to 5 Stripe calls concurrently.
+    type InvoiceResolved = {
+      inv: Stripe.Invoice
+      memberId: string | undefined
+      gymId: string
+      paymentIntentId: string | null
+      memberNameFallback: string | null
+      paidAt: string
+      amountCents: number
+    }
+
+    const toResolve: (() => Promise<InvoiceResolved | null>)[] = pageInvoices.map(inv => async () => {
+      const amountCents = inv.amount_paid
       let meta: Record<string, string> = (inv as any).subscription_details?.metadata ?? inv.metadata ?? {}
       let memberId = meta.memberId as string | undefined
       const gymId  = (meta.gymId as string | undefined) ?? gym.id
 
+      // Try subscription metadata if not directly available
       const invSub = (inv as any).subscription
       if (!memberId && invSub && typeof invSub === 'string') {
         try {
@@ -75,22 +118,19 @@ export async function POST(req: Request) {
         } catch { /* non-fatal */ }
       }
 
-      // Last fallback: match by Stripe customer ID stored on the member
+      // Fallback: match by stored stripe_customer_id
       if (!memberId) {
         const customerId = typeof (inv as any).customer === 'string' ? (inv as any).customer as string : null
         if (customerId) {
-          const { data: memberByCustomer } = await supabase
-            .from('members')
-            .select('id')
+          const { data: byCustomer } = await supabase
+            .from('members').select('id')
             .eq('stripe_customer_id', customerId)
             .eq('gym_id', gym.id)
             .single()
-          memberId = (memberByCustomer as any)?.id
+          memberId = (byCustomer as any)?.id
         }
       }
 
-      // If still no memberId, insert anyway with member_name from Stripe customer
-      // (member was deleted — payment should still appear as "Ex-Mitglied")
       let memberNameFallback: string | null = null
       if (!memberId) {
         const customerId = typeof (inv as any).customer === 'string' ? (inv as any).customer as string : null
@@ -100,72 +140,85 @@ export async function POST(req: Request) {
             memberNameFallback = customer.name ?? customer.email ?? 'Ex-Mitglied'
           } catch { /* non-fatal */ }
         }
-        if (!memberNameFallback) { noMemberId++; continue }
+        if (!memberNameFallback) return null // truly unknown — skip
       }
 
       const paymentIntentId = typeof (inv as any).payment_intent === 'string'
         ? (inv as any).payment_intent as string
         : null
-
-      // Check if already recorded (by payment_intent or by invoice id in description)
-      let exists = false
-      if (paymentIntentId) {
-        const { data } = await supabase
-          .from('payments')
-          .select('id')
-          .eq('stripe_payment_intent_id', paymentIntentId)
-          .limit(1)
-        exists = !!(data && data.length > 0)
-      }
-      if (!exists) {
-        // Also check by member + amount + date (±1 day) to avoid duplicates without payment_intent
-        const paidAt  = inv.status_transitions?.paid_at
-          ? new Date(inv.status_transitions.paid_at * 1000).toISOString()
-          : new Date().toISOString()
-        const dayBefore = new Date(new Date(paidAt).getTime() - 86_400_000).toISOString()
-        const dayAfter  = new Date(new Date(paidAt).getTime() + 86_400_000).toISOString()
-        const { data: nearby } = await supabase
-          .from('payments')
-          .select('id')
-          .eq('member_id', memberId)
-          .eq('amount_cents', amountCents)
-          .eq('status', 'paid')
-          .gte('paid_at', dayBefore)
-          .lte('paid_at', dayAfter)
-          .limit(1)
-        exists = !!(nearby && nearby.length > 0)
-      }
-
-      if (exists) { alreadyHad++; continue }
-
-      // Insert missing payment record
       const paidAt = inv.status_transitions?.paid_at
         ? new Date(inv.status_transitions.paid_at * 1000).toISOString()
         : new Date().toISOString()
 
-      // Resolve member name: from DB if member exists, else from Stripe customer fallback
-      let memberName: string | null = memberNameFallback
-      if (memberId) {
-        const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
-        memberName = mRow ? `${(mRow as any).first_name} ${(mRow as any).last_name}` : memberNameFallback
-      }
+      return { inv, memberId, gymId, paymentIntentId, memberNameFallback, paidAt, amountCents }
+    })
 
-      const { error: insertError } = await (supabase.from('payments') as any).insert({
-        gym_id:                   gymId,
-        member_id:                memberId ?? null,
-        member_name:              memberName,
-        amount_cents:             amountCents,
-        status:                   'paid',
-        paid_at:                  paidAt,
-        stripe_payment_intent_id: paymentIntentId,
-      })
-      if (insertError) {
-        console.error('[sync-payments] insert error:', insertError)
-        insertErrors.push(`${inv.id}: ${insertError.message}`)
-      } else {
-        inserted++
+    const resolved = (await pLimit(toResolve, 5)).filter((r): r is InvoiceResolved => r !== null)
+
+    // ── Step 4: filter out already-existing ones ────────────────────────────
+    const toInsert = resolved.filter(r => {
+      if (r.paymentIntentId && existingPiIds.has(r.paymentIntentId)) {
+        alreadyHad++
+        return false
+      }
+      return true
+    })
+
+    // ── Step 5: batch-resolve member names for new records ──────────────────
+    const memberIds = [...new Set(toInsert.map(r => r.memberId).filter((id): id is string => !!id))]
+    const memberNames = new Map<string, string>()
+    if (memberIds.length > 0) {
+      const { data: members } = await supabase
+        .from('members').select('id, first_name, last_name')
+        .in('id', memberIds)
+      for (const m of members ?? []) {
+        memberNames.set((m as any).id, `${(m as any).first_name} ${(m as any).last_name}`)
       }
     }
+
+    // ── Step 6: secondary dedup for invoices without payment_intent (SEPA) ──
+    // Check by member + amount + date (±1 day) for records not caught by step 2.
+    const finalToInsert: InvoiceResolved[] = []
+    for (const r of toInsert) {
+      if (!r.paymentIntentId) {
+        const dayBefore = new Date(new Date(r.paidAt).getTime() - 86_400_000).toISOString()
+        const dayAfter  = new Date(new Date(r.paidAt).getTime() + 86_400_000).toISOString()
+        const { data: nearby } = await supabase
+          .from('payments').select('id')
+          .eq('member_id', r.memberId ?? '')
+          .eq('amount_cents', r.amountCents)
+          .eq('status', 'paid')
+          .gte('paid_at', dayBefore)
+          .lte('paid_at', dayAfter)
+          .limit(1)
+        if (nearby && nearby.length > 0) { alreadyHad++; continue }
+      }
+      finalToInsert.push(r)
+    }
+
+    // ── Step 7: batch insert all new records ─────────────────────────────────
+    if (finalToInsert.length > 0) {
+      const rows = finalToInsert.map(r => ({
+        gym_id:                   r.gymId,
+        member_id:                r.memberId ?? null,
+        member_name:              r.memberId ? (memberNames.get(r.memberId) ?? r.memberNameFallback) : r.memberNameFallback,
+        amount_cents:             r.amountCents,
+        status:                   'paid',
+        paid_at:                  r.paidAt,
+        stripe_payment_intent_id: r.paymentIntentId,
+      }))
+
+      const { error: insertError } = await (supabase.from('payments') as any).insert(rows)
+      if (insertError) {
+        console.error('[sync-payments] batch insert error:', insertError)
+        insertErrors.push(`batch(${rows.length}): ${insertError.message}`)
+      } else {
+        inserted += rows.length
+      }
+    }
+
+    // Invoices with amount=0 counted in noMemberId (consistent with before)
+    noMemberId += invoices.data.length - pageInvoices.length
 
     if (!invoices.has_more) break
     startingAfter = invoices.data[invoices.data.length - 1].id

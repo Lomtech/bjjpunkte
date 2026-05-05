@@ -177,7 +177,9 @@ export default function MembersPage() {
         supabase
           .from('members')
           .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id, plan_id, created_at')
-          .eq('gym_id', gym.id).order('last_name').limit(1000),
+          // 500 is the practical limit for client-side filtering. Gyms exceeding this
+          // need a server-side search endpoint with ?q= pagination.
+          .eq('gym_id', gym.id).order('last_name').limit(500),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() }),
         supabase.from('membership_plans').select('id, price_cents').eq('gym_id', gym.id),

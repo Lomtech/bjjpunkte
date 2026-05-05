@@ -36,8 +36,8 @@ function reminderEmailHtml({
   portalUrl: string | null
   checkoutUrl: string | null
 }) {
-  const amount = (amountCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
-  const ctaUrl = checkoutUrl ?? portalUrl ?? ''
+  const amount   = (amountCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+  const ctaUrl   = checkoutUrl ?? portalUrl ?? ''
   const ctaLabel = checkoutUrl ? 'Jetzt bezahlen' : 'Zum Mitgliederportal'
 
   return `<!DOCTYPE html>
@@ -105,112 +105,103 @@ export async function GET(req: Request) {
 
   const now        = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const monthLabel = now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
 
   const { data: gyms } = await supabase
     .from('gyms')
     .select('id, name, monthly_fee_cents, email')
     .in('plan', ['starter', 'grow', 'pro'])
 
-  let emailsSent    = 0
-  let emailsFailed  = 0
-  let whatsappSent  = 0
+  let emailsSent     = 0
+  let emailsFailed   = 0
+  let whatsappSent   = 0
   let whatsappFailed = 0
   const errors: string[] = []
 
-  for (const gym of gyms ?? []) {
-    const { data: members } = await supabase
-      .from('members')
-      .select('id, first_name, last_name, email, phone, monthly_fee_override_cents, stripe_subscription_id, portal_token')
-      .eq('gym_id', gym.id)
-      .eq('is_active', true)
+  // Process gyms in parallel (each gym is independent)
+  await Promise.all((gyms ?? []).map(async gym => {
+    const [membersRes, paidRes, pendingRes] = await Promise.all([
+      supabase
+        .from('members')
+        .select('id, first_name, last_name, email, phone, monthly_fee_override_cents, stripe_subscription_id, portal_token')
+        .eq('gym_id', gym.id)
+        .eq('is_active', true),
+      supabase
+        .from('payments')
+        .select('member_id')
+        .eq('gym_id', gym.id)
+        .eq('status', 'paid')
+        .gte('paid_at', monthStart),
+      supabase
+        .from('payments')
+        .select('member_id, checkout_url')
+        .eq('gym_id', gym.id)
+        .eq('status', 'pending')
+        .gte('created_at', monthStart)
+        .not('checkout_url', 'is', null),
+    ])
 
-    const { data: paid } = await supabase
-      .from('payments')
-      .select('member_id')
-      .eq('gym_id', gym.id)
-      .eq('status', 'paid')
-      .gte('paid_at', monthStart)
-
-    const paidIds = new Set((paid ?? []).map((p: { member_id: string }) => p.member_id))
-
-    const { data: pendingPayments } = await supabase
-      .from('payments')
-      .select('member_id, checkout_url')
-      .eq('gym_id', gym.id)
-      .eq('status', 'pending')
-      .gte('created_at', monthStart)
-      .not('checkout_url', 'is', null)
-
+    const paidIds = new Set((paidRes.data ?? []).map((p: { member_id: string }) => p.member_id))
     const pendingByMember = new Map(
-      (pendingPayments ?? [])
+      (pendingRes.data ?? [])
         .filter((p: { checkout_url: string | null }) => p.checkout_url)
         .map((p: { member_id: string; checkout_url: string | null }) => [p.member_id, p.checkout_url!])
     )
 
-    const needReminder = (members ?? []).filter((m: {
-      id: string
-      stripe_subscription_id: string | null
-      email: string | null
-    }) =>
-      !paidIds.has(m.id) &&
-      !m.stripe_subscription_id &&
-      m.email
-    )
+    const needReminder = (membersRes.data ?? []).filter((m: {
+      id: string; stripe_subscription_id: string | null; email: string | null
+    }) => !paidIds.has(m.id) && !m.stripe_subscription_id && m.email) as {
+      id: string; first_name: string; last_name: string
+      email: string | null; phone: string | null
+      monthly_fee_override_cents: number | null; portal_token: string | null
+    }[]
 
-    for (const member of needReminder as {
-      id: string
-      first_name: string
-      last_name: string
-      email: string | null
-      phone: string | null
-      monthly_fee_override_cents: number | null
-      portal_token: string | null
-    }[]) {
-      const amountCents = member.monthly_fee_override_cents ?? gym.monthly_fee_cents ?? 0
-      const portalUrl   = member.portal_token ? `${appUrl}/portal/${member.portal_token}` : null
-      const checkoutUrl = pendingByMember.get(member.id) ?? null
-      const amount      = (amountCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
-      const ctaUrl      = checkoutUrl ?? portalUrl ?? ''
+    // Send reminders in parallel — up to 5 concurrent per gym to respect Resend rate limits
+    const BATCH = 5
+    for (let i = 0; i < needReminder.length; i += BATCH) {
+      await Promise.all(needReminder.slice(i, i + BATCH).map(async member => {
+        const amountCents = member.monthly_fee_override_cents ?? (gym as any).monthly_fee_cents ?? 0
+        const portalUrl   = member.portal_token ? `${appUrl}/portal/${member.portal_token}` : null
+        const checkoutUrl = pendingByMember.get(member.id) ?? null
+        const amount      = (amountCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+        const ctaUrl      = checkoutUrl ?? portalUrl ?? ''
 
-      if (member.email) {
-        const result = await sendEmail(
-          member.email,
-          `Erinnerung: Mitgliedsbeitrag ${now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })} — ${gym.name}`,
-          reminderEmailHtml({ firstName: member.first_name, gymName: gym.name, amountCents, portalUrl, checkoutUrl })
-        )
-        if (result.ok) {
-          emailsSent++
-        } else {
-          emailsFailed++
-          const msg = `Email to ${member.email} (gym ${gym.id}): ${result.error}`
-          errors.push(msg)
-          console.error('[cron/payment-reminders]', msg)
-        }
-      }
-
-      if (member.phone) {
-        const waBody = checkoutUrl
-          ? `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).\n\nJetzt bezahlen: ${ctaUrl}\n\nOss! 🥋`
-          : `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).${ctaUrl ? `\n\nZum Portal: ${ctaUrl}` : ''}\n\nBei Fragen melde dich bei deinem Gym. Oss! 🥋`
-        try {
-          const ok = await sendWhatsApp({ to: member.phone, body: waBody })
-          if (ok) {
-            whatsappSent++
+        if (member.email) {
+          const result = await sendEmail(
+            member.email,
+            `Erinnerung: Mitgliedsbeitrag ${monthLabel} — ${gym.name}`,
+            reminderEmailHtml({ firstName: member.first_name, gymName: gym.name, amountCents, portalUrl, checkoutUrl })
+          )
+          if (result.ok) {
+            emailsSent++
           } else {
-            whatsappFailed++
-            const msg = `WhatsApp to ${member.phone} (gym ${gym.id}): sendWhatsApp returned false`
+            emailsFailed++
+            const msg = `Email to ${member.email} (gym ${gym.id}): ${result.error}`
             errors.push(msg)
             console.error('[cron/payment-reminders]', msg)
           }
-        } catch (err) {
-          whatsappFailed++
-          const msg = `WhatsApp to ${member.phone} (gym ${gym.id}): ${String(err)}`
-          errors.push(msg)
-          console.error('[cron/payment-reminders]', msg)
         }
-      }
+
+        if (member.phone) {
+          const waBody = checkoutUrl
+            ? `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).\n\nJetzt bezahlen: ${ctaUrl}\n\nOss! 🥋`
+            : `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).${ctaUrl ? `\n\nZum Portal: ${ctaUrl}` : ''}\n\nBei Fragen melde dich bei deinem Gym. Oss! 🥋`
+          try {
+            const ok = await sendWhatsApp({ to: member.phone, body: waBody })
+            if (ok) {
+              whatsappSent++
+            } else {
+              whatsappFailed++
+              errors.push(`WhatsApp to ${member.phone} (gym ${gym.id}): sendWhatsApp returned false`)
+            }
+          } catch (err) {
+            whatsappFailed++
+            errors.push(`WhatsApp to ${member.phone} (gym ${gym.id}): ${String(err)}`)
+          }
+        }
+      }))
     }
-  }
+  }))
 
   return NextResponse.json({
     ok:             errors.length === 0,

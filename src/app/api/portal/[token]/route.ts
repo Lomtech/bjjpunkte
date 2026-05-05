@@ -27,8 +27,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   }
 
   const memberId = member.id
-  const gymId = member.gym_id
+  const gymId    = member.gym_id
+  const now      = new Date()
+  const in7days  = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
+  // All 8 queries in a single parallel batch — no sequential round-trips.
   const [
     { data: gym },
     { data: attendance },
@@ -37,6 +40,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     { data: plans },
     { data: announcements },
     { data: posts },
+    { data: bookings },
   ] = await Promise.all([
     (supabase.from('gyms') as any).select('name, belt_system, belt_system_enabled, logo_url, class_types').eq('id', gymId).single(),
     supabase.from('attendance').select('id, checked_in_at, class_type').eq('member_id', memberId).order('checked_in_at', { ascending: false }).limit(50),
@@ -45,22 +49,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     (supabase.from('membership_plans') as any).select('id, name, description, price_cents, billing_interval, contract_months, sort_order').eq('gym_id', gymId).eq('is_active', true).order('sort_order'),
     (supabase.from('gym_announcements') as any).select('id, title, body, is_pinned, expires_at, created_at').eq('gym_id', gymId).order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(10),
     (supabase.from('posts') as any).select('id, title, cover_url, blocks, published_at').eq('gym_id', gymId).not('published_at', 'is', null).order('published_at', { ascending: false }).limit(10),
+    // Upcoming bookings for the next 7 days — moved into parallel batch (was a separate sequential query)
+    supabase.from('class_bookings')
+      .select('status, classes(id, title, class_type, starts_at, ends_at, instructor)')
+      .eq('member_id', memberId)
+      .in('status', ['confirmed', 'waitlist'])
+      .gte('classes.starts_at', now.toISOString())
+      .lte('classes.starts_at', in7days),
   ])
 
   const totalPaidCents = (payments ?? [])
     .filter((p: any) => p.status === 'paid')
     .reduce((sum: number, p: any) => sum + (p.amount_cents ?? 0), 0)
 
-  const { data: bookings } = await supabase
-    .from('class_bookings')
-    .select('status, classes(id, title, class_type, starts_at, ends_at, instructor)')
-    .eq('member_id', memberId)
-    .in('status', ['confirmed', 'waitlist'])
-    .gte('classes.starts_at', new Date().toISOString())
-    .lte('classes.starts_at', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())
-
-  // Filter out expired announcements
-  const now = new Date()
   const activeAnnouncements = (announcements ?? []).filter((a: any) =>
     !a.expires_at || new Date(a.expires_at) > now
   )
@@ -82,14 +83,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
       requested_plan_id:         member.requested_plan_id,
       cancellation_requested_at: member.cancellation_requested_at,
     },
-    gym:                gym ?? null,
-    attendance:         attendance ?? [],
-    totalSessions:      totalSessions ?? 0,
-    payments:           payments ?? [],
+    gym:           gym ?? null,
+    attendance:    attendance ?? [],
+    totalSessions: totalSessions ?? 0,
+    payments:      payments ?? [],
     totalPaidCents,
-    plans:              plans ?? [],
-    announcements:      activeAnnouncements,
-    posts:              posts ?? [],
+    plans:         plans ?? [],
+    announcements: activeAnnouncements,
+    posts:         posts ?? [],
     upcoming_bookings: (bookings ?? []).map((b: any) => ({
       class_id:       b.classes?.id,
       title:          b.classes?.title,
