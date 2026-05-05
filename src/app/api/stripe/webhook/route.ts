@@ -348,27 +348,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── customer.subscription.updated (owner plan sync) ──────────────────────────
-  if (event.type === 'customer.subscription.updated') {
-    try {
-      const sub = event.data.object as Stripe.Subscription
-      if (sub.metadata?.type === 'owner_plan' && !sub.metadata?.memberId) {
-        const gymId = sub.metadata?.gymId
-        if (gymId && sub.status === 'active') {
-          const priceAmount = sub.items.data[0]?.price?.unit_amount ?? 0
-          const plan = priceAmountToPlan(priceAmount) as Database['public']['Tables']['gyms']['Update']['plan']
-          await supabase.from('gyms').update({
-            plan,
-            plan_member_limit:           PLAN_LIMITS[priceAmountToPlan(priceAmount)] ?? 30,
-            osss_stripe_subscription_id: sub.id,
-          }).eq('id', gymId)
-        }
-      }
-    } catch (err) {
-      console.error('[webhook] customer.subscription.updated (owner) error:', err)
-    }
-  }
-
   // ── charge.dispute.created ───────────────────────────────────────────────────
   if (event.type === 'charge.dispute.created') {
     try {

@@ -60,6 +60,7 @@ export async function POST(req: Request) {
     const months = (planData as any)?.contract_months as number | null
     if (months && months > 0) {
       const end = new Date()
+      end.setDate(1)
       end.setMonth(end.getMonth() + months)
       cancelAt = Math.floor(end.getTime() / 1000)
     }

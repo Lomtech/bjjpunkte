@@ -133,7 +133,7 @@ export async function POST(req: Request) {
       // Direct charge: session on connected account so customer is found
       const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
 
-      await supabase.from('payments').insert({
+      const { error: insertError } = await supabase.from('payments').insert({
         gym_id:                    gymId,
         member_id:                 member.id,
         stripe_checkout_session_id: session.id,
@@ -142,6 +142,8 @@ export async function POST(req: Request) {
         status:                    'pending',
         checkout_url:              session.url,
       })
+
+      if (insertError) throw insertError
 
       results.push({ memberId: member.id, memberName, memberEmail: member.email!, checkoutUrl: session.url, amountCents: fee })
       created++

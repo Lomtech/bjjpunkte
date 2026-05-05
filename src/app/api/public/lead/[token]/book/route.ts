@@ -35,6 +35,16 @@ export async function POST(
     return NextResponse.json({ error: 'Interessent nicht gefunden' }, { status: 404 })
   }
 
+  const { data: cls, error: clsErr } = await supabase
+    .from('classes')
+    .select('gym_id')
+    .eq('id', class_id)
+    .single()
+
+  if (clsErr || !cls || cls.gym_id !== lead.gym_id) {
+    return NextResponse.json({ error: 'Klasse nicht gefunden' }, { status: 404 })
+  }
+
   const { data: booking, error } = await supabase
     .from('lead_bookings')
     .upsert(

@@ -20,6 +20,7 @@ export async function GET(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: gym } = await (supabase.from('gyms') as any)
     .select('id, signup_token, slug')
+    .eq('owner_id', user.id)
     .single()
 
   if (!gym) return NextResponse.json({ error: 'Gym not found' }, { status: 404 })

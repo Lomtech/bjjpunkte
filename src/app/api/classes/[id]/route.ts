@@ -64,7 +64,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           for (const row of rows as { id: string; starts_at: string; ends_at: string }[]) {
             // Convert stored UTC timestamp → local date using the client's tz offset
             const utcMs   = new Date(row.starts_at).getTime()
-            const localMs = utcMs - tzOffsetMin * 60 * 1000  // local = UTC - tzOffset
+            const localMs = utcMs + tzOffsetMin * 60 * 1000
             const localD  = new Date(localMs)
             const dateStr = `${localD.getUTCFullYear()}-${String(localD.getUTCMonth() + 1).padStart(2, '0')}-${String(localD.getUTCDate()).padStart(2, '0')}`
 

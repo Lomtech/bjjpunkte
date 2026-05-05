@@ -43,5 +43,7 @@ export async function POST(
     return NextResponse.json({ error: 'Anwesenheit nicht gefunden' }, { status: 404 })
   }
 
+  await supabase.from('attendance').delete().eq('id', attendanceId)
+
   return NextResponse.json({ success: true })
 }

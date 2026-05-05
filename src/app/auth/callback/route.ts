@@ -10,7 +10,8 @@ import { cookies } from 'next/headers'
 export async function GET(req: Request) {
   const { searchParams, origin } = new URL(req.url)
   const code  = searchParams.get('code')
-  const next  = searchParams.get('next') ?? '/dashboard'
+  const rawNext = searchParams.get('next') ?? '/dashboard'
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') && !/^\/[a-zA-Z][a-zA-Z\d+\-.]*:/.test(rawNext) ? rawNext : '/dashboard'
   const error = searchParams.get('error')
 
   if (error) {

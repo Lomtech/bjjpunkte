@@ -27,12 +27,22 @@ export async function POST(
 
   const { data: lead, error: leadErr } = await supabase
     .from('leads')
-    .select('id')
+    .select('id, gym_id')
     .eq('lead_token', token)
     .single()
 
   if (leadErr || !lead) {
     return NextResponse.json({ error: 'Interessent nicht gefunden' }, { status: 404 })
+  }
+
+  const { data: cls, error: clsErr } = await supabase
+    .from('classes')
+    .select('gym_id')
+    .eq('id', class_id)
+    .single()
+
+  if (clsErr || !cls || cls.gym_id !== lead.gym_id) {
+    return NextResponse.json({ error: 'Klasse nicht gefunden' }, { status: 404 })
   }
 
   const { error } = await supabase

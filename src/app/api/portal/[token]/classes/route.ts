@@ -78,7 +78,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
 
     // Build participant list (first name + last initial)
     if (b.members && (b.status === 'confirmed' || b.status === 'checked_in')) {
-      const name = `${b.members.first_name} ${b.members.last_name[0]}.`
+      const name = `${b.members?.first_name ?? ''} ${b.members?.last_name?.[0] ?? ''}.`
       if (!participants[b.class_id]) participants[b.class_id] = []
       participants[b.class_id].push({ name, status: b.status })
     }
