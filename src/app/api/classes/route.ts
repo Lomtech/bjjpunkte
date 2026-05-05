@@ -33,6 +33,18 @@ export async function GET(req: Request) {
   return NextResponse.json(data ?? [])
 }
 
+// Returns the Europe/Berlin UTC offset for a given date+time (handles DST)
+function berlinOffset(dateStr: string, timeStr: string): string {
+  const d = new Date(`${dateStr}T${timeStr}:00Z`)
+  const berlinStr = d.toLocaleString('sv-SE', { timeZone: 'Europe/Berlin' })
+  const berlinDate = new Date(berlinStr.replace(' ', 'T') + 'Z')
+  const diffMin = Math.round((berlinDate.getTime() - d.getTime()) / 60000)
+  const sign = diffMin >= 0 ? '+' : '-'
+  const h = String(Math.floor(Math.abs(diffMin) / 60)).padStart(2, '0')
+  const m = String(Math.abs(diffMin) % 60).padStart(2, '0')
+  return `${sign}${h}:${m}`
+}
+
 // Generate all dates for a recurring series
 function generateDates(
   startDate: Date,
@@ -48,8 +60,8 @@ function generateDates(
   while (current <= until && dates.length < 500) {
     const dateStr = current.toISOString().split('T')[0]
     dates.push({
-      starts_at: `${dateStr}T${startTime}:00`,
-      ends_at:   `${dateStr}T${endTime}:00`,
+      starts_at: `${dateStr}T${startTime}:00${berlinOffset(dateStr, startTime)}`,
+      ends_at:   `${dateStr}T${endTime}:00${berlinOffset(dateStr, endTime)}`,
     })
 
     // Advance to next occurrence
@@ -104,8 +116,8 @@ export async function POST(req: Request) {
   if (recurrence_type === 'none') {
     const { data, error } = await supabase.from('classes').insert({
       ...baseFields,
-      starts_at: `${date}T${start_time}:00`,
-      ends_at:   `${date}T${end_time}:00`,
+      starts_at: `${date}T${start_time}:00${berlinOffset(date, start_time)}`,
+      ends_at:   `${date}T${end_time}:00${berlinOffset(date, end_time)}`,
       recurrence_parent_id: null,
     }).select().single()
 
