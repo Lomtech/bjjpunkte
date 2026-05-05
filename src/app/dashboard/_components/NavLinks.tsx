@@ -19,10 +19,10 @@ export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTra
 
   const NAV = [
     { href: '/dashboard',             label: t('nav', 'dashboard'),   icon: LayoutDashboard, ownerOnly: false },
-    { href: '/dashboard/members',     label: t('nav', 'members'),     icon: Users,           ownerOnly: false },
-    { href: '/dashboard/leads',       label: t('nav', 'leads'),       icon: UserPlus,        ownerOnly: true  },
     { href: '/dashboard/schedule',    label: t('nav', 'schedule'),    icon: Calendar,        ownerOnly: false },
     { href: '/dashboard/attendance',  label: t('nav', 'attendance'),  icon: UserCheck,       ownerOnly: false },
+    { href: '/dashboard/members',     label: t('nav', 'members'),     icon: Users,           ownerOnly: false },
+    { href: '/dashboard/leads',       label: t('nav', 'leads'),       icon: UserPlus,        ownerOnly: true  },
     { href: '/dashboard/revenue',     label: t('nav', 'revenue'),     icon: TrendingUp,      ownerOnly: true  },
     { href: '/dashboard/website',     label: t('nav', 'website'),     icon: Globe,           ownerOnly: true  },
     { href: '/dashboard/content',     label: t('nav', 'content'),     icon: FileText,        ownerOnly: true  },
