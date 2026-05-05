@@ -947,9 +947,9 @@ export default function Home() {
               <div className="font-mono text-[10px] text-zinc-400 space-y-1.5 mb-5">
                 <p className="text-zinc-600">{lang === 'en' ? '// DATEV Buchungsdatei' : '// DATEV Buchungsdatei'}</p>
                 <p><span className="text-amber-400">Umsatz</span>;Gegenkonto;Belegdatum;Buchungstext</p>
-                <p>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Max M.</p>
-                <p>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Jana K.</p>
-                <p>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Tom R.</p>
+                <p suppressHydrationWarning>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Max M.</p>
+                <p suppressHydrationWarning>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Jana K.</p>
+                <p suppressHydrationWarning>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Tom R.</p>
                 <p className="text-zinc-600">…</p>
               </div>
               <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-400 text-zinc-950 text-sm font-bold">
@@ -1038,7 +1038,7 @@ export default function Home() {
             </div>
           </div>
           <div className="pt-6 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-zinc-400 text-xs">© {new Date().getFullYear()} Osss · {lang === 'en' ? 'The martial arts gym software' : 'Die Kampfsport-Gym-Software'}</p>
+            <p className="text-zinc-400 text-xs" suppressHydrationWarning>© {new Date().getFullYear()} Osss · {lang === 'en' ? 'The martial arts gym software' : 'Die Kampfsport-Gym-Software'}</p>
             <p className="text-zinc-300 text-xs">{lang === 'en' ? 'Made in Germany · GDPR-compliant · Data on EU servers' : 'Made in Germany · DSGVO-konform · Daten auf EU-Servern'}</p>
           </div>
         </div>
