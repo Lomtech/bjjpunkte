@@ -47,9 +47,10 @@ export async function POST(req: Request) {
         recurringInterval = { interval: 'year' }
       }
 
+      const planKey = `plan-${gymData.id}-${name}-${price_cents}-${billing_interval ?? 'monthly'}`
       const product = await stripe.products.create(
         { name: `${name} – ${gymData.name}` },
-        stripeOpts,
+        { ...stripeOpts, idempotencyKey: `prod-${planKey}` },
       )
       stripe_product_id = product.id
 
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
           recurring: recurringInterval,
           product: product.id,
         },
-        stripeOpts,
+        { ...stripeOpts, idempotencyKey: `price-${planKey}` },
       )
       stripe_price_id = price.id
     } catch (err: any) {

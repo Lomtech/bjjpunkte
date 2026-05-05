@@ -323,32 +323,44 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── Members — pass 2: link parent_member_id ────────────────────────────────
+  // ── Members — pass 2: link parent_member_id (parallel) ───────────────────
   if (Array.isArray(members) && members.length > 0) {
-    for (let i = 0; i < members.length; i++) {
-      const parentIdx = members[i].parent_member_index
-      if (parentIdx != null && memberIds[parentIdx] && memberIds[i]) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await svc.from('members')
-          .update({ parent_member_id: memberIds[parentIdx] })
-          .eq('id', memberIds[i])
+    const parentLinks = members
+      .map((m, i) => ({ parentIdx: m.parent_member_index, i }))
+      .filter(({ parentIdx, i }) => parentIdx != null && memberIds[parentIdx] && memberIds[i])
+    if (parentLinks.length > 0) {
+      const LINK_CHUNK = 50
+      for (let c = 0; c < parentLinks.length; c += LINK_CHUNK) {
+        await Promise.all(parentLinks.slice(c, c + LINK_CHUNK).map(({ parentIdx, i }) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (svc.from('members') as any).update({ parent_member_id: memberIds[parentIdx] }).eq('id', memberIds[i])
+        ))
       }
     }
   }
 
-  // ── Members — pass 3: link plan_id and requested_plan_id ──────────────────
+  // ── Members — pass 3: link plan_id and requested_plan_id (parallel) ───────
   if (Array.isArray(members) && members.length > 0 && planIds.length > 0) {
-    for (let i = 0; i < members.length; i++) {
-      const planIdx         = members[i].plan_index
-      const reqPlanIdx      = members[i].requested_plan_index
-      const hasPlan         = planIdx != null && planIds[planIdx]
-      const hasRequestedPlan = reqPlanIdx != null && planIds[reqPlanIdx]
-      if ((hasPlan || hasRequestedPlan) && memberIds[i]) {
+    const planLinks = members
+      .map((m, i) => {
+        const planIdx = m.plan_index
+        const reqPlanIdx = m.requested_plan_index
+        const hasPlan = planIdx != null && planIds[planIdx]
+        const hasReq = reqPlanIdx != null && planIds[reqPlanIdx]
+        if (!(hasPlan || hasReq) || !memberIds[i]) return null
         const update: Record<string, string> = {}
-        if (hasPlan)          update.plan_id          = planIds[planIdx]
-        if (hasRequestedPlan) update.requested_plan_id = planIds[reqPlanIdx]
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await svc.from('members').update(update as any).eq('id', memberIds[i])
+        if (hasPlan) update.plan_id = planIds[planIdx]
+        if (hasReq) update.requested_plan_id = planIds[reqPlanIdx]
+        return { update, id: memberIds[i] }
+      })
+      .filter(Boolean) as Array<{ update: Record<string, string>; id: string }>
+    if (planLinks.length > 0) {
+      const LINK_CHUNK = 50
+      for (let c = 0; c < planLinks.length; c += LINK_CHUNK) {
+        await Promise.all(planLinks.slice(c, c + LINK_CHUNK).map(({ update, id }) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (svc.from('members') as any).update(update as any).eq('id', id)
+        ))
       }
     }
   }

@@ -56,7 +56,7 @@ export async function GET(req: Request) {
     // Capped at 500: used for churn name-lookup only. Gyms with >500 active members
     // should migrate to a server-side search endpoint.
     supabase.from('members').select('id, first_name, last_name').eq('gym_id', gymId).eq('is_active', true).limit(500),
-    supabase.from('members').select('id, first_name, last_name, date_of_birth').eq('gym_id', gymId).eq('is_active', true).not('date_of_birth', 'is', null),
+    supabase.from('members').select('id, first_name, last_name, date_of_birth').eq('gym_id', gymId).eq('is_active', true).not('date_of_birth', 'is', null).limit(2000),
     supabase.from('members').select('id, contract_end_date').eq('gym_id', gymId).eq('is_active', true).not('contract_end_date', 'is', null).lte('contract_end_date', in30),
     supabase.from('payments').select('amount_cents').eq('gym_id', gymId).eq('status', 'paid').gte('paid_at', startOfMonth),
     supabase.from('payments').select('id, member_id, amount_cents, paid_at, status').eq('gym_id', gymId).order('paid_at', { ascending: false }).limit(20),
