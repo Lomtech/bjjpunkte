@@ -1,25 +1,23 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendWhatsApp } from '@/lib/whatsapp'
 
 interface NotifyPayload {
   gymId: string
   subject: string
   html: string
-  whatsappText: string
+  whatsappText?: string // kept for API compatibility, unused
 }
 
 interface NotifyResult {
   emailSent: boolean
   whatsappSent: boolean
   emailError?: string
-  whatsappError?: string
 }
 
-export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPayload): Promise<NotifyResult> {
+export async function notifyGym({ gymId, subject, html }: NotifyPayload): Promise<NotifyResult> {
   const supabase = createServiceClient()
   const { data: gym } = await supabase
     .from('gyms')
-    .select('name, email, phone, whatsapp_number')
+    .select('name, email')
     .eq('id', gymId)
     .single()
 
@@ -52,24 +50,6 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
     } catch (err) {
       result.emailError = String(err)
       console.error('[notify] Email error:', err)
-    }
-  }
-
-  // ── SMS via Brevo ────────────────────────────────────────────────────────
-  const smsPhone = (gym as Record<string, unknown>).phone as string | null
-               ?? (gym as Record<string, unknown>).whatsapp_number as string | null
-  if (smsPhone) {
-    try {
-      const ok = await sendWhatsApp({ to: smsPhone, body: whatsappText })
-      if (ok) {
-        result.whatsappSent = true
-      } else {
-        result.whatsappError = 'Brevo SMS returned false'
-        console.error('[notify] SMS not sent to', smsPhone)
-      }
-    } catch (err) {
-      result.whatsappError = String(err)
-      console.error('[notify] SMS error:', err)
     }
   }
 
