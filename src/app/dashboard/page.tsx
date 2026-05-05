@@ -61,6 +61,9 @@ export default function DashboardPage() {
   const [gymSlug, setGymSlug]               = useState<string | null>(null)
   const [copiedSignup, setCopiedSignup]     = useState(false)
   const [copiedSlug, setCopiedSlug]         = useState(false)
+  const [mounted, setMounted]               = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     async function load() {
@@ -215,7 +218,7 @@ export default function DashboardPage() {
   const paidCount    = Array.from(memberPayStatus.values()).filter(s => s === 'paid').length
   const pendingCount = Array.from(memberPayStatus.values()).filter(s => s === 'pending').length
 
-  const hour = new Date().getHours()
+  const hour = mounted ? new Date().getHours() : 12
   const greeting = hour < 12 ? t('dash', 'goodMorning') : hour < 18 ? t('dash', 'goodDay') : t('dash', 'goodEvening')
 
   return (
@@ -223,7 +226,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-6">
         <p className="text-xs text-zinc-400 font-medium mb-0.5">
-          {new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+          {mounted ? new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }) : ''}
         </p>
         <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{greeting}</h1>
       </div>
@@ -232,7 +235,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <StatCard icon={<Users size={18} />}       label={t('dash', 'activeMembers')}  value={activeMembers} />
         <StatCard icon={<Calendar size={18} />}    label={t('dash', 'todayTraining')}  value={todayAttendance.length} />
-        <StatCard icon={<Euro size={18} />}        label={new Date().toLocaleDateString(locale, { month: 'long' })} valueCents={monthRevenue} primary />
+        <StatCard icon={<Euro size={18} />}        label={mounted ? new Date().toLocaleDateString(locale, { month: 'long' }) : '…'} valueCents={monthRevenue} primary />
         <StatCard icon={<FileWarning size={18} />} label={t('dash', 'contractsExpiring')} value={expiringContracts} warn={expiringContracts > 0} />
       </div>
 
@@ -443,7 +446,7 @@ export default function DashboardPage() {
             <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center">
               <Zap size={12} className="text-amber-600" />
             </span>
-            {t('dash', 'topAttendees')} · {new Date().toLocaleDateString(locale, { month: 'long' })}
+            {t('dash', 'topAttendees')}{mounted ? ` · ${new Date().toLocaleDateString(locale, { month: 'long' })}` : ''}
           </h2>
           {topAttenders.length > 0 ? (
             <div className="space-y-0">
