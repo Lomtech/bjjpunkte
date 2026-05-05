@@ -19,6 +19,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface GymWebsite {
+  id?: string
   slug: string | null
   name: string
   logo_url: string | null
@@ -361,11 +362,18 @@ export default function WebsitePage() {
   }
 
   async function saveSection(key: string, fields: Record<string, unknown>) {
+    const id = gymId || gym?.id
+    if (!id) { alert('Gym-ID nicht gefunden — bitte Seite neu laden.'); return }
     setSaving(s => ({ ...s, [key]: true }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = createClient() as any
-    await supabase.from('gyms').update(fields).eq('id', gymId)
+    const { error } = await supabase.from('gyms').update(fields).eq('id', id)
     setSaving(s => ({ ...s, [key]: false }))
+    if (error) {
+      console.error('[saveSection]', key, error)
+      alert(`Fehler beim Speichern: ${error.message}`)
+      return
+    }
     setSaved(s => ({ ...s, [key]: true }))
     setTimeout(() => setSaved(s => ({ ...s, [key]: false })), 2500)
   }
