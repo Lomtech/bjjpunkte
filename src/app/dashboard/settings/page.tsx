@@ -356,9 +356,12 @@ export default function SettingsPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        alert(lang === 'en'
-          ? `Sync complete: ${data.inserted} new payment(s) added, ${data.skipped} already recorded.`
-          : `Sync abgeschlossen: ${data.inserted} neue Zahlung(en) hinzugefügt, ${data.skipped} bereits vorhanden.`)
+        const parts = [
+          `${data.inserted} neue Zahlung(en) hinzugefügt`,
+          data.alreadyHad > 0 ? `${data.alreadyHad} bereits vorhanden` : '',
+          data.noMemberId > 0 ? `${data.noMemberId} ohne Mitglieds-Zuordnung (kein memberId in Stripe-Metadata)` : '',
+        ].filter(Boolean).join(', ')
+        alert(`Sync abgeschlossen: ${parts}`)
       } else {
         alert(data.error ?? 'Fehler beim Synchronisieren')
       }

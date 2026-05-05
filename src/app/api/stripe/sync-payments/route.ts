@@ -42,8 +42,9 @@ export async function POST(req: Request) {
   const supabase = serviceClient()
   const stripeOpts = { stripeAccount: connectedAccountId }
 
-  let inserted = 0
-  let skipped  = 0
+  let inserted   = 0
+  let alreadyHad = 0
+  let noMemberId = 0
   let startingAfter: string | undefined = undefined
 
   // Paginate through all paid invoices on the connected account
@@ -55,14 +56,25 @@ export async function POST(req: Request) {
 
     for (const inv of invoices.data) {
       const amountCents = inv.amount_paid
-      if (amountCents <= 0) { skipped++; continue }
+      if (amountCents <= 0) { noMemberId++; continue }
 
-      // Extract memberId + gymId from subscription metadata
-      const meta     = (inv as any).subscription_details?.metadata ?? inv.metadata ?? {}
-      const memberId = meta.memberId as string | undefined
-      const gymId    = (meta.gymId as string | undefined) ?? gym.id
+      // Extract memberId + gymId — try multiple sources:
+      // 1. subscription_details.metadata (newer Stripe API)
+      // 2. inv.metadata directly
+      // 3. Expand the subscription object to read its metadata
+      let meta: Record<string, string> = (inv as any).subscription_details?.metadata ?? inv.metadata ?? {}
+      let memberId = meta.memberId as string | undefined
+      const gymId  = (meta.gymId as string | undefined) ?? gym.id
 
-      if (!memberId) { skipped++; continue }
+      const invSub = (inv as any).subscription
+      if (!memberId && invSub && typeof invSub === 'string') {
+        try {
+          const sub = await stripe.subscriptions.retrieve(invSub, {}, stripeOpts)
+          memberId = sub.metadata?.memberId
+        } catch { /* non-fatal */ }
+      }
+
+      if (!memberId) { noMemberId++; continue }
 
       const paymentIntentId = typeof (inv as any).payment_intent === 'string'
         ? (inv as any).payment_intent as string
@@ -97,7 +109,7 @@ export async function POST(req: Request) {
         exists = !!(nearby && nearby.length > 0)
       }
 
-      if (exists) { skipped++; continue }
+      if (exists) { alreadyHad++; continue }
 
       // Insert missing payment record — also fetch member name for future-proofing
       const paidAt = inv.status_transitions?.paid_at
@@ -123,5 +135,5 @@ export async function POST(req: Request) {
     startingAfter = invoices.data[invoices.data.length - 1].id
   }
 
-  return NextResponse.json({ success: true, inserted, skipped })
+  return NextResponse.json({ success: true, inserted, alreadyHad, noMemberId })
 }
