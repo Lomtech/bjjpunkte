@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  MapPin, Phone, Mail, Clock, Users, ChevronRight, Check,
+  MapPin, Phone, Mail, Clock, Users, ChevronLeft, ChevronRight, Check,
   Share2, Globe, MessageCircle, Menu, X, CalendarDays, Award, CheckCircle2, AlertCircle,
 } from 'lucide-react'
 import { LogoMark } from '@/components/Logo'
@@ -73,13 +73,13 @@ function fmt(interval: string, lang = 'de') {
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
-function groupByDay(cls: GymClass[], locale = 'de-DE') {
-  const g: Record<string, GymClass[]> = {}
-  for (const c of cls) {
-    const k = new Date(c.starts_at).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })
-    ;(g[k] = g[k] ?? []).push(c)
-  }
-  return Object.entries(g)
+function startOfWeek(d: Date): Date {
+  const r = new Date(d); const day = r.getDay()
+  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day)); r.setHours(0,0,0,0); return r
+}
+function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate()+n); return r }
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate()
 }
 function toWa(raw: string) {
   let p = raw.replace(/[\s\-().]/g, '')
@@ -259,6 +259,9 @@ export default function PublicGymPage() {
   const [showImpressum, setShowImpressum] = useState(false)
   const [bookingClass, setBookingClass]   = useState<GymClass | null>(null)
   const { lang } = useLanguage()
+  const today = new Date(); today.setHours(0,0,0,0)
+  const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()))
+  const [selectedDay, setSelectedDay] = useState<Date>(today)
 
   useScrollReveal()
 
@@ -281,7 +284,6 @@ export default function PublicGymPage() {
   )
 
   const locale = lang === 'en' ? 'en-GB' : 'de-DE'
-  const days   = groupByDay(classes, locale)
   // Merge video_urls array (new) with legacy video_url fallback, dedupe, parse
   const allVideoUrls = Array.isArray(gym.video_urls) && gym.video_urls.length > 0
     ? gym.video_urls
@@ -588,56 +590,125 @@ export default function PublicGymPage() {
       {posts.length > 0 && <SectionWave fromBg="bg-white" toBg="bg-zinc-50" />}
 
       {/* ── SCHEDULE ── */}
-      {days.length > 0 && (<>
-        <section id="schedule" className="bg-zinc-50 py-24">
+      {classes.length > 0 && (<>
+        <section id="schedule" className="bg-zinc-50 py-20">
           <div className="max-w-6xl mx-auto px-5">
+            {/* Section header */}
             <div data-reveal className="flex items-center gap-2 mb-3">
               <span className="w-6 h-px bg-amber-400" />
               <p className="text-amber-500 text-xs font-bold uppercase tracking-[0.2em]">{lang === 'en' ? 'Schedule' : 'Stundenplan'}</p>
             </div>
-            <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-12" style={{ transitionDelay: '60ms' }}>{lang === 'en' ? 'Upcoming classes' : 'Kommende Trainings'}</h2>
-            <div className="space-y-8">
-              {days.map(([day, dc]) => (
-                <div key={day}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <CalendarDays size={13} className="text-amber-500" />
-                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{day}</p>
-                    <div className="flex-1 h-px bg-zinc-100" />
+            <h2 data-reveal className="text-3xl font-black text-zinc-900 mb-8" style={{ transitionDelay: '60ms' }}>
+              {lang === 'en' ? 'Upcoming classes' : 'Kommende Trainings'}
+            </h2>
+
+            {/* Week navigation */}
+            <div className="flex items-center gap-2 mb-4">
+              <button onClick={() => { setWeekStart(w => addDays(w,-7)); setSelectedDay(s => addDays(s,-7)) }}
+                className="p-2 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-white transition-colors bg-white/60">
+                <ChevronLeft size={15} />
+              </button>
+              <button onClick={() => { setWeekStart(startOfWeek(new Date())); setSelectedDay(today) }}
+                className="px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 text-xs font-medium hover:bg-white transition-colors bg-white/60">
+                {lang === 'en' ? 'Today' : 'Heute'}
+              </button>
+              <button onClick={() => { setWeekStart(w => addDays(w,7)); setSelectedDay(s => addDays(s,7)) }}
+                className="p-2 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-white transition-colors bg-white/60">
+                <ChevronRight size={15} />
+              </button>
+            </div>
+
+            {/* Day strip */}
+            <div className="overflow-x-auto mb-6">
+              <div className="flex md:grid md:grid-cols-7 gap-1 min-w-max md:min-w-0">
+                {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, idx) => {
+                  const isToday = isSameDay(day, today)
+                  const isSel   = isSameDay(day, selectedDay)
+                  const hasCls  = classes.some(c => isSameDay(new Date(c.starts_at), day))
+                  const LABELS  = lang === 'en' ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] : ['Mo','Di','Mi','Do','Fr','Sa','So']
+                  return (
+                    <button key={idx} onClick={() => setSelectedDay(day)}
+                      className={`flex flex-col items-center px-5 md:px-2 py-2.5 rounded-xl transition-colors min-w-[56px] md:min-w-0 ${
+                        isSel ? 'bg-amber-500 text-white' : isToday ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-white text-zinc-500 border border-zinc-200 hover:bg-zinc-50'
+                      }`}>
+                      <span className="text-[10px] font-bold uppercase tracking-wide">{LABELS[idx]}</span>
+                      <span className="text-sm font-bold mt-0.5">{day.getDate()}</span>
+                      {hasCls && !isSel && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Mobile: single day */}
+            <div className="md:hidden space-y-3">
+              {(() => {
+                const dayClasses = classes.filter(c => isSameDay(new Date(c.starts_at), selectedDay)).sort((a,b) => a.starts_at.localeCompare(b.starts_at))
+                if (dayClasses.length === 0) return (
+                  <div className="text-center py-10 text-zinc-400 text-sm">
+                    {lang === 'en' ? 'No classes this day.' : 'Kein Training an diesem Tag.'}
                   </div>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {dc.map(cls => (
-                      <div key={cls.id} className="bg-white rounded-2xl border border-zinc-200 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0">
-                            <p className="text-sm font-bold text-zinc-900 tabular-nums">{fmtTime(cls.starts_at)}</p>
-                            <p className="text-[11px] text-zinc-400 tabular-nums">{fmtTime(cls.ends_at)}</p>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-zinc-900 text-sm leading-tight">{cls.title}</p>
-                            {cls.instructor && <p className="text-xs text-zinc-500 mt-0.5">{cls.instructor}</p>}
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${CLASS_COLORS[cls.class_type] ?? 'bg-zinc-100 text-zinc-600'}`}>
-                                {CLASS_LABELS[cls.class_type] ?? cls.class_type}
-                              </span>
-                              {cls.max_capacity && (
-                                <span className="text-[10px] text-zinc-400 flex items-center gap-0.5">
-                                  <Users size={9} /> {cls.max_capacity}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setBookingClass(cls)}
-                          className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-colors"
-                        >
-                          {lang === 'en' ? 'Book now' : 'Jetzt buchen'}
-                        </button>
+                )
+                return dayClasses.map(cls => (
+                  <div key={cls.id} className="bg-white rounded-2xl border border-zinc-200 p-4 flex flex-col gap-3 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <p className="text-sm font-bold text-zinc-900 tabular-nums">{fmtTime(cls.starts_at)}</p>
+                        <p className="text-[11px] text-zinc-400 tabular-nums">{fmtTime(cls.ends_at)}</p>
                       </div>
-                    ))}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-zinc-900 text-sm leading-tight">{cls.title}</p>
+                        {cls.instructor && <p className="text-xs text-zinc-500 mt-0.5">{cls.instructor}</p>}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${CLASS_COLORS[cls.class_type] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                            {CLASS_LABELS[cls.class_type] ?? cls.class_type}
+                          </span>
+                          {cls.max_capacity && (
+                            <span className="text-[10px] text-zinc-400 flex items-center gap-0.5">
+                              <Users size={9} /> {cls.max_capacity}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={() => setBookingClass(cls)}
+                      className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-colors">
+                      {lang === 'en' ? 'Book now' : 'Jetzt buchen'}
+                    </button>
                   </div>
-                </div>
-              ))}
+                ))
+              })()}
+            </div>
+
+            {/* Desktop: 7-column grid */}
+            <div className="hidden md:grid md:grid-cols-7 gap-3">
+              {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, idx) => {
+                const dayClasses = classes.filter(c => isSameDay(new Date(c.starts_at), day)).sort((a,b) => a.starts_at.localeCompare(b.starts_at))
+                const isSel = isSameDay(day, selectedDay)
+                return (
+                  <div key={idx} className={`rounded-xl p-2 transition-colors ${isSel ? 'bg-amber-50/60 ring-1 ring-amber-200' : ''}`}>
+                    {dayClasses.length === 0 ? (
+                      <div className="flex items-center justify-center py-8">
+                        <p className="text-[11px] text-zinc-300">{lang === 'en' ? 'No classes' : 'Kein Training'}</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {dayClasses.map(cls => (
+                          <div key={cls.id} className="bg-white rounded-xl border border-zinc-200 p-3 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all cursor-pointer"
+                            onClick={() => setBookingClass(cls)}>
+                            <p className="text-xs font-bold text-zinc-900 tabular-nums">{fmtTime(cls.starts_at)} <span className="text-zinc-400 font-normal">– {fmtTime(cls.ends_at)}</span></p>
+                            <p className="font-semibold text-zinc-900 text-xs leading-tight mt-1">{cls.title}</p>
+                            {cls.instructor && <p className="text-[11px] text-zinc-400 mt-0.5">{cls.instructor}</p>}
+                            <span className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-md mt-1.5 ${CLASS_COLORS[cls.class_type] ?? 'bg-zinc-100 text-zinc-600'}`}>
+                              {CLASS_LABELS[cls.class_type] ?? cls.class_type}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </section>
