@@ -365,6 +365,12 @@ export interface Database {
         }
         Relationships: Rel[]
       }
+      cron_runs: {
+        Row: { id: string; job_name: string; executed_at: string; created_at: string }
+        Insert: { job_name: string; executed_at: string; id?: string; created_at?: string }
+        Update: Record<string, never>
+        Relationships: Rel[]
+      }
       belt_promotions: {
         Row: { id: string; member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; promoted_at: string; notes: string | null }
         Insert: { member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; notes?: string | null }

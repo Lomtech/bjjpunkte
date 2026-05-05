@@ -109,13 +109,19 @@ export async function GET(req: Request) {
   if (guard) return guard
 
   const todayKey = new Date().toISOString().split('T')[0] // 'YYYY-MM-DD'
-  const alreadyRanKey = `cron_payment_reminder_${todayKey}`
-  if ((global as Record<string, unknown>)[alreadyRanKey]) {
-    return NextResponse.json({ skipped: true, reason: 'already ran today' })
-  }
-  (global as Record<string, unknown>)[alreadyRanKey] = true
-
   const supabase = createServiceClient()
+
+  // DB-level dedup — safe across multiple serverless instances
+  const { error: dedupErr } = await supabase
+    .from('cron_runs')
+    .insert({ job_name: 'payment_reminders', executed_at: todayKey })
+  if (dedupErr) {
+    // 23505 = unique_violation → already ran today
+    if (dedupErr.code === '23505') {
+      return NextResponse.json({ skipped: true, reason: 'already ran today' })
+    }
+    return NextResponse.json({ error: dedupErr.message }, { status: 500 })
+  }
   const appUrl   = getAppUrl()
 
   const now        = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))

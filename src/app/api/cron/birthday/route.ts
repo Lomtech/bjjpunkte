@@ -10,17 +10,23 @@ export async function GET(req: Request) {
   if (guard) return guard
 
   const todayKey = new Date().toISOString().split('T')[0]
-  const alreadyRanKey = `cron_birthday_${todayKey}`
-  if ((global as Record<string, unknown>)[alreadyRanKey]) {
-    return NextResponse.json({ skipped: true, reason: 'already ran today' })
-  }
-  ;(global as Record<string, unknown>)[alreadyRanKey] = true
 
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     return NextResponse.json({ skipped: true, reason: 'Resend not configured' })
   }
 
   const supabase = createServiceClient()
+
+  // DB-level dedup — safe across multiple serverless instances
+  const { error: dedupErr } = await supabase
+    .from('cron_runs')
+    .insert({ job_name: 'birthday', executed_at: todayKey })
+  if (dedupErr) {
+    if (dedupErr.code === '23505') {
+      return NextResponse.json({ skipped: true, reason: 'already ran today' })
+    }
+    return NextResponse.json({ error: dedupErr.message }, { status: 500 })
+  }
   const appUrl   = getAppUrl()
 
   const today   = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
