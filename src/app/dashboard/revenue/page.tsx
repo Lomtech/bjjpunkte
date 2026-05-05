@@ -11,7 +11,8 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface PaymentFull {
   id: string
-  member_id: string
+  member_id: string | null
+  member_name: string | null   // stored at payment time — survives member deletion
   amount_cents: number
   paid_at: string | null
   status: string
@@ -75,7 +76,7 @@ export default function RevenuePage() {
 
       const [paymentsRes, membersRes, plansRes] = await Promise.all([
         supabase.from('payments')
-          .select('id, member_id, amount_cents, paid_at, status, created_at')
+          .select('id, member_id, member_name, amount_cents, paid_at, status, created_at')
           .eq('gym_id', gymData.id)
           .order('paid_at', { ascending: false }),
         supabase.from('members')
@@ -88,7 +89,7 @@ export default function RevenuePage() {
           .eq('is_active', true),
       ])
 
-      const payments = (paymentsRes.data ?? []) as PaymentFull[]
+      const payments = (paymentsRes.data ?? []) as unknown as PaymentFull[]
       const paidPayments = payments.filter(p => p.status === 'paid' && p.paid_at)
 
       const activeMembers = (membersRes.data ?? []) as {
@@ -166,11 +167,17 @@ export default function RevenuePage() {
       setMembers(memberStatuses)
       setExpectedMonthlyCents(activeMembers.reduce((s, m) => s + effectiveFee(m), 0))
 
-      // All payments with member name
+      // All payments with member name — prefer stored member_name (survives deletion),
+      // fall back to live nameMap, then "Ex-Mitglied" label
       setAllPayments(
         payments
           .filter(p => p.status === 'paid' && p.paid_at)
-          .map(p => ({ ...p, member_name: nameMap.get(p.member_id) ?? t('revenue', 'unknown') }))
+          .map(p => ({
+            ...p,
+            member_name: p.member_name
+              ?? (p.member_id ? nameMap.get(p.member_id) : null)
+              ?? (lang === 'en' ? 'Former member' : 'Ex-Mitglied'),
+          }))
       )
 
       setLoading(false)
@@ -436,20 +443,31 @@ export default function RevenuePage() {
           <div className="divide-y divide-gray-100">
             {allPayments.map(p => (
               <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors group">
-                <Link href={`/dashboard/members/${p.member_id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                    <ArrowUpRight size={13} className="text-amber-600" />
+                {p.member_id ? (
+                  <Link href={`/dashboard/members/${p.member_id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                      <ArrowUpRight size={13} className="text-amber-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-900 truncate">{p.member_name}</p>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                      <ArrowUpRight size={13} className="text-zinc-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-400 truncate italic">{p.member_name}</p>
+                      <p className="text-xs text-zinc-400">
+                        {p.paid_at
+                          ? new Date(p.paid_at).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          : '–'}
+                        {p.invoice_number && <span className="ml-2 text-zinc-300">#{p.invoice_number}</span>}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-zinc-900 truncate">{p.member_name}</p>
-                    <p className="text-xs text-zinc-400">
-                      {p.paid_at
-                        ? new Date(p.paid_at).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                        : '–'}
-                      {p.invoice_number && <span className="ml-2 text-zinc-300">#{p.invoice_number}</span>}
-                    </p>
-                  </div>
-                </Link>
+                )}
                 <span className="text-sm font-semibold text-zinc-800 flex-shrink-0">{formatCents(p.amount_cents)}</span>
                 {p.status === 'paid' && (
                   <a href={`/api/invoices/${p.id}?print=1`} target="_blank" rel="noopener noreferrer"

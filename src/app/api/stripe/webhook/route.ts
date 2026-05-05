@@ -155,9 +155,12 @@ export async function POST(req: Request) {
           .from('payments').select('id')
           .eq('stripe_checkout_session_id', sessionId).limit(1)
         if (!existing || existing.length === 0) {
+          const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
+          const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
           await (supabase.from('payments') as any).insert({
             gym_id:                     gymId,
             member_id:                  memberId,
+            member_name:                memberName,
             amount_cents:               session.amount_total ?? 0,
             status:                     'paid',
             paid_at:                    now,
@@ -295,9 +298,12 @@ export async function POST(req: Request) {
         }
       }
 
+      const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
+      const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
       await (supabase.from('payments') as any).insert({
         gym_id:                   gymId ?? null,
         member_id:                memberId,
+        member_name:              memberName,
         amount_cents:             amountCents,
         status:                   'paid',
         paid_at:                  new Date().toISOString(),

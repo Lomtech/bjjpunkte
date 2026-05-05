@@ -48,6 +48,7 @@ export default function SettingsPage() {
   const [stripeAccountId, setStripeAccountId]   = useState<string | null>(null)
   const [connectLoading, setConnectLoading]     = useState(false)
   const [stripeChargesEnabled, setStripeChargesEnabled] = useState<boolean | null>(null)
+  const [syncLoading, setSyncLoading]           = useState(false)
 
   // Legal
   const [legalName, setLegalName]       = useState('')
@@ -343,6 +344,29 @@ export default function SettingsPage() {
       danger: true, icon: '⚠️',
       onConfirm: async () => { closeConfirm(); const { data: { session } } = await createClient().auth.getSession(); await fetch('/api/stripe/connect', { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } }); setStripeAccountId(null) },
     })
+  }
+
+  async function handleSyncPayments() {
+    setSyncLoading(true)
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      const res = await fetch('/api/stripe/sync-payments', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert(lang === 'en'
+          ? `Sync complete: ${data.inserted} new payment(s) added, ${data.skipped} already recorded.`
+          : `Sync abgeschlossen: ${data.inserted} neue Zahlung(en) hinzugefügt, ${data.skipped} bereits vorhanden.`)
+      } else {
+        alert(data.error ?? 'Fehler beim Synchronisieren')
+      }
+    } catch {
+      alert('Netzwerkfehler')
+    } finally {
+      setSyncLoading(false)
+    }
   }
 
   async function handleUpgrade(plan: string) {
@@ -1163,6 +1187,10 @@ export default function SettingsPage() {
                             <ExternalLink size={11} /> Stripe Dashboard
                           </a>
                         )}
+                        <button type="button" onClick={handleSyncPayments} disabled={syncLoading}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-medium transition-colors border border-zinc-200 disabled:opacity-50">
+                          {syncLoading ? '⏳ Sync…' : '🔄 Zahlungen synchronisieren'}
+                        </button>
                         <button type="button" onClick={handleDisconnect}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition-colors border border-red-200">
                           <Unlink size={11} /> {t('settings', 'disconnect')}
