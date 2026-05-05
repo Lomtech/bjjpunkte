@@ -31,13 +31,19 @@ async function pLimit<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[
   return results
 }
 
+// Composite dedup key: prefer payment_intent, fall back to identity+amount+minute.
+function dedupKey(piId: string | null, identity: string, amountCents: number, paidAt: string): string {
+  if (piId) return `pi:${piId}`
+  return `m:${identity}:${amountCents}:${paidAt.slice(0, 16)}`
+}
+
 // POST /api/stripe/sync-payments
 // Fetches all paid Stripe invoices from the connected account and
 // inserts any missing records into the payments table.
 //
-// Performance: instead of N individual DB existence-checks (one per invoice),
-// we batch all payment_intent IDs per page into a single IN-query, then only
-// resolve member names and insert for the truly new ones.
+// Also cleans up any duplicate rows already in the DB — keeps the
+// first inserted row (lowest id) for each unique (payment_intent /
+// member+amount+minute) combination.
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
   if (!stripeKey) return NextResponse.json({ error: 'Stripe nicht konfiguriert' }, { status: 400 })
@@ -62,7 +68,41 @@ export async function POST(req: Request) {
   let inserted     = 0
   let alreadyHad   = 0
   let noMemberId   = 0
+  let cleaned      = 0
   const insertErrors: string[] = []
+
+  // ── Step 0: remove existing duplicate rows for this gym ────────────────────
+  // Keeps the row with the lowest id (first inserted) per unique payment.
+  // Handles duplicates left by earlier sync runs before dedup was correct.
+  {
+    const { data: allPayments } = await supabase
+      .from('payments')
+      .select('id, stripe_payment_intent_id, member_id, member_name, amount_cents, paid_at')
+      .eq('gym_id', (gym as any).id)
+      .order('id')  // ascending — lowest id = earliest, keep this one
+
+    if (allPayments && allPayments.length > 1) {
+      const seen = new Set<string>()
+      const toDelete: string[] = []
+
+      for (const p of allPayments as any[]) {
+        const identity = p.member_id ?? p.member_name ?? ''
+        const key = dedupKey(p.stripe_payment_intent_id, identity, p.amount_cents, p.paid_at ?? '')
+        if (seen.has(key)) {
+          toDelete.push(p.id)
+        } else {
+          seen.add(key)
+        }
+      }
+
+      if (toDelete.length > 0) {
+        const { error: delErr } = await supabase.from('payments').delete().in('id', toDelete)
+        if (!delErr) cleaned = toDelete.length
+        else console.error('[sync-payments] cleanup error:', delErr)
+      }
+    }
+  }
+
   let startingAfter: string | undefined = undefined
 
   while (true) {
@@ -107,7 +147,7 @@ export async function POST(req: Request) {
       const amountCents = inv.amount_paid
       let meta: Record<string, string> = (inv as any).subscription_details?.metadata ?? inv.metadata ?? {}
       let memberId = meta.memberId as string | undefined
-      const gymId  = (meta.gymId as string | undefined) ?? gym.id
+      const gymId  = (meta.gymId as string | undefined) ?? (gym as any).id
 
       // Try subscription metadata if not directly available
       const invSub = (inv as any).subscription
@@ -125,7 +165,7 @@ export async function POST(req: Request) {
           const { data: byCustomer } = await supabase
             .from('members').select('id')
             .eq('stripe_customer_id', customerId)
-            .eq('gym_id', gym.id)
+            .eq('gym_id', (gym as any).id)
             .single()
           memberId = (byCustomer as any)?.id
         }
@@ -180,7 +220,7 @@ export async function POST(req: Request) {
     // Catches: (a) SEPA invoices without payment_intent, (b) invoices whose
     // payment_intent was stored as null on a previous sync and now has one,
     // (c) memberId=undefined case where .eq('member_id', '') would miss null rows.
-    const finalToInsert: InvoiceResolved[] = []
+    const afterDbDedup: InvoiceResolved[] = []
     for (const r of toInsert) {
       const dayBefore = new Date(new Date(r.paidAt).getTime() - 86_400_000).toISOString()
       const dayAfter  = new Date(new Date(r.paidAt).getTime() + 86_400_000).toISOString()
@@ -205,6 +245,21 @@ export async function POST(req: Request) {
       const { data: nearby } = await q
       if (nearby && nearby.length > 0) { alreadyHad++; continue }
 
+      afterDbDedup.push(r)
+    }
+
+    // ── Step 6b: deduplicate within the current batch ───────────────────────
+    // Two invoices on the same Stripe page can be identical (same PI, or same
+    // member+amount+minute for SEPA invoices without a PI). Both would pass the
+    // DB check above because neither is in the DB yet. Deduplicate here so only
+    // the first occurrence is inserted.
+    const batchSeen = new Set<string>()
+    const finalToInsert: InvoiceResolved[] = []
+    for (const r of afterDbDedup) {
+      const identity = r.memberId ?? r.memberNameFallback ?? ''
+      const key = dedupKey(r.paymentIntentId, identity, r.amountCents, r.paidAt)
+      if (batchSeen.has(key)) { alreadyHad++; continue }
+      batchSeen.add(key)
       finalToInsert.push(r)
     }
 
@@ -236,5 +291,5 @@ export async function POST(req: Request) {
     startingAfter = invoices.data[invoices.data.length - 1].id
   }
 
-  return NextResponse.json({ success: true, inserted, alreadyHad, noMemberId, insertErrors })
+  return NextResponse.json({ success: true, inserted, alreadyHad, noMemberId, cleaned, insertErrors })
 }
