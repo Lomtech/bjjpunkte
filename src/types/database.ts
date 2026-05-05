@@ -439,6 +439,7 @@ export interface Database {
       get_classes_for_gym: { Args: { p_gym_id: string; p_from: string }; Returns: unknown[] }
       book_class_by_token: { Args: { p_token: string; p_class_id: string }; Returns: unknown }
       cancel_booking_by_token: { Args: { p_token: string; p_class_id: string }; Returns: unknown }
+      delete_gym_cascade: { Args: { p_gym_id: string; p_user_id: string }; Returns: void }
     }
   }
 }

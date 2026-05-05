@@ -80,13 +80,15 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  const { data: dedupRow } = await supabase
-    .from('payments')
-    .select('id')
-    .or(`stripe_payment_intent_id.eq.${event.id},stripe_checkout_session_id.eq.${event.id}`)
-    .limit(1)
-    .maybeSingle()
-  if (dedupRow) return NextResponse.json({ received: true })
+  // Atomic dedup via stripe_events table — UNIQUE index on event_id rejects duplicates
+  const { error: dedupErr } = await supabase
+    .from('stripe_events')
+    .insert({ event_id: event.id } as never)
+  // 23505 = unique_violation → duplicate event, already processed
+  if (dedupErr) {
+    if ((dedupErr as { code?: string }).code === '23505') return NextResponse.json({ received: true })
+    console.error('[webhook] stripe_events insert error:', dedupErr)
+  }
 
   // ── checkout.session.completed ──────────────────────────────────────────────
   if (event.type === 'checkout.session.completed') {
