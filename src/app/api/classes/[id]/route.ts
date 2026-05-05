@@ -61,20 +61,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       if (rows && rows.length > 0) {
         // If times changed, update each row individually with its correct LOCAL date
         if (start_time || end_time) {
-          for (const row of rows as { id: string; starts_at: string; ends_at: string }[]) {
-            // Convert stored UTC timestamp → local date using the client's tz offset
-            const utcMs   = new Date(row.starts_at).getTime()
-            const localMs = utcMs + tzOffsetMin * 60 * 1000
-            const localD  = new Date(localMs)
-            const dateStr = `${localD.getUTCFullYear()}-${String(localD.getUTCMonth() + 1).padStart(2, '0')}-${String(localD.getUTCDate()).padStart(2, '0')}`
+          await Promise.all(
+            (rows as { id: string; starts_at: string; ends_at: string }[]).map(row => {
+              const utcMs   = new Date(row.starts_at).getTime()
+              const localMs = utcMs + tzOffsetMin * 60 * 1000
+              const localD  = new Date(localMs)
+              const dateStr = `${localD.getUTCFullYear()}-${String(localD.getUTCMonth() + 1).padStart(2, '0')}-${String(localD.getUTCDate()).padStart(2, '0')}`
 
-            const newStartsAt = start_time ? `${dateStr}T${start_time}:00${tzSuffix}` : row.starts_at
-            const newEndsAt   = end_time   ? `${dateStr}T${end_time}:00${tzSuffix}`   : row.ends_at
-            await supabase
-              .from('classes')
-              .update({ ...metaFields, starts_at: newStartsAt, ends_at: newEndsAt })
-              .eq('id', row.id)
-          }
+              const newStartsAt = start_time ? `${dateStr}T${start_time}:00${tzSuffix}` : row.starts_at
+              const newEndsAt   = end_time   ? `${dateStr}T${end_time}:00${tzSuffix}`   : row.ends_at
+              return supabase
+                .from('classes')
+                .update({ ...metaFields, starts_at: newStartsAt, ends_at: newEndsAt })
+                .eq('id', row.id)
+            })
+          )
         } else {
           // No time change — bulk update metadata only
           let updateQ = supabase

@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
   const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
-  const { data } = await supabase.from('gym_staff').select('*').eq('gym_id', gym.id).order('created_at', { ascending: false })
+  const { data } = await supabase.from('gym_staff').select('*').eq('gym_id', gym.id).order('created_at', { ascending: false }).limit(500)
   return NextResponse.json(data ?? [])
 }
 

@@ -42,7 +42,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     { data: posts },
     { data: bookings },
   ] = await Promise.all([
-    (supabase.from('gyms') as any).select('name, belt_system, belt_system_enabled, logo_url, class_types').eq('id', gymId).single(),
+    (supabase.from('gyms') as any).select('name, belt_system, belt_system_enabled, logo_url, class_types').eq('id', gymId).maybeSingle(),
     supabase.from('attendance').select('id, checked_in_at, class_type').eq('member_id', memberId).order('checked_in_at', { ascending: false }).limit(50),
     supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('member_id', memberId),
     supabase.from('payments').select('id, amount_cents, status, paid_at, created_at, checkout_url').eq('member_id', memberId).order('created_at', { ascending: false }).limit(24),
@@ -57,6 +57,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
       .gte('classes.starts_at', now.toISOString())
       .lte('classes.starts_at', in7days),
   ])
+
+  if (!gym) {
+    return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  }
 
   const totalPaidCents = (payments ?? [])
     .filter((p: any) => p.status === 'paid')

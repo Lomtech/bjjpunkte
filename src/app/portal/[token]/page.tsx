@@ -570,10 +570,20 @@ export default function MemberPortalPage() {
   )
 
   if (error || !data) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-slate-500 text-sm">{error || (lang === 'en' ? 'Not found' : 'Nicht gefunden')}</p>
-        <p className="text-slate-400 text-xs mt-2">{lang === 'en' ? 'Please contact your gym.' : 'Bitte kontaktiere dein Gym.'}</p>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 max-w-sm w-full text-center">
+        <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle size={22} className="text-red-400" />
+        </div>
+        <h2 className="font-bold text-slate-900 text-base mb-1">
+          {lang === 'en' ? 'Portal unavailable' : 'Portal nicht verfügbar'}
+        </h2>
+        <p className="text-slate-500 text-sm mb-1">
+          {error || (lang === 'en' ? 'This link is invalid or has expired.' : 'Dieser Link ist ungültig oder abgelaufen.')}
+        </p>
+        <p className="text-slate-400 text-xs">
+          {lang === 'en' ? 'Please contact your gym.' : 'Bitte kontaktiere dein Gym.'}
+        </p>
       </div>
     </div>
   )

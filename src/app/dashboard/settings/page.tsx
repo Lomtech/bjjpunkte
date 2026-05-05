@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
@@ -16,7 +16,7 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 
 type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge' | 'vertraege'
 
-export default function SettingsPage() {
+function SettingsPageInner() {
   const { t, lang } = useLanguage()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<Tab>('allgemein')
@@ -1847,6 +1847,14 @@ export default function SettingsPage() {
         />
       )}
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsPageInner />
+    </Suspense>
   )
 }
 

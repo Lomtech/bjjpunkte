@@ -260,7 +260,14 @@ export default function PublicGymPage() {
   useEffect(() => {
     fetch(`/api/public/gym/${slug}`, { next: { revalidate: 60 } } as RequestInit)
       .then(r => r.json())
-      .then(d => { setGym(d.gym); setClasses(d.classes ?? []); setPlans(d.plans ?? []); setPosts(d.posts ?? []) })
+      .then(d => {
+        if (d.error || !d.gym) return // gym stays null → shows error card
+        setGym(d.gym)
+        setClasses(d.classes ?? [])
+        setPlans(d.plans ?? [])
+        setPosts(d.posts ?? [])
+      })
+      .catch(() => { /* gym stays null → shows error card */ })
       .finally(() => setLoading(false))
   }, [slug])
 
@@ -270,8 +277,20 @@ export default function PublicGymPage() {
     </div>
   )
   if (!gym) return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <p className="text-zinc-400 text-sm">{lang === 'en' ? 'Gym not found.' : 'Gym nicht gefunden.'}</p>
+    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-8 max-w-sm w-full text-center">
+        <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mx-auto mb-4">
+          <span className="text-zinc-400 text-xl font-bold">?</span>
+        </div>
+        <h2 className="font-bold text-zinc-900 text-base mb-1">
+          {lang === 'en' ? 'Gym not found' : 'Gym nicht gefunden'}
+        </h2>
+        <p className="text-zinc-400 text-sm">
+          {lang === 'en'
+            ? 'This gym page does not exist or has been removed.'
+            : 'Diese Gym-Seite existiert nicht oder wurde entfernt.'}
+        </p>
+      </div>
     </div>
   )
 

@@ -62,8 +62,16 @@ function ScheduleContent() {
   )
 
   if (error) return (
-    <div className="flex items-center justify-center min-h-[200px]">
-      <div className="text-slate-400 text-sm">{error}</div>
+    <div className={`${isEmbed ? '' : 'min-h-screen bg-slate-50'} flex items-center justify-center p-6`}>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 max-w-sm w-full text-center">
+        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-3">
+          <span className="text-red-400 text-lg font-bold">!</span>
+        </div>
+        <p className="font-semibold text-slate-800 text-sm mb-1">
+          {lang === 'en' ? 'Schedule not available' : 'Stundenplan nicht verfügbar'}
+        </p>
+        <p className="text-slate-400 text-xs">{error}</p>
+      </div>
     </div>
   )
 

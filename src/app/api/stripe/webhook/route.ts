@@ -166,7 +166,7 @@ export async function POST(req: Request) {
         if (existErr) return NextResponse.json({ error: existErr.message }, { status: 500 })
         if (!existing || existing.length === 0) {
           const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
-          const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
+          const memberName = mRow ? (`${mRow.first_name ?? ''} ${mRow.last_name ?? ''}`).trim() || null : null
           const { error: insErr } = await supabase.from('payments').insert({
             gym_id:                     gymId,
             member_id:                  memberId,
