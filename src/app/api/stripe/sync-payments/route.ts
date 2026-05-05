@@ -74,6 +74,20 @@ export async function POST(req: Request) {
         } catch { /* non-fatal */ }
       }
 
+      // Last fallback: match by Stripe customer ID stored on the member
+      if (!memberId) {
+        const customerId = typeof (inv as any).customer === 'string' ? (inv as any).customer as string : null
+        if (customerId) {
+          const { data: memberByCustomer } = await supabase
+            .from('members')
+            .select('id')
+            .eq('stripe_customer_id', customerId)
+            .eq('gym_id', gym.id)
+            .single()
+          memberId = (memberByCustomer as any)?.id
+        }
+      }
+
       if (!memberId) { noMemberId++; continue }
 
       const paymentIntentId = typeof (inv as any).payment_intent === 'string'
