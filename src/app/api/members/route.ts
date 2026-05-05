@@ -85,7 +85,20 @@ export async function POST(req: Request) {
   const fullName    = `${first_name} ${last_name}`
 
   // ── 1. Welcome email → member ────────────────────────────────────────────
-  if (email && portalUrl && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+  if (email && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+    const portalSection = portalUrl
+      ? `
+            <p style="margin:0 0 16px;font-size:14px;color:#374151">
+              Über deinen persönlichen Mitglieder-Link kannst du jederzeit deine Daten,
+              Trainingsanwesenheit und Beiträge einsehen:
+            </p>
+            <a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#0f172a;font-weight:700;font-size:14px;border-radius:12px;text-decoration:none">
+              Mein Mitglieder-Portal →
+            </a>`
+      : `
+            <p style="margin:0 0 16px;font-size:14px;color:#374151">
+              Bitte wende dich an deinen Gym-Admin für deinen Portal-Zugang.
+            </p>`
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -101,14 +114,7 @@ export async function POST(req: Request) {
             <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#0f172a">Hallo ${first_name}! 🥋</p>
             <p style="margin:0 0 20px;font-size:15px;color:#64748b;line-height:1.6">
               Herzlich willkommen bei <strong>${gymName}</strong>! Wir freuen uns, dich dabei zu haben.
-            </p>
-            <p style="margin:0 0 16px;font-size:14px;color:#374151">
-              Über deinen persönlichen Mitglieder-Link kannst du jederzeit deine Daten,
-              Trainingsanwesenheit und Beiträge einsehen:
-            </p>
-            <a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#0f172a;font-weight:700;font-size:14px;border-radius:12px;text-decoration:none">
-              Mein Mitglieder-Portal →
-            </a>
+            </p>${portalSection}
             <p style="margin:24px 0 0;font-size:12px;color:#94a3b8">Oss!</p>
           </div>
         `,

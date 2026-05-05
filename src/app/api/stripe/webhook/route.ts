@@ -88,6 +88,7 @@ export async function POST(req: Request) {
   if (dedupErr) {
     if ((dedupErr as { code?: string }).code === '23505') return NextResponse.json({ received: true })
     console.error('[webhook] stripe_events insert error:', dedupErr)
+    return NextResponse.json({ error: 'Dedup insert failed' }, { status: 500 })
   }
 
   // ── checkout.session.completed ──────────────────────────────────────────────

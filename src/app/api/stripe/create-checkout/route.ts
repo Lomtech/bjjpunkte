@@ -97,7 +97,10 @@ export async function POST(req: Request) {
     }
 
     // Direct charge: session on connected account so customer is found
-    const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
+    const session = await stripe.checkout.sessions.create(
+      sessionParams,
+      { ...stripeOpts, idempotencyKey: `checkout-${memberId}-${gymId}-${Date.now().toString().slice(0, -3)}` },
+    )
 
     // Store session ID as primary match key — payment_intent may be null until payment completes
     await supabase.from('payments').insert({

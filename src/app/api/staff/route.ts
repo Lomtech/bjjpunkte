@@ -35,14 +35,28 @@ export async function POST(req: Request) {
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const { email, name, role } = await req.json()
-  if (!email || !name) return NextResponse.json({ error: 'Email und Name erforderlich' }, { status: 400 })
+
+  const VALID_ROLES = ['trainer', 'admin', 'viewer']
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return NextResponse.json({ error: 'Name ist erforderlich' }, { status: 400 })
+  }
+  if (name.trim().length > 100) {
+    return NextResponse.json({ error: 'Name darf maximal 100 Zeichen lang sein' }, { status: 400 })
+  }
+  if (!email || typeof email !== 'string' || email.trim().length === 0) {
+    return NextResponse.json({ error: 'Email ist erforderlich' }, { status: 400 })
+  }
+  if (email.trim().length > 254) {
+    return NextResponse.json({ error: 'Email darf maximal 254 Zeichen lang sein (RFC 5321)' }, { status: 400 })
+  }
+  const resolvedRole = VALID_ROLES.includes(role) ? role : 'trainer'
 
   const sc = serviceClient()
   const { data: staff, error } = await sc.from('gym_staff').insert({
     gym_id: gym.id,
     email: email.toLowerCase().trim(),
     name: name.trim(),
-    role: role ?? 'trainer',
+    role: resolvedRole,
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

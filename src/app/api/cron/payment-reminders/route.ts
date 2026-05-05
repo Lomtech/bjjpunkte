@@ -125,8 +125,12 @@ export async function GET(req: Request) {
   let whatsappFailed = 0
   const errors: string[] = []
 
-  // Process gyms in parallel (each gym is independent)
-  await Promise.all((gyms ?? []).map(async gym => {
+  // Process gyms in sequential batches to avoid overwhelming the DB and email provider
+  const BATCH_SIZE = 20
+  const allGyms = gyms ?? []
+  for (let i = 0; i < allGyms.length; i += BATCH_SIZE) {
+    const batch = allGyms.slice(i, i + BATCH_SIZE)
+    await Promise.all(batch.map(async gym => {
     const [membersRes, paidRes, pendingRes] = await Promise.all([
       supabase
         .from('members')
@@ -208,7 +212,8 @@ export async function GET(req: Request) {
         }
       }))
     }
-  }))
+    }))
+  }
 
   return NextResponse.json({
     ok:             errors.length === 0,

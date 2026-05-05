@@ -152,7 +152,8 @@ export async function DELETE(req: Request) {
   const stripe = new Stripe(stripeKey)
   // Subscriptions live on the connected account (direct charges model)
   const connectedAccountId = (gym as any).stripe_account_id as string | null
-  const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+  if (!connectedAccountId) return NextResponse.json({ error: 'Kein Stripe-Konto verbunden' }, { status: 400 })
+  const stripeOpts = { stripeAccount: connectedAccountId }
   await stripe.subscriptions.cancel(subId, {}, stripeOpts)
   await supabase.from('members').update({ stripe_subscription_id: null, subscription_status: 'cancelled' }).eq('id', memberId)
 

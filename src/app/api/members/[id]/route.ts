@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 
 function authClient(accessToken: string) {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+  )
+}
+
+function serviceClient() {
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
 
@@ -27,7 +35,8 @@ export async function PATCH(
 
   const body = await req.json()
   const allowed = ['is_active', 'belt', 'stripes', 'notes', 'monthly_fee_override_cents']
-  const update: Record<string, unknown> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const update: Record<string, any> = {}
   for (const key of allowed) {
     if (key in body) update[key] = body[key]
   }
@@ -37,7 +46,8 @@ export async function PATCH(
 
   const { error } = await supabase
     .from('members')
-    .update(update)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(update as any)
     .eq('id', id)
     .eq('gym_id', gym.id)
 
@@ -51,20 +61,13 @@ export async function DELETE(
 ) {
   const { id } = await params
 
-  const authHeader  = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
+  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
-  )
-
+  const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  // Verify member belongs to this user's gym and is inactive
   const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
@@ -74,11 +77,13 @@ export async function DELETE(
   if (!member) return NextResponse.json({ error: 'Mitglied nicht gefunden' }, { status: 404 })
   if (member.is_active) return NextResponse.json({ error: 'Aktive Mitglieder können nicht gelöscht werden.' }, { status: 400 })
 
-  // Delete related data first
-  await supabase.from('attendance').delete().eq('member_id', id)
-  await supabase.from('payments').delete().eq('member_id', id)
-  await supabase.from('belt_promotions').delete().eq('member_id', id)
-  await supabase.from('members').delete().eq('id', id)
+  // Atomic cascade delete via DB transaction
+  const svc = serviceClient()
+  const { error: rpcError } = await svc.rpc('delete_member_cascade', {
+    p_member_id: id,
+    p_gym_id: gym.id,
+  })
+  if (rpcError) return NextResponse.json({ error: rpcError.message }, { status: 500 })
 
   return NextResponse.json({ success: true })
 }

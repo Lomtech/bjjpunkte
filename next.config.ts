@@ -1,6 +1,19 @@
 import type { NextConfig } from "next";
 
 const securityHeaders = [
+  // Content Security Policy
+  {
+    key: 'Content-Security-Policy',
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+      "img-src 'self' data: https: blob:",
+      "style-src 'self' 'unsafe-inline'",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com",
+      "frame-src https://js.stripe.com https://hooks.stripe.com",
+      "font-src 'self' data:",
+    ].join('; '),
+  },
   // Prevent clickjacking — disallow embedding in iframes
   { key: 'X-Frame-Options', value: 'DENY' },
   // Prevent MIME-type sniffing

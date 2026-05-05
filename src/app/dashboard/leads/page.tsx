@@ -376,7 +376,7 @@ export default function LeadsPage() {
                 {/* Avatar */}
                 <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-bold text-amber-600">
-                    {lead.first_name[0]}{lead.last_name[0]}
+                    {lead.first_name?.[0] ?? '?'}{lead.last_name?.[0] ?? ''}
                   </span>
                 </div>
 

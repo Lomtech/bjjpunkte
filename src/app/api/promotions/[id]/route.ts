@@ -23,11 +23,21 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  // Fetch the promotion to delete
+  // Fetch the requesting user's gym (ownership check)
+  const { data: gym } = await supabase
+    .from('gyms')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 403 })
+
+  // Fetch the promotion to delete — scoped to the user's gym to prevent IDOR
   const { data: promo } = await supabase
     .from('belt_promotions')
     .select('id, member_id, previous_belt, previous_stripes, new_belt, new_stripes, promoted_at')
     .eq('id', id)
+    .eq('gym_id', gym.id)
     .single()
 
   if (!promo) return NextResponse.json({ error: 'Promotion nicht gefunden' }, { status: 404 })

@@ -43,6 +43,7 @@ export async function GET(req: Request) {
     .in('gym_id', gymIds)
     .not('date_of_birth', 'is', null)
     .not('email', 'is', null)
+    .limit(2000)
 
   const birthdayMembers = (members ?? []).filter((m: { date_of_birth: string | null }) => {
     if (!m.date_of_birth) return false
@@ -54,25 +55,29 @@ export async function GET(req: Request) {
   let failed = 0
   const errors: string[] = []
 
-  for (const member of birthdayMembers as {
+  const membersToEmail = (birthdayMembers as {
     first_name: string; email: string | null; date_of_birth: string; gym_id: string
-  }[]) {
-    if (!member.email) continue
-    const age     = today.getFullYear() - parseInt(member.date_of_birth.slice(0, 4))
-    const gymName = gymMap.get(member.gym_id) ?? 'Dein Gym'
+  }[]).filter(m => !!m.email)
 
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL,
-          to:   member.email,
-          subject: `Alles Gute zum Geburtstag, ${member.first_name}!`,
-          html: `<!DOCTYPE html>
+  const EMAIL_BATCH = 10
+  for (let i = 0; i < membersToEmail.length; i += EMAIL_BATCH) {
+    const chunk = membersToEmail.slice(i, i + EMAIL_BATCH)
+    await Promise.all(chunk.map(async member => {
+      const age     = today.getFullYear() - parseInt(member.date_of_birth.slice(0, 4))
+      const gymName = gymMap.get(member.gym_id) ?? 'Dein Gym'
+
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: process.env.RESEND_FROM_EMAIL,
+            to:   member.email,
+            subject: `Alles Gute zum Geburtstag, ${member.first_name}!`,
+            html: `<!DOCTYPE html>
 <html lang="de">
 <head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
@@ -95,23 +100,24 @@ export async function GET(req: Request) {
   </table>
 </body>
 </html>`,
-        }),
-      })
-      if (res.ok) {
-        sent++
-      } else {
-        const body = await res.text().catch(() => '')
+          }),
+        })
+        if (res.ok) {
+          sent++
+        } else {
+          const body = await res.text().catch(() => '')
+          failed++
+          const msg = `Birthday email to ${member.email} (gym ${member.gym_id}): HTTP ${res.status} ${body}`
+          errors.push(msg)
+          console.error('[cron/birthday]', msg)
+        }
+      } catch (err) {
         failed++
-        const msg = `Birthday email to ${member.email} (gym ${member.gym_id}): HTTP ${res.status} ${body}`
+        const msg = `Birthday email to ${member.email} (gym ${member.gym_id}): ${String(err)}`
         errors.push(msg)
         console.error('[cron/birthday]', msg)
       }
-    } catch (err) {
-      failed++
-      const msg = `Birthday email to ${member.email} (gym ${member.gym_id}): ${String(err)}`
-      errors.push(msg)
-      console.error('[cron/birthday]', msg)
-    }
+    }))
   }
 
   return NextResponse.json({

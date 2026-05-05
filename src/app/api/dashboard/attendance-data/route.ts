@@ -36,7 +36,8 @@ export async function GET(req: Request) {
       .select('id, checked_in_at, class_type, member_id, class_id')
       .eq('gym_id', gym.id)
       .gte('checked_in_at', today.toISOString())
-      .order('checked_in_at', { ascending: false }),
+      .order('checked_in_at', { ascending: false })
+      .limit(1000),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: today.toISOString() }),
   ])
