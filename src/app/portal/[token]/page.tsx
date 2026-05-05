@@ -1016,15 +1016,38 @@ export default function MemberPortalPage() {
         {/* ── Verwaltung tab ── */}
         {activeTab === 'verwaltung' && (
           <>
-            {/* Membership plans */}
-            {plans.length > 0 && (
+            {/* ── Inactive member: show ended state, payment history only ── */}
+            {!member.is_active && (
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm text-center space-y-2">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                  <Package size={22} className="text-slate-400" />
+                </div>
+                <p className="font-semibold text-slate-800 text-base">
+                  {lang === 'en' ? 'Membership ended' : 'Mitgliedschaft beendet'}
+                </p>
+                <p className="text-sm text-slate-400">
+                  {lang === 'en'
+                    ? 'Your membership has been cancelled and confirmed by the gym. Contact the gym to rejoin.'
+                    : 'Deine Mitgliedschaft wurde gekündigt und vom Gym bestätigt. Melde dich beim Gym, um wieder beizutreten.'}
+                </p>
+              </div>
+            )}
+
+            {/* Membership plans — only for active members */}
+            {member.is_active && plans.length > 0 && (
               <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
                 <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
                   <Package size={15} className="text-slate-400" /> {t('portal', 'membership')}
                 </h2>
                 {currentPlan ? (
                   <p className="text-xs text-slate-400 mb-4">
-                    {lang === 'en' ? 'Current:' : 'Aktuell:'} <span className="font-medium text-slate-600">{currentPlan.name}</span>
+                    {lang === 'en' ? 'Current:' : 'Aktuell:'}
+                    {' '}<span className="font-medium text-slate-600">{currentPlan.name}</span>
+                    {localCancelledAt && (
+                      <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">
+                        {lang === 'en' ? 'Cancellation pending' : 'Kündigung ausstehend'}
+                      </span>
+                    )}
                   </p>
                 ) : (
                   <p className="text-xs text-slate-400 mb-4">{lang === 'en' ? 'Choose a plan or request a change.' : 'Wähle einen Tarif oder fordere einen Wechsel an.'}</p>
@@ -1050,8 +1073,10 @@ export default function MemberPortalPage() {
                     const isRequested     = plan.id === localRequestedPlanId
                     const isLoading       = planRequesting === plan.id
 
+                    const cancelPending = !!localCancelledAt
                     return (
                       <div key={plan.id} className={`rounded-xl border-2 p-4 transition-all ${
+                        isCurrentPlan && cancelPending ? 'border-red-200 bg-red-50/40' :
                         isCurrentPlan ? 'border-amber-400 bg-amber-50' :
                         isRequested   ? 'border-amber-200 bg-amber-50/50' :
                         'border-slate-100 bg-slate-50'
@@ -1060,8 +1085,11 @@ export default function MemberPortalPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-semibold text-slate-900 text-sm">{plan.name}</p>
-                              {isCurrentPlan && (
+                              {isCurrentPlan && !cancelPending && (
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold">{lang === 'en' ? 'Current' : 'Aktuell'}</span>
+                              )}
+                              {isCurrentPlan && cancelPending && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-400 text-white font-bold">{lang === 'en' ? 'Cancellation pending' : 'Kündigung läuft'}</span>
                               )}
                               {isRequested && !isCurrentPlan && (
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-800 font-bold">{lang === 'en' ? 'Requested' : 'Angefordert'}</span>
@@ -1080,7 +1108,7 @@ export default function MemberPortalPage() {
                               <p className="text-xs text-slate-500 mt-1">{plan.description}</p>
                             )}
                           </div>
-                          {!isCurrentPlan && !isRequested && (
+                          {!isCurrentPlan && !isRequested && !cancelPending && (
                             <button
                               onClick={() => handleRequestPlan(plan.id)}
                               disabled={!!isLoading}
@@ -1185,8 +1213,8 @@ export default function MemberPortalPage() {
               )}
             </div>
 
-            {/* Cancellation */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+            {/* Cancellation — only for active members */}
+            {member.is_active && <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
               <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
                 <AlertTriangle size={15} className="text-slate-400" /> {t('portal', 'cancelMembership')}
               </h2>
@@ -1238,7 +1266,7 @@ export default function MemberPortalPage() {
                   {t('portal', 'requestCancellation')}
                 </button>
               )}
-            </div>
+            </div>}
           </>
         )}
 
