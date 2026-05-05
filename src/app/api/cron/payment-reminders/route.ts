@@ -141,11 +141,11 @@ export async function GET(req: Request) {
         .not('checkout_url', 'is', null),
     ])
 
-    const paidIds = new Set((paidRes.data ?? []).map((p: { member_id: string }) => p.member_id))
+    const paidIds = new Set((paidRes.data ?? []).filter(p => p.member_id != null).map(p => p.member_id!))
     const pendingByMember = new Map(
       (pendingRes.data ?? [])
-        .filter((p: { checkout_url: string | null }) => p.checkout_url)
-        .map((p: { member_id: string; checkout_url: string | null }) => [p.member_id, p.checkout_url!])
+        .filter(p => p.checkout_url && p.member_id != null)
+        .map(p => [p.member_id!, p.checkout_url!] as [string, string])
     )
 
     const needReminder = (membersRes.data ?? []).filter((m: {

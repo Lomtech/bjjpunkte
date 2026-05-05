@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 
 function serviceClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
@@ -29,7 +30,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   }
 
   // Verify the plan belongs to the same gym
-  const { data: plan } = await (supabase.from('membership_plans') as any)
+  const { data: plan } = await supabase.from('membership_plans')
     .select('id')
     .eq('id', plan_id)
     .eq('gym_id', member.gym_id)
@@ -40,17 +41,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     return NextResponse.json({ error: 'Plan nicht gefunden' }, { status: 404 })
   }
 
-  await (supabase.from('members') as any)
+  await supabase.from('members')
     .update({ requested_plan_id: plan_id })
     .eq('id', member.id)
 
   // Notify gym owner
   try {
-    const { data: gymData } = await (supabase.from('gyms') as any)
+    const { data: gymData } = await supabase.from('gyms')
       .select('name, email')
       .eq('id', member.gym_id)
       .single()
-    const { data: planData } = await (supabase.from('membership_plans') as any)
+    const { data: planData } = await supabase.from('membership_plans')
       .select('name')
       .eq('id', plan_id)
       .single()
@@ -83,7 +84,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ toke
 
   if (!member) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
 
-  await (supabase.from('members') as any)
+  await supabase.from('members')
     .update({ requested_plan_id: null })
     .eq('id', member.id)
 

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 import { getAppUrl } from '@/lib/app-url'
 
 function authClient(accessToken: string) {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
@@ -25,7 +26,7 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: gym } = await (supabase.from('gyms') as any)
+  const { data: gym } = await supabase.from('gyms')
     .select('id, stripe_account_id')
     .eq('owner_id', user.id)
     .single()
@@ -33,7 +34,7 @@ export async function POST(
   const gymData = gym as { id: string; stripe_account_id: string | null }
 
   // Get member (verify belongs to this gym)
-  const { data: memberRaw } = await (supabase.from('members') as any)
+  const { data: memberRaw } = await supabase.from('members')
     .select('id, requested_plan_id, stripe_customer_id, stripe_subscription_id, email, first_name, last_name')
     .eq('id', memberId)
     .eq('gym_id', gymData.id)
@@ -55,7 +56,7 @@ export async function POST(
   }
 
   // Get the requested plan
-  const { data: planRaw } = await (supabase.from('membership_plans') as any)
+  const { data: planRaw } = await supabase.from('membership_plans')
     .select('id, name, price_cents, billing_interval, stripe_price_id, contract_months')
     .eq('id', member.requested_plan_id)
     .eq('gym_id', gymData.id)
@@ -72,7 +73,7 @@ export async function POST(
   }
 
   // Assign the plan and clear the request
-  await (supabase.from('members') as any)
+  await supabase.from('members')
     .update({ plan_id: plan.id, requested_plan_id: null })
     .eq('id', memberId)
 
@@ -106,7 +107,7 @@ export async function POST(
           stripeOpts ?? {},
         )
         customerId = customer.id
-        await (supabase.from('members') as any).update({ stripe_customer_id: customerId }).eq('id', memberId)
+        await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', memberId)
       }
 
       // If contract has a fixed duration, auto-cancel the subscription at the end

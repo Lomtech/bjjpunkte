@@ -190,7 +190,7 @@ export default function SettingsPage() {
     supabase.from('gyms').select('*').single().then(async ({ data }) => {
       if (data) {
         setGymId(data.id ?? null)
-        const existingSlug = (data as any).slug ?? ''
+        const existingSlug = data.slug ?? ''
         const existingName = data.name ?? ''
         setName(existingName)
         if (existingSlug) {
@@ -208,42 +208,42 @@ export default function SettingsPage() {
         setEmail(data.email ?? '')
         setLogoUrl(data.logo_url ?? null)
         setMonthlyFee(data.monthly_fee_cents ? ((data.monthly_fee_cents as number) / 100).toFixed(2) : '')
-        setStripeAccountId((data as any).stripe_account_id)
-        if ((data as any).stripe_account_id && (data as any).stripe_charges_enabled !== undefined) {
-          setStripeChargesEnabled((data as any).stripe_charges_enabled ?? null)
+        setStripeAccountId(data.stripe_account_id)
+        if (data.stripe_account_id && data.stripe_charges_enabled !== undefined) {
+          setStripeChargesEnabled(data.stripe_charges_enabled ?? null)
         }
-        setSignupEnabled((data as any).signup_enabled ?? true)
-        setSignupToken((data as any).signup_token ?? null)
-        setContractTemplate((data as any).contract_template ?? '')
+        setSignupEnabled(data.signup_enabled ?? true)
+        setSignupToken(data.signup_token ?? null)
+        setContractTemplate(data.contract_template ?? '')
 
-        setLegalName((data as any).legal_name ?? '')
-        setLegalAddress((data as any).legal_address ?? '')
-        setLegalEmail((data as any).legal_email ?? '')
-        setTaxNumber((data as any).tax_number ?? '')
-        setUstid((data as any).ustid ?? '')
-        setIsKleinunternehmer((data as any).is_kleinunternehmer ?? true)
-        setInvoicePrefix((data as any).invoice_prefix ?? 'RE')
-        setBankIban((data as any).bank_iban ?? '')
-        setBankBic((data as any).bank_bic ?? '')
-        setBankName((data as any).bank_name ?? '')
-        setDatevBeraternummer((data as any).datev_beraternummer ?? '')
-        setDatevMandantennummer((data as any).datev_mandantennummer ?? '')
-        const rawClassTypes = (data as any)?.class_types
+        setLegalName(data.legal_name ?? '')
+        setLegalAddress(data.legal_address ?? '')
+        setLegalEmail(data.legal_email ?? '')
+        setTaxNumber(data.tax_number ?? '')
+        setUstid(data.ustid ?? '')
+        setIsKleinunternehmer(data.is_kleinunternehmer ?? true)
+        setInvoicePrefix(data.invoice_prefix ?? 'RE')
+        setBankIban(data.bank_iban ?? '')
+        setBankBic(data.bank_bic ?? '')
+        setBankName(data.bank_name ?? '')
+        setDatevBeraternummer(data.datev_beraternummer ?? '')
+        setDatevMandantennummer(data.datev_mandantennummer ?? '')
+        const rawClassTypes = data.class_types
         if (Array.isArray(rawClassTypes)) setClassTypesInput(rawClassTypes.join(', '))
-        const savedSport = (data as any)?.sport_type as SportType | undefined
+        const savedSport = data.sport_type as SportType | undefined
         if (savedSport) setSportType(savedSport)
-        setBeltEnabled((data as any)?.belt_system_enabled ?? true)
-        setStripesEnabled((data as any)?.stripes_enabled ?? true)
-        setBeltSlots(resolveBeltSystem((data as any)?.belt_system))
-        if ((data as any)?.latitude)  setGpsLat((data as any).latitude)
-        if ((data as any)?.longitude) setGpsLng((data as any).longitude)
-        setGpsRadius((data as any)?.gps_radius_meters ?? 300)
-        setGymPlan((data as any)?.plan ?? 'free')
-        setPlanLimit((data as any)?.plan_member_limit ?? 30)
+        setBeltEnabled(data.belt_system_enabled ?? true)
+        setStripesEnabled(data.stripes_enabled ?? true)
+        setBeltSlots(resolveBeltSystem(data.belt_system))
+        if (data.latitude)  setGpsLat(data.latitude)
+        if (data.longitude) setGpsLng(data.longitude)
+        setGpsRadius(data.gps_radius_meters ?? 300)
+        setGymPlan(data.plan ?? 'free')
+        setPlanLimit(data.plan_member_limit ?? 30)
         const { count } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', data.id).eq('is_active', true)
         setMemberCount(count ?? 0)
         // Load plans
-        const { data: plansData } = await (supabase.from('membership_plans') as any).select('*').eq('gym_id', data.id).order('sort_order')
+        const { data: plansData } = await supabase.from('membership_plans').select('*').eq('gym_id', data.id).order('sort_order')
         if (plansData) setPlans(plansData)
       }
     })
@@ -398,7 +398,7 @@ export default function SettingsPage() {
     setGymSlug(clean)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({ slug: clean }).eq('owner_id', user?.id ?? '')
+    await supabase.from('gyms').update({ slug: clean }).eq('owner_id', user?.id ?? '')
     setSlugSaving(false); setSlugSaved(true); setTimeout(() => setSlugSaved(false), 2000)
   }
 
@@ -406,7 +406,7 @@ export default function SettingsPage() {
     setSignupSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({ signup_enabled: signupEnabled, contract_template: contractTemplate }).eq('owner_id', user?.id ?? '')
+    await supabase.from('gyms').update({ signup_enabled: signupEnabled, contract_template: contractTemplate }).eq('owner_id', user?.id ?? '')
     setSignupSaving(false); setSignupSaved(true); setTimeout(() => setSignupSaved(false), 2000)
   }
 
@@ -415,7 +415,7 @@ export default function SettingsPage() {
     setLegalSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({ legal_name: legalName||null, legal_address: legalAddress||null, legal_email: legalEmail||null }).eq('owner_id', user?.id ?? '')
+    await supabase.from('gyms').update({ legal_name: legalName||null, legal_address: legalAddress||null, legal_email: legalEmail||null }).eq('owner_id', user?.id ?? '')
     setLegalSaving(false); setLegalSaved(true); setTimeout(() => setLegalSaved(false), 2000)
   }
 
@@ -423,7 +423,7 @@ export default function SettingsPage() {
     setInvoiceSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({
+    await supabase.from('gyms').update({
       tax_number: taxNumber||null, ustid: ustid||null, is_kleinunternehmer: isKleinunternehmer,
       invoice_prefix: invoicePrefix||'RE', bank_iban: bankIban||null, bank_bic: bankBic||null, bank_name: bankName||null,
     }).eq('owner_id', user?.id ?? '')
@@ -554,7 +554,7 @@ export default function SettingsPage() {
     setDatevSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({
+    await supabase.from('gyms').update({
       datev_beraternummer: datevBeraternummer || null,
       datev_mandantennummer: datevMandantennummer || null,
     }).eq('owner_id', user?.id ?? '')
@@ -579,7 +579,7 @@ export default function SettingsPage() {
     setGpsSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({
+    await supabase.from('gyms').update({
       latitude: gpsLat, longitude: gpsLng, gps_radius_meters: gpsRadius,
     }).eq('owner_id', user?.id ?? '')
     setGpsSaving(false); setGpsSaved(true); setTimeout(() => setGpsSaved(false), 2500)
@@ -590,7 +590,7 @@ export default function SettingsPage() {
     const types = classTypesInput.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({ class_types: types }).eq('owner_id', user?.id ?? '')
+    await supabase.from('gyms').update({ class_types: types }).eq('owner_id', user?.id ?? '')
     setClassTypesSaving(false); setClassTypesSaved(true); setTimeout(() => setClassTypesSaved(false), 2000)
   }
 
@@ -598,7 +598,7 @@ export default function SettingsPage() {
     setBeltSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({ belt_system: beltSlots, sport_type: sportType, belt_system_enabled: beltEnabled, stripes_enabled: stripesEnabled }).eq('owner_id', user?.id ?? '')
+    await supabase.from('gyms').update({ belt_system: JSON.stringify(beltSlots), sport_type: sportType, belt_system_enabled: beltEnabled, stripes_enabled: stripesEnabled }).eq('owner_id', user?.id ?? '')
     setBeltSaving(false); setBeltSaved(true); setTimeout(() => setBeltSaved(false), 2000)
   }
 
@@ -646,7 +646,7 @@ export default function SettingsPage() {
         contract_months: parseInt(planForm.contractMonths) || 0,
       }
       const supabase = createClient()
-      const { data } = await (supabase.from('membership_plans') as any).update(payload).eq('id', editingPlanId).select().single()
+      const { data } = await supabase.from('membership_plans').update(payload).eq('id', editingPlanId).select().single()
       if (data) setPlans(ps => ps.map(p => p.id === editingPlanId ? { ...p, ...payload } : p))
       setEditingPlanId(null)
     } else {

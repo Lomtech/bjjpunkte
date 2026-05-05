@@ -51,7 +51,7 @@ function NewMemberForm() {
   useEffect(() => {
     async function loadMembers() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, plan_member_limit, belt_system_enabled, stripes_enabled').single()
+      const { data: gym } = await supabase.from('gyms').select('id, plan_member_limit, belt_system_enabled, stripes_enabled').single()
       if (!gym) return
       const gymId = gym.id
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)

@@ -83,6 +83,15 @@ export interface Database {
           // DATEV
           datev_beraternummer: string | null
           datev_mandantennummer: string | null
+          datev_sachkontenlänge: number | null
+          // GPS check-in
+          latitude: number | null
+          longitude: number | null
+          gps_radius_meters: number | null
+          // Payment
+          payment_method_types: string[] | null
+          // Plan
+          plan_expires_at: string | null
         }
         Insert: {
           owner_id: string
@@ -139,6 +148,12 @@ export interface Database {
           accent_color?: string | null
           datev_beraternummer?: string | null
           datev_mandantennummer?: string | null
+          datev_sachkontenlänge?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          gps_radius_meters?: number | null
+          payment_method_types?: string[] | null
+          plan_expires_at?: string | null
         }
         Update: {
           name?: string
@@ -194,6 +209,12 @@ export interface Database {
           accent_color?: string | null
           datev_beraternummer?: string | null
           datev_mandantennummer?: string | null
+          datev_sachkontenlänge?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          gps_radius_meters?: number | null
+          payment_method_types?: string[] | null
+          plan_expires_at?: string | null
         }
         Relationships: Rel[]
       }
@@ -307,34 +328,40 @@ export interface Database {
         Row: {
           id: string
           gym_id: string
-          member_id: string
+          member_id: string | null
           amount_cents: number
           status: string
           paid_at: string | null
           created_at: string
           stripe_checkout_session_id: string | null
           stripe_payment_intent_id: string | null
+          stripe_invoice_id: string | null
           checkout_url: string | null
           invoice_number: string | null
+          member_name: string | null
         }
         Insert: {
           gym_id: string
-          member_id: string
+          member_id?: string | null
           amount_cents: number
           status?: string
           paid_at?: string | null
           stripe_checkout_session_id?: string | null
           stripe_payment_intent_id?: string | null
+          stripe_invoice_id?: string | null
           checkout_url?: string | null
           invoice_number?: string | null
+          member_name?: string | null
         }
         Update: {
           status?: string
           paid_at?: string | null
           stripe_checkout_session_id?: string | null
           stripe_payment_intent_id?: string | null
+          stripe_invoice_id?: string | null
           checkout_url?: string | null
           invoice_number?: string | null
+          member_name?: string | null
         }
         Relationships: Rel[]
       }
@@ -346,7 +373,7 @@ export interface Database {
       }
       attendance: {
         Row: { id: string; member_id: string; gym_id: string; checked_in_at: string; class_type: ClassType; checked_out_at: string | null; class_id: string | null }
-        Insert: { member_id: string; gym_id: string; class_type?: ClassType; checked_out_at?: string | null; class_id?: string | null }
+        Insert: { member_id: string; gym_id: string; class_type?: ClassType; checked_in_at?: string; checked_out_at?: string | null; class_id?: string | null }
         Update: { class_type?: ClassType; checked_out_at?: string | null; class_id?: string | null }
         Relationships: Rel[]
       }
@@ -363,9 +390,9 @@ export interface Database {
         Relationships: Rel[]
       }
       membership_plans: {
-        Row: { id: string; gym_id: string; name: string; description: string | null; price_cents: number; billing_interval: string; contract_months: number; sort_order: number; is_active: boolean; stripe_price_id: string | null; created_at: string }
-        Insert: { gym_id: string; name: string; description?: string | null; price_cents: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null }
-        Update: { name?: string; description?: string | null; price_cents?: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null }
+        Row: { id: string; gym_id: string; name: string; description: string | null; price_cents: number; billing_interval: string; contract_months: number; sort_order: number; is_active: boolean; stripe_price_id: string | null; stripe_product_id: string | null; created_at: string }
+        Insert: { gym_id: string; name: string; description?: string | null; price_cents: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null; stripe_product_id?: string | null }
+        Update: { name?: string; description?: string | null; price_cents?: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null; stripe_product_id?: string | null }
         Relationships: Rel[]
       }
       leads: {
@@ -392,10 +419,16 @@ export interface Database {
         Update: { title?: string; body?: string | null; is_pinned?: boolean; expires_at?: string | null }
         Relationships: Rel[]
       }
-      staff: {
-        Row: { id: string; gym_id: string; name: string; email: string; role: string; accepted_at: string | null; invite_token: string; created_at: string }
-        Insert: { gym_id: string; name: string; email: string; role?: string; invite_token: string }
-        Update: { name?: string; email?: string; role?: string; accepted_at?: string | null }
+      gym_staff: {
+        Row: { id: string; gym_id: string; name: string; email: string; role: string; accepted_at: string | null; invite_token: string; user_id: string | null; created_at: string }
+        Insert: { gym_id: string; name: string; email: string; role?: string; invite_token: string; user_id?: string | null }
+        Update: { name?: string; email?: string; role?: string; accepted_at?: string | null; user_id?: string | null }
+        Relationships: [{ foreignKeyName: 'gym_staff_gym_id_fkey'; columns: ['gym_id']; isOneToOne: false; referencedRelation: 'gyms'; referencedColumns: ['id'] }]
+      }
+      training_logs: {
+        Row: { id: string; gym_id: string; member_id: string; note: string | null; class_type: string | null; logged_at: string }
+        Insert: { gym_id: string; member_id: string; note?: string | null; class_type?: string | null; logged_at?: string }
+        Update: { note?: string | null; class_type?: string | null }
         Relationships: Rel[]
       }
     }

@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
   const stripe = new Stripe(stripeKey)
 
-  const { data: gymData } = await (supabase.from('gyms') as any)
+  const { data: gymData } = await supabase.from('gyms')
     .select('id, stripe_account_id')
     .eq('id', gymId)
     .eq('owner_id', user.id)  // ensures caller owns this gym
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   // Look up contract_months from the member's current plan
   let cancelAt: number | undefined
   if (planId) {
-    const { data: planData } = await (supabase.from('membership_plans') as any)
+    const { data: planData } = await supabase.from('membership_plans')
       .select('contract_months')
       .eq('id', planId)
       .single()
@@ -138,7 +138,7 @@ export async function DELETE(req: Request) {
   const { memberId } = await req.json()
 
   // Verify member belongs to the caller's gym
-  const { data: gym } = await (supabase.from('gyms') as any).select('id, stripe_account_id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id, stripe_account_id').eq('owner_id', user.id).single()
   if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { data: memberCheck } = await supabase.from('members').select('gym_id, stripe_subscription_id').eq('id', memberId).single()

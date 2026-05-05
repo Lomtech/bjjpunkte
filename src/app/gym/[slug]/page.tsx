@@ -12,6 +12,7 @@ import { LogoMark } from '@/components/Logo'
 import { SectionWave } from '@/components/SectionWave'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { startOfWeek, addDays, CLASS_LABELS } from '@/lib/constants'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -47,10 +48,6 @@ interface GymInfo {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CLASS_LABELS: Record<string, string> = {
-  gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat',
-  kids: 'Kids', competition: 'Competition',
-}
 const CLASS_COLORS: Record<string, string> = {
   gi: 'bg-zinc-100 text-zinc-700', 'no-gi': 'bg-zinc-800 text-zinc-100',
   'open mat': 'bg-amber-100 text-amber-800', kids: 'bg-zinc-100 text-zinc-600',
@@ -73,11 +70,6 @@ function fmt(interval: string, lang = 'de') {
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
-function startOfWeek(d: Date): Date {
-  const r = new Date(d); const day = r.getDay()
-  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day)); r.setHours(0,0,0,0); return r
-}
-function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate()+n); return r }
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate()
 }

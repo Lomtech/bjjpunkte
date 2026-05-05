@@ -169,7 +169,7 @@ export default function PricingPage() {
     const res = await fetch('/api/stripe/owner-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, annual }),
     })
     const data = await res.json()
     if (data.url) window.location.href = data.url

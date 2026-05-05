@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 import Stripe from 'stripe'
 import { notifyGym } from '@/lib/notify'
 import { sendWhatsApp } from '@/lib/whatsapp'
@@ -16,7 +17,7 @@ function escHtml(s: string): string {
 }
 
 function serviceClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
@@ -125,7 +126,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   if (hasActiveContract && (stripeScheduledId || !m.stripe_subscription_id)) {
     // Contract running → member stays active until contract end, just mark as cancelling
-    await (supabase.from('members') as any).update({
+    await supabase.from('members').update({
       cancellation_requested_at: nowIso,
       cancellation_note:         note || null,
       // is_active stays true — member keeps access until contract_end_date
@@ -133,12 +134,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     }).eq('id', m.id)
   } else {
     // Immediate cancel
-    await (supabase.from('members') as any).update({
+    await supabase.from('members').update({
       is_active:                 false,
       cancellation_requested_at: nowIso,
       cancellation_note:         note || null,
       stripe_subscription_id:    null,
-      subscription_status:       stripeCancelledId ? 'cancelled' : null,
+      subscription_status:       stripeCancelledId ? 'cancelled' : 'none',
     }).eq('id', m.id)
   }
 
@@ -266,7 +267,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ toke
 
   if (!member) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
 
-  await (supabase.from('members') as any).update({
+  await supabase.from('members').update({
     cancellation_requested_at: null,
     cancellation_note:         null,
     is_active:                 true,

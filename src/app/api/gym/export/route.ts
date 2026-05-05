@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 
 function authClient(accessToken: string) {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
@@ -10,7 +11,7 @@ function authClient(accessToken: string) {
 }
 
 function serviceClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
 
   // ── Gym ───────────────────────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: gym, error: gymErr } = await (svc.from('gyms') as any)
+  const { data: gym, error: gymErr } = await svc.from('gyms')
     .select('*').eq('owner_id', user.id).single()
 
   if (gymErr || !gym) {
@@ -69,17 +70,17 @@ export async function GET(req: Request) {
     { data: staff },
   ] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (svc.from('membership_plans') as any)
+    svc.from('membership_plans')
       .select('name, description, price_cents, billing_interval, contract_months, is_active, sort_order')
       .eq('gym_id', gym.id).order('sort_order'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (svc.from('gym_announcements') as any)
+    svc.from('gym_announcements')
       .select('title, body, is_pinned, expires_at').eq('gym_id', gym.id),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (svc.from('posts') as any)
+    svc.from('posts')
       .select('title, cover_url, blocks, published_at').eq('gym_id', gym.id).not('published_at', 'is', null),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (svc.from('members') as any)
+    svc.from('members')
       .select([
         'id, first_name, last_name, email, phone, date_of_birth, address,',
         'belt, stripes, join_date, is_active, emergency_contact_name, emergency_contact_phone,',
@@ -90,15 +91,15 @@ export async function GET(req: Request) {
       ].join(' '))
       .eq('gym_id', gym.id).order('created_at'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (svc.from('classes') as any)
+    svc.from('classes')
       .select('id, title, class_type, description, instructor, starts_at, ends_at, max_capacity, is_cancelled, recurrence_type, recurrence_until, recurrence_parent_id')
       .eq('gym_id', gym.id).order('starts_at'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (svc.from('leads') as any)
+    svc.from('leads')
       .select('id, first_name, last_name, email, phone, status, source, notes, trial_date, created_at, referred_by, contacted_at, converted_at')
       .eq('gym_id', gym.id).order('created_at'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (svc.from('staff') as any)
+    svc.from('gym_staff')
       .select('name, email, role, accepted_at').eq('gym_id', gym.id),
   ])
 
@@ -138,37 +139,37 @@ export async function GET(req: Request) {
   ] = await Promise.all([
     classIds.length && memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (svc.from('class_bookings') as any)
+      ? svc.from('class_bookings')
           .select('member_id, class_id, status, created_at')
           .in('class_id', classIds).in('member_id', memberIds).neq('status', 'cancelled')
       : { data: [] },
     memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (svc.from('attendance') as any)
+      ? svc.from('attendance')
           .select('member_id, class_id, class_type, checked_in_at')
           .eq('gym_id', gym.id).in('member_id', memberIds)
       : { data: [] },
     memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (svc.from('belt_promotions') as any)
+      ? svc.from('belt_promotions')
           .select('member_id, previous_belt, new_belt, promoted_at, notes')
           .eq('gym_id', gym.id).in('member_id', memberIds).order('promoted_at')
       : { data: [] },
     leadIds.length && classIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (svc.from('lead_bookings') as any)
+      ? svc.from('lead_bookings')
           .select('lead_id, class_id, status, booked_at')
           .in('lead_id', leadIds).in('class_id', classIds).neq('status', 'cancelled')
       : { data: [] },
     memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (svc.from('training_logs') as any)
+      ? svc.from('training_logs')
           .select('member_id, note, class_type, logged_at')
           .eq('gym_id', gym.id).in('member_id', memberIds)
       : { data: [] },
     memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (svc.from('payments') as any)
+      ? svc.from('payments')
           .select('member_id, amount_cents, status, paid_at, created_at, invoice_number')
           .eq('gym_id', gym.id).in('member_id', memberIds)
       : { data: [] },

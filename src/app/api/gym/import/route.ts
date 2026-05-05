@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 
 function authClient(accessToken: string) {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
@@ -10,13 +11,17 @@ function authClient(accessToken: string) {
 }
 
 function serviceClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+
+// Import data is raw JSON from user exports — bypass strict Supabase Insert types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function anyRow(obj: Record<string, unknown>): any { return obj }
 
 function isAllowedImageUrl(url: string): boolean {
   try {
@@ -113,14 +118,14 @@ export async function POST(req: Request) {
 
   // Look up existing gym — maybeSingle() returns null without error if none found
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let { data: gym } = await (svc.from('gyms') as any).select('id').eq('owner_id', user.id).maybeSingle()
+  let { data: gym } = await svc.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
 
   // New Google/OAuth users have no gym yet — create one from the import data
   if (!gym) {
     const gymData = body.gym as Record<string, unknown>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: newGym, error: insertErr } = await (svc.from('gyms') as any)
-      .insert({ owner_id: user.id, name: gymData.name ?? 'Importiertes Gym' })
+    const { data: newGym, error: insertErr } = await svc.from('gyms')
+      .insert({ owner_id: user.id, name: (gymData.name as string | undefined) ?? 'Importiertes Gym' })
       .select('id')
       .single()
     if (insertErr || !newGym) {
@@ -202,6 +207,7 @@ export async function POST(req: Request) {
   if (newGalleryUrls.length > 0) gymUpdate.gallery_urls = newGalleryUrls.filter(Boolean)
   if (newAboutBlocks.length > 0) gymUpdate.about_blocks = newAboutBlocks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (svc.from('gyms') as any).update(gymUpdate).eq('id', gym.id)
 
   // ── Membership plans ───────────────────────────────────────────────────────
@@ -210,7 +216,7 @@ export async function POST(req: Request) {
   if (Array.isArray(membership_plans) && membership_plans.length > 0) {
     for (const p of membership_plans) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await (svc.from('membership_plans') as any).insert({
+      const { data: inserted } = await svc.from('membership_plans').insert({
         gym_id:           gym.id,
         name:             p.name,
         description:      p.description ?? null,
@@ -227,7 +233,7 @@ export async function POST(req: Request) {
   // ── Announcements ──────────────────────────────────────────────────────────
   if (Array.isArray(announcements) && announcements.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (svc.from('gym_announcements') as any).insert(announcements.map((a: any) => ({
+    await svc.from('gym_announcements').insert(announcements.map((a: any) => ({
       gym_id: gym.id, title: a.title, body: a.body ?? null,
       is_pinned: a.is_pinned ?? false, expires_at: a.expires_at ?? null,
     })))
@@ -250,7 +256,7 @@ export async function POST(req: Request) {
         return block
       }))
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (svc.from('posts') as any).insert({
+      await svc.from('posts').insert({
         gym_id: gym.id, title: p.title,
         cover_url: newCoverUrl ?? p.cover_url ?? null,
         blocks: newBlocks, published_at: p.published_at ?? null,
@@ -264,7 +270,7 @@ export async function POST(req: Request) {
   if (Array.isArray(members) && members.length > 0) {
     for (const m of members) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await (svc.from('members') as any).insert({
+      const { data: inserted } = await svc.from('members').insert(anyRow({
         gym_id:                     gym.id,
         first_name:                 m.first_name,
         last_name:                  m.last_name,
@@ -292,7 +298,7 @@ export async function POST(req: Request) {
         consent_text:               m.consent_text ?? null,
         cancellation_requested_at:  m.cancellation_requested_at ?? null,
         cancellation_note:          m.cancellation_note ?? null,
-      }).select('id').single()
+      })).select('id').single()
       memberIds.push(inserted?.id ?? '')
     }
   }
@@ -303,7 +309,7 @@ export async function POST(req: Request) {
       const parentIdx = members[i].parent_member_index
       if (parentIdx != null && memberIds[parentIdx] && memberIds[i]) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (svc.from('members') as any)
+        await svc.from('members')
           .update({ parent_member_id: memberIds[parentIdx] })
           .eq('id', memberIds[i])
       }
@@ -322,7 +328,7 @@ export async function POST(req: Request) {
         if (hasPlan)          update.plan_id          = planIds[planIdx]
         if (hasRequestedPlan) update.requested_plan_id = planIds[reqPlanIdx]
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (svc.from('members') as any).update(update).eq('id', memberIds[i])
+        await svc.from('members').update(update as any).eq('id', memberIds[i])
       }
     }
   }
@@ -333,7 +339,7 @@ export async function POST(req: Request) {
     // Pass 1: insert without recurrence_parent_id
     for (const c of classes) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await (svc.from('classes') as any).insert({
+      const { data: inserted } = await svc.from('classes').insert(anyRow({
         gym_id:           gym.id,
         title:            c.title,
         class_type:       c.class_type ?? 'gi',
@@ -345,7 +351,7 @@ export async function POST(req: Request) {
         is_cancelled:     c.is_cancelled ?? false,
         recurrence_type:  c.recurrence_type ?? 'none',
         recurrence_until: c.recurrence_until ?? null,
-      }).select('id').single()
+      })).select('id').single()
       classIds.push(inserted?.id ?? '')
     }
     // Pass 2: link recurrence parents
@@ -353,7 +359,7 @@ export async function POST(req: Request) {
       const parentIdx = classes[i].recurrence_parent_index
       if (parentIdx != null && classIds[parentIdx] && classIds[i]) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (svc.from('classes') as any)
+        await svc.from('classes')
           .update({ recurrence_parent_id: classIds[parentIdx] })
           .eq('id', classIds[i])
       }
@@ -372,7 +378,7 @@ export async function POST(req: Request) {
     })
     if (toInsert.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (svc.from('class_bookings') as any).insert(toInsert)
+      await svc.from('class_bookings').insert(toInsert as any[])
       bookingsImported = toInsert.length
     }
   }
@@ -392,7 +398,7 @@ export async function POST(req: Request) {
     })
     if (toInsert.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (svc.from('attendance') as any).insert(toInsert)
+      await svc.from('attendance').insert(toInsert as any[])
       attendanceImported = toInsert.length
     }
   }
@@ -412,7 +418,7 @@ export async function POST(req: Request) {
     })
     if (toInsert.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (svc.from('belt_promotions') as any).insert(toInsert)
+      await svc.from('belt_promotions').insert(toInsert as any[])
       beltPromotionsImported = toInsert.length
     }
   }
@@ -422,7 +428,7 @@ export async function POST(req: Request) {
   if (Array.isArray(leads) && leads.length > 0) {
     for (const l of leads) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await (svc.from('leads') as any).insert({
+      const { data: inserted } = await svc.from('leads').insert(anyRow({
         gym_id:       gym.id,
         first_name:   l.first_name,
         last_name:    l.last_name,
@@ -435,7 +441,7 @@ export async function POST(req: Request) {
         referred_by:  l.referred_by ?? null,
         contacted_at: l.contacted_at ?? null,
         converted_at: l.converted_at ?? null,
-      }).select('id').single()
+      })).select('id').single()
       leadIds.push(inserted?.id ?? '')
     }
   }
@@ -452,7 +458,7 @@ export async function POST(req: Request) {
     })
     if (toInsert.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (svc.from('lead_bookings') as any).insert(toInsert)
+      await svc.from('lead_bookings').insert(toInsert as any[])
       leadBookingsImported = toInsert.length
     }
   }
@@ -465,7 +471,7 @@ export async function POST(req: Request) {
       gym_id: gym.id, name: s.name, email: s.email, role: s.role ?? 'trainer',
     }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (svc.from('staff') as any).insert(toInsert)
+    await svc.from('gym_staff').insert(toInsert as any[])
     staffImported = toInsert.length
   }
 
@@ -480,7 +486,7 @@ export async function POST(req: Request) {
     })
     if (toInsert.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (svc.from('training_logs') as any).insert(toInsert)
+      await svc.from('training_logs').insert(toInsert as any[])
       trainingLogsImported = toInsert.length
     }
   }
@@ -495,11 +501,11 @@ export async function POST(req: Request) {
       // Force status to 'imported' — never trust caller-supplied status.
       // This prevents fabricating 'paid' records without actual Stripe payments.
       const amountCents = typeof p.amount_cents === 'number' && p.amount_cents >= 0 ? Math.round(p.amount_cents) : 0
-      return [{ gym_id: gym.id, member_id: memberId, amount_cents: amountCents, status: 'imported', paid_at: p.paid_at ?? null, created_at: p.created_at ?? null, invoice_number: p.invoice_number ?? null }]
+      return [{ gym_id: gym.id, member_id: memberId, amount_cents: amountCents, status: 'imported', paid_at: p.paid_at ?? null, invoice_number: p.invoice_number ?? null }]
     })
     if (toInsert.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (svc.from('payments') as any).insert(toInsert)
+      await svc.from('payments').insert(toInsert as any[])
       paymentsImported = toInsert.length
     }
   }

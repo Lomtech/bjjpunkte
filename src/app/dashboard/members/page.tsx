@@ -181,7 +181,7 @@ export default function MembersPage() {
           // need a server-side search endpoint with ?q= pagination.
           .eq('gym_id', gym.id).order('last_name').limit(500),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() }),
+        supabase.rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() }),
         supabase.from('membership_plans').select('id, price_cents').eq('gym_id', gym.id),
       ])
       setMembers((membersRes.data as unknown as Member[]) ?? [])

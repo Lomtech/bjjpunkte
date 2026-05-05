@@ -114,7 +114,7 @@ export default function MemberDetailPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, belt_system, belt_system_enabled, stripes_enabled').single()
+      const { data: gym } = await supabase.from('gyms').select('id, monthly_fee_cents, belt_system, belt_system_enabled, stripes_enabled').single()
       if (!gym) { setLoading(false); return }
 
       setGymId(gym.id)
@@ -133,7 +133,7 @@ export default function MemberDetailPage() {
       if (m.monthly_fee_override_cents != null) {
         setMonthlyFeeCents(m.monthly_fee_override_cents)
       } else if (m.plan_id) {
-        const { data: plan } = await (supabase.from('membership_plans') as any)
+        const { data: plan } = await supabase.from('membership_plans')
           .select('price_cents').eq('id', m.plan_id).single()
         setMonthlyFeeCents((plan as any)?.price_cents ?? 0)
       } else {
@@ -152,7 +152,7 @@ export default function MemberDetailPage() {
       familyQueries.push(
         Promise.resolve(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase.from('members') as any).select('id, first_name, last_name').eq('parent_member_id', id)
+          supabase.from('members').select('id, first_name, last_name').eq('parent_member_id', id)
         ).then(({ data }: { data: { id: string; first_name: string; last_name: string }[] | null }) => {
           if (data) setChildren(data)
         })
@@ -265,7 +265,7 @@ export default function MemberDetailPage() {
 
   async function doClearCancellation() {
     const supabase = createClient()
-    await (supabase.from('members') as any).update({
+    await supabase.from('members').update({
       cancellation_requested_at: null,
       cancellation_note: null,
       is_active: false,

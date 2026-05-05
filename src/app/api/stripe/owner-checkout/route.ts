@@ -12,8 +12,9 @@ function authClient(accessToken: string) {
   )
 }
 
-const PLAN_PRICES: Record<string, number> = { starter: 2900, grow: 5900, pro: 9900 }
-const PLAN_NAMES:  Record<string, string>  = { starter: 'Starter Plan', grow: 'Grow Plan', pro: 'Pro Plan' }
+const PLAN_PRICES:        Record<string, number> = { starter: 2900,  grow: 5900,  pro: 9900  }
+const PLAN_PRICES_ANNUAL: Record<string, number> = { starter: 29000, grow: 59000, pro: 99000 }
+const PLAN_NAMES:         Record<string, string>  = { starter: 'Starter Plan', grow: 'Grow Plan', pro: 'Pro Plan' }
 
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { plan } = await req.json()
+  const { plan, annual = false } = await req.json()
   if (!plan || !PLAN_PRICES[plan]) return NextResponse.json({ error: 'Ungültiger Plan' }, { status: 400 })
 
   const supabase = authClient(accessToken)
@@ -58,16 +59,16 @@ export async function POST(req: Request) {
       mode:      'subscription',
       line_items: [{
         price_data: {
-          currency:    'eur',
-          product_data: { name: PLAN_NAMES[plan] },
-          recurring:   { interval: 'month' },
-          unit_amount: PLAN_PRICES[plan],
+          currency:     'eur',
+          product_data: { name: annual ? `${PLAN_NAMES[plan]} (Jährlich)` : PLAN_NAMES[plan] },
+          recurring:    { interval: annual ? 'year' : 'month' },
+          unit_amount:  annual ? PLAN_PRICES_ANNUAL[plan] : PLAN_PRICES[plan],
         },
         quantity: 1,
       }],
-      metadata: { type: 'owner_plan', gymId: gym.id, plan },
+      metadata: { type: 'owner_plan', gymId: gym.id, plan, billing: annual ? 'annual' : 'monthly' },
       subscription_data: {
-        metadata: { type: 'owner_plan', gymId: gym.id, plan },
+        metadata: { type: 'owner_plan', gymId: gym.id, plan, billing: annual ? 'annual' : 'monthly' },
       },
       success_url: `${appUrl}/dashboard/settings?upgraded=1`,
       cancel_url:  `${appUrl}/dashboard/settings`,

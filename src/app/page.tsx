@@ -9,7 +9,7 @@ import { OsssLogo, LogoMark } from '@/components/Logo'
 import {
   Users, CreditCard, Smartphone, Calendar, Target, Award,
   FileSpreadsheet, Globe, FileEdit, FileText, Shield, Headphones,
-  CheckCircle, ArrowRight, Zap, Check, Menu, X,
+  CheckCircle, ArrowRight, Zap, Check, Menu, X, Download, Link2,
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
@@ -47,16 +47,17 @@ const PAIN_POINTS = [
 ]
 
 const FEATURES = [
-  { icon: Users,      title: 'Mitgliederverwaltung',   desc: 'Alle Mitglieder auf einen Blick. Gürtel-Tracking, Familienmitglieder, Notizen — alles an einem Ort.' },
-  { icon: CreditCard, title: 'Zahlungen & Rechnungen', desc: 'Beiträge per Stripe einziehen. Automatische Rechnungen — DSGVO-konform, Kleinunternehmer-ready.' },
-  { icon: Smartphone, title: 'Member-Portal',          desc: 'Deine Mitglieder checken per QR-Code ein, buchen Kurse und sehen ihre Trainingshistorie — ohne App.' },
-  { icon: Calendar,   title: 'Stundenplan & Gym-Seite', desc: 'Kursplan verwalten und als öffentliche Gym-Seite teilen. Interessenten sehen direkt alles — inkl. iCal-Export.' },
-  { icon: Target,     title: 'Lead-Pipeline',           desc: 'Interessenten verfolgen von der ersten Anfrage bis zur Mitgliedschaft. Nie wieder einen Lead verlieren.' },
+  { icon: Users,      title: 'Mitgliederverwaltung',    desc: 'Alle Mitglieder auf einen Blick. Gürtel-Tracking, Familienmitglieder, Notizen — alles an einem Ort.' },
+  { icon: CreditCard, title: 'Zahlungen & Rechnungen',  desc: 'Beiträge per Stripe einziehen. Automatische Rechnungen — DSGVO-konform, Kleinunternehmer-ready.' },
+  { icon: Smartphone, title: 'Member-Portal',           desc: 'Deine Mitglieder checken per QR-Code oder GPS ein, buchen Kurse und sehen ihre Trainingshistorie — ohne App.' },
+  { icon: Link2,      title: 'Öffentliche Gym-Seite',   desc: 'Dein Gym bekommt eine eigene Website unter osss.pro/gym/dein-name — Stundenplan, Preise, Fotos, alles ohne Code.' },
+  { icon: Target,     title: 'Lead-Portal & Pipeline',  desc: 'Interessenten füllen ein Formular aus und buchen direkt ein Probetraining. Du siehst jeden Lead von der Anfrage bis zur Mitgliedschaft.' },
   { icon: Award,      title: 'Gürtel-Tracking',         desc: 'Promotions dokumentieren mit Datum und Verlauf — für alle Gürtelsysteme konfigurierbar.' },
 ]
 
 const GERMAN_FEATURES = [
   { icon: FileText,   title: 'Kleinunternehmer-Rechnungen', desc: 'Automatische §19 UStG Rechnungen — du trägst einmal deine Daten ein, den Rest erledigt Osss.' },
+  { icon: Download,   title: 'DATEV-Export',                desc: 'Buchungsdaten mit einem Klick als DATEV-CSV exportieren — dein Steuerberater freut sich. Kein anderes Gym-Tool bietet das.' },
   { icon: Shield,     title: 'DSGVO von Anfang an',         desc: 'Daten auf europäischen Servern (Supabase EU). Keine Weitergabe an Dritte. Datenschutzerklärung inklusive.' },
   { icon: Headphones, title: 'Support auf Deutsch',         desc: 'Kein englisches Support-Ticket. Direkt, schnell, verständlich — oss@osss.pro.' },
 ]
@@ -159,16 +160,17 @@ export default function Home() {
   ] : PAIN_POINTS
 
   const FEATURES_DATA = lang === 'en' ? [
-    { icon: Users,      title: 'Member management',    desc: 'All members at a glance. Belt tracking, family members, notes — everything in one place.' },
-    { icon: CreditCard, title: 'Payments & invoices',  desc: 'Collect dues via Stripe. Automatic invoices — GDPR-compliant, small-business ready.' },
-    { icon: Smartphone, title: 'Member portal',        desc: 'Members check in via QR code, book classes and view their training history — no app needed.' },
-    { icon: Calendar,   title: 'Schedule & gym page',  desc: 'Manage your timetable and share it as a public gym page. Prospects see everything — including iCal export.' },
-    { icon: Target,     title: 'Lead pipeline',        desc: 'Track prospects from first enquiry to membership. Never lose a lead again.' },
-    { icon: Award,      title: 'Belt tracking',        desc: 'Document promotions with date and history — configurable for all belt systems.' },
+    { icon: Users,      title: 'Member management',     desc: 'All members at a glance. Belt tracking, family members, notes — everything in one place.' },
+    { icon: CreditCard, title: 'Payments & invoices',   desc: 'Collect dues via Stripe. Automatic invoices — GDPR-compliant, small-business ready.' },
+    { icon: Smartphone, title: 'Member portal',         desc: 'Members check in via QR code or GPS, book classes and view their training history — no app needed.' },
+    { icon: Link2,      title: 'Public gym website',    desc: 'Your gym gets its own website at osss.pro/gym/your-name — schedule, prices, photos, all without code.' },
+    { icon: Target,     title: 'Lead portal & pipeline', desc: 'Prospects fill out a form and book a trial class directly. You track every lead from enquiry to membership.' },
+    { icon: Award,      title: 'Belt tracking',         desc: 'Document promotions with date and history — configurable for all belt systems.' },
   ] : FEATURES
 
   const GERMAN_FEATURES_DATA = lang === 'en' ? [
     { icon: FileText,   title: 'German-compliant invoices', desc: 'Automatic §19 UStG invoices — enter your details once and Osss handles the rest.' },
+    { icon: Download,   title: 'DATEV export',              desc: 'Export booking data as DATEV CSV with one click — your accountant will love it. No other gym tool offers this.' },
     { icon: Shield,     title: 'GDPR from day one',         desc: 'Data on European servers (Supabase EU). No third-party sharing. Privacy policy included.' },
     { icon: Headphones, title: 'Support in your language',  desc: 'No English-only support ticket. Direct, fast, understandable — oss@osss.pro.' },
   ] : GERMAN_FEATURES
@@ -763,6 +765,75 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* ── PUBLIC GYM WEBSITE ── */}
+      <Section className="py-24 px-5 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
+            {/* URL bar mockup */}
+            <motion.div variants={fadeUp} className="order-1 md:order-2">
+              <div className="rounded-2xl border border-zinc-200 shadow-xl shadow-zinc-200/60 overflow-hidden bg-zinc-50">
+                <div className="flex items-center gap-2 px-4 py-3 bg-zinc-100 border-b border-zinc-200">
+                  <div className="flex gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-zinc-300" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-zinc-300" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-zinc-300" />
+                  </div>
+                  <div className="flex-1 bg-white rounded-md px-3 py-1 text-[11px] font-mono text-zinc-500 border border-zinc-200">
+                    osss.pro/gym/<span className="text-amber-600 font-semibold">dein-gym</span>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <div className="h-28 rounded-xl bg-zinc-200 flex items-center justify-center">
+                    <Globe size={28} className="text-zinc-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-zinc-200 rounded-full w-2/3" />
+                    <div className="h-3 bg-zinc-100 rounded-full w-full" />
+                    <div className="h-3 bg-zinc-100 rounded-full w-4/5" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    {['Stundenplan', 'Mitgliedschaft', 'Kontakt'].map(label => (
+                      <div key={label} className="h-8 bg-zinc-100 rounded-lg flex items-center justify-center">
+                        <span className="text-[9px] text-zinc-400 font-medium">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <div className="order-2 md:order-1">
+              <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
+                {lang === 'en' ? 'Public Gym Website' : 'Öffentliche Gym-Seite'}
+              </motion.p>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-5">
+                {lang === 'en'
+                  ? <>Your gym gets<br />its own website</>
+                  : <>Dein Gym bekommt<br />eine eigene Website</>}
+              </motion.h2>
+              <motion.p variants={fadeUp} className="text-zinc-500 mb-8 leading-relaxed text-sm">
+                {lang === 'en'
+                  ? 'Prospects land on your gym page, see the schedule and prices, and book a trial class directly — without WhatsApp back-and-forth.'
+                  : 'Interessenten landen auf deiner Gym-Seite, sehen den Stundenplan und die Preise, und buchen direkt ein Probetraining — ohne WhatsApp hin und her.'}
+              </motion.p>
+              <motion.ul variants={stagger} className="space-y-3.5">
+                {(lang === 'en'
+                  ? ['Custom URL: osss.pro/gym/your-name', 'Schedule, pricing, gallery, about section', 'Trial class booking with lead capture', 'iCal export for Google Calendar', 'Embed as iframe on your own website']
+                  : ['Eigene URL: osss.pro/gym/dein-name', 'Stundenplan, Preise, Galerie, About-Sektion', 'Probetraining-Buchung mit Lead-Erfassung', 'iCal-Export für Google Calendar', 'Als iframe auf deiner eigenen Website einbettbar']
+                ).map(item => (
+                  <motion.li key={item} variants={fadeUp} className="flex items-center gap-3 text-sm text-zinc-700">
+                    <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle size={11} className="text-amber-600" />
+                    </div>
+                    {item}
+                  </motion.li>
+                ))}
+              </motion.ul>
+            </div>
+          </div>
+        </div>
+      </Section>
+
       {/* ── GERMAN FEATURES ── */}
       <Section className="py-24 px-5 bg-white">
         <div className="max-w-4xl mx-auto">
@@ -825,6 +896,66 @@ export default function Home() {
                 <CheckCircle size={12} />
                 {lang === 'en' ? 'Automatically created and archived' : 'Automatisch erstellt und archiviert'}
               </div>
+            </motion.div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── DATEV HIGHLIGHT ── */}
+      <Section className="py-20 px-5 bg-zinc-950">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+              <motion.p variants={fadeUp} className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
+                {lang === 'en' ? 'Unique feature' : 'Einzigartiges Feature'}
+              </motion.p>
+              <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-5">
+                {lang === 'en'
+                  ? <>DATEV export —<br />one click, done</>
+                  : <>DATEV-Export —<br />ein Klick, fertig</>}
+              </motion.h2>
+              <motion.p variants={fadeUp} className="text-zinc-400 mb-8 leading-relaxed text-sm">
+                {lang === 'en'
+                  ? 'Export your payment data as a DATEV-compatible CSV file — your tax advisor imports it directly into their system. No other gym management tool in Germany offers this.'
+                  : 'Exportiere deine Zahlungsdaten als DATEV-kompatible CSV-Datei — dein Steuerberater importiert sie direkt in sein System. Kein anderes Gym-Management-Tool in Deutschland bietet das.'}
+              </motion.p>
+              <motion.div variants={fadeUp} className="flex items-center gap-3 text-sm text-zinc-300">
+                <CheckCircle size={14} className="text-amber-400 flex-shrink-0" />
+                {lang === 'en' ? 'DATEV Buchungsdatei format 1.0' : 'DATEV Buchungsdatei Format 1.0'}
+              </motion.div>
+              <motion.div variants={fadeUp} className="flex items-center gap-3 text-sm text-zinc-300 mt-2">
+                <CheckCircle size={14} className="text-amber-400 flex-shrink-0" />
+                {lang === 'en' ? 'Configurable tax account length (4 or 8 digits)' : 'Konfigurierbare Sachkontenlänge (4 oder 8 Stellen)'}
+              </motion.div>
+              <motion.div variants={fadeUp} className="flex items-center gap-3 text-sm text-zinc-300 mt-2">
+                <CheckCircle size={14} className="text-amber-400 flex-shrink-0" />
+                {lang === 'en' ? 'Filter by month — just share with your accountant' : 'Nach Monat filtern — einfach an Steuerberater weitergeben'}
+              </motion.div>
+            </div>
+
+            {/* DATEV export card mockup */}
+            <motion.div variants={fadeUp} className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
+              <div className="flex items-center gap-3 mb-5 pb-4 border-b border-zinc-800">
+                <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0">
+                  <Download size={14} className="text-zinc-950" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">{lang === 'en' ? 'DATEV Export' : 'DATEV-Export'}</p>
+                  <p className="text-zinc-500 text-xs">{lang === 'en' ? 'Booking data CSV' : 'Buchungsdaten CSV'}</p>
+                </div>
+              </div>
+              <div className="font-mono text-[10px] text-zinc-400 space-y-1.5 mb-5">
+                <p className="text-zinc-600">{lang === 'en' ? '// DATEV Buchungsdatei' : '// DATEV Buchungsdatei'}</p>
+                <p><span className="text-amber-400">Umsatz</span>;Gegenkonto;Belegdatum;Buchungstext</p>
+                <p>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Max M.</p>
+                <p>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Jana K.</p>
+                <p>89,00;8000;{new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })};Monatsbeitrag Tom R.</p>
+                <p className="text-zinc-600">…</p>
+              </div>
+              <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-400 text-zinc-950 text-sm font-bold">
+                <Download size={13} />
+                {lang === 'en' ? 'Download DATEV CSV' : 'DATEV CSV herunterladen'}
+              </button>
             </motion.div>
           </div>
         </div>

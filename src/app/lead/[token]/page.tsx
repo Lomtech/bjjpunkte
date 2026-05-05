@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { startOfWeek, addDays, CLASS_LABELS } from '@/lib/constants'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,10 +55,6 @@ interface PortalData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CLASS_LABELS: Record<string, string> = {
-  gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat', kids: 'Kids', competition: 'Competition',
-}
-
 const TYPE_COLORS: Record<string, string> = {
   gi:          'bg-blue-50 text-blue-700',
   'no-gi':     'bg-zinc-100 text-zinc-700',
@@ -102,11 +99,6 @@ const LEAD_STATUS_COLORS: Record<string, string> = {
 
 // ── Calendar helpers ──────────────────────────────────────────────────────────
 
-function startOfWeek(d: Date): Date {
-  const r = new Date(d); const day = r.getDay()
-  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day)); r.setHours(0, 0, 0, 0); return r
-}
-function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate() + n); return r }
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }

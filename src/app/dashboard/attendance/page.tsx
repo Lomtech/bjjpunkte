@@ -52,7 +52,7 @@ export default function AttendancePage() {
 
     if (!gymId) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: g } = await (supabase.from('gyms') as any).select('id, class_types, belt_system').single()
+      const { data: g } = await supabase.from('gyms').select('id, class_types, belt_system').single()
       if (!g) { setLoading(false); return }
       gymId = g.id
       setBeltSystem(resolveBeltSystem(g.belt_system))
@@ -67,7 +67,7 @@ export default function AttendancePage() {
     // All 4 queries in parallel — gym settings + members + attendance + classes
     const [gymSettingsRes, membersRes, attendanceRes, classesRes] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cachedGymId ? (supabase.from('gyms') as any).select('belt_system').eq('id', gymId).single() : Promise.resolve({ data: null }),
+      cachedGymId ? supabase.from('gyms').select('belt_system').eq('id', gymId).single() : Promise.resolve({ data: null }),
       supabase.from('members')
         .select('id, first_name, last_name, belt, stripes')
         .eq('gym_id', gymId).eq('is_active', true).order('last_name'),
@@ -77,7 +77,7 @@ export default function AttendancePage() {
         .gte('checked_in_at', today.toISOString())
         .order('checked_in_at', { ascending: false }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (supabase as any).rpc('get_classes_for_gym', { p_gym_id: gymId, p_from: today.toISOString() }),
+      supabase.rpc('get_classes_for_gym', { p_gym_id: gymId, p_from: today.toISOString() }),
     ])
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

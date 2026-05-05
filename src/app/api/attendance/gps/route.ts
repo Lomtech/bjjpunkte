@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { Database, ClassType } from '@/types/database'
 
 function serviceClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
 
   // Resolve gym — owner first, then staff fallback
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let gymRow = await (svc.from('gyms') as any)
+  let gymRow = await svc.from('gyms')
     .select('id, latitude, longitude, gps_radius_meters')
     .eq('owner_id', user.id)
     .maybeSingle()
@@ -53,13 +54,13 @@ export async function POST(req: Request) {
 
   if (!gym) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: staff } = await (svc.from('gym_staff') as any)
+    const { data: staff } = await svc.from('gym_staff')
       .select('gym_id')
       .eq('user_id', user.id)
       .maybeSingle()
     if (staff?.gym_id) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: g } = await (svc.from('gyms') as any)
+      const { data: g } = await svc.from('gyms')
         .select('id, latitude, longitude, gps_radius_meters')
         .eq('id', staff.gym_id)
         .maybeSingle()
@@ -104,7 +105,7 @@ export async function POST(req: Request) {
 
   // Verify member belongs to this gym
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: member } = await (svc.from('members') as any)
+  const { data: member } = await svc.from('members')
     .select('id')
     .eq('id', member_id)
     .eq('gym_id', gym.id)
@@ -115,7 +116,7 @@ export async function POST(req: Request) {
   // Dedup: don't create a second attendance record for the same class
   if (class_id) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: existing } = await (svc.from('attendance') as any)
+    const { data: existing } = await svc.from('attendance')
       .select('id, checked_in_at, class_type')
       .eq('member_id', member_id)
       .eq('class_id', class_id)
@@ -127,11 +128,11 @@ export async function POST(req: Request) {
 
   // Insert attendance
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: entry, error: attErr } = await (svc.from('attendance') as any)
+  const { data: entry, error: attErr } = await svc.from('attendance')
     .insert({
       gym_id:        gym.id,
       member_id,
-      class_type:    class_type ?? 'gi',
+      class_type:    (class_type ?? 'gi') as ClassType,
       class_id:      class_id ?? null,
       checked_in_at: new Date().toISOString(),
     })
@@ -143,8 +144,8 @@ export async function POST(req: Request) {
   // Upsert class_bookings so member shows up in schedule roster
   if (class_id) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (svc.from('class_bookings') as any).upsert(
-      { gym_id: gym.id, member_id, class_id, status: 'checked_in' },
+    await svc.from('class_bookings').upsert(
+      { gym_id: gym.id, member_id, class_id, status: 'confirmed' as const },
       { onConflict: 'member_id,class_id' }
     )
   }

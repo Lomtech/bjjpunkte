@@ -7,6 +7,7 @@ import { NewClassModal } from './NewClassModal'
 import { EditClassModal } from './EditClassModal'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { startOfWeek, addDays } from '@/lib/constants'
 
 interface ClassRow {
   id: string; title: string; class_type: string; description: string | null
@@ -33,11 +34,6 @@ const TYPE_DOT: Record<string, string> = {
   gi: 'bg-zinc-400', 'no-gi': 'bg-zinc-500', 'open mat': 'bg-amber-500',
   kids: 'bg-zinc-300', competition: 'bg-zinc-900',
 }
-function startOfWeek(d: Date): Date {
-  const r = new Date(d); const day = r.getDay()
-  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day)); r.setHours(0,0,0,0); return r
-}
-function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate()+n); return r }
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate()
 }
@@ -92,11 +88,11 @@ export default function SchedulePage() {
     setLoading(true)
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any).rpc('get_classes_for_gym', {
+    const { data } = await supabase.rpc('get_classes_for_gym', {
       p_gym_id: gId,
       p_from: from.toISOString(),
     })
-    const rows: ClassRow[] = data ?? []
+    const rows: ClassRow[] = (data ?? []) as ClassRow[]
     const leadCounts = await loadLeadCounts(rows.map(c => c.id))
     setClasses(rows.map(c => ({ ...c, lead_count: leadCounts[c.id] ?? 0 })))
     setLoading(false)
@@ -120,11 +116,11 @@ export default function SchedulePage() {
       setGymId(gId)
       // Batch 2: classes and lead counts
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: classesData } = await (supabase as any).rpc('get_classes_for_gym', {
+      const { data: classesData } = await supabase.rpc('get_classes_for_gym', {
         p_gym_id: gId,
         p_from: startOfWeek(new Date()).toISOString(),
       })
-      const rows: ClassRow[] = classesData ?? []
+      const rows: ClassRow[] = (classesData ?? []) as ClassRow[]
       const leadCounts = await loadLeadCounts(rows.map(c => c.id))
       setClasses(rows.map(c => ({ ...c, lead_count: leadCounts[c.id] ?? 0 })))
       setLoading(false)

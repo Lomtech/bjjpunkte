@@ -14,6 +14,7 @@ import {
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { translations } from '@/lib/i18n/translations'
+import { startOfWeek, addDays, CLASS_LABELS } from '@/lib/constants'
 
 // ── types ────────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,15 @@ interface MemberData {
   plans: Plan[]
   announcements: Announcement[]
   posts: Post[]
-  upcoming_bookings: null
+  upcoming_bookings: {
+    class_id: string
+    title: string
+    class_type: string
+    starts_at: string
+    ends_at: string
+    instructor: string | null
+    booking_status: string
+  }[]
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -83,14 +92,6 @@ function calcStats(attendance: { checked_in_at: string }[]) {
     const d = new Date(a.checked_in_at)
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   }).length
-
-  function startOfWeek(date: Date): Date {
-    const d = new Date(date)
-    const day = d.getDay()
-    d.setHours(0, 0, 0, 0)
-    d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
-    return d
-  }
 
   const weekSet = new Set<number>()
   for (const a of attendance) weekSet.add(startOfWeek(new Date(a.checked_in_at)).getTime())
@@ -124,9 +125,6 @@ function formatPrice(cents: number, interval: string, lang: string) {
   return { total: `€${total}${intervalLabel(interval, lang)}`, perMonth: null }
 }
 
-const CLASS_LABELS: Record<string, string> = {
-  gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat', kids: 'Kids', competition: 'Competition',
-}
 const TYPE_COLORS: Record<string, string> = {
   gi: 'bg-blue-50 text-blue-700', 'no-gi': 'bg-slate-100 text-slate-600',
   'open mat': 'bg-amber-50 text-amber-700', kids: 'bg-green-50 text-green-700',
@@ -167,11 +165,6 @@ function isCheckoutExpired(p: { created_at: string; status: string }) {
 const WEEKDAYS_DE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 const WEEKDAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-function startOfWeek(d: Date): Date {
-  const r = new Date(d); const day = r.getDay()
-  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day)); r.setHours(0, 0, 0, 0); return r
-}
-function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate() + n); return r }
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
@@ -585,7 +578,7 @@ export default function MemberPortalPage() {
     </div>
   )
 
-  const { member, gym, attendance, totalSessions, payments, plans, announcements, posts } = data
+  const { member, gym, attendance, totalSessions, payments, plans, announcements, posts, upcoming_bookings } = data
   const { sessionsThisMonth, streak } = calcStats(attendance ?? [])
 
   // Show banner if most recent check-in was within the last 10 minutes (trainer checked them in)

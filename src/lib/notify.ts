@@ -1,10 +1,11 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { toE164 } from '@/lib/whatsapp'
 
 interface NotifyPayload {
   gymId: string
   subject: string
   html: string
-  whatsappText?: string // kept for API compatibility, unused
+  whatsappText?: string
 }
 
 interface NotifyResult {
@@ -13,11 +14,11 @@ interface NotifyResult {
   emailError?: string
 }
 
-export async function notifyGym({ gymId, subject, html }: NotifyPayload): Promise<NotifyResult> {
+export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPayload): Promise<NotifyResult> {
   const supabase = createServiceClient()
   const { data: gym } = await supabase
     .from('gyms')
-    .select('name, email')
+    .select('name, email, phone, callmebot_api_key')
     .eq('id', gymId)
     .single()
 
@@ -50,6 +51,25 @@ export async function notifyGym({ gymId, subject, html }: NotifyPayload): Promis
     } catch (err) {
       result.emailError = String(err)
       console.error('[notify] Email error:', err)
+    }
+  }
+
+  // ── WhatsApp via CallMeBot ───────────────────────────────────────────────
+  if (whatsappText && gym.callmebot_api_key && gym.phone) {
+    const phone = toE164(gym.phone)
+    if (phone) {
+      try {
+        const params = new URLSearchParams({
+          phone,
+          text: whatsappText,
+          apikey: gym.callmebot_api_key,
+        })
+        const res = await fetch(`https://api.callmebot.com/whatsapp.php?${params}`)
+        result.whatsappSent = res.ok
+        if (!res.ok) console.error('[notify] CallMeBot failed:', res.status, await res.text().catch(() => ''))
+      } catch (err) {
+        console.error('[notify] CallMeBot error:', err)
+      }
     }
   }
 

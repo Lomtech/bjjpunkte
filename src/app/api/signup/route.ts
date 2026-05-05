@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 import Stripe from 'stripe'
 import { notifyGym } from '@/lib/notify'
 import { sendWhatsApp } from '@/lib/whatsapp'
@@ -10,7 +11,7 @@ function serviceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) throw new Error('Server nicht konfiguriert (Umgebungsvariablen fehlen)')
-  return createClient(url, key)
+  return createClient<Database>(url, key)
 }
 
 export async function GET(req: Request) {
@@ -185,7 +186,7 @@ export async function POST(req: Request) {
         .eq('gym_id', gymId)  // cross-gym plan injection guard
         .single()
 
-      const { data: gymStripe } = await (supabase.from('gyms') as any)
+      const { data: gymStripe } = await supabase.from('gyms')
         .select('stripe_account_id')
         .eq('id', gymId)
         .single()

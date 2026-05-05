@@ -152,7 +152,47 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   }
 
   // Default: cancel single occurrence
+  const { data: cls } = await supabase
+    .from('classes').select('title, starts_at').eq('id', id).single()
+
   const { error } = await supabase.from('classes').update({ is_cancelled: true }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notify all booked members (confirmed + waitlist) about the cancellation
+  if (cls && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+    const { data: bookings } = await supabase
+      .from('class_bookings')
+      .select('status, members(first_name, email, portal_token)')
+      .eq('class_id', id)
+      .in('status', ['confirmed', 'waitlist'])
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.osss.pro'
+    const dateStr = new Date(cls.starts_at).toLocaleDateString('de-DE', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    })
+    const timeStr = new Date(cls.starts_at).toLocaleTimeString('de-DE', {
+      hour: '2-digit', minute: '2-digit',
+    })
+
+    for (const b of (bookings ?? [])) {
+      const member = Array.isArray(b.members) ? b.members[0] : b.members
+      if (!member?.email) continue
+      const isWaitlist = b.status === 'waitlist'
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL,
+          to: member.email,
+          subject: `Kurs abgesagt: ${cls.title}`,
+          html: `<p>Hallo ${member.first_name},<br><br>leider wurde der Kurs <strong>${cls.title}</strong> am <strong>${dateStr} um ${timeStr} Uhr</strong> abgesagt.${isWaitlist ? '<br><br>Du warst auf der Warteliste — es sind keine weiteren Schritte notwendig.' : ''}<br><br><a href="${appUrl}/portal/${member.portal_token}">Zum Mitgliederbereich →</a></p>`,
+        }),
+      }).catch(() => {})
+    }
+  }
+
   return NextResponse.json({ success: true })
 }

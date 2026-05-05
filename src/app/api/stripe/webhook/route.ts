@@ -6,8 +6,13 @@ import type { Database } from '@/types/database'
 const PLAN_LIMITS: Record<string, number> = { starter: 50, grow: 150, pro: 9999 }
 
 function priceAmountToPlan(amountCents: number): string {
+  // Annual amounts (10× monthly — 2 months free)
+  if (amountCents >= 99000) return 'pro'
+  if (amountCents >= 59000) return 'grow'
+  if (amountCents >= 29000) return 'starter'
+  // Monthly amounts
   if (amountCents >= 9900) return 'pro'
-  if (amountCents >= 4900) return 'grow'
+  if (amountCents >= 5900) return 'grow'
   return 'starter'
 }
 
@@ -137,14 +142,14 @@ export async function POST(req: Request) {
           }
         }
 
-        if (!matched && memberId && session.mode === 'subscription') {
+        if (!matched && memberId && gymId && session.mode === 'subscription') {
           const { data: existing } = await supabase
             .from('payments').select('id')
             .eq('stripe_checkout_session_id', sessionId).limit(1)
           if (!existing || existing.length === 0) {
             const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
             const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
-            await (supabase.from('payments') as any).insert({
+            await supabase.from('payments').insert({
               gym_id:                     gymId,
               member_id:                  memberId,
               member_name:                memberName,
@@ -272,33 +277,26 @@ export async function POST(req: Request) {
       const invoiceId = inv.id
 
       if (memberId && amountCents > 0) {
+        // Deterministic dedup: stripe_invoice_id is unique and present for every invoice.paid.
+        if (invoiceId) {
+          const { data: byInvoice } = await supabase
+            .from('payments').select('id')
+            .eq('stripe_invoice_id', invoiceId)
+            .single()
+          if (byInvoice) return NextResponse.json({ received: true })
+        }
+        // Secondary dedup for card payments: payment_intent arrives at checkout.session.completed.
         if (paymentIntentId) {
-          const { data: existing } = await supabase
+          const { data: byIntent } = await supabase
             .from('payments').select('id')
             .eq('stripe_payment_intent_id', paymentIntentId)
             .single()
-          if (existing) return NextResponse.json({ received: true })
-        } else if (invoiceId) {
-          // SEPA: no payment_intent yet at invoice.paid time.
-          // Use a 48-hour window — wide enough to survive Stripe retry delays (up to 72h),
-          // but payment_intent.succeeded will be the authoritative dedup for final settlement.
-          // TODO: Add a stripe_invoice_id column to payments for deterministic dedup.
-          const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-          const { data: recent } = await (supabase.from('payments') as any)
-            .select('id')
-            .eq('member_id', memberId)
-            .eq('amount_cents', amountCents)
-            .eq('status', 'paid')
-            .gte('paid_at', fortyEightHoursAgo)
-            .limit(1)
-          if (recent && Array.isArray(recent) && recent.length > 0) {
-            return NextResponse.json({ received: true })
-          }
+          if (byIntent) return NextResponse.json({ received: true })
         }
 
         const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
         const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
-        await (supabase.from('payments') as any).insert({
+        await supabase.from('payments').insert({
           gym_id:                   gymId ?? null,
           member_id:                memberId,
           member_name:              memberName,
@@ -306,7 +304,8 @@ export async function POST(req: Request) {
           status:                   'paid',
           paid_at:                  new Date().toISOString(),
           stripe_payment_intent_id: paymentIntentId,
-        })
+          stripe_invoice_id:        invoiceId ?? null,
+        } as any)
       }
     } catch (err) {
       console.error('[webhook] invoice.paid error:', err)

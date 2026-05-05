@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 import Stripe from 'stripe'
 import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
 
 function authClient(accessToken: string) {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
@@ -23,11 +24,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   // Get gym
-  const { data: gym } = await (supabase.from('gyms') as any).select('id, name, email, stripe_account_id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id, name, email, stripe_account_id').eq('owner_id', user.id).single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   // Get member (verify ownership)
-  const { data: member } = await (supabase.from('members') as any)
+  const { data: member } = await supabase.from('members')
     .select('id, first_name, last_name, email, phone, gym_id, plan_id, stripe_customer_id, portal_token')
     .eq('id', memberId)
     .eq('gym_id', gym.id)
@@ -36,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!member) return NextResponse.json({ error: 'Mitglied nicht gefunden' }, { status: 404 })
 
   // Activate the member
-  await (supabase.from('members') as any)
+  await supabase.from('members')
     .update({ is_active: true, onboarding_status: 'complete' })
     .eq('id', memberId)
 
@@ -44,7 +45,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   let checkoutUrl: string | null = null
   if (member.plan_id && member.email && process.env.STRIPE_SECRET_KEY) {
     try {
-      const { data: plan } = await (supabase.from('membership_plans') as any)
+      const { data: plan } = await supabase.from('membership_plans')
         .select('id, name, price_cents, billing_interval, stripe_price_id, contract_months')
         .eq('id', member.plan_id)
         .single()
@@ -71,7 +72,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             stripeOpts ?? {},
           )
           customerId = customer.id
-          await (supabase.from('members') as any)
+          await supabase.from('members')
             .update({ stripe_customer_id: customerId })
             .eq('id', memberId)
         }
@@ -110,7 +111,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         if (contractMonths && contractMonths > 0) {
           const end = new Date()
           end.setMonth(end.getMonth() + contractMonths)
-          await (supabase.from('members') as any)
+          await supabase.from('members')
             .update({ contract_end_date: end.toISOString().substring(0, 10) })
             .eq('id', memberId)
         }
