@@ -42,9 +42,10 @@ export async function POST(req: Request) {
   const supabase = serviceClient()
   const stripeOpts = { stripeAccount: connectedAccountId }
 
-  let inserted   = 0
-  let alreadyHad = 0
-  let noMemberId = 0
+  let inserted     = 0
+  let alreadyHad   = 0
+  let noMemberId   = 0
+  let insertErrors: string[] = []
   let startingAfter: string | undefined = undefined
 
   // Paginate through all paid invoices on the connected account
@@ -149,7 +150,7 @@ export async function POST(req: Request) {
         memberName = mRow ? `${(mRow as any).first_name} ${(mRow as any).last_name}` : memberNameFallback
       }
 
-      await (supabase.from('payments') as any).insert({
+      const { error: insertError } = await (supabase.from('payments') as any).insert({
         gym_id:                   gymId,
         member_id:                memberId ?? null,
         member_name:              memberName,
@@ -158,12 +159,17 @@ export async function POST(req: Request) {
         paid_at:                  paidAt,
         stripe_payment_intent_id: paymentIntentId,
       })
-      inserted++
+      if (insertError) {
+        console.error('[sync-payments] insert error:', insertError)
+        insertErrors.push(`${inv.id}: ${insertError.message}`)
+      } else {
+        inserted++
+      }
     }
 
     if (!invoices.has_more) break
     startingAfter = invoices.data[invoices.data.length - 1].id
   }
 
-  return NextResponse.json({ success: true, inserted, alreadyHad, noMemberId })
+  return NextResponse.json({ success: true, inserted, alreadyHad, noMemberId, insertErrors })
 }

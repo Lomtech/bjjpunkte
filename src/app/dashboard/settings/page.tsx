@@ -354,9 +354,10 @@ export default function SettingsPage() {
         const parts = [
           `${data.inserted} neue Zahlung(en) hinzugefügt`,
           data.alreadyHad > 0 ? `${data.alreadyHad} bereits vorhanden` : '',
-          data.noMemberId > 0 ? `${data.noMemberId} ohne Mitglieds-Zuordnung (kein memberId in Stripe-Metadata)` : '',
-        ].filter(Boolean).join(', ')
-        alert(`Sync abgeschlossen: ${parts}`)
+          data.noMemberId > 0 ? `${data.noMemberId} ohne Mitglieds-Zuordnung` : '',
+          data.insertErrors?.length > 0 ? `⚠️ ${data.insertErrors.length} Fehler: ${data.insertErrors[0]}` : '',
+        ].filter(Boolean).join('\n')
+        alert(`Sync abgeschlossen:\n${parts}`)
       } else {
         alert(data.error ?? 'Fehler beim Synchronisieren')
       }
