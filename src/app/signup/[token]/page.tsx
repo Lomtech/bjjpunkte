@@ -31,7 +31,7 @@ const BELTS = [
   { value: 'black',  labelDe: 'Schwarz', labelEn: 'Black',  color: '#0f172a' },
 ]
 
-const INPUT = 'w-full px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors'
+const INPUT = 'w-full px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-[16px] placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors'
 
 /* ── Canvas signature pad ──────────────────────────────────────────── */
 function SignaturePad({ onChange, lang = 'de' }: { onChange: (data: string | null) => void; lang?: string }) {
@@ -310,7 +310,7 @@ export default function SignupPage() {
                 }`}>
                   {step > s.n ? '✓' : s.n}
                 </div>
-                <span className="text-[10px] text-zinc-400 mt-0.5 hidden sm:block">{s.label}</span>
+                <span className="text-[10px] text-zinc-400 mt-0.5">{s.label}</span>
               </div>
               {i < steps.length - 1 && (
                 <div className={`flex-1 h-0.5 w-6 rounded-full transition-colors ${step > s.n ? 'bg-zinc-900' : 'bg-zinc-200'}`} />
@@ -320,7 +320,7 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-6">
+      <div className="max-w-lg mx-auto px-4 py-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
 
         {/* ── STEP 1: Persönliche Daten ─────────────────────────── */}
         {step === 1 && (
@@ -331,20 +331,20 @@ export default function SignupPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label={lang === 'en' ? 'First name *' : 'Vorname *'} value={firstName} onChange={setFirstName} placeholder="Max" />
-              <Field label={lang === 'en' ? 'Last name *' : 'Nachname *'} value={lastName} onChange={setLastName} placeholder="Mustermann" />
+              <Field label={lang === 'en' ? 'First name *' : 'Vorname *'} value={firstName} onChange={setFirstName} placeholder="Max" autoComplete="given-name" autoCapitalize="words" />
+              <Field label={lang === 'en' ? 'Last name *' : 'Nachname *'} value={lastName} onChange={setLastName} placeholder="Mustermann" autoComplete="family-name" autoCapitalize="words" />
             </div>
-            <Field label={lang === 'en' ? 'Email *' : 'E-Mail *'} type="email" value={email} onChange={setEmail} placeholder="max@example.com" />
-            <Field label={lang === 'en' ? 'Phone' : 'Telefon'} type="tel" value={phone} onChange={setPhone} placeholder="+49 176 …" />
-            <Field label={lang === 'en' ? 'Date of birth *' : 'Geburtsdatum *'} type="date" value={dob} onChange={setDob} />
+            <Field label={lang === 'en' ? 'Email *' : 'E-Mail *'} type="email" value={email} onChange={setEmail} placeholder="max@example.com" autoComplete="email" autoCapitalize="off" inputMode="email" />
+            <Field label={lang === 'en' ? 'Phone' : 'Telefon'} type="tel" value={phone} onChange={setPhone} placeholder="+49 176 …" autoComplete="tel" inputMode="tel" />
+            <Field label={lang === 'en' ? 'Date of birth *' : 'Geburtsdatum *'} type="date" value={dob} onChange={setDob} autoComplete="bday" />
 
             <div>
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{lang === 'en' ? 'Address' : 'Adresse'}</p>
               <div className="space-y-3">
-                <Field label={lang === 'en' ? 'Street & number' : 'Straße & Hausnummer'} value={street} onChange={setStreet} placeholder={lang === 'en' ? '1 Example St' : 'Musterstraße 1'} />
+                <Field label={lang === 'en' ? 'Street & number' : 'Straße & Hausnummer'} value={street} onChange={setStreet} placeholder={lang === 'en' ? '1 Example St' : 'Musterstraße 1'} autoComplete="street-address" autoCapitalize="words" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={lang === 'en' ? 'Postcode' : 'PLZ'} value={zip} onChange={setZip} placeholder="12345" />
-                  <Field label={lang === 'en' ? 'City' : 'Stadt'} value={city} onChange={setCity} placeholder={lang === 'en' ? 'Berlin' : 'München'} />
+                  <Field label={lang === 'en' ? 'Postcode' : 'PLZ'} value={zip} onChange={setZip} placeholder="12345" autoComplete="postal-code" inputMode="numeric" />
+                  <Field label={lang === 'en' ? 'City' : 'Stadt'} value={city} onChange={setCity} placeholder={lang === 'en' ? 'Berlin' : 'München'} autoComplete="address-level2" autoCapitalize="words" />
                 </div>
               </div>
             </div>
@@ -352,8 +352,8 @@ export default function SignupPage() {
             <div>
               <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">{lang === 'en' ? 'Emergency contact' : 'Notfallkontakt'}</p>
               <div className="space-y-3">
-                <Field label="Name" value={ecName} onChange={setEcName} placeholder="Maria Mustermann" />
-                <Field label={lang === 'en' ? 'Phone' : 'Telefon'} type="tel" value={ecPhone} onChange={setEcPhone} placeholder="+49 …" />
+                <Field label="Name" value={ecName} onChange={setEcName} placeholder="Maria Mustermann" autoCapitalize="words" />
+                <Field label={lang === 'en' ? 'Phone' : 'Telefon'} type="tel" value={ecPhone} onChange={setEcPhone} placeholder="+49 …" autoComplete="tel" inputMode="tel" />
               </div>
             </div>
 
@@ -409,7 +409,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <button disabled={!step1Valid} onClick={() => setStep(2)}
+            <button disabled={!step1Valid} onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
               className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-base transition-colors flex items-center justify-center gap-2">
               {lang === 'en' ? 'Next' : 'Weiter'} <ChevronRight size={18} />
             </button>
@@ -444,11 +444,11 @@ export default function SignupPage() {
             )}
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(1)}
+              <button onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                 className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
                 <ChevronLeft size={16} /> {lang === 'en' ? 'Back' : 'Zurück'}
               </button>
-              <button disabled={!contractRead} onClick={() => setStep(3)}
+              <button disabled={!contractRead} onClick={() => { setStep(3); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                 className="flex-1 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold transition-colors flex items-center justify-center gap-2">
                 {lang === 'en' ? 'Next' : 'Weiter'} <ChevronRight size={18} />
               </button>
@@ -481,11 +481,11 @@ export default function SignupPage() {
             </p>
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(2)}
+              <button onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                 className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
                 <ChevronLeft size={16} /> {lang === 'en' ? 'Back' : 'Zurück'}
               </button>
-              <button disabled={!step3Valid} onClick={() => setStep(4)}
+              <button disabled={!step3Valid} onClick={() => { setStep(4); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                 className="flex-1 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold transition-colors flex items-center justify-center gap-2">
                 {lang === 'en' ? 'Next' : 'Weiter'} <ChevronRight size={18} />
               </button>
@@ -554,7 +554,7 @@ export default function SignupPage() {
             )}
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(3)}
+              <button onClick={() => { setStep(3); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                 className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium transition-colors">
                 <ChevronLeft size={16} /> {lang === 'en' ? 'Back' : 'Zurück'}
               </button>
@@ -582,9 +582,13 @@ export default function SignupPage() {
 /* ── Helper components ──────────────────────────────────────────────── */
 function Field({
   label, value, onChange, placeholder = '', type = 'text',
+  autoComplete, inputMode, autoCapitalize,
 }: {
   label: string; value: string; onChange: (v: string) => void
   placeholder?: string; type?: string
+  autoComplete?: string
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+  autoCapitalize?: string
 }) {
   return (
     <div>
@@ -593,7 +597,10 @@ function Field({
         type={type} value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors"
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        autoCapitalize={autoCapitalize}
+        className="w-full px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-[16px] placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors"
       />
     </div>
   )
