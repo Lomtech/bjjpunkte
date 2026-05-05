@@ -97,7 +97,7 @@ export async function GET(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     svc.from('leads')
       .select('id, first_name, last_name, email, phone, status, source, notes, trial_date, created_at, referred_by, contacted_at, converted_at')
-      .eq('gym_id', gym.id).order('created_at'),
+      .eq('gym_id', gym.id).order('created_at').limit(10000),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     svc.from('gym_staff')
       .select('name, email, role, accepted_at').eq('gym_id', gym.id),
@@ -141,19 +141,19 @@ export async function GET(req: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? svc.from('class_bookings')
           .select('member_id, class_id, status, created_at')
-          .in('class_id', classIds).in('member_id', memberIds).neq('status', 'cancelled')
+          .in('class_id', classIds).in('member_id', memberIds).neq('status', 'cancelled').limit(50000)
       : { data: [] },
     memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? svc.from('attendance')
           .select('member_id, class_id, class_type, checked_in_at')
-          .eq('gym_id', gym.id).in('member_id', memberIds)
+          .eq('gym_id', gym.id).in('member_id', memberIds).limit(50000)
       : { data: [] },
     memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? svc.from('belt_promotions')
           .select('member_id, previous_belt, new_belt, promoted_at, notes')
-          .eq('gym_id', gym.id).in('member_id', memberIds).order('promoted_at')
+          .eq('gym_id', gym.id).in('member_id', memberIds).order('promoted_at').limit(5000)
       : { data: [] },
     leadIds.length && classIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -165,13 +165,13 @@ export async function GET(req: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? svc.from('training_logs')
           .select('member_id, note, class_type, logged_at')
-          .eq('gym_id', gym.id).in('member_id', memberIds)
+          .eq('gym_id', gym.id).in('member_id', memberIds).limit(50000)
       : { data: [] },
     memberIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? svc.from('payments')
           .select('member_id, amount_cents, status, paid_at, created_at, invoice_number')
-          .eq('gym_id', gym.id).in('member_id', memberIds)
+          .eq('gym_id', gym.id).in('member_id', memberIds).limit(20000)
       : { data: [] },
   ])
 
@@ -285,6 +285,18 @@ export async function GET(req: Request) {
     return [{ member_index: mi, amount_cents: p.amount_cents, status: p.status, paid_at: p.paid_at, created_at: p.created_at, invoice_number: p.invoice_number }]
   })
 
+  // ── Truncation detection ──────────────────────────────────────────────────
+  const truncated =
+    (leads          ?? []).length === 10000 ||
+    (bookings       ?? []).length === 50000 ||
+    (attendance     ?? []).length === 50000 ||
+    (beltPromotions ?? []).length === 5000  ||
+    (trainingLogs   ?? []).length === 50000 ||
+    (payments       ?? []).length === 20000
+
+  const responseHeaders: Record<string, string> = {}
+  if (truncated) responseHeaders['X-Export-Truncated'] = 'true'
+
   return NextResponse.json({
     version: 5,
     exported_at: new Date().toISOString(),
@@ -361,5 +373,5 @@ export async function GET(req: Request) {
     staff:             staff              ?? [],
     training_logs:     trainingLogsExport,
     payments:          paymentsExport,
-  })
+  }, { headers: responseHeaders })
 }

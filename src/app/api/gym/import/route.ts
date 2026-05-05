@@ -214,19 +214,24 @@ export async function POST(req: Request) {
   // Keep plan index → new DB id for member plan linking
   const planIds: string[] = []
   if (Array.isArray(membership_plans) && membership_plans.length > 0) {
-    for (const p of membership_plans) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const planRows = membership_plans.map((p: any) => ({
+      gym_id:           gym.id,
+      name:             p.name,
+      description:      p.description ?? null,
+      price_cents:      p.price_cents ?? 0,
+      billing_interval: p.billing_interval ?? 'monthly',
+      contract_months:  p.contract_months ?? 0,
+      is_active:        p.is_active ?? true,
+      sort_order:       p.sort_order ?? 0,
+    }))
+    const PLAN_CHUNK = 50
+    for (let i = 0; i < planRows.length; i += PLAN_CHUNK) {
+      const chunk = planRows.slice(i, i + PLAN_CHUNK)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await svc.from('membership_plans').insert({
-        gym_id:           gym.id,
-        name:             p.name,
-        description:      p.description ?? null,
-        price_cents:      p.price_cents ?? 0,
-        billing_interval: p.billing_interval ?? 'monthly',
-        contract_months:  p.contract_months ?? 0,
-        is_active:        p.is_active ?? true,
-        sort_order:       p.sort_order ?? 0,
-      }).select('id').single()
-      planIds.push(inserted?.id ?? '')
+      const { data: inserted } = await (svc.from('membership_plans') as any).insert(chunk).select('id')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const row of (inserted ?? [])) planIds.push(row.id ?? '')
     }
   }
 
@@ -267,39 +272,54 @@ export async function POST(req: Request) {
 
   // ── Members — pass 1: insert all members (without parent/plan links) ───────
   const memberIds: string[] = []   // index → new DB id
+  const errors: string[] = []
   if (Array.isArray(members) && members.length > 0) {
-    for (const m of members) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const memberRows = members.map((m: any) => anyRow({
+      gym_id:                     gym.id,
+      first_name:                 m.first_name,
+      last_name:                  m.last_name,
+      email:                      m.email ?? null,
+      phone:                      m.phone ?? null,
+      date_of_birth:              m.date_of_birth ?? null,
+      address:                    m.address ?? null,
+      belt:                       m.belt ?? 'white',
+      stripes:                    m.stripes ?? 0,
+      join_date:                  m.join_date ?? new Date().toISOString().split('T')[0],
+      is_active:                  m.is_active ?? true,
+      emergency_contact_name:     m.emergency_contact_name ?? null,
+      emergency_contact_phone:    m.emergency_contact_phone ?? null,
+      notes:                      m.notes ?? null,
+      belt_awarded_at:            m.belt_awarded_at ?? null,
+      subscription_status:        m.subscription_status ?? 'pending',
+      contract_end_date:          m.contract_end_date ?? null,
+      monthly_fee_override_cents: m.monthly_fee_override_cents ?? null,
+      signature_data:             m.signature_data ?? null,
+      contract_signed_at:         m.contract_signed_at ?? null,
+      gdpr_consent_at:            m.gdpr_consent_at ?? null,
+      onboarding_status:          m.onboarding_status ?? null,
+      consent_ip:                 m.consent_ip ?? null,
+      consent_user_agent:         m.consent_user_agent ?? null,
+      consent_text:               m.consent_text ?? null,
+      cancellation_requested_at:  m.cancellation_requested_at ?? null,
+      cancellation_note:          m.cancellation_note ?? null,
+    }))
+    const MEMBER_CHUNK = 100
+    for (let i = 0; i < memberRows.length; i += MEMBER_CHUNK) {
+      const chunk = memberRows.slice(i, i + MEMBER_CHUNK)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await svc.from('members').insert(anyRow({
-        gym_id:                     gym.id,
-        first_name:                 m.first_name,
-        last_name:                  m.last_name,
-        email:                      m.email ?? null,
-        phone:                      m.phone ?? null,
-        date_of_birth:              m.date_of_birth ?? null,
-        address:                    m.address ?? null,
-        belt:                       m.belt ?? 'white',
-        stripes:                    m.stripes ?? 0,
-        join_date:                  m.join_date ?? new Date().toISOString().split('T')[0],
-        is_active:                  m.is_active ?? true,
-        emergency_contact_name:     m.emergency_contact_name ?? null,
-        emergency_contact_phone:    m.emergency_contact_phone ?? null,
-        notes:                      m.notes ?? null,
-        belt_awarded_at:            m.belt_awarded_at ?? null,
-        subscription_status:        m.subscription_status ?? 'pending',
-        contract_end_date:          m.contract_end_date ?? null,
-        monthly_fee_override_cents: m.monthly_fee_override_cents ?? null,
-        signature_data:             m.signature_data ?? null,
-        contract_signed_at:         m.contract_signed_at ?? null,
-        gdpr_consent_at:            m.gdpr_consent_at ?? null,
-        onboarding_status:          m.onboarding_status ?? null,
-        consent_ip:                 m.consent_ip ?? null,
-        consent_user_agent:         m.consent_user_agent ?? null,
-        consent_text:               m.consent_text ?? null,
-        cancellation_requested_at:  m.cancellation_requested_at ?? null,
-        cancellation_note:          m.cancellation_note ?? null,
-      })).select('id').single()
-      memberIds.push(inserted?.id ?? '')
+      const { data: inserted, error } = await (svc.from('members') as any).insert(chunk).select('id')
+      if (error) {
+        errors.push(`members batch ${i}: ${error.message}`)
+        // Fill memberIds with empty strings to preserve index alignment for later passes
+        for (let j = 0; j < chunk.length; j++) memberIds.push('')
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const row of (inserted ?? [])) memberIds.push(row.id ?? '')
+        // If fewer rows returned than sent (partial insert), pad with empty strings
+        const returned = (inserted ?? []).length
+        for (let j = returned; j < chunk.length; j++) memberIds.push('')
+      }
     }
   }
 
@@ -426,23 +446,35 @@ export async function POST(req: Request) {
   // ── Leads ──────────────────────────────────────────────────────────────────
   const leadIds: string[] = []
   if (Array.isArray(leads) && leads.length > 0) {
-    for (const l of leads) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const leadRows = leads.map((l: any) => anyRow({
+      gym_id:       gym.id,
+      first_name:   l.first_name,
+      last_name:    l.last_name,
+      email:        l.email ?? null,
+      phone:        l.phone ?? null,
+      status:       l.status ?? 'new',
+      source:       l.source ?? 'other',
+      notes:        l.notes ?? null,
+      trial_date:   l.trial_date ?? null,
+      referred_by:  l.referred_by ?? null,
+      contacted_at: l.contacted_at ?? null,
+      converted_at: l.converted_at ?? null,
+    }))
+    const LEAD_CHUNK = 100
+    for (let i = 0; i < leadRows.length; i += LEAD_CHUNK) {
+      const chunk = leadRows.slice(i, i + LEAD_CHUNK)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await svc.from('leads').insert(anyRow({
-        gym_id:       gym.id,
-        first_name:   l.first_name,
-        last_name:    l.last_name,
-        email:        l.email ?? null,
-        phone:        l.phone ?? null,
-        status:       l.status ?? 'new',
-        source:       l.source ?? 'other',
-        notes:        l.notes ?? null,
-        trial_date:   l.trial_date ?? null,
-        referred_by:  l.referred_by ?? null,
-        contacted_at: l.contacted_at ?? null,
-        converted_at: l.converted_at ?? null,
-      })).select('id').single()
-      leadIds.push(inserted?.id ?? '')
+      const { data: inserted, error } = await (svc.from('leads') as any).insert(chunk).select('id')
+      if (error) {
+        errors.push(`leads batch ${i}: ${error.message}`)
+        for (let j = 0; j < chunk.length; j++) leadIds.push('')
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const row of (inserted ?? [])) leadIds.push(row.id ?? '')
+        const returned = (inserted ?? []).length
+        for (let j = returned; j < chunk.length; j++) leadIds.push('')
+      }
     }
   }
 

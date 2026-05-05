@@ -49,21 +49,19 @@ export async function DELETE(
 
   const { data: waitlisted } = await supabaseService
     .from('class_bookings')
-    .select('member_id')
+    .select('id, member_id')
     .eq('class_id', classId)
     .eq('status', 'waitlist')
     .order('created_at', { ascending: true })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   // Auto-promote first waitlisted member to confirmed
   if (waitlisted) {
     await supabaseService
       .from('class_bookings')
       .update({ status: 'confirmed' })
-      .eq('class_id', classId)
-      .eq('member_id', waitlisted.member_id)
-      .eq('status', 'waitlist')
+      .eq('id', waitlisted.id)
   }
 
   if (waitlisted && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {

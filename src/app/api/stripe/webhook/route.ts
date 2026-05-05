@@ -342,6 +342,70 @@ export async function POST(req: Request) {
     }
   }
 
+  // ── invoice.upcoming ─────────────────────────────────────────────────────────
+  if (event.type === 'invoice.upcoming') {
+    const invoice = event.data.object as Stripe.Invoice
+    const gymId   = invoice.metadata?.gymId
+      ?? (invoice as unknown as { subscription_details?: { metadata?: Record<string, string> } }).subscription_details?.metadata?.gymId
+    if (gymId) {
+      const { data: gym } = await supabase.from('gyms').select('email, name').eq('id', gymId).single()
+      const g = gym as any
+      if (g?.email && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+          body: JSON.stringify({
+            from: process.env.RESEND_FROM_EMAIL,
+            to:   g.email,
+            subject: `Erinnerung: Dein Abonnement verlängert sich in 3 Tagen`,
+            html: `
+              <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+                <p style="margin:0 0 8px;font-size:22px;font-weight:800;color:#1d4ed8">Verlängerung in 3 Tagen</p>
+                <p style="font-size:15px;color:#374151;line-height:1.6">
+                  Hallo ${g.name ?? 'Team'},<br/><br/>
+                  dein Osss-Abonnement wird in <strong>3 Tagen</strong> automatisch verlängert.
+                  Bitte stelle sicher, dass deine Zahlungsmethode aktuell ist.
+                </p>
+                <a href="https://dashboard.stripe.com/billing" style="display:inline-block;background:#1d4ed8;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">
+                  Zahlungsmethode prüfen →
+                </a>
+              </div>
+            `,
+          }),
+        }).catch(e => console.error('[webhook] invoice.upcoming email error:', e))
+      }
+    }
+    return NextResponse.json({ received: true })
+  }
+
+  // ── customer.subscription.trial_will_end ─────────────────────────────────────
+  if (event.type === 'customer.subscription.trial_will_end') {
+    const sub      = event.data.object as Stripe.Subscription
+    const memberId = sub.metadata?.memberId
+    if (memberId) {
+      const { error: trialErr } = await supabase.from('members')
+        .update({ subscription_status: 'trial' } as never)
+        .eq('id', memberId)
+      if (trialErr) console.error('[webhook] trial_will_end update error:', trialErr)
+      else console.log(`[webhook] trial_will_end — member ${memberId} status set to trial`)
+    }
+    return NextResponse.json({ received: true })
+  }
+
+  // ── charge.dispute.closed ────────────────────────────────────────────────────
+  if (event.type === 'charge.dispute.closed') {
+    const dispute  = event.data.object as Stripe.Dispute
+    const chargeId = typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id
+    if (chargeId) {
+      const finalStatus = dispute.status === 'won' ? 'paid' : 'disputed_lost'
+      const { error: disputeCloseErr } = await supabase.from('payments')
+        .update({ status: finalStatus } as never)
+        .eq('stripe_payment_intent_id', dispute.payment_intent as string)
+      if (disputeCloseErr) return NextResponse.json({ error: disputeCloseErr.message }, { status: 500 })
+    }
+    return NextResponse.json({ received: true })
+  }
+
   // ── charge.dispute.created ───────────────────────────────────────────────────
   if (event.type === 'charge.dispute.created') {
     const dispute  = event.data.object as Stripe.Dispute

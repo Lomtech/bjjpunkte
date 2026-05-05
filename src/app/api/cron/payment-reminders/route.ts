@@ -4,18 +4,22 @@ import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { cronGuard } from '@/lib/cron-guard'
 
-async function sendEmail(to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
+async function sendEmail(to: string, subject: string, html: string, listUnsubscribe?: string): Promise<{ ok: boolean; error?: string }> {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     return { ok: false, error: 'Resend not configured' }
   }
   try {
+    const fromDomain = process.env.RESEND_FROM_EMAIL.split('@')[1] ?? 'osss.pro'
+    const headers: Record<string, string> = {
+      'List-Unsubscribe': listUnsubscribe ?? `<mailto:unsubscribe@${fromDomain}>`,
+    }
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       },
-      body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL, to, subject, html }),
+      body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL, to, subject, html, headers }),
     })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
@@ -81,6 +85,10 @@ function reminderEmailHtml({
 
           <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6">
             Bei Fragen melde dich direkt bei deinem Gym. Wenn du eine Lastschrift eingerichtet hast, kannst du diese Nachricht ignorieren.
+          </p>
+          <p style="font-size:11px;color:#9ca3af;margin-top:24px;border-top:1px solid #f3f4f6;padding-top:12px">
+            Du erhältst diese E-Mail als Mitglied von ${gymName}.
+            ${portalUrl ? `<a href="${portalUrl}" style="color:#9ca3af">Einstellungen im Portal</a>` : ''}
           </p>
         </td></tr>
 
@@ -179,10 +187,15 @@ export async function GET(req: Request) {
         const ctaUrl      = checkoutUrl ?? portalUrl ?? ''
 
         if (member.email) {
+          const fromDomain = process.env.RESEND_FROM_EMAIL?.split('@')[1] ?? 'osss.pro'
+          const listUnsubscribe = portalUrl
+            ? `<${portalUrl}>, <mailto:unsubscribe@${fromDomain}>`
+            : `<mailto:unsubscribe@${fromDomain}>`
           const result = await sendEmail(
             member.email,
             `Erinnerung: Mitgliedsbeitrag ${monthLabel} — ${gym.name}`,
-            reminderEmailHtml({ firstName: member.first_name, gymName: gym.name, amountCents, portalUrl, checkoutUrl })
+            reminderEmailHtml({ firstName: member.first_name, gymName: gym.name, amountCents, portalUrl, checkoutUrl }),
+            listUnsubscribe
           )
           if (result.ok) {
             emailsSent++

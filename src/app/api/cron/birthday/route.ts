@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getAppUrl } from '@/lib/app-url'
 import { cronGuard } from '@/lib/cron-guard'
 
 const PAID_PLANS = ['starter', 'grow', 'pro']
@@ -20,6 +21,7 @@ export async function GET(req: Request) {
   }
 
   const supabase = createServiceClient()
+  const appUrl   = getAppUrl()
 
   const today   = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }))
   const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
@@ -38,7 +40,7 @@ export async function GET(req: Request) {
 
   const { data: members } = await supabase
     .from('members')
-    .select('id, first_name, last_name, email, date_of_birth, gym_id')
+    .select('id, first_name, last_name, email, date_of_birth, gym_id, portal_token')
     .eq('is_active', true)
     .in('gym_id', gymIds)
     .not('date_of_birth', 'is', null)
@@ -56,15 +58,20 @@ export async function GET(req: Request) {
   const errors: string[] = []
 
   const membersToEmail = (birthdayMembers as {
-    first_name: string; email: string | null; date_of_birth: string; gym_id: string
+    first_name: string; email: string | null; date_of_birth: string; gym_id: string; portal_token: string | null
   }[]).filter(m => !!m.email)
 
   const EMAIL_BATCH = 10
   for (let i = 0; i < membersToEmail.length; i += EMAIL_BATCH) {
     const chunk = membersToEmail.slice(i, i + EMAIL_BATCH)
     await Promise.all(chunk.map(async member => {
-      const age     = today.getFullYear() - parseInt(member.date_of_birth.slice(0, 4))
-      const gymName = gymMap.get(member.gym_id) ?? 'Dein Gym'
+      const age       = today.getFullYear() - parseInt(member.date_of_birth.slice(0, 4))
+      const gymName   = gymMap.get(member.gym_id) ?? 'Dein Gym'
+      const portalUrl = member.portal_token ? `${appUrl}/portal/${member.portal_token}` : null
+      const fromDomain = process.env.RESEND_FROM_EMAIL!.split('@')[1] ?? 'osss.pro'
+      const listUnsubscribe = portalUrl
+        ? `<${portalUrl}>, <mailto:unsubscribe@${fromDomain}>`
+        : `<mailto:unsubscribe@${fromDomain}>`
 
       try {
         const res = await fetch('https://api.resend.com/emails', {
@@ -77,6 +84,7 @@ export async function GET(req: Request) {
             from: process.env.RESEND_FROM_EMAIL,
             to:   member.email,
             subject: `Alles Gute zum Geburtstag, ${member.first_name}!`,
+            headers: { 'List-Unsubscribe': listUnsubscribe },
             html: `<!DOCTYPE html>
 <html lang="de">
 <head><meta charset="utf-8"></head>
@@ -94,6 +102,10 @@ export async function GET(req: Request) {
             Wir freuen uns auf viele weitere Trainings mit dir auf der Matte.
           </p>
           <p style="margin:0;font-size:15px;color:#64748b">Oss! 🥋</p>
+          <p style="font-size:11px;color:#9ca3af;margin-top:24px;border-top:1px solid #f3f4f6;padding-top:12px">
+            Du erhältst diese E-Mail als Mitglied von ${gymName}.
+            ${portalUrl ? `<a href="${portalUrl}" style="color:#9ca3af">Einstellungen im Portal</a>` : ''}
+          </p>
         </td></tr>
       </table>
     </td></tr>

@@ -217,36 +217,40 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Step 6: secondary dedup — always runs as safety net ────────────────
+    // ── Step 6: secondary dedup — batch version ────────────────────────────
     // Catches: (a) SEPA invoices without payment_intent, (b) invoices whose
     // payment_intent was stored as null on a previous sync and now has one,
     // (c) memberId=undefined case where .eq('member_id', '') would miss null rows.
+    //
+    // Instead of one query per invoice, we fetch all paid payments for this gym
+    // in the full ±1-day window of the batch, then match in-memory.
     const afterDbDedup: InvoiceResolved[] = []
-    for (const r of toInsert) {
-      const dayBefore = new Date(new Date(r.paidAt).getTime() - 86_400_000).toISOString()
-      const dayAfter  = new Date(new Date(r.paidAt).getTime() + 86_400_000).toISOString()
+    if (toInsert.length > 0) {
+      const timestamps = toInsert.map(r => new Date(r.paidAt).getTime())
+      const batchWindowStart = new Date(Math.min(...timestamps) - 86_400_000).toISOString()
+      const batchWindowEnd   = new Date(Math.max(...timestamps) + 86_400_000).toISOString()
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let q = (supabase.from('payments') as any)
-        .select('id')
-        .eq('amount_cents', r.amountCents)
+      const { data: nearbyAll } = await (supabase.from('payments') as any)
+        .select('id, amount_cents, member_id, member_name, paid_at')
         .eq('status', 'paid')
-        .gte('paid_at', dayBefore)
-        .lte('paid_at', dayAfter)
-        .limit(1)
+        .eq('gym_id', (gym as any).id)
+        .gte('paid_at', batchWindowStart)
+        .lte('paid_at', batchWindowEnd)
 
-      // Narrow by identity: prefer member_id, fall back to member_name for deleted members.
-      // Never use '' as a substitute for null — PostgREST treats them differently.
-      if (r.memberId) {
-        q = q.eq('member_id', r.memberId)
-      } else if (r.memberNameFallback) {
-        q = q.eq('member_name', r.memberNameFallback)
+      for (const r of toInsert) {
+        const identity = r.memberId ?? r.memberNameFallback ?? ''
+        const rTime = new Date(r.paidAt).getTime()
+        const nearbyMatch = (nearbyAll ?? []).some((row: any) => {
+          if ((row as any).amount_cents !== r.amountCents) return false
+          const rowIdentity = (row as any).member_id ?? (row as any).member_name ?? ''
+          if (rowIdentity !== identity) return false
+          const diff = Math.abs(new Date((row as any).paid_at).getTime() - rTime)
+          return diff <= 86_400_000
+        })
+        if (nearbyMatch) { alreadyHad++; continue }
+
+        afterDbDedup.push(r)
       }
-
-      const { data: nearby } = await q
-      if (nearby && nearby.length > 0) { alreadyHad++; continue }
-
-      afterDbDedup.push(r)
     }
 
     // ── Step 6b: deduplicate within the current batch ───────────────────────
