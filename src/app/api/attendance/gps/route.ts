@@ -83,8 +83,12 @@ export async function POST(req: Request) {
   }
 
   if (!member_id) return NextResponse.json({ error: 'member_id fehlt' }, { status: 400 })
-  if (lat === undefined || lng === undefined) {
-    return NextResponse.json({ error: 'GPS-Koordinaten fehlen' }, { status: 400 })
+  if (
+    typeof lat !== 'number' || typeof lng !== 'number' ||
+    !Number.isFinite(lat) || !Number.isFinite(lng) ||
+    lat < -90 || lat > 90 || lng < -180 || lng > 180
+  ) {
+    return NextResponse.json({ error: 'Ungültige GPS-Koordinaten' }, { status: 400 })
   }
 
   // GPS radius check

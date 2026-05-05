@@ -30,7 +30,18 @@ export async function POST(req: Request) {
   const file = form.get('file') as File | null
   if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
 
-  const ext  = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  const ALLOWED: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png':  'png',
+    'image/webp': 'webp',
+    'image/gif':  'gif',
+  }
+  const ext = ALLOWED[file.type]
+  if (!ext) return NextResponse.json({ error: 'Nur Bilder erlaubt (JPEG, PNG, WebP, GIF)' }, { status: 415 })
+
+  const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+  if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Datei zu groß (max. 10 MB)' }, { status: 413 })
+
   const path = `${gym.id}/${Date.now()}.${ext}`
   const buf  = Buffer.from(await file.arrayBuffer())
 
