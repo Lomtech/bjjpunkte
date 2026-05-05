@@ -110,55 +110,60 @@ export async function POST(req: Request) {
     }
 
     if (session.payment_status === 'paid') {
-      const now = new Date().toISOString()
+      const now   = new Date().toISOString()
+      const gymId = session.metadata?.gymId ?? null
+      let matched = false
 
-      // 1st priority: match by checkout session ID — always unique, set at payment creation time
+      // 1st priority: match by checkout session ID — always unique
       const { data: bySession } = await supabase
         .from('payments')
         .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId })
         .eq('stripe_checkout_session_id', sessionId)
         .select('id')
+      if (bySession && bySession.length > 0) matched = true
 
-      if (bySession && bySession.length > 0) {
-        // matched cleanly — done
-      } else if (paymentIntentId) {
-        // 2nd priority: match by payment_intent (legacy records created before session ID was stored)
+      if (!matched && paymentIntentId) {
+        // 2nd priority: match by payment_intent
         const { data: byIntent } = await supabase
           .from('payments')
-          .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId })
+          .update({ status: 'paid', paid_at: now })
           .eq('stripe_payment_intent_id', paymentIntentId)
           .select('id')
+        if (byIntent && byIntent.length > 0) matched = true
 
-        // 3rd priority: most recent pending for this member — last resort for legacy records
-        if ((!byIntent || byIntent.length === 0) && memberId) {
+        // 3rd priority: pending row for this member
+        if (!matched && memberId) {
           const { data: pending } = await supabase
-            .from('payments')
-            .select('id')
-            .eq('member_id', memberId)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single()
+            .from('payments').select('id')
+            .eq('member_id', memberId).eq('status', 'pending')
+            .order('created_at', { ascending: false }).limit(1).single()
           if (pending) {
             await supabase.from('payments')
               .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId, stripe_checkout_session_id: sessionId })
               .eq('id', pending.id)
+            matched = true
           }
         }
-      } else if (memberId) {
-        // No payment_intent at all (e.g. free checkout) — fall back to member
-        const { data: pending } = await supabase
-          .from('payments')
-          .select('id')
-          .eq('member_id', memberId)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
-        if (pending) {
-          await supabase.from('payments')
-            .update({ status: 'paid', paid_at: now, stripe_checkout_session_id: sessionId })
-            .eq('id', pending.id)
+      }
+
+      // 4th priority (subscription payments): no pending row exists — INSERT directly.
+      // This handles subscription first-payments and portal-initiated checkouts where
+      // no pending row was pre-created.
+      if (!matched && memberId && session.mode === 'subscription') {
+        // Idempotency: skip if already recorded via invoice.paid
+        const { data: existing } = await supabase
+          .from('payments').select('id')
+          .eq('stripe_checkout_session_id', sessionId).limit(1)
+        if (!existing || existing.length === 0) {
+          await (supabase.from('payments') as any).insert({
+            gym_id:                     gymId,
+            member_id:                  memberId,
+            amount_cents:               session.amount_total ?? 0,
+            status:                     'paid',
+            paid_at:                    now,
+            stripe_payment_intent_id:   paymentIntentId,
+            stripe_checkout_session_id: sessionId,
+          })
         }
       }
     }
