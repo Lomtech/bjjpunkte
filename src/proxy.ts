@@ -1,35 +1,64 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// NOTE: This in-memory store is per-process. On Vercel (multi-instance serverless),
-// each cold-start gets its own Map — rate limiting is best-effort, not guaranteed.
-// For strict enforcement, replace with Upstash Redis (@upstash/ratelimit).
-const WINDOW_MS = 60_000 // 1 Minute
-const MAX_REQS  = 30     // pro IP pro Minute
-const CLEANUP_INTERVAL = 5 * 60_000 // Cleanup alle 5 Minuten
+// Redis-based rate limiting (Upstash) with in-memory fallback
+let ratelimiter: { limit: (key: string) => Promise<{ success: boolean }> } | null = null
 
-const store = new Map<string, { n: number; reset: number }>()
+function getRatelimiter() {
+  if (ratelimiter) return ratelimiter
 
-// Prevent unbounded map growth: prune expired entries periodically.
-let lastCleanup = Date.now()
-function maybeCleanup(now: number) {
-  if (now - lastCleanup < CLEANUP_INTERVAL) return
-  lastCleanup = now
-  for (const [ip, e] of store) {
-    if (now > e.reset) store.delete(ip)
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+
+  if (url && token) {
+    // Dynamic import to avoid build errors when package not installed
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Redis } = require('@upstash/redis')
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { Ratelimit } = require('@upstash/ratelimit')
+      const redis = new Redis({ url, token })
+      ratelimiter = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(30, '60 s'),
+        analytics: false,
+      })
+    } catch {
+      console.warn('[proxy] @upstash/ratelimit not available, using in-memory fallback')
+      ratelimiter = createInMemoryLimiter()
+    }
+  } else {
+    console.warn('[proxy] UPSTASH_REDIS_REST_URL not set, using in-memory rate limiting (not suitable for production)')
+    ratelimiter = createInMemoryLimiter()
   }
+
+  return ratelimiter
 }
 
-function limited(ip: string): boolean {
-  const now = Date.now()
-  maybeCleanup(now)
-  const e = store.get(ip)
-  if (!e || now > e.reset) {
-    store.set(ip, { n: 1, reset: now + WINDOW_MS })
-    return false
+// In-memory fallback (per-process, not distributed)
+function createInMemoryLimiter() {
+  const WINDOW_MS = 60_000
+  const MAX_REQS  = 30
+  const CLEANUP_INTERVAL = 5 * 60_000
+  const store = new Map<string, { n: number; reset: number }>()
+  let lastCleanup = Date.now()
+
+  return {
+    limit: async (key: string) => {
+      const now = Date.now()
+      if (now - lastCleanup > CLEANUP_INTERVAL) {
+        lastCleanup = now
+        for (const [k, e] of store) { if (now > e.reset) store.delete(k) }
+      }
+      const e = store.get(key)
+      if (!e || now > e.reset) {
+        store.set(key, { n: 1, reset: now + WINDOW_MS })
+        return { success: true }
+      }
+      e.n++
+      return { success: e.n <= MAX_REQS }
+    }
   }
-  e.n++
-  return e.n > MAX_REQS
 }
 
 const RATE_LIMITED = /^\/(api\/portal|api\/public)\//
@@ -37,7 +66,9 @@ const RATE_LIMITED = /^\/(api\/portal|api\/public)\//
 export async function proxy(request: NextRequest) {
   if (RATE_LIMITED.test(request.nextUrl.pathname)) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
-    if (limited(ip)) {
+    const rl = getRatelimiter()!
+    const { success } = await rl.limit(`rl:${ip}`)
+    if (!success) {
       return NextResponse.json(
         { error: 'Zu viele Anfragen. Bitte kurz warten.' },
         { status: 429 }

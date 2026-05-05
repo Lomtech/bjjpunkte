@@ -17,7 +17,7 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params
-  if (!token || token.length < 10) {
+  if (!token || token.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
   }
 
@@ -68,6 +68,8 @@ export async function POST(
     .eq('id', member.plan_id)
     .eq('gym_id', member.gym_id)
     .single()
+
+  const plan = planRaw as { stripe_price_id: string | null; price_cents: number; name: string; billing_interval: string; contract_months: number | null }
 
   if (!planRaw || !planRaw.price_cents) {
     return NextResponse.json({ error: 'Tarif nicht gefunden oder ungültiger Preis' }, { status: 400 })

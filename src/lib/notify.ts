@@ -1,6 +1,21 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { toE164 } from '@/lib/whatsapp'
 
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastError = err
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, attempt * 1000)) // 1s, 2s backoff
+      }
+    }
+  }
+  throw lastError
+}
+
 interface NotifyPayload {
   gymId: string
   subject: string
@@ -28,7 +43,7 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
   // ── Email via Resend ─────────────────────────────────────────────────────
   if (gym.email && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
     try {
-      const res = await fetch('https://api.resend.com/emails', {
+      const res = await withRetry(() => fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -40,7 +55,7 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
           subject,
           html: wrapEmail(gym.name, html),
         }),
-      })
+      }))
       if (res.ok) {
         result.emailSent = true
       } else {

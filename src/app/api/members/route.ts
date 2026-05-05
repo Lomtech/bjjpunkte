@@ -69,7 +69,13 @@ export async function POST(req: Request) {
     parent_member_id:  parent_member_id || null,
   }).select('id, portal_token').single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // Check if this is a plan-limit constraint violation (race condition)
+    if (error.code === '23514' || error.code === '23505' || error.message?.includes('plan_member_limit')) {
+      return NextResponse.json({ error: 'PLAN_LIMIT_REACHED', limit }, { status: 403 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   const memberId    = (member as { id: string; portal_token: string | null }).id
   const portalToken = (member as { id: string; portal_token: string | null }).portal_token

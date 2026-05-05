@@ -75,306 +75,292 @@ export async function POST(req: Request) {
   }
   if (!event) return NextResponse.json({ error: 'Webhook-Signatur ungültig' }, { status: 400 })
 
-  // Single client for the entire request — not recreated per event handler.
   const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
+  const { data: dedupRow } = await supabase
+    .from('payments')
+    .select('id')
+    .or(`stripe_payment_intent_id.eq.${event.id},stripe_checkout_session_id.eq.${event.id}`)
+    .limit(1)
+    .maybeSingle()
+  if (dedupRow) return NextResponse.json({ received: true })
+
   // ── checkout.session.completed ──────────────────────────────────────────────
   if (event.type === 'checkout.session.completed') {
-    try {
-      const session         = event.data.object as Stripe.Checkout.Session
-      const memberId        = session.metadata?.memberId ?? null
-      const sessionId       = session.id
-      const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null
+    const session         = event.data.object as Stripe.Checkout.Session
+    const memberId        = session.metadata?.memberId ?? null
+    const sessionId       = session.id
+    const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null
 
-      if (session.metadata?.type === 'owner_plan') {
-        const { gymId, plan } = session.metadata
-        await supabase.from('gyms').update({
-          plan:                        plan as Database['public']['Tables']['gyms']['Update']['plan'],
-          plan_member_limit:           PLAN_LIMITS[plan] ?? 30,
-          osss_stripe_customer_id:     typeof session.customer    === 'string' ? session.customer    : undefined,
-          osss_stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : undefined,
-        }).eq('id', gymId)
+    if (session.metadata?.type === 'owner_plan') {
+      const { gymId, plan } = session.metadata
+      const { error: planErr } = await supabase.from('gyms').update({
+        plan:                        plan as Database['public']['Tables']['gyms']['Update']['plan'],
+        plan_member_limit:           PLAN_LIMITS[plan] ?? 30,
+        osss_stripe_customer_id:     typeof session.customer    === 'string' ? session.customer    : undefined,
+        osss_stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : undefined,
+      }).eq('id', gymId)
+      if (planErr) return NextResponse.json({ error: planErr.message }, { status: 500 })
+    }
+
+    if (memberId && session.mode === 'subscription') {
+      const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null
+      if (subscriptionId) {
+        const { error: subErr } = await supabase.from('members')
+          .update({ stripe_subscription_id: subscriptionId, subscription_status: 'active' })
+          .eq('id', memberId)
+        if (subErr) return NextResponse.json({ error: subErr.message }, { status: 500 })
       }
+    }
 
-      if (memberId && session.mode === 'subscription') {
-        const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null
-        if (subscriptionId) {
-          await supabase.from('members')
-            .update({ stripe_subscription_id: subscriptionId, subscription_status: 'active' })
-            .eq('id', memberId)
-        }
-      }
+    if (session.payment_status === 'paid') {
+      const now   = new Date().toISOString()
+      const gymId = session.metadata?.gymId ?? null
+      let matched = false
 
-      if (session.payment_status === 'paid') {
-        const now   = new Date().toISOString()
-        const gymId = session.metadata?.gymId ?? null
-        let matched = false
+      const { data: bySession, error: bySessionErr } = await supabase
+        .from('payments')
+        .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId })
+        .eq('stripe_checkout_session_id', sessionId)
+        .select('id')
+      if (bySessionErr) return NextResponse.json({ error: bySessionErr.message }, { status: 500 })
+      if (bySession && bySession.length > 0) matched = true
 
-        const { data: bySession } = await supabase
+      if (!matched && paymentIntentId) {
+        const { data: byIntent, error: byIntentErr } = await supabase
           .from('payments')
-          .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId })
-          .eq('stripe_checkout_session_id', sessionId)
+          .update({ status: 'paid', paid_at: now })
+          .eq('stripe_payment_intent_id', paymentIntentId)
           .select('id')
-        if (bySession && bySession.length > 0) matched = true
+        if (byIntentErr) return NextResponse.json({ error: byIntentErr.message }, { status: 500 })
+        if (byIntent && byIntent.length > 0) matched = true
 
-        if (!matched && paymentIntentId) {
-          const { data: byIntent } = await supabase
-            .from('payments')
-            .update({ status: 'paid', paid_at: now })
-            .eq('stripe_payment_intent_id', paymentIntentId)
-            .select('id')
-          if (byIntent && byIntent.length > 0) matched = true
-
-          if (!matched && memberId) {
-            const { data: pending } = await supabase
-              .from('payments').select('id')
-              .eq('member_id', memberId).eq('status', 'pending')
-              .order('created_at', { ascending: false }).limit(1).single()
-            if (pending) {
-              await supabase.from('payments')
-                .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId, stripe_checkout_session_id: sessionId })
-                .eq('id', pending.id)
-              matched = true
-            }
-          }
-        }
-
-        if (!matched && memberId && gymId && session.mode === 'subscription') {
-          const { data: existing } = await supabase
+        if (!matched && memberId) {
+          const { data: pending, error: pendingErr } = await supabase
             .from('payments').select('id')
-            .eq('stripe_checkout_session_id', sessionId).limit(1)
-          if (!existing || existing.length === 0) {
-            const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
-            const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
-            await supabase.from('payments').insert({
-              gym_id:                     gymId,
-              member_id:                  memberId,
-              member_name:                memberName,
-              amount_cents:               session.amount_total ?? 0,
-              status:                     'paid',
-              paid_at:                    now,
-              stripe_payment_intent_id:   paymentIntentId,
-              stripe_checkout_session_id: sessionId,
-            })
+            .eq('member_id', memberId).eq('status', 'pending')
+            .order('created_at', { ascending: false }).limit(1).single()
+          if (pendingErr && pendingErr.code !== 'PGRST116') return NextResponse.json({ error: pendingErr.message }, { status: 500 })
+          if (pending) {
+            const { error: updErr } = await supabase.from('payments')
+              .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId, stripe_checkout_session_id: sessionId })
+              .eq('id', pending.id)
+            if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
+            matched = true
           }
         }
       }
-    } catch (err) {
-      console.error('[webhook] checkout.session.completed error:', err)
+
+      if (!matched && memberId && gymId && session.mode === 'subscription') {
+        const { data: existing, error: existErr } = await supabase
+          .from('payments').select('id')
+          .eq('stripe_checkout_session_id', sessionId).limit(1)
+        if (existErr) return NextResponse.json({ error: existErr.message }, { status: 500 })
+        if (!existing || existing.length === 0) {
+          const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
+          const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
+          const { error: insErr } = await supabase.from('payments').insert({
+            gym_id:                     gymId,
+            member_id:                  memberId,
+            member_name:                memberName,
+            amount_cents:               session.amount_total ?? 0,
+            status:                     'paid',
+            paid_at:                    now,
+            stripe_payment_intent_id:   paymentIntentId,
+            stripe_checkout_session_id: sessionId,
+          })
+          if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+        }
+      }
     }
   }
 
   // ── account.updated ─────────────────────────────────────────────────────────
   if (event.type === 'account.updated') {
-    try {
-      const account = event.data.object as Stripe.Account
-      const { data: gym } = await supabase.from('gyms').select('id').eq('stripe_account_id', account.id).single()
-      if (gym) {
-        await supabase.from('gyms').update({ stripe_charges_enabled: account.charges_enabled }).eq('id', gym.id)
-      }
-    } catch (err) {
-      console.error('[webhook] account.updated error:', err)
+    const account = event.data.object as Stripe.Account
+    const { data: gym, error: gymLookupErr } = await supabase.from('gyms').select('id').eq('stripe_account_id', account.id).single()
+    if (gymLookupErr && gymLookupErr.code !== 'PGRST116') return NextResponse.json({ error: gymLookupErr.message }, { status: 500 })
+    if (gym) {
+      const { error: updErr } = await supabase.from('gyms').update({ stripe_charges_enabled: account.charges_enabled }).eq('id', gym.id)
+      if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
     }
   }
 
   // ── charge.refunded ─────────────────────────────────────────────────────────
   if (event.type === 'charge.refunded') {
-    try {
-      const charge = event.data.object as Stripe.Charge
-      const piId   = typeof charge.payment_intent === 'string' ? charge.payment_intent : null
-      if (piId) {
-        await supabase.from('payments').update({ status: 'refunded' }).eq('stripe_payment_intent_id', piId)
-      }
-    } catch (err) {
-      console.error('[webhook] charge.refunded error:', err)
+    const charge = event.data.object as Stripe.Charge
+    const piId   = typeof charge.payment_intent === 'string' ? charge.payment_intent : null
+    if (piId) {
+      const { error: refErr } = await supabase.from('payments').update({ status: 'refunded' }).eq('stripe_payment_intent_id', piId)
+      if (refErr) return NextResponse.json({ error: refErr.message }, { status: 500 })
     }
   }
 
   // ── payment_intent.payment_failed ───────────────────────────────────────────
   if (event.type === 'payment_intent.payment_failed') {
-    try {
-      const pi = event.data.object as Stripe.PaymentIntent
-      await supabase.from('payments').update({ status: 'failed' }).eq('stripe_payment_intent_id', pi.id)
-    } catch (err) {
-      console.error('[webhook] payment_intent.payment_failed error:', err)
-    }
+    const pi = event.data.object as Stripe.PaymentIntent
+    const { error: failErr } = await supabase.from('payments').update({ status: 'failed' }).eq('stripe_payment_intent_id', pi.id)
+    if (failErr) return NextResponse.json({ error: failErr.message }, { status: 500 })
   }
 
   // ── customer.subscription.created / updated ──────────────────────────────────
   if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
-    try {
-      const sub      = event.data.object as Stripe.Subscription
-      const memberId = sub.metadata?.memberId
-      if (memberId) {
-        const status: Database['public']['Tables']['members']['Update']['subscription_status'] =
-          sub.status === 'active'   ? 'active'    :
-          sub.status === 'past_due' ? 'past_due'  :
-          sub.status === 'canceled' ? 'cancelled' :
-          'none'
-        await supabase.from('members')
-          .update({ stripe_subscription_id: sub.id, subscription_status: status })
-          .eq('id', memberId)
+    const sub      = event.data.object as Stripe.Subscription
+    const memberId = sub.metadata?.memberId
+    if (memberId) {
+      const status: Database['public']['Tables']['members']['Update']['subscription_status'] =
+        sub.status === 'active'   ? 'active'    :
+        sub.status === 'past_due' ? 'past_due'  :
+        sub.status === 'canceled' ? 'cancelled' :
+        'none'
+      const { error: subUpdErr } = await supabase.from('members')
+        .update({ stripe_subscription_id: sub.id, subscription_status: status })
+        .eq('id', memberId)
+      if (subUpdErr) return NextResponse.json({ error: subUpdErr.message }, { status: 500 })
 
-        if (event.type === 'customer.subscription.created') {
-          const cancelAtTs = sub.metadata?.cancel_at_ts
-          if (cancelAtTs && !sub.cancel_at) {
-            try {
-              const connectedAccount = req.headers.get('stripe-account') ?? undefined
-              await stripe.subscriptions.update(
-                sub.id,
-                { cancel_at: parseInt(cancelAtTs, 10) },
-                connectedAccount ? { stripeAccount: connectedAccount } : undefined,
-              )
-            } catch (err) {
-              console.error('[webhook] Failed to set cancel_at on subscription:', err)
-            }
+      if (event.type === 'customer.subscription.created') {
+        const cancelAtTs = sub.metadata?.cancel_at_ts
+        if (cancelAtTs && !sub.cancel_at) {
+          try {
+            const connectedAccount = req.headers.get('stripe-account') ?? undefined
+            await stripe.subscriptions.update(
+              sub.id,
+              { cancel_at: parseInt(cancelAtTs, 10) },
+              connectedAccount ? { stripeAccount: connectedAccount } : undefined,
+            )
+          } catch (err) {
+            console.error('[webhook] Failed to set cancel_at on subscription:', err)
           }
         }
       }
-    } catch (err) {
-      console.error('[webhook] customer.subscription.created/updated error:', err)
     }
   }
 
   // ── customer.subscription.deleted ───────────────────────────────────────────
   if (event.type === 'customer.subscription.deleted') {
-    try {
-      const sub      = event.data.object as Stripe.Subscription
-      const memberId = sub.metadata?.memberId
-      if (memberId) {
-        await supabase.from('members')
-          .update({ stripe_subscription_id: null, subscription_status: 'cancelled' })
-          .eq('id', memberId)
-      }
+    const sub      = event.data.object as Stripe.Subscription
+    const memberId = sub.metadata?.memberId
+    if (memberId) {
+      const { error: delMemberErr } = await supabase.from('members')
+        .update({ stripe_subscription_id: null, subscription_status: 'cancelled' })
+        .eq('id', memberId)
+      if (delMemberErr) return NextResponse.json({ error: delMemberErr.message }, { status: 500 })
+    }
 
-      const { data: gymWithSub } = await supabase.from('gyms').select('id').eq('osss_stripe_subscription_id', sub.id).single()
-      if (gymWithSub) {
-        await supabase.from('gyms').update({
-          plan:                        'free',
-          plan_member_limit:           30,
-          osss_stripe_subscription_id: null,
-        }).eq('id', gymWithSub.id)
-      }
-    } catch (err) {
-      console.error('[webhook] customer.subscription.deleted error:', err)
+    const { data: gymWithSub, error: gymLookupErr } = await supabase.from('gyms').select('id').eq('osss_stripe_subscription_id', sub.id).single()
+    if (gymLookupErr && gymLookupErr.code !== 'PGRST116') return NextResponse.json({ error: gymLookupErr.message }, { status: 500 })
+    if (gymWithSub) {
+      const { error: gymDownErr } = await supabase.from('gyms').update({
+        plan:                        'free',
+        plan_member_limit:           30,
+        osss_stripe_subscription_id: null,
+      }).eq('id', gymWithSub.id)
+      if (gymDownErr) return NextResponse.json({ error: gymDownErr.message }, { status: 500 })
     }
   }
 
   // ── invoice.paid ─────────────────────────────────────────────────────────────
   if (event.type === 'invoice.paid') {
-    try {
-      const inv             = event.data.object as Stripe.Invoice
-      const meta            = (inv as unknown as { subscription_details?: { metadata?: Record<string, string> } }).subscription_details?.metadata ?? inv.metadata ?? {}
-      const memberId        = meta.memberId
-      const gymId           = meta.gymId
-      const amountCents     = inv.amount_paid
-      const paymentIntentId = typeof (inv as unknown as { payment_intent?: string }).payment_intent === 'string'
-        ? (inv as unknown as { payment_intent: string }).payment_intent
-        : null
-      const invoiceId = inv.id
+    const inv             = event.data.object as Stripe.Invoice
+    const meta            = (inv as unknown as { subscription_details?: { metadata?: Record<string, string> } }).subscription_details?.metadata ?? inv.metadata ?? {}
+    const memberId        = meta.memberId
+    const gymId           = meta.gymId
+    const amountCents     = inv.amount_paid
+    const paymentIntentId = typeof (inv as unknown as { payment_intent?: string }).payment_intent === 'string'
+      ? (inv as unknown as { payment_intent: string }).payment_intent
+      : null
+    const invoiceId = inv.id
 
-      if (memberId && amountCents > 0) {
-        // Deterministic dedup: stripe_invoice_id is unique and present for every invoice.paid.
-        if (invoiceId) {
-          const { data: byInvoice } = await supabase
-            .from('payments').select('id')
-            .eq('stripe_invoice_id', invoiceId)
-            .single()
-          if (byInvoice) return NextResponse.json({ received: true })
-        }
-        // Secondary dedup for card payments: payment_intent arrives at checkout.session.completed.
-        if (paymentIntentId) {
-          const { data: byIntent } = await supabase
-            .from('payments').select('id')
-            .eq('stripe_payment_intent_id', paymentIntentId)
-            .single()
-          if (byIntent) return NextResponse.json({ received: true })
-        }
-
-        const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
-        const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
-        await supabase.from('payments').insert({
-          gym_id:                   gymId ?? null,
-          member_id:                memberId,
-          member_name:              memberName,
-          amount_cents:             amountCents,
-          status:                   'paid',
-          paid_at:                  new Date().toISOString(),
-          stripe_payment_intent_id: paymentIntentId,
-          stripe_invoice_id:        invoiceId ?? null,
-        } as any)
+    if (memberId && amountCents > 0) {
+      if (invoiceId) {
+        const { data: byInvoice } = await supabase
+          .from('payments').select('id')
+          .eq('stripe_invoice_id', invoiceId)
+          .single()
+        if (byInvoice) return NextResponse.json({ received: true })
       }
-    } catch (err) {
-      console.error('[webhook] invoice.paid error:', err)
+      if (paymentIntentId) {
+        const { data: byIntent } = await supabase
+          .from('payments').select('id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .single()
+        if (byIntent) return NextResponse.json({ received: true })
+      }
+
+      const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
+      const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
+      const { error: insErr } = await supabase.from('payments').insert({
+        gym_id:                   gymId ?? null,
+        member_id:                memberId,
+        member_name:              memberName,
+        amount_cents:             amountCents,
+        status:                   'paid',
+        paid_at:                  new Date().toISOString(),
+        stripe_payment_intent_id: paymentIntentId,
+        stripe_invoice_id:        invoiceId ?? null,
+      } as any)
+      if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
     }
   }
 
   // ── payment_intent.succeeded (SEPA async confirmation) ──────────────────────
   if (event.type === 'payment_intent.succeeded') {
-    try {
-      const pi  = event.data.object as Stripe.PaymentIntent
-      const now = new Date().toISOString()
-      await supabase
-        .from('payments')
-        .update({ status: 'paid', paid_at: now })
-        .eq('stripe_payment_intent_id', pi.id)
-        .eq('status', 'pending')
-    } catch (err) {
-      console.error('[webhook] payment_intent.succeeded error:', err)
-    }
+    const pi  = event.data.object as Stripe.PaymentIntent
+    const now = new Date().toISOString()
+    const { error: sepaErr } = await supabase
+      .from('payments')
+      .update({ status: 'paid', paid_at: now })
+      .eq('stripe_payment_intent_id', pi.id)
+      .eq('status', 'pending')
+    if (sepaErr) return NextResponse.json({ error: sepaErr.message }, { status: 500 })
   }
 
   // ── invoice.payment_failed ───────────────────────────────────────────────────
   if (event.type === 'invoice.payment_failed') {
-    try {
-      const inv      = event.data.object as Stripe.Invoice
-      const meta     = (inv as unknown as { subscription_details?: { metadata?: Record<string, string> } }).subscription_details?.metadata ?? inv.metadata ?? {}
-      const memberId = meta.memberId
+    const inv      = event.data.object as Stripe.Invoice
+    const meta     = (inv as unknown as { subscription_details?: { metadata?: Record<string, string> } }).subscription_details?.metadata ?? inv.metadata ?? {}
+    const memberId = meta.memberId
 
-      if (memberId) {
-        await supabase.from('members').update({ subscription_status: 'past_due' }).eq('id', memberId)
-      } else if (meta.type === 'owner_plan') {
-        const gymId = meta.gymId
-        if (gymId) {
-          await supabase.from('gyms').update({ plan: 'free', plan_member_limit: 30 }).eq('id', gymId)
-          console.warn(`[webhook] Owner plan payment failed for gym ${gymId} — downgraded to free`)
-        }
+    if (memberId) {
+      const { error: pastDueErr } = await supabase.from('members').update({ subscription_status: 'past_due' }).eq('id', memberId)
+      if (pastDueErr) return NextResponse.json({ error: pastDueErr.message }, { status: 500 })
+    } else if (meta.type === 'owner_plan') {
+      const gymId = meta.gymId
+      if (gymId) {
+        const { error: downErr } = await supabase.from('gyms').update({ plan: 'free', plan_member_limit: 30 }).eq('id', gymId)
+        if (downErr) return NextResponse.json({ error: downErr.message }, { status: 500 })
+        console.warn(`[webhook] Owner plan payment failed for gym ${gymId} — downgraded to free`)
       }
-    } catch (err) {
-      console.error('[webhook] invoice.payment_failed error:', err)
     }
   }
 
   // ── charge.dispute.created ───────────────────────────────────────────────────
   if (event.type === 'charge.dispute.created') {
-    try {
-      const dispute  = event.data.object as Stripe.Dispute
-      const chargeId = typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id ?? ''
+    const dispute  = event.data.object as Stripe.Dispute
+    const chargeId = typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id ?? ''
 
-      if (chargeId) {
-        const { data: charge } = await (async () => {
-          try { return { data: await stripe.charges.retrieve(chargeId) } }
-          catch { return { data: null } }
-        })()
-        const piId = typeof charge?.payment_intent === 'string' ? charge.payment_intent : null
-        if (piId) {
-          const { data: pmt } = await supabase
-            .from('payments')
-            .update({ status: 'disputed' })
-            .eq('stripe_payment_intent_id', piId)
-            .select('gym_id, amount_cents')
-            .single()
+    if (chargeId) {
+      const { data: charge } = await (async () => {
+        try { return { data: await stripe.charges.retrieve(chargeId) } }
+        catch { return { data: null } }
+      })()
+      const piId = typeof charge?.payment_intent === 'string' ? charge.payment_intent : null
+      if (piId) {
+        const { data: pmt, error: disputeUpdErr } = await supabase
+          .from('payments')
+          .update({ status: 'disputed' })
+          .eq('stripe_payment_intent_id', piId)
+          .select('gym_id, amount_cents')
+          .single()
+        if (disputeUpdErr && disputeUpdErr.code !== 'PGRST116') return NextResponse.json({ error: disputeUpdErr.message }, { status: 500 })
 
-          if (pmt) {
-            await notifyGymDispute(supabase, (pmt as any).gym_id, dispute.id, (pmt as any).amount_cents, chargeId)
-          }
+        if (pmt) {
+          await notifyGymDispute(supabase, (pmt as any).gym_id, dispute.id, (pmt as any).amount_cents, chargeId)
         }
       }
-    } catch (err) {
-      console.error('[webhook] charge.dispute.created error:', err)
     }
   }
 

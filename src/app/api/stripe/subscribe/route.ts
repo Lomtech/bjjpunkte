@@ -67,7 +67,8 @@ export async function POST(req: Request) {
   }
 
   const appUrl = getAppUrl()
-  const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
+  const rawFee = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0')
+  const platformFeePercent = Number.isFinite(rawFee) ? Math.max(0, rawFee) : 0
   const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
 
   // Verify existing customer is on connected account; recreate if not

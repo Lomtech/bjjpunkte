@@ -100,6 +100,13 @@ export async function GET(req: Request) {
   const guard = cronGuard(req)
   if (guard) return guard
 
+  const todayKey = new Date().toISOString().split('T')[0] // 'YYYY-MM-DD'
+  const alreadyRanKey = `cron_payment_reminder_${todayKey}`
+  if ((global as Record<string, unknown>)[alreadyRanKey]) {
+    return NextResponse.json({ skipped: true, reason: 'already ran today' })
+  }
+  (global as Record<string, unknown>)[alreadyRanKey] = true
+
   const supabase = createServiceClient()
   const appUrl   = getAppUrl()
 

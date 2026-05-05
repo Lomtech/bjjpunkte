@@ -10,6 +10,9 @@ function serviceClient() {
 
 export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  if (!token || token.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
+  }
   const supabase = serviceClient()
   const { data: member } = await supabase.from('members').select('id').eq('portal_token', token).single()
   if (!member) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
@@ -25,6 +28,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  if (!token || token.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
+  }
   const { note, class_type } = await req.json()
   if (!note?.trim()) return NextResponse.json({ error: 'Notiz fehlt' }, { status: 400 })
   if (note.trim().length > 2000) return NextResponse.json({ error: 'Notiz zu lang (max. 2000 Zeichen)' }, { status: 400 })

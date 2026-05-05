@@ -8,6 +8,13 @@ export async function GET(req: Request) {
   const guard = cronGuard(req)
   if (guard) return guard
 
+  const todayKey = new Date().toISOString().split('T')[0]
+  const alreadyRanKey = `cron_birthday_${todayKey}`
+  if ((global as Record<string, unknown>)[alreadyRanKey]) {
+    return NextResponse.json({ skipped: true, reason: 'already ran today' })
+  }
+  ;(global as Record<string, unknown>)[alreadyRanKey] = true
+
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
     return NextResponse.json({ skipped: true, reason: 'Resend not configured' })
   }
