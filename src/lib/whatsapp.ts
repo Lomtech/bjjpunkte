@@ -1,6 +1,7 @@
 /**
- * Twilio WhatsApp helper — sends a message to a member's phone number.
- * Requires: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM
+ * Brevo Transactional SMS helper — sends an SMS to a phone number.
+ * Requires: BREVO_API_KEY env var.
+ * Brevo docs: https://developers.brevo.com/reference/sendtransacsms
  */
 
 /** Normalize any German phone number to E.164 (e.g. +4915123456789) */
@@ -14,51 +15,48 @@ export function toE164(raw: string): string | null {
   return p
 }
 
-interface SendWhatsAppParams {
-  to: string        // raw phone number (will be normalized to E.164)
-  body: string      // text body
+interface SendSmsParams {
+  to: string   // raw phone number (will be normalized to E.164)
+  body: string // text content (max ~160 chars per SMS segment)
 }
 
 /**
- * Send a WhatsApp message via Twilio.
+ * Send an SMS via Brevo Transactional SMS API.
  * Returns true on success, false on any error (best-effort).
  */
-export async function sendWhatsApp({ to, body }: SendWhatsAppParams): Promise<boolean> {
-  const sid   = process.env.TWILIO_ACCOUNT_SID
-  const token = process.env.TWILIO_AUTH_TOKEN
-  const from  = process.env.TWILIO_WHATSAPP_FROM // e.g. whatsapp:+14155238886
-
-  if (!sid || !token || !from) return false
+export async function sendWhatsApp({ to, body }: SendSmsParams): Promise<boolean> {
+  const apiKey = process.env.BREVO_API_KEY
+  if (!apiKey) return false
 
   const phone = toE164(to)
   if (!phone) return false
 
   try {
-    const url  = `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`
-    const body64 = Buffer.from(`${sid}:${token}`).toString('base64')
-    const params = new URLSearchParams({
-      From: from,
-      To:   `whatsapp:${phone}`,
-      Body: body,
-    })
-
-    const res = await fetch(url, {
+    const res = await fetch('https://api.brevo.com/v3/transactionalSMS/sms', {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${body64}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
       },
-      body: params.toString(),
+      body: JSON.stringify({
+        sender: 'OsssGym',      // max 11 alphanumeric chars
+        recipient: phone,
+        content: body,
+        type: 'transactional',
+      }),
     })
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      console.error('[whatsapp] Twilio error:', err)
+      console.error('[sms] Brevo error:', err)
       return false
     }
     return true
   } catch (err) {
-    console.error('[whatsapp] fetch error:', err)
+    console.error('[sms] fetch error:', err)
     return false
   }
 }
+
+// Legacy alias for callers that import sendSms directly
+export { sendWhatsApp as sendSms }

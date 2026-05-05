@@ -85,11 +85,6 @@ export default function SettingsPage() {
   const [signupSaved, setSignupSaved]           = useState(false)
   const [copiedSignup, setCopiedSignup]         = useState(false)
 
-  // WhatsApp notifications (CallMeBot)
-  const [callmebotKey, setCallmebotKey]         = useState('')
-  const [callmebotSaving, setCallmebotSaving]   = useState(false)
-  const [callmebotSaved, setCallmebotSaved]     = useState(false)
-
   // Class Types
   const [classTypesInput, setClassTypesInput]   = useState('gi, no-gi, open mat, kids, competition')
   const [classTypesSaving, setClassTypesSaving] = useState(false)
@@ -220,7 +215,7 @@ export default function SettingsPage() {
         setSignupEnabled((data as any).signup_enabled ?? true)
         setSignupToken((data as any).signup_token ?? null)
         setContractTemplate((data as any).contract_template ?? '')
-        setCallmebotKey((data as any).callmebot_api_key ?? '')
+
         setLegalName((data as any).legal_name ?? '')
         setLegalAddress((data as any).legal_address ?? '')
         setLegalEmail((data as any).legal_email ?? '')
@@ -414,13 +409,6 @@ export default function SettingsPage() {
     setSignupSaving(false); setSignupSaved(true); setTimeout(() => setSignupSaved(false), 2000)
   }
 
-  async function handleCallmebotSave() {
-    setCallmebotSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await (supabase.from('gyms') as any).update({ callmebot_api_key: callmebotKey.trim() || null }).eq('owner_id', user?.id ?? '')
-    setCallmebotSaving(false); setCallmebotSaved(true); setTimeout(() => setCallmebotSaved(false), 2000)
-  }
 
   async function handleLegalSave() {
     setLegalSaving(true)
@@ -1567,38 +1555,22 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* WhatsApp Benachrichtigungen */}
+          {/* Benachrichtigungen */}
           <div className={sectionCls}>
             <SectionHeader icon={<Megaphone size={12} />} title={t('settings', 'notifications')} />
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-3">
               <p className="text-zinc-500 text-sm leading-relaxed">
                 {lang === 'en'
-                  ? <><strong>Email</strong> (auto-sent to your gym email) and a <strong>WhatsApp message</strong> when someone signs up via the signup link or your gym page.</>
-                  : <>Erhalte eine <strong>E-Mail</strong> (automatisch an deine Gym-E-Mail) und eine <strong>WhatsApp-Nachricht</strong>, sobald sich jemand über den Anmeldelink oder deine Gym-Seite anmeldet.</>
+                  ? <>Notifications are sent automatically via <strong>email</strong> (to your gym email) and <strong>SMS</strong> (to your phone number) for every relevant event — new signups, cancellations, plan changes.</>
+                  : <>Benachrichtigungen werden automatisch per <strong>E-Mail</strong> (an deine Gym-E-Mail) und <strong>SMS</strong> (an deine Telefonnummer) gesendet — bei Anmeldungen, Kündigungen und Planwechseln.</>
                 }
               </p>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 leading-relaxed space-y-1">
-                <p className="font-semibold">{t('settings', 'whatsappSetupTitle')}</p>
-                <p>1. {lang === 'en' ? <>Send on WhatsApp to <strong>+34 644 59 98 05</strong> the message:</> : <>Sende auf WhatsApp an <strong>+34 644 59 98 05</strong> die Nachricht:</>}<br /><code className="bg-amber-100 px-1 rounded">I allow callmebot to send me messages</code></p>
-                <p>2. {lang === 'en' ? 'You will receive your personal API key right away.' : 'Du bekommst direkt deinen persönlichen API-Key zurück.'}</p>
-                <p>3. {lang === 'en' ? 'Enter the key here — done.' : 'Trage den Key hier ein — fertig.'}</p>
+              <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3 text-xs text-zinc-600 leading-relaxed">
+                {lang === 'en'
+                  ? <>SMS notifications use your phone number from <strong>General → Phone</strong>. Make sure it is set correctly.</>
+                  : <>SMS-Benachrichtigungen nutzen deine Telefonnummer unter <strong>Allgemein → Telefon</strong>. Stelle sicher, dass sie eingetragen ist.</>
+                }
               </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'callmebotKey')}</label>
-                <input
-                  value={callmebotKey}
-                  onChange={e => setCallmebotKey(e.target.value)}
-                  placeholder={lang === 'en' ? 'e.g. 1234567' : 'z.B. 1234567'}
-                  className={inputCls}
-                />
-                <p className="text-xs text-zinc-400 mt-1">
-                  {t('settings', 'callmebotPhoneHint')}
-                </p>
-              </div>
-              <button type="button" onClick={handleCallmebotSave} disabled={callmebotSaving} className={saveBtnCls}>
-                <Save size={14} />
-                {callmebotSaved ? t('settings', 'saved') : callmebotSaving ? t('settings', 'saving') : t('settings', 'saveNotifications')}
-              </button>
             </div>
           </div>
 

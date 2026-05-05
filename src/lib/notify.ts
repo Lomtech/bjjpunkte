@@ -19,7 +19,7 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
   const supabase = createServiceClient()
   const { data: gym } = await supabase
     .from('gyms')
-    .select('name, email, phone, whatsapp_number, callmebot_api_key')
+    .select('name, email, phone, whatsapp_number')
     .eq('id', gymId)
     .single()
 
@@ -55,42 +55,21 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
     }
   }
 
-  // ── WhatsApp via Twilio ──────────────────────────────────────────────────
-  const waPhone = (gym as Record<string, unknown>).phone as string | null
-              ?? (gym as Record<string, unknown>).whatsapp_number as string | null
-  if (waPhone) {
+  // ── SMS via Brevo ────────────────────────────────────────────────────────
+  const smsPhone = (gym as Record<string, unknown>).phone as string | null
+               ?? (gym as Record<string, unknown>).whatsapp_number as string | null
+  if (smsPhone) {
     try {
-      const ok = await sendWhatsApp({ to: waPhone, body: whatsappText })
+      const ok = await sendWhatsApp({ to: smsPhone, body: whatsappText })
       if (ok) {
         result.whatsappSent = true
       } else {
-        result.whatsappError = 'sendWhatsApp returned false'
-        console.error('[notify] WhatsApp not sent to', waPhone)
+        result.whatsappError = 'Brevo SMS returned false'
+        console.error('[notify] SMS not sent to', smsPhone)
       }
     } catch (err) {
       result.whatsappError = String(err)
-      console.error('[notify] WhatsApp error:', err)
-    }
-  }
-
-  // ── WhatsApp via CallMeBot (legacy fallback if configured) ───────────────
-  const callmebotKey = (gym as Record<string, unknown>).callmebot_api_key as string | null
-  if (!waPhone && gym.whatsapp_number && callmebotKey) {
-    const phone = String(gym.whatsapp_number).replace(/\D/g, '')
-    const text  = encodeURIComponent(whatsappText)
-    try {
-      const res = await fetch(
-        `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${text}&apikey=${callmebotKey}`,
-      )
-      if (res.ok) {
-        result.whatsappSent = true
-      } else {
-        result.whatsappError = `CallMeBot HTTP ${res.status}`
-        console.error('[notify] CallMeBot failed:', result.whatsappError)
-      }
-    } catch (err) {
-      result.whatsappError = String(err)
-      console.error('[notify] CallMeBot error:', err)
+      console.error('[notify] SMS error:', err)
     }
   }
 
