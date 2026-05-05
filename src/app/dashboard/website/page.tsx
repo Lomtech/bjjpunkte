@@ -514,7 +514,9 @@ export default function WebsitePage() {
               <SaveBtn
                 onClick={() => saveSection('about', {
                   about_blocks: aboutBlocks,
-                  about: aboutBlocks.find(b => b.type === 'paragraph')?.text ?? about ?? null,
+                  about: aboutBlocks.length > 0
+                    ? (aboutBlocks.find(b => b.type === 'paragraph')?.text ?? null)
+                    : null,
                 })}
                 saving={saving.about} saved={saved.about}
               />
