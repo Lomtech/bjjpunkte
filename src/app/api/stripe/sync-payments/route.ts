@@ -176,23 +176,35 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Step 6: secondary dedup for invoices without payment_intent (SEPA) ──
-    // Check by member + amount + date (±1 day) for records not caught by step 2.
+    // ── Step 6: secondary dedup — always runs as safety net ────────────────
+    // Catches: (a) SEPA invoices without payment_intent, (b) invoices whose
+    // payment_intent was stored as null on a previous sync and now has one,
+    // (c) memberId=undefined case where .eq('member_id', '') would miss null rows.
     const finalToInsert: InvoiceResolved[] = []
     for (const r of toInsert) {
-      if (!r.paymentIntentId) {
-        const dayBefore = new Date(new Date(r.paidAt).getTime() - 86_400_000).toISOString()
-        const dayAfter  = new Date(new Date(r.paidAt).getTime() + 86_400_000).toISOString()
-        const { data: nearby } = await supabase
-          .from('payments').select('id')
-          .eq('member_id', r.memberId ?? '')
-          .eq('amount_cents', r.amountCents)
-          .eq('status', 'paid')
-          .gte('paid_at', dayBefore)
-          .lte('paid_at', dayAfter)
-          .limit(1)
-        if (nearby && nearby.length > 0) { alreadyHad++; continue }
+      const dayBefore = new Date(new Date(r.paidAt).getTime() - 86_400_000).toISOString()
+      const dayAfter  = new Date(new Date(r.paidAt).getTime() + 86_400_000).toISOString()
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let q = (supabase.from('payments') as any)
+        .select('id')
+        .eq('amount_cents', r.amountCents)
+        .eq('status', 'paid')
+        .gte('paid_at', dayBefore)
+        .lte('paid_at', dayAfter)
+        .limit(1)
+
+      // Narrow by identity: prefer member_id, fall back to member_name for deleted members.
+      // Never use '' as a substitute for null — PostgREST treats them differently.
+      if (r.memberId) {
+        q = q.eq('member_id', r.memberId)
+      } else if (r.memberNameFallback) {
+        q = q.eq('member_name', r.memberNameFallback)
       }
+
+      const { data: nearby } = await q
+      if (nearby && nearby.length > 0) { alreadyHad++; continue }
+
       finalToInsert.push(r)
     }
 
