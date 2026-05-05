@@ -1774,6 +1774,7 @@ export default function SettingsPage() {
                       <option value="3">{lang === 'en' ? '3 months' : '3 Monate'}</option>
                       <option value="6">{lang === 'en' ? '6 months' : '6 Monate'}</option>
                       <option value="12">{lang === 'en' ? '12 months' : '12 Monate'}</option>
+                      <option value="18">{lang === 'en' ? '18 months' : '18 Monate'}</option>
                       <option value="24">{lang === 'en' ? '24 months' : '24 Monate'}</option>
                     </select>
                   </div>
