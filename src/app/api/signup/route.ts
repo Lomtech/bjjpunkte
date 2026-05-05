@@ -102,6 +102,17 @@ export async function POST(req: Request) {
 
   const now = new Date().toISOString()
 
+  // Fetch plan for contract_months (used for contract_end_date calculation)
+  let selectedPlan: { contract_months: number | null } | null = null
+  if (plan_id) {
+    const { data: planData } = await supabase
+      .from('membership_plans')
+      .select('contract_months')
+      .eq('id', plan_id)
+      .single()
+    selectedPlan = planData as { contract_months: number | null } | null
+  }
+
   const { data: member, error } = await supabase
     .from('members')
     .insert({
@@ -125,6 +136,14 @@ export async function POST(req: Request) {
       stripes:                 0,
       is_active:               true,           // auto-activated — gym gets notified
       onboarding_status:       'complete',
+      // Auto-set contract_end_date based on plan's contract_months
+      contract_end_date: (() => {
+        const months = selectedPlan?.contract_months
+        if (!months || months <= 0) return null
+        const end = new Date()
+        end.setMonth(end.getMonth() + months)
+        return end.toISOString().substring(0, 10)
+      })(),
     })
     .select('id, portal_token')
     .single()

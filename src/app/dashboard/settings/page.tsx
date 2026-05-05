@@ -1766,6 +1766,7 @@ export default function SettingsPage() {
                     <label className="block text-xs font-medium text-zinc-600 mb-1">{t('settings', 'minTerm')}</label>
                     <select value={planForm.contractMonths} onChange={e => setPlanForm(p => ({ ...p, contractMonths: e.target.value }))} className={inputCls}>
                       <option value="0">{t('settings', 'cancelAnytimeOpt')}</option>
+                      <option value="1">{lang === 'en' ? '1 month' : '1 Monat'}</option>
                       <option value="3">{lang === 'en' ? '3 months' : '3 Monate'}</option>
                       <option value="6">{lang === 'en' ? '6 months' : '6 Monate'}</option>
                       <option value="12">{lang === 'en' ? '12 months' : '12 Monate'}</option>

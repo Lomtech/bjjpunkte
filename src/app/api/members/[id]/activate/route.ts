@@ -45,7 +45,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (member.plan_id && member.email && process.env.STRIPE_SECRET_KEY) {
     try {
       const { data: plan } = await (supabase.from('membership_plans') as any)
-        .select('id, name, price_cents, billing_interval, stripe_price_id')
+        .select('id, name, price_cents, billing_interval, stripe_price_id, contract_months')
         .eq('id', member.plan_id)
         .single()
 
@@ -103,6 +103,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             metadata: { memberId, gymId: gym.id },
             ...(platformFeePercent > 0 ? { application_fee_percent: platformFeePercent } : {}),
           },
+        }
+
+        // Auto-set contract_end_date based on plan's contract_months
+        const contractMonths = plan.contract_months as number | null
+        if (contractMonths && contractMonths > 0) {
+          const end = new Date()
+          end.setMonth(end.getMonth() + contractMonths)
+          await (supabase.from('members') as any)
+            .update({ contract_end_date: end.toISOString().substring(0, 10) })
+            .eq('id', memberId)
         }
 
         // Direct charge: session on connected account so customer is found; no on_behalf_of needed
