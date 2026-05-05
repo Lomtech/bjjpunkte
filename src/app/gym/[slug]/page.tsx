@@ -266,7 +266,7 @@ export default function PublicGymPage() {
   useScrollReveal()
 
   useEffect(() => {
-    fetch(`/api/public/gym/${slug}`)
+    fetch(`/api/public/gym/${slug}`, { next: { revalidate: 60 } } as RequestInit)
       .then(r => r.json())
       .then(d => { setGym(d.gym); setClasses(d.classes ?? []); setPlans(d.plans ?? []); setPosts(d.posts ?? []) })
       .finally(() => setLoading(false))

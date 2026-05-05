@@ -59,7 +59,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
 
   const g = gym as typeof gym & Record<string, unknown>
 
-  return NextResponse.json({
+  const payload = {
     gym: {
       id:               gym.id,
       name:             gym.name,
@@ -88,5 +88,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     classes: classes ?? [],
     plans:   plans   ?? [],
     posts:   posts   ?? [],
+  }
+
+  return NextResponse.json(payload, {
+    headers: {
+      // Cache at CDN edge for 60s, stale-while-revalidate for 300s
+      'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+    },
   })
 }
