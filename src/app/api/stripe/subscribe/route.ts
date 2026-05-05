@@ -82,7 +82,7 @@ export async function POST(req: Request) {
   if (!customerId) {
     const customer = await stripe.customers.create(
       { email: memberEmail, name: memberName, metadata: { memberId, gymId } },
-      stripeOpts ?? {},
+      { ...(stripeOpts ?? {}), idempotencyKey: `customer-${memberId}-${connectedAccountId}` },
     )
     customerId = customer.id
     await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', memberId)
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     }
 
     // Direct charge: session on connected account so customer is found; no on_behalf_of needed
-    const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
+    const session = await stripe.checkout.sessions.create(sessionParams, { ...stripeOpts, idempotencyKey: `subscribe-${memberId}-${gymId}-${Math.floor(Date.now()/60000)}` })
     return NextResponse.json({ url: session.url })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Stripe-Fehler beim Erstellen des Abonnements'

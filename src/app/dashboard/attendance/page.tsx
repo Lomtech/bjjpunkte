@@ -65,31 +65,36 @@ export default function AttendancePage() {
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
 
     // All 4 queries in parallel — gym settings + members + attendance + classes
-    const [gymSettingsRes, membersRes, attendanceRes, classesRes] = await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      cachedGymId ? supabase.from('gyms').select('belt_system').eq('id', gymId).single() : Promise.resolve({ data: null }),
-      supabase.from('members')
-        .select('id, first_name, last_name, belt, stripes')
-        .eq('gym_id', gymId).eq('is_active', true).order('last_name'),
-      supabase.from('attendance')
-        .select('id, checked_in_at, class_type, member_id, class_id')
-        .eq('gym_id', gymId)
-        .gte('checked_in_at', today.toISOString())
-        .order('checked_in_at', { ascending: false }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      supabase.rpc('get_classes_for_gym', { p_gym_id: gymId, p_from: today.toISOString() }),
-    ])
+    try {
+      const [gymSettingsRes, membersRes, attendanceRes, classesRes] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cachedGymId ? supabase.from('gyms').select('belt_system').eq('id', gymId).single() : Promise.resolve({ data: null }),
+        supabase.from('members')
+          .select('id, first_name, last_name, belt, stripes')
+          .eq('gym_id', gymId).eq('is_active', true).order('last_name'),
+        supabase.from('attendance')
+          .select('id, checked_in_at, class_type, member_id, class_id')
+          .eq('gym_id', gymId)
+          .gte('checked_in_at', today.toISOString())
+          .order('checked_in_at', { ascending: false }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        supabase.rpc('get_classes_for_gym', { p_gym_id: gymId, p_from: today.toISOString() }),
+      ])
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (gymSettingsRes.data) setBeltSystem(resolveBeltSystem((gymSettingsRes.data as any).belt_system))
-    setMembers(membersRes.data as Member[] ?? [])
-    setTodayLog(attendanceRes.data as AttendanceEntry[] ?? [])
-    setTodayClasses(
-      ((classesRes.data ?? []) as ClassEvent[])
-        .filter(c => { const s = new Date(c.starts_at); return s >= today && s < tomorrow && !c.is_cancelled })
-        .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
-    )
-    setLoading(false)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (gymSettingsRes.data) setBeltSystem(resolveBeltSystem((gymSettingsRes.data as any).belt_system))
+      setMembers(membersRes.data as Member[] ?? [])
+      setTodayLog(attendanceRes.data as AttendanceEntry[] ?? [])
+      setTodayClasses(
+        ((classesRes.data ?? []) as ClassEvent[])
+          .filter(c => { const s = new Date(c.starts_at); return s >= today && s < tomorrow && !c.is_cancelled })
+          .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
+      )
+    } catch (err) {
+      console.error('Failed to load attendance data:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { loadData() }, [loadData])

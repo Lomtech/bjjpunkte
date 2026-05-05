@@ -17,6 +17,10 @@ export async function POST(req: Request) {
   const { inviteToken, userId } = await req.json()
   if (!inviteToken || !userId) return NextResponse.json({ error: 'Fehlende Parameter' }, { status: 400 })
 
+  if (!inviteToken || inviteToken.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(inviteToken)) {
+    return NextResponse.json({ error: 'Ungültiger Einladungstoken' }, { status: 400 })
+  }
+
   // Security: the authenticated user can only link their own account — prevent linking someone else
   if (userId !== user.id) {
     return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })

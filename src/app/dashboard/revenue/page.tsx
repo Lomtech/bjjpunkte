@@ -74,113 +74,118 @@ export default function RevenuePage() {
       const startOfPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-      const [paymentsRes, membersRes, plansRes] = await Promise.all([
-        supabase.from('payments')
-          .select('id, member_id, member_name, amount_cents, paid_at, status, created_at')
-          .eq('gym_id', gymData.id)
-          .order('paid_at', { ascending: false }),
-        supabase.from('members')
-          .select('id, first_name, last_name, monthly_fee_override_cents, plan_id')
-          .eq('gym_id', gymData.id)
-          .eq('is_active', true),
-        (supabase.from('membership_plans') as any)
-          .select('id, price_cents')
-          .eq('gym_id', gymData.id)
-          .eq('is_active', true),
-      ])
+      try {
+        const [paymentsRes, membersRes, plansRes] = await Promise.all([
+          supabase.from('payments')
+            .select('id, member_id, member_name, amount_cents, paid_at, status, created_at')
+            .eq('gym_id', gymData.id)
+            .order('paid_at', { ascending: false })
+            .limit(1000),
+          supabase.from('members')
+            .select('id, first_name, last_name, monthly_fee_override_cents, plan_id')
+            .eq('gym_id', gymData.id)
+            .eq('is_active', true),
+          (supabase.from('membership_plans') as any)
+            .select('id, price_cents')
+            .eq('gym_id', gymData.id)
+            .eq('is_active', true),
+        ])
 
-      const payments = (paymentsRes.data ?? []) as unknown as PaymentFull[]
-      const paidPayments = payments.filter(p => p.status === 'paid' && p.paid_at)
+        const payments = (paymentsRes.data ?? []) as unknown as PaymentFull[]
+        const paidPayments = payments.filter(p => p.status === 'paid' && p.paid_at)
 
-      const activeMembers = (membersRes.data ?? []) as {
-        id: string; first_name: string; last_name: string
-        monthly_fee_override_cents: number | null; plan_id: string | null
-      }[]
+        const activeMembers = (membersRes.data ?? []) as {
+          id: string; first_name: string; last_name: string
+          monthly_fee_override_cents: number | null; plan_id: string | null
+        }[]
 
-      // Plan price lookup: plan_id → price_cents
-      const planPriceMap = new Map<string, number>(
-        ((plansRes.data ?? []) as { id: string; price_cents: number }[]).map(p => [p.id, p.price_cents])
-      )
+        // Plan price lookup: plan_id → price_cents
+        const planPriceMap = new Map<string, number>(
+          ((plansRes.data ?? []) as { id: string; price_cents: number }[]).map(p => [p.id, p.price_cents])
+        )
 
-      // Effective fee: override → plan price → gym default
-      function effectiveFee(m: { monthly_fee_override_cents: number | null; plan_id: string | null }) {
-        if (m.monthly_fee_override_cents != null) return m.monthly_fee_override_cents
-        if (m.plan_id && planPriceMap.has(m.plan_id)) return planPriceMap.get(m.plan_id)!
-        return gymData.monthly_fee_cents ?? 0
-      }
-
-      // Member name map
-      const nameMap = new Map(activeMembers.map(m => [m.id, `${m.first_name} ${m.last_name}`]))
-
-      // Monthly breakdown
-      const map = new Map<string, { count: number; total_cents: number }>()
-      for (const p of paidPayments) {
-        const month = p.paid_at!.substring(0, 7)
-        const ex = map.get(month) ?? { count: 0, total_cents: 0 }
-        map.set(month, { count: ex.count + 1, total_cents: ex.total_cents + p.amount_cents })
-      }
-      const monthGroups = Array.from(map.entries()).map(([month, stats]) => {
-        const [year, m] = month.split('-')
-        const date = new Date(Number(year), Number(m) - 1, 1)
-        return { month, label: date.toLocaleDateString(locale, { month: 'long', year: 'numeric' }), ...stats }
-      }).sort((a, b) => b.month.localeCompare(a.month))
-      setMonths(monthGroups)
-
-      // Totals
-      const totalCents = paidPayments.reduce((s, p) => s + p.amount_cents, 0)
-      setAllTimeCents(totalCents)
-      setAllTimeCount(paidPayments.length)
-
-      const currMonthStr = new Date().toISOString().substring(0, 7)
-      const prevMonthStr = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().substring(0, 7)
-      setMonthCents(monthGroups.find(m => m.month === currMonthStr)?.total_cents ?? 0)
-      setPrevMonthCents(monthGroups.find(m => m.month === prevMonthStr)?.total_cents ?? 0)
-
-      // Per-member status
-      const memberStatuses: MemberStatus[] = activeMembers.map(m => {
-        const memberPayments = paidPayments.filter(p => p.member_id === m.id)
-        const latest = memberPayments[0]
-        const fee = effectiveFee(m)
-        const totalPaid = memberPayments.reduce((s, p) => s + p.amount_cents, 0)
-
-        let status: 'paid' | 'pending' | 'never' = 'never'
-        if (latest?.paid_at) {
-          status = latest.paid_at >= thirtyDaysAgo ? 'paid' : 'pending'
+        // Effective fee: override → plan price → gym default
+        function effectiveFee(m: { monthly_fee_override_cents: number | null; plan_id: string | null }) {
+          if (m.monthly_fee_override_cents != null) return m.monthly_fee_override_cents
+          if (m.plan_id && planPriceMap.has(m.plan_id)) return planPriceMap.get(m.plan_id)!
+          return gymData.monthly_fee_cents ?? 0
         }
 
-        return {
-          id: m.id,
-          first_name: m.first_name,
-          last_name: m.last_name,
-          monthly_fee_cents: fee,
-          last_paid_at: latest?.paid_at ?? null,
-          last_amount_cents: latest?.amount_cents ?? null,
-          total_paid_cents: totalPaid,
-          total_payments: memberPayments.length,
-          status,
+        // Member name map
+        const nameMap = new Map(activeMembers.map(m => [m.id, `${m.first_name} ${m.last_name}`]))
+
+        // Monthly breakdown
+        const map = new Map<string, { count: number; total_cents: number }>()
+        for (const p of paidPayments) {
+          const month = p.paid_at!.substring(0, 7)
+          const ex = map.get(month) ?? { count: 0, total_cents: 0 }
+          map.set(month, { count: ex.count + 1, total_cents: ex.total_cents + p.amount_cents })
         }
-      }).sort((a, b) => {
-        const order = { pending: 0, never: 1, paid: 2 }
-        return order[a.status] - order[b.status]
-      })
+        const monthGroups = Array.from(map.entries()).map(([month, stats]) => {
+          const [year, m] = month.split('-')
+          const date = new Date(Number(year), Number(m) - 1, 1)
+          return { month, label: date.toLocaleDateString(locale, { month: 'long', year: 'numeric' }), ...stats }
+        }).sort((a, b) => b.month.localeCompare(a.month))
+        setMonths(monthGroups)
 
-      setMembers(memberStatuses)
-      setExpectedMonthlyCents(activeMembers.reduce((s, m) => s + effectiveFee(m), 0))
+        // Totals
+        const totalCents = paidPayments.reduce((s, p) => s + p.amount_cents, 0)
+        setAllTimeCents(totalCents)
+        setAllTimeCount(paidPayments.length)
 
-      // All payments with member name — prefer stored member_name (survives deletion),
-      // fall back to live nameMap, then "Ex-Mitglied" label
-      setAllPayments(
-        payments
-          .filter(p => p.status === 'paid' && p.paid_at)
-          .map(p => ({
-            ...p,
-            member_name: p.member_name
-              ?? (p.member_id ? nameMap.get(p.member_id) : null)
-              ?? (lang === 'en' ? 'Former member' : 'Ex-Mitglied'),
-          }))
-      )
+        const currMonthStr = new Date().toISOString().substring(0, 7)
+        const prevMonthStr = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().substring(0, 7)
+        setMonthCents(monthGroups.find(m => m.month === currMonthStr)?.total_cents ?? 0)
+        setPrevMonthCents(monthGroups.find(m => m.month === prevMonthStr)?.total_cents ?? 0)
 
-      setLoading(false)
+        // Per-member status
+        const memberStatuses: MemberStatus[] = activeMembers.map(m => {
+          const memberPayments = paidPayments.filter(p => p.member_id === m.id)
+          const latest = memberPayments[0]
+          const fee = effectiveFee(m)
+          const totalPaid = memberPayments.reduce((s, p) => s + p.amount_cents, 0)
+
+          let status: 'paid' | 'pending' | 'never' = 'never'
+          if (latest?.paid_at) {
+            status = latest.paid_at >= thirtyDaysAgo ? 'paid' : 'pending'
+          }
+
+          return {
+            id: m.id,
+            first_name: m.first_name,
+            last_name: m.last_name,
+            monthly_fee_cents: fee,
+            last_paid_at: latest?.paid_at ?? null,
+            last_amount_cents: latest?.amount_cents ?? null,
+            total_paid_cents: totalPaid,
+            total_payments: memberPayments.length,
+            status,
+          }
+        }).sort((a, b) => {
+          const order = { pending: 0, never: 1, paid: 2 }
+          return order[a.status] - order[b.status]
+        })
+
+        setMembers(memberStatuses)
+        setExpectedMonthlyCents(activeMembers.reduce((s, m) => s + effectiveFee(m), 0))
+
+        // All payments with member name — prefer stored member_name (survives deletion),
+        // fall back to live nameMap, then "Ex-Mitglied" label
+        setAllPayments(
+          payments
+            .filter(p => p.status === 'paid' && p.paid_at)
+            .map(p => ({
+              ...p,
+              member_name: p.member_name
+                ?? (p.member_id ? nameMap.get(p.member_id) : null)
+                ?? (lang === 'en' ? 'Former member' : 'Ex-Mitglied'),
+            }))
+        )
+      } catch (err) {
+        console.error('Failed to load revenue data:', err)
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])

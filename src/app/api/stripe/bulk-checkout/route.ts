@@ -100,7 +100,7 @@ export async function POST(req: Request) {
       if (!customerId) {
         const customer = await stripe.customers.create(
           { email: member.email!, name: `${member.first_name} ${member.last_name}`, metadata: { memberId: member.id, gymId } },
-          stripeOpts ?? {},
+          { ...(stripeOpts ?? {}), idempotencyKey: `customer-${member.id}-${connectedAccountId}` },
         )
         customerId = customer.id
         await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
@@ -131,7 +131,7 @@ export async function POST(req: Request) {
       }
 
       // Direct charge: session on connected account so customer is found
-      const session = await stripe.checkout.sessions.create(sessionParams, stripeOpts)
+      const session = await stripe.checkout.sessions.create(sessionParams, { ...stripeOpts, idempotencyKey: `bulk-${member.id}-${gymId}-${Math.floor(Date.now()/60000)}` })
 
       const { error: insertError } = await supabase.from('payments').insert({
         gym_id:                    gymId,

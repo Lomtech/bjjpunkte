@@ -979,7 +979,7 @@ export default function MemberPortalPage() {
                   className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
                   style={{ backgroundColor: beltEnabled ? beltSlot.bg : '#e2e8f0', color: beltEnabled ? beltSlot.text : '#94a3b8' }}
                 >
-                  {member.first_name[0]}{member.last_name[0]}
+                  {member?.first_name?.[0] ?? '?'}{member?.last_name?.[0] ?? '?'}
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-xl font-bold text-slate-900">{member.first_name} {member.last_name}</h1>

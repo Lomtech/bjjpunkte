@@ -118,6 +118,7 @@ export async function GET(req: Request) {
     .from('gyms')
     .select('id, name, monthly_fee_cents, email')
     .in('plan', ['starter', 'grow', 'pro'])
+    .limit(1000)
 
   let emailsSent     = 0
   let emailsFailed   = 0
@@ -167,8 +168,8 @@ export async function GET(req: Request) {
       monthly_fee_override_cents: number | null; portal_token: string | null
     }[]
 
-    // Send reminders in parallel — up to 5 concurrent per gym to respect Resend rate limits
-    const BATCH = 5
+    // Send reminders in parallel — up to 10 concurrent per gym to respect Resend rate limits
+    const BATCH = 10
     for (let i = 0; i < needReminder.length; i += BATCH) {
       await Promise.all(needReminder.slice(i, i + BATCH).map(async member => {
         const amountCents = member.monthly_fee_override_cents ?? (gym as any).monthly_fee_cents ?? 0

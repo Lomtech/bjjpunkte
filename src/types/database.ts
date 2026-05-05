@@ -425,6 +425,12 @@ export interface Database {
         Update: { name?: string; email?: string; role?: string; accepted_at?: string | null; user_id?: string | null }
         Relationships: [{ foreignKeyName: 'gym_staff_gym_id_fkey'; columns: ['gym_id']; isOneToOne: false; referencedRelation: 'gyms'; referencedColumns: ['id'] }]
       }
+      stripe_events: {
+        Row: { id: string; event_id: string; created_at: string }
+        Insert: { event_id: string; id?: string; created_at?: string }
+        Update: { event_id?: string; id?: string; created_at?: string }
+        Relationships: Rel[]
+      }
       training_logs: {
         Row: { id: string; gym_id: string; member_id: string; note: string | null; class_type: string | null; logged_at: string }
         Insert: { gym_id: string; member_id: string; note?: string | null; class_type?: string | null; logged_at?: string }

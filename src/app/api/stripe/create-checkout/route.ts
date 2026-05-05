@@ -67,7 +67,7 @@ export async function POST(req: Request) {
     if (!customerId) {
       const customer = await stripe.customers.create(
         { email: memberEmail, name: memberName, metadata: { memberId, gymId } },
-        stripeOpts ?? {},
+        { ...(stripeOpts ?? {}), idempotencyKey: `customer-${memberId}-${connectedAccountId}` },
       )
       customerId = customer.id
       await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', memberId)

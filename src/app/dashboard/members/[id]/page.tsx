@@ -158,23 +158,28 @@ export default function MemberDetailPage() {
         })
       )
 
-      const [
-        { data: promotionsData },
-        { data: attendanceData },
-        { count },
-        { data: paymentsData },
-      ] = await Promise.all([
-        supabase.from('belt_promotions').select('*').eq('member_id', id).order('promoted_at', { ascending: false }),
-        supabase.from('attendance').select('*').eq('member_id', id).order('checked_in_at', { ascending: false }).limit(10),
-        supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('member_id', id),
-        supabase.from('payments').select('*').eq('member_id', id).order('created_at', { ascending: false }).limit(6),
-      ])
+      try {
+        const [
+          { data: promotionsData },
+          { data: attendanceData },
+          { count },
+          { data: paymentsData },
+        ] = await Promise.all([
+          supabase.from('belt_promotions').select('*').eq('member_id', id).order('promoted_at', { ascending: false }),
+          supabase.from('attendance').select('*').eq('member_id', id).order('checked_in_at', { ascending: false }).limit(10),
+          supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('member_id', id),
+          supabase.from('payments').select('*').eq('member_id', id).order('created_at', { ascending: false }).limit(6),
+        ])
 
-      setPromotions((promotionsData as Promotion[]) ?? [])
-      setAttendance((attendanceData as Attendance[]) ?? [])
-      setTotalSessions(count ?? 0)
-      setPayments((paymentsData as Payment[]) ?? [])
-      setLoading(false)
+        setPromotions((promotionsData as Promotion[]) ?? [])
+        setAttendance((attendanceData as Attendance[]) ?? [])
+        setTotalSessions(count ?? 0)
+        setPayments((paymentsData as Payment[]) ?? [])
+      } catch (err) {
+        console.error('Failed to load member data:', err)
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [id])

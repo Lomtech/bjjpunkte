@@ -128,6 +128,7 @@ export async function POST(req: Request) {
         .from('payments')
         .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId })
         .eq('stripe_checkout_session_id', sessionId)
+        .limit(1)
         .select('id')
       if (bySessionErr) return NextResponse.json({ error: bySessionErr.message }, { status: 500 })
       if (bySession && bySession.length > 0) matched = true
@@ -137,6 +138,7 @@ export async function POST(req: Request) {
           .from('payments')
           .update({ status: 'paid', paid_at: now })
           .eq('stripe_payment_intent_id', paymentIntentId)
+          .limit(1)
           .select('id')
         if (byIntentErr) return NextResponse.json({ error: byIntentErr.message }, { status: 500 })
         if (byIntent && byIntent.length > 0) matched = true

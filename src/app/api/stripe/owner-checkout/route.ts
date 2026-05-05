@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       },
       success_url: `${appUrl}/dashboard/settings?upgraded=1`,
       cancel_url:  `${appUrl}/dashboard/settings`,
-    })
+    }, { idempotencyKey: `owner-checkout-${gym.id}-${Math.floor(Date.now()/60000)}` })
     return NextResponse.json({ url: session.url })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Stripe-Fehler'

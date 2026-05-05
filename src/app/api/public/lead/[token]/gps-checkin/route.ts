@@ -26,7 +26,7 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params
-  if (!token || token.length < 10) {
+  if (!token || token.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
   }
 
@@ -34,6 +34,10 @@ export async function POST(
   const { lat, lng } = body as { lat?: number; lng?: number }
   if (lat === undefined || lng === undefined) {
     return NextResponse.json({ error: 'GPS-Koordinaten fehlen' }, { status: 400 })
+  }
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return NextResponse.json({ error: 'Ungültige Koordinaten' }, { status: 400 })
   }
 
   const supabase = serviceClient()
