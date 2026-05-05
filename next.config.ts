@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const securityHeaders = [
   // Content Security Policy
@@ -6,13 +7,14 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://browser.sentry-cdn.com",
       "img-src 'self' data: https: blob:",
       "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com https://*.sentry.io",
       "frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://youtube.com",
       "media-src 'self' https:",
       "font-src 'self' data:",
+      "worker-src blob:",
     ].join('; '),
   },
   // Prevent clickjacking — disallow embedding in iframes
@@ -43,7 +45,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Apply security headers to all routes
         source: '/(.*)',
         headers: securityHeaders,
       },
@@ -51,4 +52,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Sentry org + project — set via SENTRY_ORG and SENTRY_PROJECT env vars
+  // or hardcode here after creating the project at sentry.io
+  silent: !process.env.CI,            // suppress build output locally
+  widenClientFileUpload: true,        // upload more source maps for better stack traces
+  sourcemaps: { disable: false },
+  disableLogger: true,                // remove Sentry logger in prod bundle
+  automaticVercelMonitors: true,      // track Vercel cron job health in Sentry
+})
