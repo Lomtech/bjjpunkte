@@ -354,12 +354,17 @@ export async function POST(req: Request) {
   }
 
   // ── Classes (two passes for recurrence) ───────────────────────────────────
-  const classIds: string[] = []   // index → new DB id
+  // Pre-generate UUIDs so Pass 2 doesn't need IDs back from DB
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const classIds: string[] = Array.isArray(classes) ? classes.map(() => crypto.randomUUID()) : []
   if (Array.isArray(classes) && classes.length > 0) {
-    // Pass 1: insert without recurrence_parent_id
-    for (const c of classes) {
+    const CLASS_CHUNK = 100
+    // Pass 1: bulk insert in chunks — N/100 roundtrips instead of N
+    for (let i = 0; i < classes.length; i += CLASS_CHUNK) {
+      const chunk = classes.slice(i, i + CLASS_CHUNK)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted } = await svc.from('classes').insert(anyRow({
+      const rows = chunk.map((c: any, j: number) => anyRow({
+        id:               classIds[i + j],
         gym_id:           gym.id,
         title:            c.title,
         class_type:       c.class_type ?? 'gi',
@@ -371,18 +376,23 @@ export async function POST(req: Request) {
         is_cancelled:     c.is_cancelled ?? false,
         recurrence_type:  c.recurrence_type ?? 'none',
         recurrence_until: c.recurrence_until ?? null,
-      })).select('id').single()
-      classIds.push(inserted?.id ?? '')
+      }))
+      await svc.from('classes').insert(rows)
     }
-    // Pass 2: link recurrence parents
-    for (let i = 0; i < classes.length; i++) {
-      const parentIdx = classes[i].recurrence_parent_index
-      if (parentIdx != null && classIds[parentIdx] && classIds[i]) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await svc.from('classes')
-          .update({ recurrence_parent_id: classIds[parentIdx] })
-          .eq('id', classIds[i])
-      }
+    // Pass 2: link recurrence parents — parallel within 50-item windows
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recurrenceUpdates = classes
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((c: any, i: number) => ({ classId: classIds[i], parentIdx: c.recurrence_parent_index as number | null }))
+      .filter(({ parentIdx, classId }) => parentIdx != null && classIds[parentIdx] && classId)
+    const UPDATE_CHUNK = 50
+    for (let i = 0; i < recurrenceUpdates.length; i += UPDATE_CHUNK) {
+      const chunk = recurrenceUpdates.slice(i, i + UPDATE_CHUNK)
+      await Promise.all(chunk.map(({ classId, parentIdx }) =>
+        svc.from('classes')
+          .update(anyRow({ recurrence_parent_id: classIds[parentIdx!] }))
+          .eq('id', classId)
+      ))
     }
   }
 
