@@ -295,6 +295,12 @@ export async function POST(req: Request) {
         if (byIntent) return NextResponse.json({ received: true })
       }
 
+      // Recover past_due → active when subscription payment succeeds
+      await supabase.from('members')
+        .update({ subscription_status: 'active' } as never)
+        .eq('id', memberId)
+        .eq('subscription_status', 'past_due')
+
       const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
       const memberName = mRow ? `${mRow.first_name} ${mRow.last_name}` : null
       const { error: insErr } = await supabase.from('payments').insert({
@@ -402,6 +408,19 @@ export async function POST(req: Request) {
         .update({ status: finalStatus } as never)
         .eq('stripe_payment_intent_id', dispute.payment_intent as string)
       if (disputeCloseErr) return NextResponse.json({ error: disputeCloseErr.message }, { status: 500 })
+    }
+    return NextResponse.json({ received: true })
+  }
+
+  // ── charge.dispute.updated ───────────────────────────────────────────────────
+  if (event.type === 'charge.dispute.updated') {
+    const dispute = event.data.object as Stripe.Dispute
+    const piId    = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null
+    if (piId) {
+      await supabase.from('payments')
+        .update({ status: 'disputed' } as never)
+        .eq('stripe_payment_intent_id', piId)
+        .eq('status', 'disputed')
     }
     return NextResponse.json({ received: true })
   }

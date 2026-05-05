@@ -108,7 +108,7 @@ export default function LeadsPage() {
       const { data: gym } = await supabase.from('gyms').select('id').single()
       if (!gym) { setLoading(false); return }
       const { data } = await supabase.from('leads')
-        .select('*').eq('gym_id', gym.id).order('created_at', { ascending: false })
+        .select('*').eq('gym_id', gym.id).order('created_at', { ascending: false }).limit(500)
       if (data) {
         setLeads(data)
         const notes: Record<string, string> = {}

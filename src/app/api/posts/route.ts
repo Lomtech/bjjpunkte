@@ -40,9 +40,13 @@ export async function POST(req: Request) {
   if (!gymId) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const body = await req.json()
+  const title = (body.title ?? '').toString().trim().slice(0, 500)
+  const blocks = Array.isArray(body.blocks) ? body.blocks.slice(0, 100) : []
+  if (!title) return NextResponse.json({ error: 'Titel fehlt' }, { status: 400 })
+
   const { data, error } = await supabase
     .from('posts')
-    .insert({ gym_id: gymId, title: body.title ?? '', blocks: body.blocks ?? [], cover_url: body.cover_url ?? null })
+    .insert({ gym_id: gymId, title, blocks, cover_url: body.cover_url ?? null })
     .select()
     .single()
 

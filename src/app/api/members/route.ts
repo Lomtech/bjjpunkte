@@ -48,6 +48,11 @@ export async function POST(req: Request) {
 
   if (!first_name?.trim()) return NextResponse.json({ error: 'Vorname fehlt' }, { status: 400 })
   if (!last_name?.trim()) return NextResponse.json({ error: 'Nachname fehlt' }, { status: 400 })
+  if (first_name.trim().length > 100) return NextResponse.json({ error: 'Vorname max. 100 Zeichen' }, { status: 400 })
+  if (last_name.trim().length > 100) return NextResponse.json({ error: 'Nachname max. 100 Zeichen' }, { status: 400 })
+  if (email && email.length > 254) return NextResponse.json({ error: 'E-Mail max. 254 Zeichen' }, { status: 400 })
+  if (phone && phone.length > 50) return NextResponse.json({ error: 'Telefon max. 50 Zeichen' }, { status: 400 })
+  if (notes && notes.length > 5000) return NextResponse.json({ error: 'Notizen max. 5000 Zeichen' }, { status: 400 })
   if (!join_date) return NextResponse.json({ error: 'Eintrittsdatum fehlt' }, { status: 400 })
   const VALID_BELTS = ['white', 'blue', 'purple', 'brown', 'black']
   if (belt && !VALID_BELTS.includes(belt)) return NextResponse.json({ error: 'Ungültiger Gürtel' }, { status: 400 })
