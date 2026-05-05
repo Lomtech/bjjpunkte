@@ -88,7 +88,19 @@ export async function POST(req: Request) {
         }
       }
 
-      if (!memberId) { noMemberId++; continue }
+      // If still no memberId, insert anyway with member_name from Stripe customer
+      // (member was deleted — payment should still appear as "Ex-Mitglied")
+      let memberNameFallback: string | null = null
+      if (!memberId) {
+        const customerId = typeof (inv as any).customer === 'string' ? (inv as any).customer as string : null
+        if (customerId) {
+          try {
+            const customer = await stripe.customers.retrieve(customerId, {}, stripeOpts) as Stripe.Customer
+            memberNameFallback = customer.name ?? customer.email ?? 'Ex-Mitglied'
+          } catch { /* non-fatal */ }
+        }
+        if (!memberNameFallback) { noMemberId++; continue }
+      }
 
       const paymentIntentId = typeof (inv as any).payment_intent === 'string'
         ? (inv as any).payment_intent as string
@@ -125,17 +137,21 @@ export async function POST(req: Request) {
 
       if (exists) { alreadyHad++; continue }
 
-      // Insert missing payment record — also fetch member name for future-proofing
+      // Insert missing payment record
       const paidAt = inv.status_transitions?.paid_at
         ? new Date(inv.status_transitions.paid_at * 1000).toISOString()
         : new Date().toISOString()
 
-      const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
-      const memberName = mRow ? `${(mRow as any).first_name} ${(mRow as any).last_name}` : null
+      // Resolve member name: from DB if member exists, else from Stripe customer fallback
+      let memberName: string | null = memberNameFallback
+      if (memberId) {
+        const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
+        memberName = mRow ? `${(mRow as any).first_name} ${(mRow as any).last_name}` : memberNameFallback
+      }
 
       await (supabase.from('payments') as any).insert({
         gym_id:                   gymId,
-        member_id:                memberId,
+        member_id:                memberId ?? null,
         member_name:              memberName,
         amount_cents:             amountCents,
         status:                   'paid',
