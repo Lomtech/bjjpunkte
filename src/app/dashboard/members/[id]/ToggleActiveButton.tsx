@@ -18,7 +18,6 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
   const [feedback, setFeedback]       = useState(false)
   const confirmBtnRef = useRef<HTMLButtonElement>(null)
 
-  // Enter = confirm, Escape = cancel
   useEffect(() => {
     if (!showConfirm) return
     confirmBtnRef.current?.focus()
@@ -33,12 +32,19 @@ export function ToggleActiveButton({ memberId, isActive, onToggled }: Props) {
   async function toggle() {
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase
-      .from('members')
-      .update({ is_active: !current })
-      .eq('id', memberId)
+    const { data: { session } } = await supabase.auth.getSession()
 
-    if (!error) {
+    // Route through API instead of direct Supabase PATCH to avoid CORS preflight issues.
+    const res = await fetch(`/api/members/${memberId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token ?? ''}`,
+      },
+      body: JSON.stringify({ is_active: !current }),
+    })
+
+    if (res.ok) {
       const next = !current
       setCurrent(next)
       onToggled?.(next)
