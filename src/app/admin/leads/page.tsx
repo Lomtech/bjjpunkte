@@ -143,11 +143,22 @@ export default function AdminLeadsPage() {
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [showStats, setShowStats] = useState(false)
 
-  // Deep-link: when ?lead=<id> in URL, auto-open that lead's detail panel.
-  // Used by the QR-Code so phone can resume on the same lead.
+  // Deep-links from URL params (used by QR-Code + PWA shortcuts):
+  //   ?lead=<id>  → open lead detail panel
+  //   ?due=1      → activate "fällige Follow-ups" filter
+  //   ?stats=1    → open stats modal
   useEffect(() => {
     if (!token) return
     const url = new URL(window.location.href)
+    if (url.searchParams.get('due') === '1') {
+      setDueOnly(true)
+    }
+    if (url.searchParams.get('stats') === '1') {
+      setShowStats(true)
+      // Strip the param so refresh doesn't re-open
+      url.searchParams.delete('stats')
+      window.history.replaceState({}, '', url.toString())
+    }
     const leadId = url.searchParams.get('lead')
     if (!leadId) return
     fetch(`/api/admin/leads?search=${leadId}&pageSize=200`, {

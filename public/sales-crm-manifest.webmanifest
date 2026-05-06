@@ -1,0 +1,22 @@
+{
+  "name": "osss Sales-CRM",
+  "short_name": "osss CRM",
+  "description": "Sales-CRM für Cold-Outreach an Kampfsport-Studios",
+  "start_url": "/admin/leads",
+  "scope": "/admin/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#fbbf24",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/icon",       "sizes": "32x32",   "type": "image/png" },
+    { "src": "/apple-icon", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-512",   "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512",   "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Heute fällig", "url": "/admin/leads?due=1",   "description": "Nur fällige Follow-ups" },
+    { "name": "Statistik",    "url": "/admin/leads?stats=1", "description": "Performance-Stats" }
+  ]
+}
