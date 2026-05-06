@@ -180,11 +180,12 @@ function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityP
             <div className="space-y-3 mt-3 border-t border-emerald-200 pt-3">
               {/* Frage 1 */}
               <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 1 · Tool oder manuell? (binär, nicht-invasiv)</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 1 · Automatisch oder manuell? (outcome-focused, kein Sales-Vibe)</p>
                 <p className="italic text-sm">
-                  „Haben Sie ein Tool für die Mitgliederverwaltung — oder machen Sie das manuell?"
+                  „Läuft die Mitgliederverwaltung bei Ihnen <strong>automatisch</strong> — oder machen Sie das <strong>manuell</strong>?"
                 </p>
                 <p className="text-xs text-zinc-500 mt-1">[Antwort abwarten. Nicht selbst weiterreden.]</p>
+                <p className="text-xs text-emerald-700 mt-1 italic">💡 „Automatisch" pflanzt das Konzept ein — wenn er „manuell" sagt, nimmt er die Pain-Position selbst ein.</p>
               </div>
 
               {/* Frage 2 */}
@@ -216,9 +217,10 @@ function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityP
 
             <div className="text-xs text-emerald-700 mt-3 bg-emerald-100/50 rounded p-2 space-y-1.5">
               <p className="font-bold text-emerald-900">Antwort-Pfade nach Frage 1:</p>
-              <p>→ <strong>„Tool [Name]"</strong>: weiter mit Frage 2 + 3. Bei Frage 3 hörst du Frust mit dem Tool → Wedge.</p>
+              <p>→ <strong>„Automatisch / mit [Tool]"</strong>: weiter mit Frage 2 + 3. Bei Frage 3 hörst du Frust mit dem Tool → Wedge.</p>
               <p>→ <strong>„Manuell / Excel"</strong> = 🔥 HEISS. Frage 2 + 3, dann konkreter Pain-Calc.</p>
-              <p>→ <strong>„Trainer / Steuerberater"</strong>: „Wie zufrieden sind Sie damit?"</p>
+              <p>→ <strong>„Halb-halb / kommt drauf an"</strong>: „Was läuft automatisch, was machen Sie noch von Hand?" → Pain konkretisieren.</p>
+              <p>→ <strong>„Trainer / Steuerberater macht das"</strong>: „Wie zufrieden sind Sie damit?"</p>
               <p>→ <strong>„Wer sind Sie eigentlich?"</strong>: „Ich baue Software für Kampfsport-Gyms. Frage gerade Coaches durch um zu verstehen, wo&apos;s wehtut. Kein Verkauf — nur die Fragen."</p>
               <p>→ <strong>„Geht Sie nichts an"</strong> = DQ. „Verstehe, kein Stress. Auf Wiederhören." Auflegen.</p>
             </div>
