@@ -87,6 +87,8 @@ export default function DatenschutzPage() {
                 { name: 'Vercel Inc.',              desc: 'Hosting der Webanwendung (USA, EU-Standardvertragsklauseln). vercel.com/legal/privacy-policy' },
                 { name: 'Resend Inc.',              desc: 'E-Mail-Versand (USA, EU-Standardvertragsklauseln). resend.com/privacy' },
                 { name: 'Functional Software, Inc. (Sentry)', desc: 'Anonymes Fehler-Tracking zur Stabilität der Anwendung (USA, EU-Standardvertragsklauseln). Keine Session-Replays, keine PII (E-Mail, IP-Adresse) werden übertragen. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse). sentry.io/privacy/' },
+                { name: 'Upstash, Inc.',            desc: 'Rate-Limiting (verteiltes Redis) zum Schutz vor Brute-Force-Angriffen. Es werden ausschließlich IP-Adressen kurzzeitig (max. 60 Sekunden) gespeichert (USA, EU-Standardvertragsklauseln). Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (IT-Sicherheit). upstash.com/trust/privacy.pdf' },
+                { name: 'Google LLC',               desc: 'Ausschließlich für die interne Akquise von Gym-Inhabern (Sales-CRM): Abruf öffentlich verfügbarer Geschäftsdaten via Google Places API. Mitgliederdaten der Gyms werden NICHT an Google übertragen (USA, EU-Standardvertragsklauseln + DPF). policies.google.com/privacy' },
               ].map(p => (
                 <div key={p.name} className="bg-zinc-50 border border-zinc-200 rounded-xl px-5 py-3.5">
                   <p className="font-semibold text-zinc-900 mb-0.5">{p.name}</p>

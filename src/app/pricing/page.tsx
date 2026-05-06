@@ -168,8 +168,8 @@ export default function PricingPage() {
     {
       q: en ? 'Do you provide a Data Processing Agreement (DPA)?' : 'Gibt es einen Auftragsverarbeitungsvertrag (AVV)?',
       a: en
-        ? 'Yes — and you can sign it electronically inside the dashboard (eIDAS Art. 25 compliant). All sub-processors (Supabase, Stripe, Vercel, Resend) are listed transparently. No paperwork, no email back-and-forth.'
-        : 'Ja — und du unterzeichnest ihn elektronisch direkt im Dashboard (eIDAS Art. 25 konform). Alle Sub-Auftragsverarbeiter (Supabase, Stripe, Vercel, Resend) sind transparent gelistet. Kein Papierkram, kein E-Mail-Hin-und-Her.',
+        ? 'Yes — and you sign it electronically inside the dashboard, eIDAS-compliant. All six sub-processors (Supabase, Stripe, Vercel, Resend, Sentry, Upstash) are listed in the contract with country, purpose, and safeguards. No paperwork.'
+        : 'Ja — und du unterzeichnest ihn elektronisch direkt im Dashboard, eIDAS-konform. Alle sechs Sub-Auftragsverarbeiter (Supabase, Stripe, Vercel, Resend, Sentry, Upstash) sind im Vertrag mit Land, Zweck und Schutzmaßnahmen aufgeführt. Kein Papierkram.',
     },
   ]
 
