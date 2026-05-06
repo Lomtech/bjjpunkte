@@ -187,15 +187,27 @@ export default function SchedulePage() {
   async function loadLeadCounts(classIds: string[]): Promise<Record<string, number>> {
     if (classIds.length === 0) return {}
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any)
-      .from('lead_bookings')
-      .select('class_id')
-      .in('class_id', classIds)
-      .neq('status', 'cancelled')
+    // Chunk classIds in batches of 50 to keep URL under PostgREST 8KB limit.
+    // Without this, gyms with many recurring classes (>~150 IDs) trigger 400 Bad Request.
+    // Parallel fetch — Supabase pooler handles 35+ concurrent reads fine.
+    const CHUNK = 50
+    const chunks: string[][] = []
+    for (let i = 0; i < classIds.length; i += CHUNK) {
+      chunks.push(classIds.slice(i, i + CHUNK))
+    }
+    const results = await Promise.all(chunks.map(chunk =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any)
+        .from('lead_bookings')
+        .select('class_id')
+        .in('class_id', chunk)
+        .neq('status', 'cancelled')
+    ))
     const countMap: Record<string, number> = {}
-    for (const lb of (data ?? []) as { class_id: string }[]) {
-      countMap[lb.class_id] = (countMap[lb.class_id] ?? 0) + 1
+    for (const { data } of results) {
+      for (const lb of (data ?? []) as { class_id: string }[]) {
+        countMap[lb.class_id] = (countMap[lb.class_id] ?? 0) + 1
+      }
     }
     return countMap
   }
