@@ -2,11 +2,49 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, Calendar,
-  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2, Globe, FileText, Rocket,
+  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2, Globe, FileText, Rocket, Briefcase,
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { createClient } from '@/lib/supabase/client'
+
+// Cache the admin status for 60s — don't hammer /api/admin/me on every page nav
+let adminCheckCache: { ts: number; isAdmin: boolean } | null = null
+
+function useIsAdmin(): boolean {
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    // sync init from cache if fresh
+    if (adminCheckCache && Date.now() - adminCheckCache.ts < 60_000) {
+      return adminCheckCache.isAdmin
+    }
+    return false
+  })
+
+  useEffect(() => {
+    if (adminCheckCache && Date.now() - adminCheckCache.ts < 60_000) return
+    let cancelled = false
+    ;(async () => {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      try {
+        const res = await fetch('/api/admin/me', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        const ok = res.ok
+        adminCheckCache = { ts: Date.now(), isAdmin: ok }
+        if (!cancelled) setIsAdmin(ok)
+      } catch {
+        adminCheckCache = { ts: Date.now(), isAdmin: false }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  return isAdmin
+}
 
 function isActive(href: string, pathname: string) {
   if (href === '/dashboard') return pathname === '/dashboard'
@@ -16,6 +54,7 @@ function isActive(href: string, pathname: string) {
 export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTrainer?: boolean; onboardingDone?: boolean }) {
   const pathname = usePathname()
   const { t } = useLanguage()
+  const isAdmin = useIsAdmin()
 
   const NAV = [
     { href: '/dashboard',             label: t('nav', 'dashboard'),   icon: LayoutDashboard, ownerOnly: false },
@@ -80,6 +119,27 @@ export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTra
             </Link>
           )
         })}
+
+        {/* Admin-only Sales-CRM link — invisible to gym customers */}
+        {isAdmin && (
+          <>
+            <div className="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Internal</div>
+            <Link href="/admin/leads"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
+                pathname.startsWith('/admin/leads')
+                  ? 'bg-purple-50 text-purple-700 font-semibold'
+                  : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
+              }`}
+            >
+              <Briefcase
+                size={16}
+                strokeWidth={pathname.startsWith('/admin/leads') ? 2.25 : 1.75}
+                className={`flex-shrink-0 transition-colors ${pathname.startsWith('/admin/leads') ? 'text-purple-600' : 'text-zinc-400'}`}
+              />
+              Sales-CRM
+            </Link>
+          </>
+        )}
       </nav>
 
       <div className="px-3 pb-4 pt-2 border-t border-zinc-100">

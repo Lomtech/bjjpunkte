@@ -46,7 +46,19 @@ export default function AdminLeadsPage() {
   const [searchQuery, setSearchQuery] = useState('BJJ München')
   const [searchPages, setSearchPages] = useState(3)
   const [searchRunning, setSearchRunning] = useState(false)
-  const [searchResult, setSearchResult] = useState<{inserted:number;updated:number;errors:string[]} | null>(null)
+  const [searchForce, setSearchForce] = useState(false)
+  const [searchResult, setSearchResult] = useState<{
+    cached?: boolean
+    message?: string
+    inserted: number
+    updated: number
+    totalFound?: number
+    lastRunAt?: string
+    lastResultCount?: number
+    existingMatchCount?: number
+    cacheTtlDays?: number
+    errors: string[]
+  } | null>(null)
 
   // auth
   useEffect(() => {
@@ -139,12 +151,23 @@ export default function AdminLeadsPage() {
       const res = await fetch('/api/admin/leads/places-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ query: searchQuery.trim(), maxPages: searchPages }),
+        body: JSON.stringify({ query: searchQuery.trim(), maxPages: searchPages, force: searchForce }),
       })
       const data = await res.json()
       if (res.ok) {
-        setSearchResult({ inserted: data.inserted, updated: data.updated, errors: data.errors ?? [] })
-        loadLeads()
+        setSearchResult({
+          cached: data.cached,
+          message: data.message,
+          inserted: data.inserted ?? 0,
+          updated: data.updated ?? 0,
+          totalFound: data.totalFound,
+          lastRunAt: data.lastRunAt,
+          lastResultCount: data.lastResultCount,
+          existingMatchCount: data.existingMatchCount,
+          cacheTtlDays: data.cacheTtlDays,
+          errors: data.errors ?? [],
+        })
+        if (!data.cached) loadLeads()
       } else {
         setSearchResult({ inserted: 0, updated: 0, errors: [data.error ?? 'Fehler'] })
       }
@@ -324,30 +347,60 @@ export default function AdminLeadsPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-bold mb-2">Google Places durchsuchen</h3>
-            <p className="text-sm text-zinc-500 mb-4">Importiert Studios in dein CRM. Existing leads werden NICHT überschrieben — nur Metadaten aktualisiert.</p>
-            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            <p className="text-sm text-zinc-500 mb-4">
+              Importiert Studios in dein CRM. Bestehende Leads werden nie überschrieben (Status/Notes/Priorität bleiben).
+              <br />
+              <span className="text-xs">Cache: 7 Tage — selbe Query wird bis dahin nicht erneut Google API kosten.</span>
+            </p>
+            <input type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchResult(null) }}
               placeholder="z.B. BJJ München" autoFocus
               className="w-full px-3 py-2 border border-zinc-200 rounded-lg mb-3" />
-            <label className="block text-sm text-zinc-600 mb-4">
-              Seiten (max 5 × 20 = 100 results):
-              <input type="number" min={1} max={5} value={searchPages}
-                onChange={e => setSearchPages(parseInt(e.target.value, 10) || 1)}
-                className="ml-2 w-16 px-2 py-1 border border-zinc-200 rounded" />
-            </label>
-            {searchResult && (
+            <div className="flex items-center gap-4 mb-4 text-sm text-zinc-600">
+              <label className="flex items-center gap-2">
+                Seiten:
+                <input type="number" min={1} max={5} value={searchPages}
+                  onChange={e => setSearchPages(parseInt(e.target.value, 10) || 1)}
+                  className="w-14 px-2 py-1 border border-zinc-200 rounded" />
+                <span className="text-xs text-zinc-400">×20 Studios</span>
+              </label>
+              <label className="flex items-center gap-2 ml-auto">
+                <input type="checkbox" checked={searchForce} onChange={e => setSearchForce(e.target.checked)} />
+                <span>Cache umgehen</span>
+              </label>
+            </div>
+            {searchResult?.cached && (
+              <div className="text-sm bg-blue-50 text-blue-900 px-3 py-2 rounded-lg mb-3">
+                <div className="font-semibold">⚡ Aus Cache geantwortet — keine API-Kosten</div>
+                <div className="text-xs mt-1">
+                  Letzte Ausführung: {searchResult.lastRunAt && new Date(searchResult.lastRunAt).toLocaleString('de-DE')}
+                  {searchResult.lastResultCount != null && ` · ${searchResult.lastResultCount} Studios beim letzten Mal`}
+                </div>
+                <div className="text-xs mt-1">{searchResult.existingMatchCount ?? 0} ähnliche Leads bereits in DB.</div>
+                <div className="text-xs mt-2 text-blue-700">
+                  Aktiviere „Cache umgehen" wenn du wirklich Google API erneut anfragen willst.
+                </div>
+              </div>
+            )}
+            {searchResult && !searchResult.cached && (searchResult.inserted > 0 || searchResult.updated > 0 || (searchResult.totalFound ?? 0) > 0) && (
               <div className="text-sm bg-emerald-50 text-emerald-800 px-3 py-2 rounded-lg mb-3">
                 ✓ {searchResult.inserted} neu, {searchResult.updated} aktualisiert
+                {(searchResult.totalFound ?? 0) > 0 && ` · ${searchResult.totalFound} gefunden`}
                 {searchResult.errors.length > 0 && (
                   <div className="text-rose-700 text-xs mt-1">{searchResult.errors.length} Fehler: {searchResult.errors[0]}</div>
                 )}
               </div>
             )}
+            {searchResult && searchResult.errors.length > 0 && !searchResult.cached && searchResult.inserted === 0 && searchResult.updated === 0 && (
+              <div className="text-sm bg-rose-50 text-rose-800 px-3 py-2 rounded-lg mb-3">
+                ⚠ Fehler: {searchResult.errors[0]}
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
-              <button onClick={() => { setShowSearchModal(false); setSearchResult(null) }}
+              <button onClick={() => { setShowSearchModal(false); setSearchResult(null); setSearchForce(false) }}
                 className="px-4 py-2 text-sm rounded-lg border border-zinc-200">Schließen</button>
               <button onClick={runPlacesSearch} disabled={searchRunning || !searchQuery.trim()}
                 className="px-4 py-2 text-sm rounded-lg bg-amber-400 hover:bg-amber-500 text-zinc-900 font-semibold disabled:opacity-50">
-                {searchRunning ? 'Lädt…' : 'Suchen'}
+                {searchRunning ? 'Lädt…' : searchForce ? 'Mit Google API neu suchen' : 'Suchen'}
               </button>
             </div>
           </div>

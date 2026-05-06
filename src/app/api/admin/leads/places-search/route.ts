@@ -6,10 +6,18 @@ import { searchPlacesText, extractCity, detectSports } from '@/lib/google-places
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+const CACHE_TTL_DAYS = 7
+const CACHE_TTL_MS = CACHE_TTL_DAYS * 24 * 60 * 60 * 1000
+
 // POST /api/admin/leads/places-search
-// Body: { query: "BJJ München", maxPages?: 3, bias?: { lat, lng, radiusMeters } }
-// Searches Google Places (New) Text Search and bulk-imports results into sales_leads.
-// Dedupes by google_place_id.
+// Body: { query, maxPages?, bias?, force? }
+//   - force=true: bypass cache (re-call Google API even if recent)
+//   - force=false (default): if same query ran <7d ago, return cached info + skip Google call
+//
+// Cache logic uses sales_search_history table — keyed by lower(query) + bias.
+// Existing leads (matched by google_place_id) are NEVER overwritten on
+// status/notes/priority — those are user-edited fields. Only metadata
+// (rating, hours, website etc.) is refreshed.
 export async function POST(req: Request) {
   const auth = await requireAdmin(req)
   if ('error' in auth) return auth.error
@@ -17,17 +25,69 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as {
     query?: string
     maxPages?: number
+    force?: boolean
     bias?: { lat: number; lng: number; radiusMeters: number }
   }
   const query = (body.query ?? '').trim()
   if (!query) return NextResponse.json({ error: 'query required' }, { status: 400 })
 
-  const maxPages = Math.min(Math.max(body.maxPages ?? 3, 1), 5) // 5 pages × 20 = up to 100
-  const bias = body.bias
-    ? { latitude: body.bias.lat, longitude: body.bias.lng, radiusMeters: body.bias.radiusMeters }
-    : undefined
+  const maxPages = Math.min(Math.max(body.maxPages ?? 3, 1), 5)
+  const force    = body.force === true
+  const bias     = body.bias
 
   const supabase = createServiceClient()
+  const queryLower = query.toLowerCase()
+  const biasLat    = bias?.lat ?? null
+  const biasLng    = bias?.lng ?? null
+  const biasRad    = bias?.radiusMeters ?? null
+
+  // ── Step 1: Cache lookup ─────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let cacheLookup: any = supabase
+    .from('sales_search_history')
+    .select('*')
+    .ilike('query', queryLower)
+    .order('ran_at', { ascending: false })
+    .limit(1)
+  const { data: lastRuns } = await cacheLookup
+  const lastRun = (lastRuns ?? [])[0] as {
+    ran_at: string; result_count: number; inserted_count: number;
+    updated_count: number; bias_lat: number | null; bias_lng: number | null; bias_radius: number | null;
+  } | undefined
+
+  const sameBias = lastRun
+    && (lastRun.bias_lat ?? null) === biasLat
+    && (lastRun.bias_lng ?? null) === biasLng
+    && (lastRun.bias_radius ?? null) === biasRad
+  const ageMs = lastRun ? Date.now() - new Date(lastRun.ran_at).getTime() : Infinity
+  const isFresh = sameBias && ageMs < CACHE_TTL_MS
+
+  // ── Step 2: Count existing leads matching this query ─────
+  // (Best-effort name match — user wants to know how many are already in DB)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { count: existingMatch } = await (supabase.from('sales_leads') as any)
+    .select('id', { count: 'exact', head: true })
+    .ilike('name', `%${query.split(' ').slice(0, 1)[0]}%`)
+    .limit(1)
+
+  if (isFresh && !force) {
+    return NextResponse.json({
+      cached: true,
+      message: `Diese Suche lief vor ${Math.floor(ageMs / (1000 * 60 * 60 * 24))} Tagen. Erneuere mit "force=true" um Google API erneut anzufragen.`,
+      lastRunAt: lastRun!.ran_at,
+      lastResultCount: lastRun!.result_count,
+      lastInsertedCount: lastRun!.inserted_count,
+      lastUpdatedCount: lastRun!.updated_count,
+      cacheTtlDays: CACHE_TTL_DAYS,
+      existingMatchCount: existingMatch ?? 0,
+      query,
+      inserted: 0,
+      updated: 0,
+      totalFound: 0,
+    })
+  }
+
+  // ── Step 3: Run Google Places search ─────────────────────
   let totalFound = 0
   let inserted = 0
   let updated = 0
@@ -37,7 +97,12 @@ export async function POST(req: Request) {
   for (let page = 0; page < maxPages; page++) {
     let result: Awaited<ReturnType<typeof searchPlacesText>>
     try {
-      result = await searchPlacesText({ query, pageToken, bias, maxResults: 20 })
+      result = await searchPlacesText({
+        query,
+        pageToken,
+        maxResults: 20,
+        bias: bias ? { latitude: bias.lat, longitude: bias.lng, radiusMeters: bias.radiusMeters } : undefined,
+      })
     } catch (err) {
       errors.push(err instanceof Error ? err.message : 'places api error')
       break
@@ -70,8 +135,6 @@ export async function POST(req: Request) {
         created_by: auth.user.id,
       }
 
-      // upsert by google_place_id; only update fields when we have new data,
-      // never overwrite status/notes/priority that the user has set
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: existing } = await (supabase.from('sales_leads') as any)
         .select('id, status').eq('google_place_id', p.id).maybeSingle()
@@ -120,15 +183,47 @@ export async function POST(req: Request) {
 
     if (!result.nextPageToken) break
     pageToken = result.nextPageToken
-    // Google requires a short delay before nextPageToken becomes valid (~2s)
     await new Promise(r => setTimeout(r, 2000))
   }
 
+  // ── Step 4: Log this search to history ───────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from('sales_search_history') as any).insert({
+    query,
+    bias_lat: biasLat,
+    bias_lng: biasLng,
+    bias_radius: biasRad,
+    result_count: totalFound,
+    inserted_count: inserted,
+    updated_count: updated,
+    ran_by: auth.user.id,
+  })
+
   return NextResponse.json({
+    cached: false,
     query,
     totalFound,
     inserted,
     updated,
     errors: errors.slice(0, 10),
   })
+}
+
+// GET /api/admin/leads/places-search/history?limit=50 — show recent searches
+export async function GET(req: Request) {
+  const auth = await requireAdmin(req)
+  if ('error' in auth) return auth.error
+
+  const url = new URL(req.url)
+  const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10) || 50, 200)
+
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('sales_search_history')
+    .select('*')
+    .order('ran_at', { ascending: false })
+    .limit(limit)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ history: data ?? [] })
 }

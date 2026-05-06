@@ -437,6 +437,12 @@ export interface Database {
         Update: { outcome?: string | null; subject?: string | null; body?: string | null; duration_seconds?: number | null; occurred_at?: string }
         Relationships: Rel[]
       }
+      sales_search_history: {
+        Row: { id: string; query: string; bias_lat: number | null; bias_lng: number | null; bias_radius: number | null; result_count: number; inserted_count: number; updated_count: number; ran_by: string | null; ran_at: string }
+        Insert: { query: string; bias_lat?: number | null; bias_lng?: number | null; bias_radius?: number | null; result_count?: number; inserted_count?: number; updated_count?: number; ran_by?: string | null }
+        Update: { result_count?: number; inserted_count?: number; updated_count?: number; ran_at?: string }
+        Relationships: Rel[]
+      }
       belt_promotions: {
         Row: { id: string; member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; promoted_at: string; notes: string | null }
         Insert: { member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; notes?: string | null }
