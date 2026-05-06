@@ -85,6 +85,7 @@ export default function AdminLeadsPage() {
   const [selected, setSelected] = useState<SalesLead | null>(null)
   const [activities, setActivities] = useState<SalesActivity[]>([])
   const [showSearchModal, setShowSearchModal] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   // Deep-link: when ?lead=<id> in URL, auto-open that lead's detail panel.
   // Used by the QR-Code so phone can resume on the same lead.
@@ -300,20 +301,34 @@ export default function AdminLeadsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <header className="bg-white border-b border-zinc-200 sticky top-0 z-10">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-zinc-900">Sales-CRM</h1>
-            <p className="text-sm text-zinc-500">{total} Leads · {statusCounts.contacted ?? 0} kontaktiert · {statusCounts.qualified ?? 0} qualifiziert · {statusCounts.won ?? 0} gewonnen</p>
+      <header className="bg-white border-b border-zinc-200 sticky top-0 z-20">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl font-bold text-zinc-900">Sales-CRM</h1>
+              <p className="text-xs sm:text-sm text-zinc-500 truncate">
+                {total} Leads · {statusCounts.contacted ?? 0} kontakt. · {statusCounts.qualified ?? 0} qualifiz. · {statusCounts.won ?? 0} gewonnen
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Mobile filter toggle */}
+              <button onClick={() => setShowMobileFilters(true)}
+                className="lg:hidden p-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-zinc-700"
+                aria-label="Filter öffnen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="14" y2="12" /><line x1="4" y1="18" x2="10" y2="18" /></svg>
+              </button>
+              {quota && <div className="hidden sm:block"><QuotaBadge quota={quota} /></div>}
+              <button onClick={() => setShowSearchModal(true)}
+                disabled={!!quota && quota.remainingToday === 0}
+                className="px-3 sm:px-4 py-2 bg-amber-400 hover:bg-amber-500 text-zinc-900 text-sm font-semibold rounded-xl disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed flex items-center gap-1">
+                <span>+</span>
+                <span className="hidden sm:inline">Google Places suchen</span>
+                <span className="sm:hidden">Suchen</span>
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {quota && <QuotaBadge quota={quota} />}
-            <button onClick={() => setShowSearchModal(true)}
-              disabled={!!quota && quota.remainingToday === 0}
-              className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-zinc-900 text-sm font-semibold rounded-xl disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed">
-              + Google Places suchen
-            </button>
-          </div>
+          {/* Mobile-only quota badge below header */}
+          {quota && <div className="sm:hidden mt-2"><QuotaBadge quota={quota} /></div>}
         </div>
       </header>
 
@@ -341,9 +356,23 @@ export default function AdminLeadsPage() {
         </div>
       )}
 
-      <div className="max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-12 gap-6">
-        {/* Filter sidebar */}
-        <aside className="col-span-12 lg:col-span-3 space-y-4">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:grid lg:grid-cols-12 lg:gap-6">
+        {/* Filter sidebar — drawer on mobile, sticky on desktop */}
+        {showMobileFilters && (
+          <div className="lg:hidden fixed inset-0 bg-black/40 z-30" onClick={() => setShowMobileFilters(false)} />
+        )}
+        <aside className={`
+          ${showMobileFilters ? 'fixed inset-y-0 left-0 z-40 w-[85%] max-w-sm overflow-y-auto bg-zinc-50 p-4' : 'hidden'}
+          lg:block lg:relative lg:inset-auto lg:w-auto lg:max-w-none lg:bg-transparent lg:p-0
+          lg:col-span-3 lg:space-y-4
+        `}>
+          {/* Mobile drawer close + applied filters summary */}
+          <div className="lg:hidden flex items-center justify-between mb-3 sticky top-0 bg-zinc-50 -mx-4 px-4 py-2 border-b border-zinc-200 z-10">
+            <h2 className="font-bold text-zinc-900">Filter</h2>
+            <button onClick={() => setShowMobileFilters(false)}
+              className="text-zinc-500 hover:text-zinc-900 text-2xl leading-none p-2">×</button>
+          </div>
+          <div className="space-y-4">
           <div className="bg-white rounded-xl border border-zinc-200 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Status</h3>
@@ -403,12 +432,12 @@ export default function AdminLeadsPage() {
             </label>
             <input type="text" placeholder="Stadt …" value={city}
               onChange={e => { setCity(e.target.value); setPage(0) }}
-              className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg" />
+              className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg" />
             <input type="text" placeholder="Suche Name/Adresse/Tel/Mail" value={search}
               onChange={e => { setSearch(e.target.value); setPage(0) }}
-              className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg" />
+              className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg" />
             <select value={sort} onChange={e => setSort(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg">
+              className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg">
               <option value="priority">Priorität</option>
               <option value="next_followup">Nächster Follow-up</option>
               <option value="updated">Zuletzt geändert</option>
@@ -416,10 +445,17 @@ export default function AdminLeadsPage() {
               <option value="name">Name A-Z</option>
             </select>
           </div>
+
+          {/* Mobile-only "Anwenden" close button */}
+          <button onClick={() => setShowMobileFilters(false)}
+            className="lg:hidden w-full px-4 py-3 bg-zinc-900 text-white font-semibold rounded-xl">
+            Anwenden
+          </button>
+          </div>
         </aside>
 
         {/* Lead list */}
-        <main className="col-span-12 lg:col-span-9">
+        <main className="col-span-12 lg:col-span-9 mt-4 lg:mt-0">
           {loading ? (
             <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center text-zinc-500">Lade…</div>
           ) : leads.length === 0 ? (
@@ -427,65 +463,101 @@ export default function AdminLeadsPage() {
               Keine Leads. Klick „Google Places suchen“ um welche zu importieren.
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-zinc-50 border-b border-zinc-200">
-                  <tr className="text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-                    <th className="px-4 py-3">Studio</th>
-                    <th className="px-4 py-3">Stadt</th>
-                    <th className="px-4 py-3">Kontakt</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Prio</th>
-                    <th className="px-4 py-3">Rating</th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leads.map(l => {
-                    const status = STATUSES.find(s => s.v === l.status)
-                    return (
-                      <tr key={l.id}
-                        onClick={() => setSelected(l)}
-                        className={`border-b border-zinc-100 cursor-pointer hover:bg-amber-50/40 ${selected?.id === l.id ? 'bg-amber-50/60' : ''}`}>
-                        <td className="px-4 py-3">
-                          <div className="font-semibold text-zinc-900">{l.name}</div>
-                          {l.is_martial_arts && (
-                            <div className="text-xs text-amber-700 mt-0.5">🥋 {l.sports.slice(0,3).join(', ')}</div>
+            <>
+              {/* Mobile: card list */}
+              <div className="lg:hidden space-y-2">
+                {leads.map(l => {
+                  const status = STATUSES.find(s => s.v === l.status)
+                  return (
+                    <button key={l.id} onClick={() => setSelected(l)}
+                      className={`w-full text-left bg-white border border-zinc-200 rounded-xl p-3 active:bg-amber-50 transition ${
+                        selected?.id === l.id ? 'border-amber-300 bg-amber-50/50' : ''
+                      }`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-zinc-900 truncate">{l.name}</div>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {status && <span className={`text-[10px] px-2 py-0.5 rounded-full ${status.color}`}>{status.label}</span>}
+                            {l.is_martial_arts && <span className="text-[10px] text-amber-700">🥋</span>}
+                            <span className="text-xs text-zinc-500">{l.city ?? '—'}</span>
+                          </div>
+                          {l.phone && (
+                            <div className="text-xs text-zinc-600 mt-1.5">📞 {l.phone}</div>
                           )}
-                        </td>
-                        <td className="px-4 py-3 text-zinc-600">{l.city ?? '—'}</td>
-                        <td className="px-4 py-3 text-xs text-zinc-600">
-                          {l.phone && <div>📞 {l.phone}</div>}
-                          {l.website && <div className="truncate max-w-[160px]">🌐 {l.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</div>}
-                        </td>
-                        <td className="px-4 py-3">
-                          {status && <span className={`text-xs px-2 py-0.5 rounded-full ${status.color}`}>{status.label}</span>}
-                        </td>
-                        <td className="px-4 py-3 text-zinc-600">{'★'.repeat(l.priority)}</td>
-                        <td className="px-4 py-3 text-zinc-600">
-                          {l.rating ? `${l.rating} (${l.user_ratings_total})` : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button onClick={e => { e.stopPropagation(); setSelected(l) }}
-                            className="text-xs text-amber-700 hover:underline">Öffnen →</button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="text-amber-500 text-sm">{'★'.repeat(l.priority)}</span>
+                          {l.rating && <span className="text-[10px] text-zinc-500">{l.rating}★</span>}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden lg:block bg-white rounded-xl border border-zinc-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 border-b border-zinc-200">
+                    <tr className="text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+                      <th className="px-4 py-3">Studio</th>
+                      <th className="px-4 py-3">Stadt</th>
+                      <th className="px-4 py-3">Kontakt</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Prio</th>
+                      <th className="px-4 py-3">Rating</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leads.map(l => {
+                      const status = STATUSES.find(s => s.v === l.status)
+                      return (
+                        <tr key={l.id}
+                          onClick={() => setSelected(l)}
+                          className={`border-b border-zinc-100 cursor-pointer hover:bg-amber-50/40 ${selected?.id === l.id ? 'bg-amber-50/60' : ''}`}>
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-zinc-900">{l.name}</div>
+                            {l.is_martial_arts && (
+                              <div className="text-xs text-amber-700 mt-0.5">🥋 {l.sports.slice(0,3).join(', ')}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-zinc-600">{l.city ?? '—'}</td>
+                          <td className="px-4 py-3 text-xs text-zinc-600">
+                            {l.phone && <div>📞 {l.phone}</div>}
+                            {l.website && <div className="truncate max-w-[160px]">🌐 {l.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</div>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {status && <span className={`text-xs px-2 py-0.5 rounded-full ${status.color}`}>{status.label}</span>}
+                          </td>
+                          <td className="px-4 py-3 text-zinc-600">{'★'.repeat(l.priority)}</td>
+                          <td className="px-4 py-3 text-zinc-600">
+                            {l.rating ? `${l.rating} (${l.user_ratings_total})` : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button onClick={e => { e.stopPropagation(); setSelected(l) }}
+                              className="text-xs text-amber-700 hover:underline">Öffnen →</button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
               {total > 50 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-200 text-sm text-zinc-600">
-                  <span>Seite {page + 1} von {Math.ceil(total / 50)}</span>
+                <div className="flex items-center justify-between px-4 py-3 mt-3 lg:mt-0 lg:border-t lg:border-zinc-200 text-sm text-zinc-600 bg-white rounded-xl lg:rounded-none lg:rounded-b-xl border lg:border-t-0 border-zinc-200">
+                  <span>Seite {page + 1} / {Math.ceil(total / 50)}</span>
                   <div className="flex gap-2">
                     <button disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}
-                      className="px-3 py-1 rounded border border-zinc-200 disabled:opacity-50">‹</button>
+                      className="px-4 py-2 rounded-lg border border-zinc-200 disabled:opacity-50">‹ Zurück</button>
                     <button disabled={page + 1 >= Math.ceil(total / 50)} onClick={() => setPage(p => p + 1)}
-                      className="px-3 py-1 rounded border border-zinc-200 disabled:opacity-50">›</button>
+                      className="px-4 py-2 rounded-lg border border-zinc-200 disabled:opacity-50">Weiter ›</button>
                   </div>
                 </div>
               )}
-            </div>
+            </>
           )}
         </main>
       </div>
@@ -512,8 +584,8 @@ export default function AdminLeadsPage() {
               <span className="text-xs">Cache: 7 Tage — selbe Query wird bis dahin nicht erneut Google API kosten.</span>
             </p>
             <input type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchResult(null) }}
-              placeholder="z.B. BJJ München" autoFocus
-              className="w-full px-3 py-2 border border-zinc-200 rounded-lg mb-3" />
+              placeholder="z.B. BJJ München"
+              className="w-full px-3 py-3 text-base border border-zinc-200 rounded-lg mb-3" />
             <div className="flex items-center gap-4 mb-2 text-sm text-zinc-600">
               <label className="flex items-center gap-2">
                 Seiten:
@@ -649,26 +721,34 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
   const [showQR, setShowQR] = useState(false)
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full sm:max-w-xl bg-white shadow-2xl border-l border-zinc-200 z-40 overflow-y-auto">
-      <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 sm:inset-y-0 sm:left-auto sm:right-0 sm:w-full sm:max-w-xl bg-white shadow-2xl sm:border-l border-zinc-200 z-40 overflow-y-auto overscroll-contain">
+      <div className="sticky top-0 bg-white border-b border-zinc-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+        <button onClick={onClose}
+          className="sm:hidden p-2 -ml-2 text-zinc-700 hover:text-zinc-900"
+          aria-label="Zurück">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-bold text-zinc-900 truncate">{lead.name}</h2>
-          {lead.formatted_address && <p className="text-sm text-zinc-500 truncate">{lead.formatted_address}</p>}
+          <h2 className="text-base sm:text-lg font-bold text-zinc-900 truncate">{lead.name}</h2>
+          {lead.formatted_address && <p className="text-xs sm:text-sm text-zinc-500 truncate">{lead.formatted_address}</p>}
         </div>
         <div className="flex items-center gap-2 ml-2">
           <button onClick={() => setShowQR(true)}
             title="QR-Code zum Öffnen auf iPhone"
-            className="flex items-center gap-1 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-semibold">
-            📱 iPhone
+            className="flex items-center gap-1 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-semibold">
+            📱 <span className="hidden sm:inline">iPhone</span>
           </button>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-2xl leading-none">×</button>
+          <button onClick={onClose}
+            className="hidden sm:block text-zinc-400 hover:text-zinc-700 text-2xl leading-none">×</button>
         </div>
       </div>
 
       {showQR && <QRModal lead={lead} onClose={() => setShowQR(false)} />}
 
-      <div className="p-6 space-y-6">
-        {/* Quick actions */}
+      <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 pb-20 sm:pb-6"
+        style={{ paddingBottom: 'max(5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
+        {/* Quick actions — bigger touch targets on mobile */}
         <div className="grid grid-cols-2 gap-2">
           {lead.phone && (
             <PhoneButton
@@ -679,26 +759,26 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
           {lead.phone && lead.international_phone && (
             <a href={`https://wa.me/${lead.international_phone.replace(/\D/g, '')}`}
               target="_blank" rel="noopener"
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-green-50 hover:bg-green-100 text-green-800 font-semibold rounded-xl text-sm">
+              className="flex items-center justify-center gap-2 px-4 py-4 bg-green-50 hover:bg-green-100 active:bg-green-200 text-green-800 font-semibold rounded-xl text-sm min-h-[52px]">
               💬 WhatsApp
             </a>
           )}
           {lead.website && (
             <a href={lead.website} target="_blank" rel="noopener"
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold rounded-xl text-sm truncate">
+              className="flex items-center justify-center gap-2 px-4 py-4 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-800 font-semibold rounded-xl text-sm truncate min-h-[52px]">
               🌐 Website
             </a>
           )}
           {lead.google_maps_url && (
             <a href={lead.google_maps_url} target="_blank" rel="noopener"
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-semibold rounded-xl text-sm">
-              📍 Google Maps
+              className="flex items-center justify-center gap-2 px-4 py-4 bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 text-zinc-800 font-semibold rounded-xl text-sm min-h-[52px]">
+              📍 Maps
             </a>
           )}
           {lead.email && (
             <a href={`mailto:${lead.email}`}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-50 hover:bg-purple-100 text-purple-800 font-semibold rounded-xl text-sm truncate">
-              ✉ {lead.email}
+              className="flex items-center justify-center gap-2 px-4 py-4 bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-800 font-semibold rounded-xl text-sm truncate min-h-[52px]">
+              ✉ <span className="truncate">{lead.email}</span>
             </a>
           )}
         </div>
@@ -740,7 +820,7 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
             value={notes} onChange={e => setNotes(e.target.value)} onBlur={handleNotesBlur}
             placeholder="Was hast du erfahren? Wer ist Ansprechpartner? …"
             style={{ minHeight: '96px' }}
-            className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm resize-none overflow-hidden" />
+            className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-base sm:text-sm resize-none overflow-hidden" />
         </label>
 
         {/* Cold-Call Script */}
@@ -768,7 +848,7 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
           </div>
           {activityKind === 'call' && (
             <select value={activityOutcome} onChange={e => setActivityOutcome(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white">
+              className="w-full px-3 py-2 text-base sm:text-sm border border-zinc-200 rounded-lg bg-white">
               <option value="">Ergebnis …</option>
               <option value="answered">Erreicht</option>
               <option value="interested">Interessiert</option>
@@ -783,7 +863,7 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
             value={activityBody} onChange={e => setActivityBody(e.target.value)}
             placeholder={activityKind === 'call' ? 'Was wurde besprochen?' : activityKind === 'email' ? 'Worum ging\'s?' : 'Notiz …'}
             style={{ minHeight: '72px' }}
-            className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white resize-none overflow-hidden" />
+            className="w-full px-3 py-2 text-base sm:text-sm border border-zinc-200 rounded-lg bg-white resize-none overflow-hidden" />
           <button onClick={handleAddActivity}
             className="w-full px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-semibold rounded-lg">
             Loggen
