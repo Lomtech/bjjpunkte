@@ -341,6 +341,8 @@ export default function WebsitePage() {
 
   async function saveSlug() {
     setSlugError('')
+    const id = gymId || gym?.id
+    if (!id) { setSlugError('Gym-ID nicht gefunden — bitte Seite neu laden.'); return }
     const clean = gymSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     if (!clean) { setSlugError(t('website', 'urlSlug') + ' darf nicht leer sein.'); return }
     setGymSlug(clean)
@@ -348,15 +350,16 @@ export default function WebsitePage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = createClient() as any
     // Check uniqueness (exclude own gym)
-    const { data: existing } = await supabase.from('gyms').select('id').eq('slug', clean).neq('id', gymId).maybeSingle()
+    const { data: existing } = await supabase.from('gyms').select('id').eq('slug', clean).neq('id', id).maybeSingle()
     if (existing) {
       setSlugError(t('website', 'urlSlug') + ' ist bereits vergeben.')
       setSaving(s => ({ ...s, slug: false }))
       return
     }
-    await supabase.from('gyms').update({ slug: clean }).eq('id', gymId)
-    setGym((g: typeof gym) => g ? { ...g, slug: clean } : g)
+    const { error: slugErr } = await supabase.from('gyms').update({ slug: clean }).eq('id', id)
     setSaving(s => ({ ...s, slug: false }))
+    if (slugErr) { setSlugError(`Fehler: ${slugErr.message}`); return }
+    setGym((g: typeof gym) => g ? { ...g, slug: clean } : g)
     setSaved(s => ({ ...s, slug: true }))
     setTimeout(() => setSaved(s => ({ ...s, slug: false })), 2500)
   }
