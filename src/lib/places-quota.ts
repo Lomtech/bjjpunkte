@@ -1,19 +1,31 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-// Google Places API (New) — Pricing 2024
+// Google Places API (New) — Text Search Pricing
 // ──────────────────────────────────────────────────────────────────────
-// Free tier: 10.000 Calls/Monat GRATIS für Pro-SKU Endpoints (Text Search,
-// Place Details, Nearby Search etc.). Plus $200 monthly Cloud-Credit on top.
-// → Realistisch: du wirst nie zahlen wenn du <10k/Monat bleibst.
+// Source: https://developers.google.com/maps/billing-and-pricing/pricing
+// (Stand März 2025 — der alte $200 monthly credit wurde abgeschafft und
+// ersetzt durch "free calls per SKU monthly")
 //
-// Nach Free Tier: ~$0.025/call (Essentials+Contact+Atmosphere SKU).
-// Wir nutzen exakt diese Field-Mask (id, displayName, address, location,
-// rating, userRatingCount, phone, website, types).
+// 3 Text-Search SKUs, basierend auf welche Felder die Field-Mask abruft:
 //
-// Override mit env vars:
-//   PLACES_COST_PER_CALL_USD=0.025
-//   PLACES_FREE_CALLS_PER_MONTH=10000
-//   PLACES_DAILY_LIMIT=300
+//   SKU            | Free/Monat | Cost danach (Tier 1, ab 10k bis 500k)
+//   ───────────────┼────────────┼─────────────────────────────────────────
+//   Essentials     |  10.000    | $2.27 / 1000 calls = $0.00227/call
+//   Pro            |   5.000    | $32.00 / 1000 calls = $0.032/call
+//   Enterprise     |   1.000    | $35.00 / 1000 calls = $0.035/call
+//
+// Welche SKU wir treffen: Unsere Field-Mask in google-places.ts holt
+//   - Essentials: id, displayName, formattedAddress, location, types, googleMapsUri
+//   - Pro fields: rating, userRatingCount, nationalPhoneNumber, websiteUri,
+//                 businessStatus, addressComponents
+// → Wir werden als **Pro-SKU** abgerechnet = 5.000 Free/Monat, $0.032/Call.
+//
+// Daily Limit Default: 150/Tag = ~4.500/Monat → sicher unter 5k Free-Tier.
+//
+// Override per Vercel env vars:
+//   PLACES_COST_PER_CALL_USD=0.032
+//   PLACES_FREE_CALLS_PER_MONTH=5000
+//   PLACES_DAILY_LIMIT=150
 // ──────────────────────────────────────────────────────────────────────
 
 function envFloat(key: string, fallback: number): number {
@@ -26,13 +38,13 @@ function envInt(key: string, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback
 }
 
-export const COST_PER_CALL_USD       = envFloat('PLACES_COST_PER_CALL_USD', 0.025)
-export const FREE_CALLS_PER_MONTH    = envInt('PLACES_FREE_CALLS_PER_MONTH', 10_000)
+export const COST_PER_CALL_USD       = envFloat('PLACES_COST_PER_CALL_USD', 0.032)   // Pro SKU tier 1
+export const FREE_CALLS_PER_MONTH    = envInt('PLACES_FREE_CALLS_PER_MONTH', 5_000)  // Pro SKU monthly free
 
 export function getDailyLimit(): number {
-  // Default: 300/day = ~9k/month → comfortably under free tier even if you go
-  // hard every single day. Override mit PLACES_DAILY_LIMIT.
-  return envInt('PLACES_DAILY_LIMIT', 300)
+  // Default: 150/day = ~4.500/month → bleibt sicher unter 5k Pro-SKU Free-Tier.
+  // Override mit PLACES_DAILY_LIMIT.
+  return envInt('PLACES_DAILY_LIMIT', 150)
 }
 
 export type QuotaSnapshot = {
