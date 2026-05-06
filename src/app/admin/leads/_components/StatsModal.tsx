@@ -173,48 +173,120 @@ export function StatsModal({ token, onClose }: { token: string; onClose: () => v
                 )}
               </Section>
 
-              {/* Calls per day — pad with empty days for last 14 so chart doesn't look broken */}
+              {/* Calls per day — Heatmap-Style, GitHub-Contribution-inspiriert.
+                  Zeigt 28 Tage (4 Wochen) als Grid. Compact, funktioniert mit wenig
+                  und mit viel Daten gleichermaßen, kein Empty-Space-Problem. */}
               {Object.keys(stats.byDay).length > 0 && (
-                <Section title="Anrufe pro Tag (letzte 14 Tage)">
+                <Section title="Anruf-Aktivität (letzte 4 Wochen)">
                   {(() => {
-                    const days: { day: string; count: number; isToday: boolean }[] = []
+                    const DAYS = 28
+                    const days: { day: string; count: number; isToday: boolean; weekday: number }[] = []
                     const now = new Date()
-                    for (let i = 13; i >= 0; i--) {
+                    // 28 Tage rückwärts, in chronologischer Reihenfolge
+                    for (let i = DAYS - 1; i >= 0; i--) {
                       const d = new Date(now)
                       d.setDate(d.getDate() - i)
                       const key = d.toISOString().slice(0, 10)
+                      // Mo=0, Di=1, ..., So=6
+                      const wd = (d.getDay() + 6) % 7
                       days.push({
                         day: key,
                         count: stats.byDay[key] ?? 0,
                         isToday: i === 0,
+                        weekday: wd,
                       })
                     }
-                    const max = Math.max(1, ...days.map(d => d.count))
                     const total = days.reduce((s, d) => s + d.count, 0)
-                    const avgPerDay = +(total / 14).toFixed(1)
+                    const activeDays = days.filter(d => d.count > 0).length
+                    const avgPerActiveDay = activeDays > 0 ? +(total / activeDays).toFixed(1) : 0
+                    const todayCount = days[days.length - 1].count
+
+                    // Streak — wieviele Tage in Folge mit Calls (heute zurück)
+                    let streak = 0
+                    for (let i = days.length - 1; i >= 0; i--) {
+                      if (days[i].count > 0) streak++
+                      else break
+                    }
+
+                    // Color-Scale für Heatmap
+                    function tone(c: number, isToday: boolean): string {
+                      if (c === 0) return isToday ? 'bg-zinc-200 ring-2 ring-amber-400' : 'bg-zinc-100'
+                      const ring = isToday ? ' ring-2 ring-amber-700' : ''
+                      if (c >= 21) return 'bg-amber-600' + ring
+                      if (c >= 11) return 'bg-amber-500' + ring
+                      if (c >= 6)  return 'bg-amber-400' + ring
+                      if (c >= 1)  return 'bg-amber-200' + ring
+                      return 'bg-zinc-100' + ring
+                    }
+
+                    const WEEKDAY_LABELS = ['Mo', '', 'Mi', '', 'Fr', '', 'So']
+
                     return (
                       <>
-                        <div className="flex items-end gap-1.5 h-32 px-1">
-                          {days.map(({ day, count, isToday }) => {
-                            const h = (count / max) * 100
-                            const tone = isToday ? 'bg-amber-400' : count > 0 ? 'bg-amber-200' : 'bg-zinc-100'
-                            return (
-                              <div key={day} className="flex-1 flex flex-col items-center justify-end gap-1 min-w-0">
-                                <div className={`text-[10px] font-mono ${count > 0 ? 'text-zinc-700 font-bold' : 'text-zinc-300'}`}>
-                                  {count > 0 ? count : ''}
-                                </div>
-                                <div className={`w-full ${tone} rounded-t transition-all`}
-                                  style={{ height: count > 0 ? `${Math.max(h, 8)}%` : '4%' }} />
-                                <div className={`text-[10px] ${isToday ? 'text-amber-700 font-bold' : 'text-zinc-400'}`}>
-                                  {day.slice(8)}
-                                </div>
-                              </div>
-                            )
-                          })}
+                        {/* KPI-Reihe oben */}
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                          <div className="bg-zinc-50 rounded-lg p-2.5">
+                            <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">Heute</div>
+                            <div className={`text-xl font-black tabular-nums ${todayCount > 0 ? 'text-amber-600' : 'text-zinc-300'}`}>{todayCount}</div>
+                          </div>
+                          <div className="bg-zinc-50 rounded-lg p-2.5">
+                            <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">Streak</div>
+                            <div className={`text-xl font-black tabular-nums ${streak > 0 ? 'text-emerald-600' : 'text-zinc-300'}`}>{streak} <span className="text-xs font-normal text-zinc-400">Tag{streak === 1 ? '' : 'e'}</span></div>
+                          </div>
+                          <div className="bg-zinc-50 rounded-lg p-2.5">
+                            <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">Gesamt 28d</div>
+                            <div className="text-xl font-black tabular-nums text-zinc-900">{total}</div>
+                          </div>
                         </div>
-                        <p className="text-xs text-zinc-500 mt-3">
-                          Ø <strong>{avgPerDay}</strong> Calls/Tag · gesamt <strong>{total}</strong>
-                          {avgPerDay < 10 && total > 0 && <span className="text-amber-700"> · Tipp: 20+/Tag für gesunden Sales-Funnel</span>}
+
+                        {/* Heatmap-Grid: 7 Reihen (Mo-So) × 4 Spalten (4 Wochen) */}
+                        <div className="flex gap-2">
+                          <div className="flex flex-col gap-1 pt-0">
+                            {WEEKDAY_LABELS.map((l, i) => (
+                              <div key={i} className="text-[9px] text-zinc-400 h-4 flex items-center font-medium">{l}</div>
+                            ))}
+                          </div>
+                          <div className="flex-1 grid grid-flow-col grid-rows-7 gap-1">
+                            {/* Padding-Squares vor dem ersten Tag, damit Mo-So-Spalten sauber stehen */}
+                            {(() => {
+                              const firstWd = days[0].weekday
+                              const placeholders = Array.from({ length: firstWd }, (_, i) => (
+                                <div key={`pad-${i}`} className="" />
+                              ))
+                              const cells = days.map(({ day, count, isToday }) => (
+                                <div
+                                  key={day}
+                                  className={`h-4 rounded-sm ${tone(count, isToday)} group relative cursor-default`}
+                                  title={`${new Date(day).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })} · ${count} Calls`}
+                                >
+                                  {/* Tooltip on hover */}
+                                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-10 pointer-events-none">
+                                    {new Date(day).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })} · <strong>{count}</strong>
+                                  </div>
+                                </div>
+                              ))
+                              return [...placeholders, ...cells]
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex items-center justify-end gap-1 mt-3 text-[9px] text-zinc-400">
+                          <span>0</span>
+                          <div className="w-3 h-3 rounded-sm bg-zinc-100" />
+                          <div className="w-3 h-3 rounded-sm bg-amber-200" />
+                          <div className="w-3 h-3 rounded-sm bg-amber-400" />
+                          <div className="w-3 h-3 rounded-sm bg-amber-500" />
+                          <div className="w-3 h-3 rounded-sm bg-amber-600" />
+                          <span>20+</span>
+                        </div>
+
+                        {/* Motivierender Footer statt anklagendem Tipp */}
+                        <p className="text-xs text-zinc-500 mt-3 leading-relaxed">
+                          {activeDays === 0 && <>Noch keine Daten — der erste Anruf zählt.</>}
+                          {activeDays === 1 && <>Erster Tag dabei. <strong>Konsistenz</strong> ist wichtiger als Volumen — auch 5 Anrufe/Tag bringen dich nach 1 Monat zu 100+ Conversations.</>}
+                          {activeDays >= 2 && activeDays < 7 && <>Du baust gerade Schwung auf. Ø <strong>{avgPerActiveDay}</strong> Calls pro aktivem Tag · {streak >= 2 && <>aktuelle Streak: <strong>{streak} Tage</strong>.</>}</>}
+                          {activeDays >= 7 && <>Solide Aktivität. Ø <strong>{avgPerActiveDay}</strong> Calls pro aktivem Tag · Gesamt <strong>{total}</strong> in 28 Tagen{streak >= 3 && <> · Streak: <strong>{streak} Tage</strong> 🔥</>}.</>}
                         </p>
                       </>
                     )
