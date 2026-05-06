@@ -84,25 +84,55 @@ export function CallScript({ lead }: { lead: Lead }) {
 // ───────────────────────────────────────────────────────────────────────────
 
 function Opener({ lead, sportHook, cityPart, returning }: { lead: Lead; sportHook: string; cityPart: string; returning: boolean }) {
+  // Drei wissenschaftlich belegte Pattern-Interrupt-Opener.
+  // Permission-First triggert keine Verkaufs-Abwehr, weil du Kontrolle gibst.
+  // NICHT mehr "Ich baue Software" sagen — sofortiger Defense-Reflex!
+  void sportHook // sportHook nur noch für Discovery-Phase relevant
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        ⏱ ZIEL: 15 Sekunden bis sie weiterhören wollen
+        ⏱ ZIEL: 8 Sekunden Pattern-Interrupt. Permission holen, nicht pitchen.
       </div>
-      <p className="italic">
-        „Hi, mein Name ist Lom Aliimadaev. Ich rufe wegen <strong>{lead.name}</strong> an{cityPart}.
-        {returning ? ' Wir hatten ja schon mal kurz Kontakt — passt es gerade 2 Minuten?' : ' Hab kurz 30 Sekunden für eine ehrliche Frage?"'}
-      </p>
-      {!returning && (
+
+      {returning ? (
         <p className="italic">
-          „Ich baue eine Software speziell für {sportHook} — DATEV-Export, SEPA, 0 % Plattformgebühr.
-          Ich will euch nichts verkaufen — nur kurz fragen wie ihr aktuell Mitglieder + Beiträge verwaltet?"
+          „Hi, Lom hier. Wir hatten kurz Kontakt zu <strong>{lead.name}</strong>{cityPart}.
+          Hattest du Zeit drüber nachzudenken, oder ist es gerade einfach zu viel?"
         </p>
+      ) : (
+        <>
+          <div className="bg-white rounded-lg p-3 border border-amber-200">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">A · Permission-First (Standard, sicher)</p>
+            <p className="italic text-sm">
+              „Schönen Tag, Lom hier. Spreche ich mit jemandem von <strong>{lead.name}</strong>{cityPart}?
+              Kurze Frage zu eurem Gym wenn&apos;s gerade passt — <strong>30 Sekunden, dann legst du auf oder sagst weiter</strong>. Fair?"
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg p-3 border border-amber-200">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">B · Pain-Hook (riskanter, höhere Conversion)</p>
+            <p className="italic text-sm">
+              „Hi, Lom hier. Direkte Frage: <strong>Wie viele Stunden im Monat steckst du in Beitragseinzug, Mahnungen und manuelles Belegerfassen?</strong> Ehrlich geschätzt?"
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg p-3 border border-amber-200">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">C · Honest-Outsider (am ehrlichsten)</p>
+            <p className="italic text-sm">
+              „Hi, ich rufe direkt durch — ehrlich gesagt: ich rufe bei Kampfsport-Gyms an die ich auf Google gefunden habe. Eine einzige Frage stelle ich allen — 30 Sekunden, <strong>danach hörst du nie wieder von mir wenn&apos;s nicht passt</strong>."
+            </p>
+          </div>
+        </>
       )}
-      <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2">
-        ✅ <strong>Tonfall</strong>: ruhig, kein Sales-Ton. Du fragst um Hilfe, nicht um Geld.<br />
-        ✅ <strong>Wenn „passt nicht jetzt"</strong>: „Klar — wann wäre besser? Heute Nachmittag oder eher morgen?"<br />
-        ❌ <strong>Vermeide</strong>: „Wie geht es Ihnen?" / „Habe ich Sie kurz an der Strippe?" — sofortiger Aufleger.
+
+      <div className="text-xs text-zinc-700 bg-zinc-50 rounded p-2 mt-2 space-y-1">
+        <p className="font-semibold">⚠️ NIE in den ersten 8 Sekunden:</p>
+        <p>❌ „Ich baue eine Software für…" (Defense-Reflex sofort aktiv)</p>
+        <p>❌ „Ich will Ihnen nichts verkaufen" (klassische Sales-Floskel)</p>
+        <p>❌ „Wie geht es Ihnen?" / „Habe ich Sie an der Strippe?"</p>
+        <p>❌ „Ich frage Ihnen kurz wie Sie Mitglieder verwalten" (Marktforschung — er hilft dir nicht gratis)</p>
+        <p className="font-semibold mt-2">✅ Mindset:</p>
+        <p>Du bist <strong>Arzt</strong>, nicht Verkäufer. Ein Arzt fragt nicht „Brauchen Sie Medizin?" — er fragt „Wo tut&apos;s weh?". Erst Diagnose, dann Lösung.</p>
       </div>
     </>
   )
@@ -173,24 +203,36 @@ function Pitch({ lead, primarySport }: { lead: Lead; primarySport: string }) {
 function Objections() {
   const items: { obj: string; reply: string }[] = [
     {
+      obj: '„Kein Interesse." (sofort, ohne Erklärung)',
+      reply: 'Verstehe. Letzte Frage und ich lege auf: Wenn du EINE Sache an deiner aktuellen Mitgliederverwaltung ändern könntest — was wäre das? … [Zuhören. Wenn echt: „Genau das löst mein Tool. Soll ich dir 5 Minuten zeigen?". Wenn null Pain: „OK, dann passt es nicht. Danke für deine Ehrlichkeit. Tschüss."]',
+    },
+    {
+      obj: '„Bin gerade im Training / habe keine Zeit."',
+      reply: 'Klar — passt 17:00 oder eher 19:30 besser zum Zurückrufen? [Zwei konkrete Slots geben, nie offen lassen. „Ich melde mich" → Nein. „Ich rufe um 19:30 zurück" → Ja.]',
+    },
+    {
+      obj: '„Schick mir Infos per Mail."',
+      reply: 'Mache ich — aber ehrlich: ich schick keine 8-seitige PDF die du nie liest. 3 Sätze + 1 Link, 60 Sekunden zum Lesen. Welche Mail-Adresse? [E-Mail-Adresse abgreifen. Bei zögern: „Schick einfach an die info@…?" — wenn ja, du hast nichts gewonnen. Besser direkt Demo.]',
+    },
+    {
       obj: '„Wir sind happy mit Eversports / Magicline."',
-      reply: 'Verstehe — was kostet euch das aktuell? … Und wie viel Plattformgebühr nehmen die? … Ok, das sind bei 50 Mitgliedern ungefähr X €/Jahr. Lass mich dir 5 Min zeigen wo das bei mir landet.',
+      reply: 'Cool, freut mich. Was funktioniert da besonders gut für euch? … [ZUHÖREN — keine Argumente bauen!]. Und gibt&apos;s irgendwas wo du dir was wünschen würdest? … [Hier kommt der Pain. Wenn ja → „Genau das hab ich anders gelöst, 5 Min Demo?". Wenn nein → „OK, dann seid ihr gut versorgt. Tschüss."]',
     },
     {
-      obj: '„Wir machen das mit Excel und es funktioniert."',
-      reply: 'Cool — wie viele Stunden pro Monat fließen da rein? … Was passiert wenn ein Mitglied seine SEPA-Lastschrift platzt? Sicht ihr das automatisch? … Genau dafür hab ich osss gebaut.',
+      obj: '„Wir machen das mit Excel — funktioniert."',
+      reply: 'Versteh ich — Excel ist gratis und niemand redet rein. Frage: Was passiert wenn am 5. eine SEPA-Lastschrift platzt? Wie merkst du das? Manuell oder automatisch? … [Wenn manuell → „Da liegt mein Tool 80 € im Monat günstiger als deine Lebenszeit." Wenn automatisch → „Welches Tool nutzt du dann? Vielleicht passt meines gar nicht — wäre fair zu sagen."]',
     },
     {
-      obj: '„Schick mir mal Infos per Mail."',
-      reply: 'Mach ich — aber ich schick dir nicht 8 Seiten PDF die du nie liest. Nur 3 Sätze + Demo-Link. Welche Mail-Adresse?',
+      obj: '„Wer hat Ihnen meine Nummer gegeben?"',
+      reply: 'Google Maps — ihr seid dort öffentlich gelistet, deshalb rufe ich auch direkt an statt einen Lead-Anbieter zu bezahlen. Das ist ehrlich gemeint — wenn dich das stört, lege ich auf, kein Problem.',
     },
     {
       obj: '„Wir haben kein Budget."',
-      reply: 'Bis 30 Mitglieder ist osss kostenlos. Ihr seid wie viele? … Dann zahlt ihr keinen Cent. Mach 5 Min Demo, du entscheidest.',
+      reply: 'Verstehe. Bis 30 Mitglieder ist Osss kostenlos — ihr seid wie viele? … [Wenn <30: „Dann zahlt ihr nichts. Soll ich dir trotzdem 5 Min zeigen?". Wenn >30: „Ab 50 sind&apos;s 29 €/Monat. Was kostet euch aktuell die Beitragsverwaltung an Zeit pro Monat? Multipliziert mit eurem Stundensatz?"]',
     },
     {
-      obj: '„Wer steht dahinter?"',
-      reply: 'Solo-Founder, ich. Selbst 15 Jahre BJJ. Ich kenne den Pain weil ich ihn selbst hatte. Dafür ist die Software auch genau für Kampfsport gebaut, nicht für Yoga-Studios mit Kampfsport-Modul.',
+      obj: '„Wer steht dahinter? Ist das ein großes Unternehmen?"',
+      reply: 'Solo-Founder, ich allein. SAP-Berater im Hauptberuf, baue Osss nebenher. Das heißt: kein Investor-Druck, kein Pleite-Risiko durch Burn, kein Sales-Mitarbeiter der dir hinterherrennt. Du redest direkt mit dem Coder — wenn dir was fehlt, baue ich&apos;s in 1-2 Tagen.',
     },
     {
       obj: '„Datenschutz / DSGVO?"',
@@ -198,7 +240,11 @@ function Objections() {
     },
     {
       obj: '„Was wenn das Ding pleite geht?"',
-      reply: 'Faire Frage. Daten-Export jederzeit als CSV + JSON. Du nimmst alles mit. Plus: ich hab keinen Investor, kein Burn — ich kann nicht „pleite gehen" wie ein VC-finanziertes Startup.',
+      reply: 'Faire Frage. CSV + JSON-Export jederzeit. Du nimmst alles mit. Plus: keinen Investor, keinen Burn — ich kann nicht „pleite gehen" wie ein VC-finanziertes Startup. Bin auch in 5 Jahren noch da.',
+    },
+    {
+      obj: '„Ich denk drüber nach / sprech mit meinem Partner."',
+      reply: 'Klar. Damit ich keine Folge-Mail rumschicke die du nie liest: Wann hast du wieder Zeit dafür — Donnerstag oder eher nächste Woche? [Konkreter Termin oder Auflegen, kein „Ich melde mich".]',
     },
   ]
 
