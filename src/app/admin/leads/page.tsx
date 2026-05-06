@@ -67,6 +67,7 @@ export default function AdminLeadsPage() {
     todayPagesCalled: number; todaySearches: number; todayInserted: number; todayCostUsd: number
     monthPagesCalled: number; monthSearches: number; monthInserted: number; monthCostUsd: number
     dailyLimit: number; remainingToday: number; pctUsed: number
+    freeCallsPerMonth: number; freeRemaining: number; freePctUsed: number; costPerCallUsd: number
   }
   const [quota, setQuota] = useState<Quota | null>(null)
 
@@ -400,14 +401,23 @@ export default function AdminLeadsPage() {
               </label>
             </div>
             {quota && (
-              <div className="mb-4 px-3 py-2 bg-zinc-50 rounded-lg text-xs text-zinc-600 flex items-center justify-between">
-                <span>
-                  Heute: <strong className="font-mono">{quota.todayPagesCalled} / {quota.dailyLimit}</strong> Calls
-                  <span className="opacity-50"> (~${quota.todayCostUsd.toFixed(2)})</span>
-                </span>
-                <span>
-                  Diese Suche: max <strong>{searchPages}</strong> Calls (~${(searchPages * 0.035).toFixed(2)})
-                </span>
+              <div className="mb-4 px-3 py-2 bg-zinc-50 rounded-lg text-xs text-zinc-600 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span>
+                    Heute: <strong className="font-mono">{quota.todayPagesCalled} / {quota.dailyLimit}</strong>
+                  </span>
+                  <span>
+                    Diese Suche: max <strong>{searchPages}</strong> Call{searchPages > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>
+                    Frei diesen Monat: <strong className="font-mono text-emerald-700">{quota.freeRemaining.toLocaleString('de-DE')}</strong> / {quota.freeCallsPerMonth.toLocaleString('de-DE')}
+                  </span>
+                  <span className={quota.monthCostUsd === 0 ? 'text-emerald-700 font-semibold' : ''}>
+                    {quota.monthCostUsd === 0 ? '✓ GRATIS (Free-Tier)' : `~$${quota.monthCostUsd.toFixed(2)} diesen Monat`}
+                  </span>
+                </div>
               </div>
             )}
             {quota && quota.todayPagesCalled + searchPages > quota.dailyLimit && !searchForce && (
@@ -634,27 +644,41 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
 
 function QuotaBadge({ quota }: { quota: {
   todayPagesCalled: number; todayCostUsd: number; monthPagesCalled: number; monthCostUsd: number;
-  dailyLimit: number; remainingToday: number; pctUsed: number
+  dailyLimit: number; remainingToday: number; pctUsed: number;
+  freeCallsPerMonth: number; freeRemaining: number; freePctUsed: number;
 } }) {
-  const danger = quota.pctUsed >= 90
-  const warn   = quota.pctUsed >= 70 && !danger
+  const danger = quota.pctUsed >= 90 || quota.freePctUsed >= 95
+  const warn   = (quota.pctUsed >= 70 || quota.freePctUsed >= 80) && !danger
   const tone = danger
     ? 'bg-rose-50 border-rose-200 text-rose-800'
     : warn
       ? 'bg-amber-50 border-amber-200 text-amber-900'
       : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+
+  // Was heißt es wirklich? Solange wir unter Free-Tier sind: $0 echte Kosten.
+  const isFree = quota.monthCostUsd === 0
+  const tooltip = [
+    `Heute: ${quota.todayPagesCalled} / ${quota.dailyLimit} Calls (Selbstschutz-Limit)`,
+    `Diesen Monat: ${quota.monthPagesCalled} / ${quota.freeCallsPerMonth} Free Calls`,
+    isFree ? 'GRATIS — Free-Tier nicht überschritten' : `Über Free-Tier: ~$${quota.monthCostUsd.toFixed(2)}`,
+    `${quota.freeRemaining.toLocaleString('de-DE')} Free Calls verbleibend`,
+  ].join('\n')
+
   return (
-    <div className={`relative px-3 py-1.5 rounded-xl border text-xs font-medium ${tone}`}
-      title={`Heute: ${quota.todayPagesCalled} / ${quota.dailyLimit} Google-Calls (~$${quota.todayCostUsd.toFixed(2)})\nDieser Monat: ${quota.monthPagesCalled} Calls (~$${quota.monthCostUsd.toFixed(2)})`}>
+    <div className={`relative px-3 py-1.5 rounded-xl border text-xs font-medium ${tone}`} title={tooltip}>
       <div className="flex items-center gap-2">
         <span className="font-mono">{quota.todayPagesCalled}/{quota.dailyLimit}</span>
-        <span className="opacity-70">·</span>
-        <span>${quota.todayCostUsd.toFixed(2)}</span>
         <span className="opacity-70 hidden md:inline">heute</span>
+        <span className="opacity-30">·</span>
+        <span className="font-mono">{quota.monthPagesCalled.toLocaleString('de-DE')}/{quota.freeCallsPerMonth.toLocaleString('de-DE')}</span>
+        <span className="opacity-70 hidden md:inline">free</span>
+        {isFree
+          ? <span className="text-emerald-700 font-bold ml-1">GRATIS</span>
+          : <span className="ml-1">${quota.monthCostUsd.toFixed(2)}</span>}
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl overflow-hidden bg-black/5">
         <div className={`h-full transition-all ${danger ? 'bg-rose-500' : warn ? 'bg-amber-500' : 'bg-emerald-500'}`}
-          style={{ width: `${Math.min(100, quota.pctUsed)}%` }} />
+          style={{ width: `${Math.max(quota.pctUsed, quota.freePctUsed)}%` }} />
       </div>
     </div>
   )
