@@ -96,7 +96,10 @@ export async function POST(req: Request) {
         recurring: { interval: 'month' },
         product_data: { name: 'Monatlicher Mitgliedsbeitrag' },
       },
-      connectedAccountId ? { stripeAccount: connectedAccountId } : {},
+      {
+        ...(connectedAccountId ? { stripeAccount: connectedAccountId } : {}),
+        idempotencyKey: `price-subscribe-${memberId}-${gymId}-${amountCents}`,
+      },
     )
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {

@@ -44,19 +44,34 @@ export async function GET(req: Request) {
 
   const gymIds = eligibleGyms.map(g => g.id)
 
-  const { data: members } = await supabase
-    .from('members')
-    .select('id, first_name, last_name, email, date_of_birth, gym_id, portal_token')
-    .eq('is_active', true)
-    .in('gym_id', gymIds)
-    .not('date_of_birth', 'is', null)
-    .not('email', 'is', null)
-    .limit(2000)
-
-  const birthdayMembers = (members ?? []).filter((m: { date_of_birth: string | null }) => {
-    if (!m.date_of_birth) return false
-    return (m.date_of_birth as string).slice(5, 10) === todayMD
-  })
+  // Per-gym pagination — fair across all tenants. Previous .limit(2000) global meant
+  // at >2000 active members across all paying gyms only the first 2000 were ever
+  // checked. Now each gym is scanned independently in parallel batches.
+  const GYM_BATCH = 25
+  const PER_GYM_LIMIT = 5000
+  type BirthdayMember = {
+    id: string; first_name: string; last_name: string; email: string | null;
+    date_of_birth: string; gym_id: string; portal_token: string | null;
+  }
+  const birthdayMembers: BirthdayMember[] = []
+  for (let i = 0; i < gymIds.length; i += GYM_BATCH) {
+    const chunk = gymIds.slice(i, i + GYM_BATCH)
+    const results = await Promise.all(chunk.map(async gid => {
+      const { data } = await supabase
+        .from('members')
+        .select('id, first_name, last_name, email, date_of_birth, gym_id, portal_token')
+        .eq('gym_id', gid)
+        .eq('is_active', true)
+        .not('date_of_birth', 'is', null)
+        .not('email', 'is', null)
+        .limit(PER_GYM_LIMIT)
+      return ((data ?? []) as BirthdayMember[]).filter(m => {
+        if (!m.date_of_birth) return false
+        return (m.date_of_birth as string).slice(5, 10) === todayMD
+      })
+    }))
+    for (const r of results) birthdayMembers.push(...r)
+  }
 
   const gymMap = new Map(eligibleGyms.map(g => [g.id, g.name]))
   let sent   = 0

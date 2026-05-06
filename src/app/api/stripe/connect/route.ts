@@ -72,16 +72,12 @@ export async function POST(req: Request) {
   let accountId = gymData.stripe_account_id
 
   // Create Express account if not yet existing
+  // Note: previous version called stripe.accounts.list({ limit: 100 }) for dedup —
+  // unusable beyond 100 platform accounts. If a gym disconnected previously, the old
+  // Stripe account is orphaned (Stripe doesn't delete it; manual cleanup required).
   if (!accountId) {
-    // Before creating a new account, check if one already exists for this gym
-    // (prevents duplicates when the gym disconnects and reconnects)
-    const existing = await stripe.accounts.list({ limit: 100 })
-    const found = existing.data.find(a => a.metadata?.gymId === gymData.id)
-    if (found) {
-      accountId = found.id
-      await supabase.from('gyms').update({ stripe_account_id: accountId }).eq('id', gymData.id)
-    } else {
-      const account = await stripe.accounts.create({
+    const account = await stripe.accounts.create(
+      {
         type: 'express',
         country: 'DE',
         email: gymData.email ?? undefined,
@@ -92,20 +88,25 @@ export async function POST(req: Request) {
           sepa_debit_payments: { requested: true },
         },
         metadata: { gymId: gymData.id, gymName: gymData.name },
-      })
-      accountId = account.id
-      await supabase.from('gyms').update({ stripe_account_id: accountId }).eq('id', gymData.id)
-    }
+      },
+      { idempotencyKey: `connect-account-${gymData.id}` },
+    )
+    accountId = account.id
+    await supabase.from('gyms').update({ stripe_account_id: accountId }).eq('id', gymData.id)
   } else {
     // For existing accounts: request additional capabilities that may be missing
     try {
-      await stripe.accounts.update(accountId, {
-        capabilities: {
-          card_payments:       { requested: true },
-          transfers:           { requested: true },
-          sepa_debit_payments: { requested: true },
+      await stripe.accounts.update(
+        accountId,
+        {
+          capabilities: {
+            card_payments:       { requested: true },
+            transfers:           { requested: true },
+            sepa_debit_payments: { requested: true },
           },
-      })
+        },
+        { idempotencyKey: `connect-account-update-${gymData.id}-${accountId}` },
+      )
     } catch { /* non-fatal */ }
   }
 
