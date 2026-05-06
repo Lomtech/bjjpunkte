@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
+// import { withSentryConfig } from "@sentry/nextjs";  // Pass 17: disabled — see comment at bottom
 
 const securityHeaders = [
   // Content Security Policy
@@ -52,39 +52,19 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  // For all available options, see:
-  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
+export default nextConfig;
 
-  org: "ossspro",
-
-  project: "javascript-nextjs",
-
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
-
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
-
-  // tunnelRoute disabled — Sentry plugin in Next.js 16 doesn't auto-generate
-  // the /monitoring route, causing all events to 404. We manually proxy via
-  // src/app/monitoring/route.ts instead.
-  tunnelRoute: "/monitoring",
-
-  webpack: {
-    // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-    // See the following for more information:
-    // https://docs.sentry.io/product/crons/
-    // https://vercel.com/docs/cron-jobs
-    automaticVercelMonitors: true,
-
-    // Tree-shaking options for reducing bundle size
-    treeshake: {
-      // Automatically tree-shake Sentry logger statements to reduce bundle size
-      removeDebugLogging: true,
-    },
-  },
-});
+// Pass 17: withSentryConfig wrapper temporarily disabled. The Sentry webpack
+// plugin in @sentry/nextjs ^10.51.0 with Next.js 16.2.4 caused all routes
+// matching the proxy.ts RATE_LIMITED regex (api/public/**, api/portal/**,
+// api/signup) to be classified as Edge runtime even with explicit
+// `runtime = 'nodejs'` exports and vercel.json functions config. In Edge,
+// Sentry's instrumentation crashed before the route's try/catch could catch
+// it — Vercel returned generic "Internal Server Error" 500.
+//
+// Sentry is still partially active: instrumentation.ts loads server config
+// + edge config dynamically based on NEXT_RUNTIME. The webpack plugin only
+// uploaded source maps and applied tree-shaking — disabling it loses prettier
+// stack traces but keeps error capture.
+//
+// Re-enable once @sentry/nextjs has a Next.js 16-compatible release.
