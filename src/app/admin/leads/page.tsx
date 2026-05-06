@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { createClient } from '@/lib/supabase/client'
 import type { SalesLead, SalesActivity, SalesLeadStatus } from '@/types/database'
 import { CallScript } from './_components/CallScript'
@@ -84,6 +85,33 @@ export default function AdminLeadsPage() {
   const [selected, setSelected] = useState<SalesLead | null>(null)
   const [activities, setActivities] = useState<SalesActivity[]>([])
   const [showSearchModal, setShowSearchModal] = useState(false)
+
+  // Deep-link: when ?lead=<id> in URL, auto-open that lead's detail panel.
+  // Used by the QR-Code so phone can resume on the same lead.
+  useEffect(() => {
+    if (!token) return
+    const url = new URL(window.location.href)
+    const leadId = url.searchParams.get('lead')
+    if (!leadId) return
+    fetch(`/api/admin/leads?search=${leadId}&pageSize=200`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : { leads: [] })
+      .then(d => {
+        const found = (d.leads ?? []).find((l: SalesLead) => l.id === leadId)
+        if (found) setSelected(found)
+      })
+      .catch(() => {})
+  }, [token])
+
+  // Sync selected lead into URL so refreshing keeps the panel open
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (selected) url.searchParams.set('lead', selected.id)
+    else url.searchParams.delete('lead')
+    window.history.replaceState({}, '', url.toString())
+  }, [selected])
 
   // search modal
   const [searchQuery, setSearchQuery] = useState('BJJ München')
@@ -618,15 +646,26 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
     setActivityOutcome('')
   }
 
+  const [showQR, setShowQR] = useState(false)
+
   return (
     <div className="fixed inset-y-0 right-0 w-full sm:max-w-xl bg-white shadow-2xl border-l border-zinc-200 z-40 overflow-y-auto">
       <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-zinc-900">{lead.name}</h2>
-          {lead.formatted_address && <p className="text-sm text-zinc-500">{lead.formatted_address}</p>}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-bold text-zinc-900 truncate">{lead.name}</h2>
+          {lead.formatted_address && <p className="text-sm text-zinc-500 truncate">{lead.formatted_address}</p>}
         </div>
-        <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-2xl leading-none">×</button>
+        <div className="flex items-center gap-2 ml-2">
+          <button onClick={() => setShowQR(true)}
+            title="QR-Code zum Öffnen auf iPhone"
+            className="flex items-center gap-1 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-semibold">
+            📱 iPhone
+          </button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-2xl leading-none">×</button>
+        </div>
       </div>
+
+      {showQR && <QRModal lead={lead} onClose={() => setShowQR(false)} />}
 
       <div className="p-6 space-y-6">
         {/* Quick actions */}
@@ -776,6 +815,42 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
               ))}
             </ul>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QRModal({ lead, onClose }: { lead: SalesLead; onClose: () => void }) {
+  const url = typeof window !== 'undefined'
+    ? `${window.location.origin}/admin/leads?lead=${lead.id}`
+    : `https://www.osss.pro/admin/leads?lead=${lead.id}`
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-zinc-900 mb-2">Auf iPhone öffnen</h3>
+        <p className="text-sm text-zinc-500 mb-4">
+          Scanne mit iPhone-Kamera → Lead öffnet sich im Browser → tel:-Link funktioniert direkt ohne Continuity-Drama.
+        </p>
+        <div className="flex justify-center mb-4">
+          <div className="bg-white p-3 border border-zinc-200 rounded-xl">
+            <QRCodeSVG value={url} size={220} level="M" />
+          </div>
+        </div>
+        <p className="text-xs text-zinc-400 break-all mb-4">{url}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(url)
+              onClose()
+            }}
+            className="flex-1 px-4 py-2 text-sm rounded-lg border border-zinc-200 hover:bg-zinc-50">
+            Link kopieren
+          </button>
+          <button onClick={onClose}
+            className="flex-1 px-4 py-2 text-sm rounded-lg bg-zinc-900 text-white hover:bg-zinc-800">
+            Schließen
+          </button>
         </div>
       </div>
     </div>
