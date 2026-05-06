@@ -182,7 +182,7 @@ function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityP
               <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 1 · Automatisch oder manuell? (outcome-focused, kein Sales-Vibe)</p>
                 <p className="italic text-sm">
-                  „Läuft die Mitgliederverwaltung bei Ihnen <strong>automatisch</strong> — oder machen Sie das <strong>manuell</strong>?"
+                  „Läuft die Mitgliederverwaltung bei Ihnen <strong>automatisch</strong> oder machen Sie das <strong>manuell</strong>?"
                 </p>
                 <p className="text-xs text-zinc-500 mt-1">[Antwort abwarten. Nicht selbst weiterreden.]</p>
                 <p className="text-xs text-emerald-700 mt-1 italic">💡 „Automatisch" pflanzt das Konzept ein — wenn er „manuell" sagt, nimmt er die Pain-Position selbst ein.</p>
@@ -192,7 +192,7 @@ function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityP
               <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 2 · Quantifizieren (Stunden = Pain in Zahl)</p>
                 <p className="italic text-sm">
-                  „Und wie viele Stunden kostet Sie das in der Woche, ungefähr?"
+                  „Wie viel Stunden Zeit kostet das in der Woche?"
                 </p>
                 <p className="text-xs text-zinc-500 mt-1">[Erwarte: 1, 2, 5, 10. Notieren!]</p>
               </div>
@@ -201,7 +201,7 @@ function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityP
               <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 3 · Emotion-Trigger (echter Pain kommt raus)</p>
                 <p className="italic text-sm">
-                  „Was machen Sie davon <strong>besonders ungern</strong>?"
+                  „Was machen Sie <strong>besonders ungern</strong>?"
                 </p>
                 <p className="text-xs text-zinc-500 mt-1">[ZUHÖREN. Seine exakten Worte notieren — du nutzt sie später im Pitch.]</p>
               </div>
