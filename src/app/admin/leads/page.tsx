@@ -5,8 +5,34 @@ import { QRCodeSVG } from 'qrcode.react'
 import { createClient } from '@/lib/supabase/client'
 import type { SalesLead, SalesActivity, SalesLeadStatus } from '@/types/database'
 import { CallScript } from './_components/CallScript'
+import { StatsModal } from './_components/StatsModal'
 
 const FILTERS_LS_KEY = 'osss-crm-leads-filters-v1'
+
+// Mirror of the API filter logic — used after PATCH to decide whether a lead
+// should still appear in the current view, so the UI feels live.
+function leadMatchesFilters(lead: SalesLead, f: {
+  statusFilter: Set<SalesLeadStatus>
+  martialOnly: boolean
+  dueOnly: boolean
+  city: string
+  search: string
+}): boolean {
+  if (f.statusFilter.size > 0 && !f.statusFilter.has(lead.status as SalesLeadStatus)) return false
+  if (f.martialOnly && !lead.is_martial_arts) return false
+  if (f.dueOnly) {
+    if (!lead.next_followup_at) return false
+    const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999)
+    if (new Date(lead.next_followup_at).getTime() > endOfToday.getTime()) return false
+  }
+  if (f.city && !(lead.city ?? '').toLowerCase().includes(f.city.toLowerCase())) return false
+  if (f.search) {
+    const q = f.search.toLowerCase()
+    const haystack = [lead.name, lead.formatted_address ?? '', lead.phone ?? '', lead.email ?? ''].join(' ').toLowerCase()
+    if (!haystack.includes(q)) return false
+  }
+  return true
+}
 
 // Heuristic: Is this number likely on WhatsApp?
 // WhatsApp is registered to mobile numbers ~99% of the time. Showing the
@@ -115,6 +141,7 @@ export default function AdminLeadsPage() {
   const [activities, setActivities] = useState<SalesActivity[]>([])
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [showStats, setShowStats] = useState(false)
 
   // Deep-link: when ?lead=<id> in URL, auto-open that lead's detail panel.
   // Used by the QR-Code so phone can resume on the same lead.
@@ -250,8 +277,33 @@ export default function AdminLeadsPage() {
       body: JSON.stringify(patch),
     })
     if (res.ok) {
-      const { lead } = await res.json()
-      setLeads(prev => prev.map(l => l.id === id ? lead : l))
+      const { lead } = await res.json() as { lead: SalesLead }
+
+      // If updated lead no longer matches active filters, drop from list
+      // (otherwise user has to manually refresh after every status change).
+      const stillMatches = leadMatchesFilters(lead, {
+        statusFilter, martialOnly, dueOnly, city: city.trim(), search: debouncedSearch,
+      })
+
+      if (stillMatches) {
+        setLeads(prev => prev.map(l => l.id === id ? lead : l))
+      } else {
+        setLeads(prev => prev.filter(l => l.id !== id))
+        setTotal(t => Math.max(0, t - 1))
+      }
+
+      // Update status counts in the sidebar
+      if (typeof patch.status === 'string') {
+        const oldStatus = leads.find(l => l.id === id)?.status
+        if (oldStatus && oldStatus !== patch.status) {
+          setStatusCounts(prev => ({
+            ...prev,
+            [oldStatus]: Math.max(0, (prev[oldStatus] ?? 0) - 1),
+            [patch.status as string]: (prev[patch.status as string] ?? 0) + 1,
+          }))
+        }
+      }
+
       if (selected?.id === id) setSelected(lead)
     }
   }
@@ -345,6 +397,11 @@ export default function AdminLeadsPage() {
                 className="lg:hidden p-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-zinc-700"
                 aria-label="Filter öffnen">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="14" y2="12" /><line x1="4" y1="18" x2="10" y2="18" /></svg>
+              </button>
+              <button onClick={() => setShowStats(true)}
+                className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-zinc-700"
+                aria-label="Statistik">
+                📊
               </button>
               {quota && <div className="hidden sm:block"><QuotaBadge quota={quota} /></div>}
               <button onClick={() => setShowSearchModal(true)}
@@ -603,6 +660,9 @@ export default function AdminLeadsPage() {
       )}
 
       {/* Places search modal */}
+      {/* Stats modal */}
+      {showStats && token && <StatsModal token={token} onClose={() => setShowStats(false)} />}
+
       {showSearchModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
