@@ -53,11 +53,39 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  // Sentry org + project — set via SENTRY_ORG and SENTRY_PROJECT env vars
-  // or hardcode here after creating the project at sentry.io
-  silent: !process.env.CI,            // suppress build output locally
-  widenClientFileUpload: true,        // upload more source maps for better stack traces
-  sourcemaps: { disable: false },
-  disableLogger: true,                // remove Sentry logger in prod bundle
-  automaticVercelMonitors: true,      // track Vercel cron job health in Sentry
-})
+  // For all available options, see:
+  // https://www.npmjs.com/package/@sentry/webpack-plugin#options
+
+  org: "ossspro",
+
+  project: "javascript-nextjs",
+
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+
+  // For all available options, see:
+  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+
+  // Routes browser Sentry requests through Next.js to bypass ad-blockers
+  tunnelRoute: "/monitoring",
+
+  // Hide source maps from browser to protect production code
+  hideSourceMaps: true,
+
+  webpack: {
+    // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
+    // See the following for more information:
+    // https://docs.sentry.io/product/crons/
+    // https://vercel.com/docs/cron-jobs
+    automaticVercelMonitors: true,
+
+    // Tree-shaking options for reducing bundle size
+    treeshake: {
+      // Automatically tree-shake Sentry logger statements to reduce bundle size
+      removeDebugLogging: true,
+    },
+  },
+});

@@ -2,9 +2,10 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import * as Sentry from '@sentry/nextjs'
 
 export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { console.error(error) }, [error])
+  useEffect(() => { Sentry.captureException(error) }, [error])
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
