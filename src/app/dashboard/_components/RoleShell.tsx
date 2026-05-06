@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { SidebarNav, BottomNav } from './NavLinks'
@@ -42,16 +42,17 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
 
-  // ── Synchronous init from cache ──────────────────────────────────────────
-  // useState initializer runs before first paint — zero flicker for returning users
+  // Server and client must agree on initial state — always start as not-ready so hydration matches.
+  // useLayoutEffect reads the cache synchronously before the browser paints, so returning users
+  // see no flicker despite the two-step init.
   const [state, setState] = useState<{
     role: Role; gymName: string; logoUrl: string | null; onboardingDone: boolean; ready: boolean
-  }>(() => {
-    if (typeof window === 'undefined') return { role: null, gymName: '', logoUrl: null, onboardingDone: true, ready: false }
+  }>({ role: null, gymName: '', logoUrl: null, onboardingDone: true, ready: false })
+
+  useLayoutEffect(() => {
     const c = readCache()
-    if (c) return { role: c.role, gymName: c.gymName, logoUrl: c.logoUrl ?? null, onboardingDone: c.onboardingDone, ready: true }
-    return { role: null, gymName: '', logoUrl: null, onboardingDone: true, ready: false }
-  })
+    if (c) setState({ role: c.role, gymName: c.gymName, logoUrl: c.logoUrl ?? null, onboardingDone: c.onboardingDone, ready: true })
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()

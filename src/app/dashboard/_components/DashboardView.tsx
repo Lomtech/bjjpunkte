@@ -108,10 +108,10 @@ export function DashboardView({ initialData }: { initialData: DashboardStats }) 
     <div className="p-4 md:p-6 max-w-5xl">
       {/* Header */}
       <div className="mb-6">
-        <p className="text-xs text-zinc-400 font-medium mb-0.5">
+        <p suppressHydrationWarning className="text-xs text-zinc-400 font-medium mb-0.5">
           {new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
-        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{greeting}</h1>
+        <h1 suppressHydrationWarning className="text-2xl font-black text-zinc-950 tracking-tight">{greeting}</h1>
       </div>
 
       {/* KPI Cards */}
@@ -141,7 +141,7 @@ export function DashboardView({ initialData }: { initialData: DashboardStats }) 
               <AccessLinkRow
                 label={t('dash', 'signupLink')}
                 description={t('dash', 'signupLinkDesc')}
-                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/signup/${signupToken}`}
+                value={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://osss.pro'}/signup/${signupToken}`}
                 copied={copiedSignup}
                 onCopy={() => {
                   navigator.clipboard.writeText(`${window.location.origin}/signup/${signupToken}`)
@@ -154,7 +154,7 @@ export function DashboardView({ initialData }: { initialData: DashboardStats }) 
               <AccessLinkRow
                 label={t('dash', 'publicPage')}
                 description={t('dash', 'publicPageDesc')}
-                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/gym/${gymSlug}`}
+                value={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://osss.pro'}/gym/${gymSlug}`}
                 copied={copiedSlug}
                 onCopy={() => {
                   navigator.clipboard.writeText(`${window.location.origin}/gym/${gymSlug}`)
