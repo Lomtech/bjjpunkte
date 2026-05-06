@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const { data: gym } = await supabase.from('gyms')
     .select('id, name, email, osss_stripe_customer_id')
     .eq('owner_id', user.id)
-    .single()
+    .maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const stripe = new Stripe(stripeKey)

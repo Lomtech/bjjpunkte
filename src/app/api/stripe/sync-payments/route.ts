@@ -56,7 +56,11 @@ export async function POST(req: Request) {
   const { data: { user } } = await authed.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: gym } = await authed.from('gyms').select('id, stripe_account_id').single()
+  const { data: gym } = await authed
+    .from('gyms')
+    .select('id, stripe_account_id')
+    .eq('owner_id', user.id)
+    .maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const connectedAccountId = (gym as any).stripe_account_id as string | null

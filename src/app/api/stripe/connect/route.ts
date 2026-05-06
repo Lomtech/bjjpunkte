@@ -24,8 +24,12 @@ export async function GET(req: Request) {
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: gym } = await supabase.from('gyms').select('stripe_account_id').single()
-  const accountId = (gym as any)?.stripe_account_id as string | null
+  const { data: gym } = await supabase
+    .from('gyms')
+    .select('stripe_account_id')
+    .eq('owner_id', user.id)
+    .maybeSingle()
+  const accountId = (gym as { stripe_account_id: string | null } | null)?.stripe_account_id ?? null
   if (!accountId) return NextResponse.json({ connected: false })
 
   try {
@@ -62,7 +66,11 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: gym } = await supabase.from('gyms').select('id, email, name, stripe_account_id').single()
+  const { data: gym } = await supabase
+    .from('gyms')
+    .select('id, email, name, stripe_account_id')
+    .eq('owner_id', user.id)
+    .maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const gymData = gym as { id: string; email: string | null; name: string; stripe_account_id: string | null }

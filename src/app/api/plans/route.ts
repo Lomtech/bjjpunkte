@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: gym } = await (supabase.from('gyms') as any).select('id, name, stripe_account_id').eq('owner_id', user.id).single()
+  const { data: gym } = await (supabase.from('gyms') as any).select('id, name, stripe_account_id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
   const gymData = gym as { id: string; name: string; stripe_account_id: string | null }
 

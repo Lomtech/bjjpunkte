@@ -53,7 +53,7 @@ export async function GET(req: Request) {
   // ── Gym ───────────────────────────────────────────────────────────────────
    
   const { data: gym, error: gymErr } = await svc.from('gyms')
-    .select('*').eq('owner_id', user.id).single()
+    .select('*').eq('owner_id', user.id).maybeSingle()
 
   if (gymErr || !gym) {
     return NextResponse.json({ error: 'Gym nicht gefunden', detail: gymErr?.message ?? null }, { status: 404 })

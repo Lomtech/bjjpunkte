@@ -23,7 +23,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   // Defense-in-depth: verify class belongs to the authenticated user's gym
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
   const gymId = gym.id
 
@@ -133,7 +133,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   // Defense-in-depth: verify class belongs to the authenticated user's gym
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
   const gymId = gym.id
 

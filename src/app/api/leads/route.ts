@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const supabase = getSupabase(token)
   const { data: { user } } = await supabase.auth.getUser(token)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
   const { data } = await supabase.from('leads').select('*').eq('gym_id', gym.id).order('created_at', { ascending: false }).limit(5000)
   return NextResponse.json(data ?? [])
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const supabase = getSupabase(token)
   const { data: { user } } = await supabase.auth.getUser(token)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
   const body = await req.json()
   // Explicit allowlist — never spread untrusted body directly into insert

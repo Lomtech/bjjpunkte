@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Kein Gym gefunden' }, { status: 404 })
 
   const { searchParams } = new URL(req.url)
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Kein Gym gefunden' }, { status: 404 })
 
   const body = await req.json()

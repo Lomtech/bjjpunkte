@@ -12,7 +12,7 @@ function getSupabase(token: string) {
 async function getGymId(supabase: ReturnType<typeof getSupabase>, token: string) {
   const { data: { user } } = await supabase.auth.getUser(token)
   if (!user) return null
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
   return gym?.id ?? null
 }
 

@@ -24,7 +24,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   // Get gym
-  const { data: gym } = await supabase.from('gyms').select('id, name, email, stripe_account_id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id, name, email, stripe_account_id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   // Get member (verify ownership)

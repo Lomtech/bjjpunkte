@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const { data: gym } = await (supabase.from('gyms') as any)
     .select('id, stripe_account_id')
     .eq('owner_id', user.id)
-    .single()
+    .maybeSingle()
 
   const accountId = gym?.stripe_account_id as string | null
   if (!accountId) return NextResponse.json({ error: 'Kein Stripe-Account verbunden' }, { status: 400 })

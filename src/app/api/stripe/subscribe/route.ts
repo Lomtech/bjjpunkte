@@ -143,7 +143,7 @@ export async function DELETE(req: Request) {
   const { memberId } = await req.json()
 
   // Verify member belongs to the caller's gym
-  const { data: gym } = await supabase.from('gyms').select('id, stripe_account_id').eq('owner_id', user.id).single()
+  const { data: gym } = await supabase.from('gyms').select('id, stripe_account_id').eq('owner_id', user.id).maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { data: memberCheck } = await supabase.from('members').select('gym_id, stripe_subscription_id').eq('id', memberId).single()
