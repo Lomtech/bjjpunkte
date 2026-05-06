@@ -69,7 +69,9 @@ export default withSentryConfig(nextConfig, {
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
 
-  // Routes browser Sentry requests through Next.js to bypass ad-blockers
+  // tunnelRoute disabled — Sentry plugin in Next.js 16 doesn't auto-generate
+  // the /monitoring route, causing all events to 404. We manually proxy via
+  // src/app/monitoring/route.ts instead.
   tunnelRoute: "/monitoring",
 
   webpack: {
