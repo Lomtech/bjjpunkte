@@ -166,54 +166,61 @@ function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityP
         </p>
       ) : (
         <>
-          {/* PRIMARY OPENER — Struktur-Frage, nicht-privat */}
+          {/* PRIMARY OPENER — 3-Fragen-Sequenz in Sie-Form */}
           <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-300">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1">
-              🎯 PRIMÄR · Struktur-Frage (nicht-privat, binär, 4 Folge-Pfade)
-            </p>
-            <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „Hi, ich bin Lom-Ali Imadaev. <strong>Kurze Frage:</strong> Machst du die
-              Mitgliederverwaltung <strong>allein — oder macht das jemand für dich</strong>?"
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-2">
+              🎯 PRIMÄR · 3-Fragen-Diagnose-Sequenz (Sie-Form, je 1 Frage pro Atemzug)
             </p>
 
-            <div className="text-xs text-emerald-800 mt-3 space-y-1 border-t border-emerald-200 pt-2">
-              <p><strong>Warum es wirkt:</strong></p>
-              <p>• Frage nach <strong>Struktur</strong>, nicht Zahlen — kein Geheimnis</p>
-              <p>• Binär → keine Defense, schnelle Antwort</p>
-              <p>• Öffnet 4 verschiedene Folge-Pfade je nach Antwort</p>
-              <p>• Klingt wie echtes Interesse, nicht wie Verkäufer</p>
+            <p className="italic text-base leading-relaxed font-medium text-zinc-900">
+              „Hallo, ich bin Lom-Ali Imadaev. Kurze Frage."
+            </p>
+            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[2 Sek Pause — er weiß, jetzt kommt was Konkretes.]</p>
+
+            <div className="space-y-3 mt-3 border-t border-emerald-200 pt-3">
+              {/* Frage 1 */}
+              <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 1 · Tool oder manuell? (binär, nicht-invasiv)</p>
+                <p className="italic text-sm">
+                  „Haben Sie ein Tool für die Mitgliederverwaltung — oder machen Sie das manuell?"
+                </p>
+                <p className="text-xs text-zinc-500 mt-1">[Antwort abwarten. Nicht selbst weiterreden.]</p>
+              </div>
+
+              {/* Frage 2 */}
+              <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 2 · Quantifizieren (Stunden = Pain in Zahl)</p>
+                <p className="italic text-sm">
+                  „Und wie viele Stunden kostet Sie das in der Woche, ungefähr?"
+                </p>
+                <p className="text-xs text-zinc-500 mt-1">[Erwarte: 1, 2, 5, 10. Notieren!]</p>
+              </div>
+
+              {/* Frage 3 */}
+              <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 3 · Emotion-Trigger (echter Pain kommt raus)</p>
+                <p className="italic text-sm">
+                  „Was machen Sie davon <strong>besonders ungern</strong>?"
+                </p>
+                <p className="text-xs text-zinc-500 mt-1">[ZUHÖREN. Seine exakten Worte notieren — du nutzt sie später im Pitch.]</p>
+              </div>
             </div>
 
-            <div className="text-xs text-emerald-700 mt-3 bg-emerald-100/50 rounded p-2 space-y-2">
-              <p className="font-bold text-emerald-900">Folge-Fragen je nach Antwort:</p>
+            <div className="text-xs text-emerald-800 mt-3 space-y-1 border-t border-emerald-200 pt-2">
+              <p className="font-semibold">⚡ Wichtig zum Vortrag:</p>
+              <p>• Sage <strong>NICHT</strong> alle 3 Fragen auf einmal — er hört sonst nur die letzte</p>
+              <p>• <strong>Eine Frage, Pause, Antwort, dann nächste Frage</strong></p>
+              <p>• Bei jeder Antwort: 2 Sek warten, „mhm" / „verstehe" — keine Pitches</p>
+              <p>• Nach Frage 3 entweder direkt Wedge-Pitch (wenn Pain echt) oder DQ (wenn null Pain)</p>
+            </div>
 
-              <div>
-                <p>→ <strong>„Ich allein"</strong></p>
-                <p className="italic ml-3">„Wie viele Stunden kostet dich das so in der Woche?"</p>
-                <p className="italic ml-3">„Was ist eine Sache, die du besonders ungern machst?"</p>
-                <p className="ml-3 text-emerald-600">→ ZUHÖREN. Hier kommt der echte Pain raus.</p>
-              </div>
-
-              <div>
-                <p>→ <strong>„Trainer / Mitarbeiter"</strong></p>
-                <p className="italic ml-3">„OK, und wie zufrieden bist du damit — läuft alles glatt oder gibt&apos;s Reibung?"</p>
-                <p className="ml-3 text-emerald-600">→ Reibung = Pain. Null Reibung = DQ.</p>
-              </div>
-
-              <div>
-                <p>→ <strong>„Steuerberater macht das"</strong></p>
-                <p className="italic ml-3">„Cool — und wie übergibt ihr ihm die Zahlen? Excel, manuell oder schon automatisch?"</p>
-                <p className="ml-3 text-emerald-600">→ Manuell = DATEV-Wedge perfekt.</p>
-              </div>
-
-              <div>
-                <p>→ <strong>„Wer bist du eigentlich?"</strong></p>
-                <p className="italic ml-3">„Ich bau Software für Kampfsport-Gyms. Frag gerade Coaches durch um zu verstehen wo&apos;s wehtut. Kein Verkauf jetzt — nur die Frage."</p>
-              </div>
-
-              <div>
-                <p>→ <strong>„Geht dich nichts an"</strong> = DQ. „Verstehe, kein Stress. Tschüss." Auflegen.</p>
-              </div>
+            <div className="text-xs text-emerald-700 mt-3 bg-emerald-100/50 rounded p-2 space-y-1.5">
+              <p className="font-bold text-emerald-900">Antwort-Pfade nach Frage 1:</p>
+              <p>→ <strong>„Tool [Name]"</strong>: weiter mit Frage 2 + 3. Bei Frage 3 hörst du Frust mit dem Tool → Wedge.</p>
+              <p>→ <strong>„Manuell / Excel"</strong> = 🔥 HEISS. Frage 2 + 3, dann konkreter Pain-Calc.</p>
+              <p>→ <strong>„Trainer / Steuerberater"</strong>: „Wie zufrieden sind Sie damit?"</p>
+              <p>→ <strong>„Wer sind Sie eigentlich?"</strong>: „Ich baue Software für Kampfsport-Gyms. Frage gerade Coaches durch um zu verstehen, wo&apos;s wehtut. Kein Verkauf — nur die Fragen."</p>
+              <p>→ <strong>„Geht Sie nichts an"</strong> = DQ. „Verstehe, kein Stress. Auf Wiederhören." Auflegen.</p>
             </div>
           </div>
 
