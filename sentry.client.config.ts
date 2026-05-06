@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 
 Sentry.init({
-  dsn: 'https://d913b462ad939dac84ad766db54e83d0@o4511339861049344.ingest.de.sentry.io/4511339862491216',
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   environment: process.env.NODE_ENV,
 
   // 10% traces in prod — enough for performance monitoring without billing explosion
