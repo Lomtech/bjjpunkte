@@ -222,10 +222,13 @@ export default function LinksPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
       const { data: gym } = await supabase
         .from('gyms')
         .select('signup_token, slug, name')
-        .single()
+        .eq('owner_id', user.id)
+        .maybeSingle()
 
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://osss.pro'
       if (gym?.signup_token) setSignupUrl(`${origin}/signup/${gym.signup_token}`)

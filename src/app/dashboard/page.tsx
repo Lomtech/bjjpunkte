@@ -74,8 +74,13 @@ export default function DashboardPage() {
       let gymId: string | null = cachedGymId
 
       if (!gymId) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { setLoading(false); return }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: g } = await (supabase.from('gyms') as any).select('id, signup_token, slug').single()
+        const { data: g } = await (supabase.from('gyms') as any)
+          .select('id, signup_token, slug')
+          .eq('owner_id', user.id)
+          .maybeSingle()
         if (!g) { setLoading(false); return }
         gymId = g.id
         setSignupToken(g.signup_token ?? null)
@@ -106,7 +111,7 @@ export default function DashboardPage() {
         { data: allAttendanceData },
       ] = await Promise.all([
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase.from('gyms') as any).select('signup_token, slug').eq('id', gymId).single(),
+        (supabase.from('gyms') as any).select('signup_token, slug').eq('id', gymId).maybeSingle(),
         supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gymId),
         supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', gymId).eq('is_active', true),
         supabase.from('attendance').select('id, checked_in_at, class_type, member_id').eq('gym_id', gymId).gte('checked_in_at', today).order('checked_in_at', { ascending: false }),

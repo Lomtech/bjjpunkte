@@ -304,6 +304,8 @@ export default function WebsitePage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase as any)
         .from('gyms')
@@ -311,7 +313,8 @@ export default function WebsitePage() {
           tagline, about, about_blocks, hero_image_url, hero_image_position, gallery_urls, video_url, video_urls,
           whatsapp_number, instagram_url, facebook_url, website_url,
           founded_year, opening_hours, impressum_text`)
-        .single()
+        .eq('owner_id', user.id)
+        .maybeSingle()
       if (data) {
         setGym(data)
         setGymSlug(data.slug ?? '')
