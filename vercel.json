@@ -22,6 +22,12 @@
     },
     "src/app/api/gym/export/route.ts": {
       "maxDuration": 120
+    },
+    "src/app/api/public/**/route.ts": {
+      "runtime": "nodejs22.x"
+    },
+    "src/app/api/portal/**/route.ts": {
+      "runtime": "nodejs22.x"
     }
   }
 }
