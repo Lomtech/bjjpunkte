@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/admin-auth'
 import { searchPlacesText, extractCity, detectSports } from '@/lib/google-places'
+import { getPlacesQuota, COST_PER_CALL_USD } from '@/lib/places-quota'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -84,17 +85,37 @@ export async function POST(req: Request) {
       inserted: 0,
       updated: 0,
       totalFound: 0,
+      pagesCalled: 0,
     })
+  }
+
+  // ── Step 2.5: Daily quota check ──────────────────────────
+  // Block if today's call count would exceed PLACES_DAILY_LIMIT.
+  // Worst-case estimate: maxPages calls — we never know until each page returns
+  // whether nextPageToken exists.
+  const quota = await getPlacesQuota(supabase)
+  if (quota.todayPagesCalled + maxPages > quota.dailyLimit) {
+    return NextResponse.json({
+      error: 'Daily quota exceeded',
+      message: `Tageslimit erreicht: ${quota.todayPagesCalled} / ${quota.dailyLimit} Calls heute (~$${quota.todayCostUsd}). Diese Suche bräuchte bis zu ${maxPages} weitere Calls. Reduziere Pages oder warte bis morgen — oder erhöhe PLACES_DAILY_LIMIT in Vercel env.`,
+      quota,
+    }, { status: 429 })
   }
 
   // ── Step 3: Run Google Places search ─────────────────────
   let totalFound = 0
   let inserted = 0
   let updated = 0
+  let pagesCalled = 0
   const errors: string[] = []
   let pageToken: string | undefined = undefined
 
   for (let page = 0; page < maxPages; page++) {
+    // Hard-stop if mid-run we're about to exceed daily limit
+    if (quota.todayPagesCalled + pagesCalled >= quota.dailyLimit) {
+      errors.push(`Daily limit reached at page ${page} — ${quota.dailyLimit} calls today`)
+      break
+    }
     let result: Awaited<ReturnType<typeof searchPlacesText>>
     try {
       result = await searchPlacesText({
@@ -103,6 +124,7 @@ export async function POST(req: Request) {
         maxResults: 20,
         bias: bias ? { latitude: bias.lat, longitude: bias.lng, radiusMeters: bias.radiusMeters } : undefined,
       })
+      pagesCalled++ // count successful Google API call
     } catch (err) {
       errors.push(err instanceof Error ? err.message : 'places api error')
       break
@@ -196,8 +218,12 @@ export async function POST(req: Request) {
     result_count: totalFound,
     inserted_count: inserted,
     updated_count: updated,
+    pages_called: pagesCalled,
     ran_by: auth.user.id,
   })
+
+  // Re-fetch quota AFTER the search so UI can show the up-to-date counter
+  const quotaAfter = await getPlacesQuota(supabase)
 
   return NextResponse.json({
     cached: false,
@@ -205,6 +231,9 @@ export async function POST(req: Request) {
     totalFound,
     inserted,
     updated,
+    pagesCalled,
+    costUsd: +(pagesCalled * COST_PER_CALL_USD).toFixed(3),
+    quota: quotaAfter,
     errors: errors.slice(0, 10),
   })
 }

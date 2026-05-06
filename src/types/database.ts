@@ -438,9 +438,9 @@ export interface Database {
         Relationships: Rel[]
       }
       sales_search_history: {
-        Row: { id: string; query: string; bias_lat: number | null; bias_lng: number | null; bias_radius: number | null; result_count: number; inserted_count: number; updated_count: number; ran_by: string | null; ran_at: string }
-        Insert: { query: string; bias_lat?: number | null; bias_lng?: number | null; bias_radius?: number | null; result_count?: number; inserted_count?: number; updated_count?: number; ran_by?: string | null }
-        Update: { result_count?: number; inserted_count?: number; updated_count?: number; ran_at?: string }
+        Row: { id: string; query: string; bias_lat: number | null; bias_lng: number | null; bias_radius: number | null; result_count: number; inserted_count: number; updated_count: number; pages_called: number; ran_by: string | null; ran_at: string }
+        Insert: { query: string; bias_lat?: number | null; bias_lng?: number | null; bias_radius?: number | null; result_count?: number; inserted_count?: number; updated_count?: number; pages_called?: number; ran_by?: string | null }
+        Update: { result_count?: number; inserted_count?: number; updated_count?: number; pages_called?: number; ran_at?: string }
         Relationships: Rel[]
       }
       belt_promotions: {

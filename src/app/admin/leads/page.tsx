@@ -53,12 +53,34 @@ export default function AdminLeadsPage() {
     inserted: number
     updated: number
     totalFound?: number
+    pagesCalled?: number
+    costUsd?: number
     lastRunAt?: string
     lastResultCount?: number
     existingMatchCount?: number
     cacheTtlDays?: number
     errors: string[]
   } | null>(null)
+
+  // quota
+  type Quota = {
+    todayPagesCalled: number; todaySearches: number; todayInserted: number; todayCostUsd: number
+    monthPagesCalled: number; monthSearches: number; monthInserted: number; monthCostUsd: number
+    dailyLimit: number; remainingToday: number; pctUsed: number
+  }
+  const [quota, setQuota] = useState<Quota | null>(null)
+
+  const loadQuota = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await fetch('/api/admin/leads/places-quota', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) setQuota(await res.json())
+    } catch { /* ignore */ }
+  }, [token])
+
+  useEffect(() => { loadQuota() }, [loadQuota])
 
   // auth
   useEffect(() => {
@@ -161,13 +183,20 @@ export default function AdminLeadsPage() {
           inserted: data.inserted ?? 0,
           updated: data.updated ?? 0,
           totalFound: data.totalFound,
+          pagesCalled: data.pagesCalled,
+          costUsd: data.costUsd,
           lastRunAt: data.lastRunAt,
           lastResultCount: data.lastResultCount,
           existingMatchCount: data.existingMatchCount,
           cacheTtlDays: data.cacheTtlDays,
           errors: data.errors ?? [],
         })
+        if (data.quota) setQuota(data.quota)
         if (!data.cached) loadLeads()
+      } else if (res.status === 429 && data.quota) {
+        // Quota exceeded — show clear message + update banner
+        setQuota(data.quota)
+        setSearchResult({ inserted: 0, updated: 0, errors: [data.message ?? data.error ?? 'Tageslimit erreicht'] })
       } else {
         setSearchResult({ inserted: 0, updated: 0, errors: [data.error ?? 'Fehler'] })
       }
@@ -202,9 +231,11 @@ export default function AdminLeadsPage() {
             <h1 className="text-xl font-bold text-zinc-900">Sales-CRM</h1>
             <p className="text-sm text-zinc-500">{total} Leads · {statusCounts.contacted ?? 0} kontaktiert · {statusCounts.qualified ?? 0} qualifiziert · {statusCounts.won ?? 0} gewonnen</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {quota && <QuotaBadge quota={quota} />}
             <button onClick={() => setShowSearchModal(true)}
-              className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-zinc-900 text-sm font-semibold rounded-xl">
+              disabled={!!quota && quota.remainingToday === 0}
+              className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-zinc-900 text-sm font-semibold rounded-xl disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed">
               + Google Places suchen
             </button>
           </div>
@@ -355,7 +386,7 @@ export default function AdminLeadsPage() {
             <input type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchResult(null) }}
               placeholder="z.B. BJJ München" autoFocus
               className="w-full px-3 py-2 border border-zinc-200 rounded-lg mb-3" />
-            <div className="flex items-center gap-4 mb-4 text-sm text-zinc-600">
+            <div className="flex items-center gap-4 mb-2 text-sm text-zinc-600">
               <label className="flex items-center gap-2">
                 Seiten:
                 <input type="number" min={1} max={5} value={searchPages}
@@ -368,6 +399,22 @@ export default function AdminLeadsPage() {
                 <span>Cache umgehen</span>
               </label>
             </div>
+            {quota && (
+              <div className="mb-4 px-3 py-2 bg-zinc-50 rounded-lg text-xs text-zinc-600 flex items-center justify-between">
+                <span>
+                  Heute: <strong className="font-mono">{quota.todayPagesCalled} / {quota.dailyLimit}</strong> Calls
+                  <span className="opacity-50"> (~${quota.todayCostUsd.toFixed(2)})</span>
+                </span>
+                <span>
+                  Diese Suche: max <strong>{searchPages}</strong> Calls (~${(searchPages * 0.035).toFixed(2)})
+                </span>
+              </div>
+            )}
+            {quota && quota.todayPagesCalled + searchPages > quota.dailyLimit && !searchForce && (
+              <div className="text-xs bg-rose-50 text-rose-800 px-3 py-2 rounded-lg mb-3">
+                ⚠ Tageslimit würde überschritten. Reduziere Pages auf max <strong>{quota.remainingToday}</strong>.
+              </div>
+            )}
             {searchResult?.cached && (
               <div className="text-sm bg-blue-50 text-blue-900 px-3 py-2 rounded-lg mb-3">
                 <div className="font-semibold">⚡ Aus Cache geantwortet — keine API-Kosten</div>
@@ -385,6 +432,11 @@ export default function AdminLeadsPage() {
               <div className="text-sm bg-emerald-50 text-emerald-800 px-3 py-2 rounded-lg mb-3">
                 ✓ {searchResult.inserted} neu, {searchResult.updated} aktualisiert
                 {(searchResult.totalFound ?? 0) > 0 && ` · ${searchResult.totalFound} gefunden`}
+                {(searchResult.pagesCalled ?? 0) > 0 && (
+                  <div className="text-xs mt-1 opacity-80">
+                    {searchResult.pagesCalled} Google-Calls verbraucht (~${searchResult.costUsd?.toFixed(3)})
+                  </div>
+                )}
                 {searchResult.errors.length > 0 && (
                   <div className="text-rose-700 text-xs mt-1">{searchResult.errors.length} Fehler: {searchResult.errors[0]}</div>
                 )}
@@ -575,6 +627,34 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
             </ul>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function QuotaBadge({ quota }: { quota: {
+  todayPagesCalled: number; todayCostUsd: number; monthPagesCalled: number; monthCostUsd: number;
+  dailyLimit: number; remainingToday: number; pctUsed: number
+} }) {
+  const danger = quota.pctUsed >= 90
+  const warn   = quota.pctUsed >= 70 && !danger
+  const tone = danger
+    ? 'bg-rose-50 border-rose-200 text-rose-800'
+    : warn
+      ? 'bg-amber-50 border-amber-200 text-amber-900'
+      : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+  return (
+    <div className={`relative px-3 py-1.5 rounded-xl border text-xs font-medium ${tone}`}
+      title={`Heute: ${quota.todayPagesCalled} / ${quota.dailyLimit} Google-Calls (~$${quota.todayCostUsd.toFixed(2)})\nDieser Monat: ${quota.monthPagesCalled} Calls (~$${quota.monthCostUsd.toFixed(2)})`}>
+      <div className="flex items-center gap-2">
+        <span className="font-mono">{quota.todayPagesCalled}/{quota.dailyLimit}</span>
+        <span className="opacity-70">·</span>
+        <span>${quota.todayCostUsd.toFixed(2)}</span>
+        <span className="opacity-70 hidden md:inline">heute</span>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl overflow-hidden bg-black/5">
+        <div className={`h-full transition-all ${danger ? 'bg-rose-500' : warn ? 'bg-amber-500' : 'bg-emerald-500'}`}
+          style={{ width: `${Math.min(100, quota.pctUsed)}%` }} />
       </div>
     </div>
   )
