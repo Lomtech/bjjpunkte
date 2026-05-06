@@ -66,91 +66,107 @@ export async function POST(req: Request) {
   )
 
   const appUrl = getAppUrl()
+  const BATCH_SIZE = 10
   let created = 0
   const results: { memberId: string; memberName: string; memberEmail: string; checkoutUrl: string | null; amountCents: number }[] = []
+  const errors: string[] = []
 
-  for (const member of members) {
-    try {
-      if (paidMemberIds.has(member.id)) continue
-      // Skip members billed via active subscription
-      if (member.stripe_subscription_id) continue
+  // Filter eligible members (not paid, no active subscription, fee >= 50)
+  const eligibleMembers = members.filter(member => {
+    if (paidMemberIds.has(member.id)) return false
+    if (member.stripe_subscription_id) return false
+    const fee = (member.monthly_fee_override_cents ?? amountCents ?? 0) as number
+    if (fee < 50) return false
+    return true
+  })
 
-      // Reuse existing pending link — don't flood member with duplicate checkout URLs
-      const existing = pendingMap.get(member.id)
-      if (existing) {
-        results.push({ memberId: member.id, memberName: `${member.first_name} ${member.last_name}`, memberEmail: member.email!, checkoutUrl: existing.checkout_url, amountCents: existing.amount_cents })
-        created++
-        continue
-      }
-
-      const fee = (member.monthly_fee_override_cents ?? amountCents ?? 0) as number
-      if (fee < 50) continue
-
-      let customerId = member.stripe_customer_id
-      const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
-
-      // Verify existing customer is on connected account; recreate if not
-      if (customerId && connectedAccountId) {
-        try {
-          await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
-        } catch {
-          customerId = null
-        }
-      }
-      if (!customerId) {
-        const customer = await stripe.customers.create(
-          { email: member.email!, name: `${member.first_name} ${member.last_name}`, metadata: { memberId: member.id, gymId } },
-          { ...(stripeOpts ?? {}), idempotencyKey: `customer-${member.id}-${connectedAccountId}` },
-        )
-        customerId = customer.id
-        await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
-      }
-
-      const memberName = `${member.first_name} ${member.last_name}`
-      const sessionParams: Stripe.Checkout.SessionCreateParams = {
-        customer: customerId,
-        line_items: [{
-          price_data: {
-            currency: 'eur',
-            product_data: { name: 'Monatlicher Mitgliedsbeitrag', description: `Osss – ${memberName}` },
-            unit_amount: fee,
-          },
-          quantity: 1,
-        }],
-        mode: 'payment',
-        success_url: `${appUrl}/dashboard/members/${member.id}?payment=success`,
-        cancel_url:  `${appUrl}/dashboard/members/${member.id}`,
-        metadata: { memberId: member.id, gymId },
-      }
-
-      if (connectedAccountId) {
-        const platformFee = Math.round(fee * platformFeePercent / 100)
-        sessionParams.payment_intent_data = {
-          ...(platformFee > 0 ? { application_fee_amount: platformFee } : {}),
-        }
-      }
-
-      // Direct charge: session on connected account so customer is found
-      const session = await stripe.checkout.sessions.create(sessionParams, { ...stripeOpts, idempotencyKey: `bulk-${member.id}-${gymId}-${Math.floor(Date.now()/60000)}` })
-
-      const { error: insertError } = await supabase.from('payments').insert({
-        gym_id:                    gymId,
-        member_id:                 member.id,
-        stripe_checkout_session_id: session.id,
-        stripe_payment_intent_id:  typeof session.payment_intent === 'string' ? session.payment_intent : null,
-        amount_cents:              fee,
-        status:                    'pending',
-        checkout_url:              session.url,
-      })
-
-      if (insertError) throw insertError
-
-      results.push({ memberId: member.id, memberName, memberEmail: member.email!, checkoutUrl: session.url, amountCents: fee })
+  // Reuse existing pending links synchronously — no Stripe call needed
+  for (const member of eligibleMembers) {
+    const existing = pendingMap.get(member.id)
+    if (existing) {
+      results.push({ memberId: member.id, memberName: `${member.first_name} ${member.last_name}`, memberEmail: member.email!, checkoutUrl: existing.checkout_url, amountCents: existing.amount_cents })
       created++
-    } catch (err: unknown) {
-      console.error('Bulk-checkout error for member', member.id, err instanceof Error ? err.message : err)
     }
   }
 
-  return NextResponse.json({ count: created, members: results })
+  // Members that need a new checkout session
+  const needsCheckout = eligibleMembers.filter(m => !pendingMap.has(m.id))
+
+  // Process in batches of 10 — Stripe rate limit friendly
+  for (let i = 0; i < needsCheckout.length; i += BATCH_SIZE) {
+    const batch = needsCheckout.slice(i, i + BATCH_SIZE)
+    await Promise.all(batch.map(async (member) => {
+      try {
+        const fee = (member.monthly_fee_override_cents ?? amountCents ?? 0) as number
+
+        let customerId = member.stripe_customer_id
+        const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+
+        // Verify existing customer is on connected account; recreate if not
+        if (customerId && connectedAccountId) {
+          try {
+            await stripe.customers.retrieve(customerId, {}, { stripeAccount: connectedAccountId })
+          } catch {
+            customerId = null
+          }
+        }
+        if (!customerId) {
+          const customer = await stripe.customers.create(
+            { email: member.email!, name: `${member.first_name} ${member.last_name}`, metadata: { memberId: member.id, gymId } },
+            { ...(stripeOpts ?? {}), idempotencyKey: `customer-${member.id}-${connectedAccountId}` },
+          )
+          customerId = customer.id
+          await supabase.from('members').update({ stripe_customer_id: customerId }).eq('id', member.id)
+        }
+
+        const memberName = `${member.first_name} ${member.last_name}`
+        const sessionParams: Stripe.Checkout.SessionCreateParams = {
+          customer: customerId,
+          line_items: [{
+            price_data: {
+              currency: 'eur',
+              product_data: { name: 'Monatlicher Mitgliedsbeitrag', description: `Osss – ${memberName}` },
+              unit_amount: fee,
+            },
+            quantity: 1,
+          }],
+          mode: 'payment',
+          success_url: `${appUrl}/dashboard/members/${member.id}?payment=success`,
+          cancel_url:  `${appUrl}/dashboard/members/${member.id}`,
+          metadata: { memberId: member.id, gymId },
+        }
+
+        if (connectedAccountId) {
+          const platformFee = Math.round(fee * platformFeePercent / 100)
+          sessionParams.payment_intent_data = {
+            ...(platformFee > 0 ? { application_fee_amount: platformFee } : {}),
+          }
+        }
+
+        // Direct charge: session on connected account so customer is found
+        const session = await stripe.checkout.sessions.create(sessionParams, { ...stripeOpts, idempotencyKey: `bulk-${member.id}-${gymId}-${Math.floor(Date.now()/60000)}` })
+
+        const { error: insertError } = await supabase.from('payments').insert({
+          gym_id:                    gymId,
+          member_id:                 member.id,
+          stripe_checkout_session_id: session.id,
+          stripe_payment_intent_id:  typeof session.payment_intent === 'string' ? session.payment_intent : null,
+          amount_cents:              fee,
+          status:                    'pending',
+          checkout_url:              session.url,
+        })
+
+        if (insertError) throw insertError
+
+        results.push({ memberId: member.id, memberName, memberEmail: member.email!, checkoutUrl: session.url, amountCents: fee })
+        created++
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('Bulk-checkout error for member', member.id, msg)
+        errors.push(`${member.first_name} ${member.last_name}: ${msg}`)
+      }
+    }))
+  }
+
+  return NextResponse.json({ count: created, members: results, ...(errors.length > 0 ? { errors } : {}) })
 }

@@ -61,7 +61,7 @@ function createInMemoryLimiter() {
   }
 }
 
-const RATE_LIMITED = /^\/(api\/portal|api\/public|api\/signup)\//
+const RATE_LIMITED = /^\/(api\/portal|api\/public|api\/signup|api\/auth\/delete-account|api\/staff\/accept|api\/staff\/link)\//
 
 export async function proxy(request: NextRequest) {
   if (RATE_LIMITED.test(request.nextUrl.pathname)) {

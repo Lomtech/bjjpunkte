@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
-  TrendingUp, CheckCircle2, Clock, AlertCircle, ChevronRight,
+  TrendingUp, CheckCircle2, Clock, AlertCircle, ChevronRight, ChevronLeft,
   Euro, Users, Calendar, ArrowUpRight, Download,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -54,6 +54,7 @@ export default function RevenuePage() {
   const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const [loading, setLoading]           = useState(true)
   const [tab, setTab]                   = useState<Tab>('overview')
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [allTimeCents, setAllTimeCents] = useState(0)
   const [allTimeCount, setAllTimeCount] = useState(0)
   const [monthCents, setMonthCents]     = useState(0)
@@ -63,6 +64,7 @@ export default function RevenuePage() {
   const [months, setMonths]             = useState<MonthGroup[]>([])
   const [expectedMonthlyCents, setExpectedMonthlyCents] = useState(0)
   useEffect(() => {
+    setLoading(true)
     async function load() {
       const supabase = createClient()
       const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, name').single()
@@ -74,13 +76,18 @@ export default function RevenuePage() {
       const startOfPrevMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString()
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
+      const yearStart = new Date(selectedYear, 0, 1).toISOString()
+      const yearEnd   = new Date(selectedYear + 1, 0, 1).toISOString()
+
       try {
         const [paymentsRes, membersRes, plansRes] = await Promise.all([
           supabase.from('payments')
             .select('id, member_id, member_name, amount_cents, paid_at, status, created_at')
             .eq('gym_id', gymData.id)
+            .gte('paid_at', yearStart)
+            .lt('paid_at', yearEnd)
             .order('paid_at', { ascending: false })
-            .limit(1000),
+            .limit(5000),
           supabase.from('members')
             .select('id, first_name, last_name, monthly_fee_override_cents, plan_id')
             .eq('gym_id', gymData.id)
@@ -188,7 +195,7 @@ export default function RevenuePage() {
       }
     }
     load()
-  }, [])
+  }, [selectedYear])
 
   function downloadPaymentsCSV() {
     const headers = [t('revenue', 'csvHeaderDate'), t('revenue', 'csvHeaderMember'), t('revenue', 'csvHeaderAmount'), t('revenue', 'csvHeaderStatus'), t('revenue', 'csvHeaderId')]
@@ -235,6 +242,7 @@ export default function RevenuePage() {
   const neverCount   = members.filter(m => m.status === 'never').length
   const monthDelta   = monthCents - prevMonthCents
   const maxMonthCents = Math.max(...months.map(m => m.total_cents), 1)
+  const currentYear   = new Date().getFullYear()
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: t('revenue', 'overview') },
@@ -246,14 +254,31 @@ export default function RevenuePage() {
     <div className="p-4 md:p-6 max-w-3xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('revenue', 'title')}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('revenue', 'title')}</h1>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setSelectedYear(y => y - 1)}
+              disabled={selectedYear <= currentYear - 4}
+              className="p-1.5 rounded-lg hover:bg-zinc-100 disabled:opacity-40 transition-colors">
+              <ChevronLeft size={15} />
+            </button>
+            <span className="text-sm font-semibold text-zinc-700 w-12 text-center">{selectedYear}</span>
+            <button
+              onClick={() => setSelectedYear(y => y + 1)}
+              disabled={selectedYear >= currentYear}
+              className="p-1.5 rounded-lg hover:bg-zinc-100 disabled:opacity-40 transition-colors">
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
         <p className="text-zinc-400 text-xs mt-0.5 font-medium">{t('revenue', 'subtitle')}</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
-          { icon: <Euro size={18} />, value: formatCents(allTimeCents), label: t('revenue', 'allTime'), primary: true },
+          { icon: <Euro size={18} />, value: formatCents(allTimeCents), label: String(selectedYear), primary: true },
           { icon: <Calendar size={18} />, value: formatCents(monthCents), label: new Date().toLocaleDateString(locale, { month: 'long' }), sub: monthDelta !== 0 ? `${monthDelta > 0 ? '+' : ''}${formatCents(monthDelta)}` : null, primary: false },
           { icon: <Users size={18} />, value: formatCents(expectedMonthlyCents), label: t('revenue', 'expectedMonthly'), primary: false },
           { icon: <AlertCircle size={18} />, value: String(pendingCount + neverCount), label: t('revenue', 'pending'), primary: false },

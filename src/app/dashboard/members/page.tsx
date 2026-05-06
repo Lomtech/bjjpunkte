@@ -70,6 +70,12 @@ export default function MembersPage() {
   const [bulkMembers, setBulkMembers]       = useState<{ memberId: string; memberName: string; memberEmail: string; checkoutUrl: string | null; amountCents: number }[]>([])
   const [showBulkResults, setShowBulkResults] = useState(false)
   const [search, setSearch]                 = useState('')
+
+  useEffect(() => {
+    setPage(0)
+    const t = setTimeout(() => setDebouncedSearch(search), 400)
+    return () => clearTimeout(t)
+  }, [search])
   const [activatingId, setActivatingId]     = useState<string | null>(null)
   const [activatedMember, setActivatedMember] = useState<Member | null>(null)
   const [showWaModal, setShowWaModal]       = useState(false)
@@ -82,6 +88,10 @@ export default function MembersPage() {
   // GPS toast
   const [gpsError, setGpsError]            = useState<string | null>(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const PAGE_SIZE = 50
+  const [page, setPage] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   // Cached GPS position (valid 5 min) — avoids re-prompting for every check-in
   const cachedGps = useRef<{ lat: number; lng: number; ts: number } | null>(null)
   const GPS_CACHE_MS = 5 * 60 * 1000
@@ -173,18 +183,11 @@ export default function MembersPage() {
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
       // Load members + classes in parallel (look back 3 h for retroactive check-in)
       const now = new Date()
-      const [membersRes, classesRes, plansRes] = await Promise.all([
-        supabase
-          .from('members')
-          .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id, plan_id, created_at')
-          // 500 is the practical limit for client-side filtering. Gyms exceeding this
-          // need a server-side search endpoint with ?q= pagination.
-          .eq('gym_id', gym.id).order('last_name').limit(500),
+      const [classesRes, plansRes] = await Promise.all([
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         supabase.rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() }),
         supabase.from('membership_plans').select('id, price_cents').eq('gym_id', gym.id),
       ])
-      setMembers((membersRes.data as unknown as Member[]) ?? [])
 
       // Build plan price lookup map
       const map: Record<string, number> = {}
@@ -214,24 +217,50 @@ export default function MembersPage() {
     load()
   }, [])
 
+  // Server-side paginated member fetch — called whenever gymId, page, or search changes
+  useEffect(() => {
+    if (!gymId) return
+    async function loadMembers() {
+      const supabase = createClient()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase.from('members') as any)
+        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id, plan_id, created_at', { count: 'exact' })
+        .eq('gym_id', gymId)
+        .order('last_name')
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+      if (debouncedSearch.trim()) {
+        query = query.or(`last_name.ilike.%${debouncedSearch.trim()}%,first_name.ilike.%${debouncedSearch.trim()}%,email.ilike.%${debouncedSearch.trim()}%`)
+      }
+      const { data, count } = await query
+      setMembers((data as unknown as Member[]) ?? [])
+      setTotalCount(count ?? 0)
+    }
+    loadMembers()
+  }, [gymId, page, debouncedSearch])
+
   const pending  = members.filter(m => m.onboarding_status === 'pending')
   const nonPending = members.filter(m => m.onboarding_status !== 'pending')
-  const filtered = nonPending.filter(m => {
-    if (!search) return true
-    const q = search.toLowerCase()
-    return `${m.first_name} ${m.last_name}`.toLowerCase().includes(q) ||
-      (m.email ?? '').toLowerCase().includes(q)
-  })
+  // Server-side search handles filtering — members is already the filtered page
+  const filtered = nonPending
   const active   = nonPending.filter(m => m.is_active)
   const inactive = nonPending.filter(m => !m.is_active)
   const pendingRequests = nonPending.filter(m => m.cancellation_requested_at || m.requested_plan_id)
   const activeWithEmail = active.filter(m => m.email)
 
-  function downloadCSV() {
+  async function downloadCSV() {
+    // Fetch ALL members (not just current page) for the export
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: allMembers } = await (supabase.from('members') as any)
+      .select('id, first_name, last_name, email, phone, date_of_birth, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, plan_id, created_at')
+      .eq('gym_id', gymId)
+      .order('last_name')
+      .limit(5000)
+    const exportMembers = (allMembers ?? []) as Member[]
     const headers = lang === 'en'
       ? ['First name', 'Last name', 'Email', 'Phone', 'Date of birth', 'Belt', 'Stripes', 'Member since', 'Status', 'Subscription status', 'Contract until', 'Fee (€)']
       : ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Geburtsdatum', 'Gürtel', 'Stripes', 'Mitglied seit', 'Status', 'Abo-Status', 'Vertrag bis', 'Beitrag (€)']
-    const rows = members.map(m => [
+    const rows = exportMembers.map(m => [
       m.first_name,
       m.last_name,
       m.email ?? '',
@@ -684,6 +713,29 @@ export default function MembersPage() {
               )
             })}
           </div>
+
+          {/* Pagination */}
+          {totalCount > PAGE_SIZE && (
+            <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-zinc-100 shadow-sm mt-2">
+              <p className="text-xs text-zinc-500">
+                {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} von {totalCount}
+              </p>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setPage(p => p - 1)}
+                  disabled={page === 0}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-zinc-200 text-zinc-600 disabled:opacity-40 hover:bg-zinc-50 transition-colors">
+                  ← Zurück
+                </button>
+                <button
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={(page + 1) * PAGE_SIZE >= totalCount}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-zinc-200 text-zinc-600 disabled:opacity-40 hover:bg-zinc-50 transition-colors">
+                  Weiter →
+                </button>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="text-center py-16 bg-white rounded-xl border border-zinc-200 shadow-sm">

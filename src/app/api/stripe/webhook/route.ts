@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { sendMemberPaymentFailedEmail } from '@/lib/notify'
 
 const PLAN_LIMITS: Record<string, number> = { starter: 50, grow: 150, pro: 9999 }
 
@@ -338,6 +339,32 @@ export async function POST(req: Request) {
     if (memberId) {
       const { error: pastDueErr } = await supabase.from('members').update({ subscription_status: 'past_due' }).eq('id', memberId)
       if (pastDueErr) return NextResponse.json({ error: pastDueErr.message }, { status: 500 })
+
+      // Notify gym owner about failed member payment (non-critical — never fail webhook)
+      try {
+        const failedGymId = inv.metadata?.gymId
+          ?? (inv as unknown as { subscription_details?: { metadata?: Record<string,string> } })
+             .subscription_details?.metadata?.gymId
+        if (failedGymId) {
+          const [{ data: failedMember }, { data: failedGym }] = await Promise.all([
+            supabase.from('members').select('first_name, last_name').eq('id', memberId).maybeSingle(),
+            supabase.from('gyms').select('name, email').eq('id', failedGymId).maybeSingle(),
+          ])
+          if (failedMember && failedGym?.email) {
+            const mName = `${failedMember.first_name} ${failedMember.last_name}`
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.osss.pro'
+            await sendMemberPaymentFailedEmail(
+              failedGym.email,
+              mName,
+              failedGym.name ?? '',
+              inv.amount_due ?? inv.total ?? 0,
+              `${appUrl}/dashboard/members/${memberId}`,
+            )
+          }
+        }
+      } catch (notifyErr) {
+        console.error('[webhook] dunning notification failed:', notifyErr)
+      }
     } else if (meta.type === 'owner_plan') {
       const gymId = meta.gymId
       if (gymId) {

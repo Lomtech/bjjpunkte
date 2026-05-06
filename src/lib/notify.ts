@@ -91,6 +91,42 @@ export async function notifyGym({ gymId, subject, html, whatsappText }: NotifyPa
   return result
 }
 
+export async function sendMemberPaymentFailedEmail(
+  ownerEmail: string,
+  memberName: string,
+  gymName: string,
+  amountCents: number,
+  memberDashboardUrl: string,
+) {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return
+  const amountFormatted = (amountCents / 100).toFixed(2).replace('.', ',')
+  return withRetry(() => fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL ?? 'noreply@osss.pro',
+      to: ownerEmail,
+      subject: `Zahlung fehlgeschlagen – ${memberName}`,
+      headers: { 'List-Unsubscribe': `<mailto:unsubscribe@osss.pro?subject=unsubscribe>` },
+      html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
+      <h2 style="color:#18181b;margin-bottom:8px">Zahlung fehlgeschlagen</h2>
+      <p style="color:#52525b">Die automatische Zahlung für <strong>${memberName}</strong> in <strong>${gymName}</strong> konnte nicht eingezogen werden.</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0">
+        <tr><td style="padding:6px 0;color:#71717a;font-size:14px">Mitglied</td><td style="padding:6px 0;font-weight:600">${memberName}</td></tr>
+        <tr><td style="padding:6px 0;color:#71717a;font-size:14px">Betrag</td><td style="padding:6px 0;font-weight:600">€${amountFormatted}</td></tr>
+        <tr><td style="padding:6px 0;color:#71717a;font-size:14px">Status</td><td style="padding:6px 0;color:#dc2626;font-weight:600">Fehlgeschlagen</td></tr>
+      </table>
+      <p style="color:#52525b;font-size:14px">Stripe wird die Zahlung automatisch erneut versuchen.</p>
+      <a href="${memberDashboardUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#fbbf24;color:#18181b;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">Mitglied anzeigen →</a>
+      <p style="color:#a1a1aa;font-size:11px;margin-top:24px">Osss – automatische Benachrichtigung</p>
+    </div>`,
+    }),
+  }))
+}
+
 function wrapEmail(gymName: string, body: string) {
   return `<!DOCTYPE html>
 <html lang="de">
