@@ -46,3 +46,8 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Compliance — unterzeichnete AVVs / PDFs / Vorfall-Logs nicht ins Repo
+/compliance/avv/
+/compliance/breach-log.md
+*.signed.pdf
