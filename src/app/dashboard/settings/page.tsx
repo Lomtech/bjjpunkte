@@ -1723,6 +1723,28 @@ function SettingsPageInner() {
       {activeTab === 'vertraege' && (
         <div className="space-y-4">
 
+          {/* AVV — Auftragsverarbeitungsvertrag (DSGVO Art. 28) */}
+          <div className={sectionCls}>
+            <div className={sectionHeaderCls}>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                <Shield size={12} /> Auftragsverarbeitungsvertrag (AVV)
+              </p>
+            </div>
+            <div className="p-5">
+              <p className="text-xs text-zinc-500 leading-relaxed mb-4">
+                Pflicht nach Art. 28 DSGVO. Regelt, wie Osss die personenbezogenen Daten deiner Mitglieder
+                in deinem Auftrag verarbeitet. Elektronische Unterzeichnung &mdash; rechtsverbindlich nach
+                eIDAS Art. 25(1).
+              </p>
+              <a
+                href="/dashboard/settings/avv"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2 transition-colors"
+              >
+                <FileText size={14} /> AVV ansehen &amp; unterzeichnen
+              </a>
+            </div>
+          </div>
+
           {/* Membership plans */}
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>

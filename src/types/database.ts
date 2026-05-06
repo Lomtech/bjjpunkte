@@ -443,6 +443,12 @@ export interface Database {
         Update: { result_count?: number; inserted_count?: number; updated_count?: number; pages_called?: number; ran_at?: string }
         Relationships: Rel[]
       }
+      avv_acceptances: {
+        Row: { id: string; gym_id: string; user_id: string; signed_name: string; signed_role: string | null; signed_email: string; avv_version: string; accepted_at: string; ip_address: string | null; user_agent: string | null; withdrawn_at: string | null; withdrawn_reason: string | null; created_at: string }
+        Insert: { gym_id: string; user_id: string; signed_name: string; signed_email: string; avv_version: string; signed_role?: string | null; ip_address?: string | null; user_agent?: string | null }
+        Update: { withdrawn_at?: string | null; withdrawn_reason?: string | null }
+        Relationships: Rel[]
+      }
       belt_promotions: {
         Row: { id: string; member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; promoted_at: string; notes: string | null }
         Insert: { member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; notes?: string | null }

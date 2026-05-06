@@ -11,6 +11,7 @@ import {
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
 import { readCachedGymId } from './_components/RoleShell'
+import { AVVBanner } from './_components/AVVBanner'
 import type { Belt } from '@/types/database'
 
 interface AttendanceRow   { id: string; checked_in_at: string; class_type: string; member_id: string }
@@ -59,6 +60,7 @@ export default function DashboardPage() {
   const [churnRisk, setChurnRisk]           = useState<ChurnMember[]>([])
   const [signupToken, setSignupToken]       = useState<string | null>(null)
   const [gymSlug, setGymSlug]               = useState<string | null>(null)
+  const [currentGymId, setCurrentGymId]     = useState<string | null>(null)
   const [copiedSignup, setCopiedSignup]     = useState(false)
   const [copiedSlug, setCopiedSlug]         = useState(false)
   const [mounted, setMounted]               = useState(false)
@@ -88,6 +90,7 @@ export default function DashboardPage() {
       }
 
       if (!gymId) { setLoading(false); return }
+      setCurrentGymId(gymId)
 
       const today         = new Date().toISOString().split('T')[0]
       const in30          = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -237,6 +240,9 @@ export default function DashboardPage() {
         </p>
         <h1 suppressHydrationWarning className="text-2xl font-black text-zinc-950 tracking-tight">{greeting}</h1>
       </div>
+
+      {/* AVV-Erinnerung — nur sichtbar, wenn nicht unterzeichnet */}
+      {currentGymId && <AVVBanner gymId={currentGymId} />}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
