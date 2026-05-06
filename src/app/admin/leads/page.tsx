@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import type { SalesLead, SalesActivity, SalesLeadStatus } from '@/types/database'
 import { CallScript } from './_components/CallScript'
 
+const FILTERS_LS_KEY = 'osss-crm-leads-filters-v1'
+
 const STATUSES: { v: SalesLeadStatus; label: string; color: string }[] = [
   { v: 'new',             label: 'Neu',          color: 'bg-zinc-100 text-zinc-700' },
   { v: 'researching',     label: 'Recherche',    color: 'bg-blue-50 text-blue-700' },
@@ -31,7 +33,8 @@ export default function AdminLeadsPage() {
   const [todayCount, setTodayCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
-  // filters
+  // filters — persisted in localStorage so reloads keep the user's selection
+  const [filtersHydrated, setFiltersHydrated] = useState(false)
   const [statusFilter, setStatusFilter] = useState<Set<SalesLeadStatus>>(new Set(['new','researching','contacted','qualified']))
   const [martialOnly, setMartialOnly] = useState(true)
   const [dueOnly, setDueOnly] = useState(false)
@@ -40,6 +43,42 @@ export default function AdminLeadsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [sort, setSort] = useState('priority')
   const [page, setPage] = useState(0)
+
+  // Hydrate filters from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FILTERS_LS_KEY)
+      if (raw) {
+        const f = JSON.parse(raw) as {
+          statusFilter?: SalesLeadStatus[]
+          martialOnly?: boolean
+          dueOnly?: boolean
+          city?: string
+          sort?: string
+        }
+        if (Array.isArray(f.statusFilter)) setStatusFilter(new Set(f.statusFilter))
+        if (typeof f.martialOnly === 'boolean') setMartialOnly(f.martialOnly)
+        if (typeof f.dueOnly === 'boolean') setDueOnly(f.dueOnly)
+        if (typeof f.city === 'string') setCity(f.city)
+        if (typeof f.sort === 'string') setSort(f.sort)
+      }
+    } catch { /* ignore corrupt LS */ }
+    setFiltersHydrated(true)
+  }, [])
+
+  // Persist whenever filters change (after initial hydration)
+  useEffect(() => {
+    if (!filtersHydrated) return
+    try {
+      localStorage.setItem(FILTERS_LS_KEY, JSON.stringify({
+        statusFilter: [...statusFilter],
+        martialOnly,
+        dueOnly,
+        city,
+        sort,
+      }))
+    } catch { /* quota / private mode → ignore */ }
+  }, [filtersHydrated, statusFilter, martialOnly, dueOnly, city, sort])
 
   // panels
   const [selected, setSelected] = useState<SalesLead | null>(null)
@@ -103,9 +142,9 @@ export default function AdminLeadsPage() {
     return () => clearTimeout(t)
   }, [search])
 
-  // load leads
+  // load leads — wait until filters are hydrated from localStorage
   const loadLeads = useCallback(async () => {
-    if (!token) return
+    if (!token || !filtersHydrated) return
     setLoading(true)
     const params = new URLSearchParams()
     if (statusFilter.size > 0) params.set('status', [...statusFilter].join(','))
@@ -131,7 +170,7 @@ export default function AdminLeadsPage() {
     setOverdueCount(data.overdueCount ?? 0)
     setTodayCount(data.todayCount ?? 0)
     setLoading(false)
-  }, [token, statusFilter, martialOnly, dueOnly, city, debouncedSearch, sort, page])
+  }, [token, filtersHydrated, statusFilter, martialOnly, dueOnly, city, debouncedSearch, sort, page])
 
   useEffect(() => { loadLeads() }, [loadLeads])
 
@@ -278,7 +317,25 @@ export default function AdminLeadsPage() {
         {/* Filter sidebar */}
         <aside className="col-span-12 lg:col-span-3 space-y-4">
           <div className="bg-white rounded-xl border border-zinc-200 p-4">
-            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wide mb-3">Status</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Status</h3>
+              <button
+                onClick={() => {
+                  setStatusFilter(new Set(['new','researching','contacted','qualified']))
+                  setMartialOnly(true)
+                  setDueOnly(false)
+                  setCity('')
+                  setSearch('')
+                  setSort('priority')
+                  setPage(0)
+                  try { localStorage.removeItem(FILTERS_LS_KEY) } catch {}
+                }}
+                className="text-[10px] text-zinc-400 hover:text-zinc-700 uppercase tracking-wide"
+                title="Filter auf Defaults zurücksetzen"
+              >
+                Reset
+              </button>
+            </div>
             <div className="space-y-1">
               {STATUSES.map(s => {
                 const checked = statusFilter.has(s.v)
