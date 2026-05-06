@@ -150,47 +150,68 @@ function Opener({ lead, sportHook, cityPart, returning }: { lead: Lead; sportHoo
         </p>
       ) : (
         <>
-          {/* PRIMARY OPENER — eine klare Variante */}
+          {/* PRIMARY OPENER — Story-First, NICHT invasiv */}
           <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-300">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1">
-              🎯 PRIMÄR — Permission + sofortige Diagnose-Frage (Standard)
+              🎯 PRIMÄR · Story-First (sanft, hohe Acceptance)
             </p>
+
+            <p className="text-xs text-emerald-700 font-semibold mb-1">Schritt 1 · Wer du bist (5 Sek):</p>
             <p className="italic text-sm leading-relaxed">
-              „Hi, Lom hier — kurze 30-Sekunden-Frage zu <strong>{lead.name}</strong>{cityPart},
-              fair?"
+              „Hi, Lom hier. Ich rufe gerade Kampfsport-Gyms in DACH durch — <strong>{lead.name}</strong>
+              {cityPart} ist bei mir auf der Liste."
+            </p>
+
+            <p className="text-xs text-emerald-700 font-semibold mt-3 mb-1">Schritt 2 · Permission (5 Sek):</p>
+            <p className="italic text-sm leading-relaxed">
+              „<strong>30 Sekunden, dann legst du auf — fair?</strong>"
+            </p>
+            <p className="text-xs text-emerald-700 mt-1">[Warten auf „ja". Wenn nein → Tschüss.]</p>
+
+            <p className="text-xs text-emerald-700 font-semibold mt-3 mb-1">Schritt 3 · Story-Hook statt direkter Frage (15 Sek):</p>
+            <p className="italic text-sm leading-relaxed">
+              „Ich rede gerade mit vielen Coaches über ein Thema: <strong>Monatsabrechnung</strong>.
+              Die meisten sagen mir: &bdquo;das ist der Tag im Monat den ich am meisten hasse&ldquo;.
+              Bei dir auch ein Thema — <strong>oder hast du das schon gut gelöst?</strong>"
             </p>
             <p className="text-xs text-emerald-700 mt-2">
-              [Warten auf „ja" / „schieß los".]
+              [Er antwortet entspannt, weil er <strong>WAHL</strong> hat: „läuft gut" oder „nervt auch".
+              Kein „geht dich nichts an" — er muss nichts Internes preisgeben.]
             </p>
-            <p className="italic text-sm leading-relaxed mt-2">
-              „Wer macht bei euch eigentlich die Beitragsabrechnung — du selbst oder jemand anderes?"
-            </p>
-            <p className="text-xs text-emerald-700 mt-2 font-semibold">
-              ⚡ <strong>NICHT</strong> „Ich baue Software" sagen. NICHT „Ich frage ob ihr Bedarf habt".
-              Direkt in die <strong>Diagnose-Phase</strong> springen — als wärst du ein Arzt der schon weiß, dass es ein Problem gibt.
+
+            <p className="text-xs text-emerald-800 mt-3 font-semibold border-t border-emerald-200 pt-2">
+              ⚡ Schlüssel: <strong>Du erzählst eine Geschichte</strong> über andere Coaches, du fragst
+              nicht direkt nach IHM. Er kann sich identifizieren oder distanzieren — beides ist OK.
+              Das eliminiert die „Wer bist du eigentlich"-Reaktion.
             </p>
           </div>
 
-          {/* ALTERNATIVE 1 */}
+          {/* ALTERNATIVE 1 — direkter, riskanter */}
           <details className="bg-white rounded-lg border border-amber-200">
             <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Pain-Hook (riskanter, höhere Conversion)
+              Alternative · Pain-Story konkret (riskanter, schneller)
             </summary>
-            <p className="italic text-sm px-3 pb-3 leading-relaxed">
-              „Hi, Lom hier — direkte Frage: <strong>Wie viel Zeit kostet euch der Monatsabschluss
-              aktuell? Stunden oder Tage?</strong> Ehrlich geschätzt."
-            </p>
+            <div className="px-3 pb-3 space-y-2">
+              <p className="italic text-sm leading-relaxed">
+                „Hi, Lom hier. Ich hab gestern mit einem {sportLabel(lead.sports)}-Coach in {lead.city || 'Hamburg'} gesprochen — der
+                verbringt jeden Monatsersten ne ganze Stunde mit Beitrags-Tracking. <strong>Kennst du das,
+                oder läuft das bei euch automatisch?</strong>"
+              </p>
+              <p className="text-xs text-zinc-600">
+                [3rd-Person-Story → keine Defense. Er antwortet automatisch mit seiner Realität.]
+              </p>
+            </div>
           </details>
 
-          {/* ALTERNATIVE 2 */}
+          {/* ALTERNATIVE 2 — am ehrlichsten */}
           <details className="bg-white rounded-lg border border-amber-200">
             <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Honest-Outsider (max. Ehrlichkeit, gut für Skeptiker)
+              Alternative · Honest-Outsider (max. Ehrlichkeit)
             </summary>
             <p className="italic text-sm px-3 pb-3 leading-relaxed">
               „Hi, ich ruf direkt durch — ehrlich: ich rufe bei Kampfsport-Gyms an die ich auf Google
               gefunden habe. Eine einzige Frage, 30 Sekunden, <strong>danach hörst du nie wieder von
-              mir wenn&apos;s nicht passt</strong>."
+              mir wenn&apos;s nicht passt</strong>. Frage: Was nervt dich am meisten an deiner aktuellen Verwaltung?"
             </p>
           </details>
         </>
@@ -567,6 +588,23 @@ function Voicemail({ sportHook, cityPart }: { sportHook: string; cityPart: strin
 }
 
 // ───────────────────────────────────────────────────────────────────────────
+
+// Friendlicher Sport-Label für Story-Hooks ("BJJ-Coach" / "Karate-Coach")
+function sportLabel(sports: string[]): string {
+  const primary = pickPrimarySport(sports)
+  const labels: Record<string, string> = {
+    bjj: 'BJJ',
+    judo: 'Judo',
+    mma: 'MMA',
+    'muay-thai': 'Muay-Thai',
+    kickbox: 'Kickbox',
+    boxen: 'Box',
+    karate: 'Karate',
+    taekwondo: 'Taekwondo',
+    default: 'Kampfsport',
+  }
+  return labels[primary] ?? 'Kampfsport'
+}
 
 function pickPrimarySport(sports: string[]): string {
   if (!sports || sports.length === 0) return 'default'
