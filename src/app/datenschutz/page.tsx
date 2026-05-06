@@ -80,10 +80,11 @@ export default function DatenschutzPage() {
             <h2 className="font-bold text-zinc-900 text-base mb-3">5. Auftragsverarbeiter / Drittanbieter</h2>
             <div className="space-y-3 text-zinc-600">
               {[
-                { name: 'Supabase Inc.', desc: 'Datenbankhosting (USA, EU-Standardvertragsklauseln). supabase.com/privacy' },
-                { name: 'Stripe Inc.',   desc: 'Zahlungsabwicklung (USA, EU-Standardvertragsklauseln, PCI-DSS-zertifiziert). stripe.com/de/privacy' },
-                { name: 'Vercel Inc.',   desc: 'Hosting der Webanwendung (USA, EU-Standardvertragsklauseln). vercel.com/legal/privacy-policy' },
-                { name: 'Resend Inc.',   desc: 'E-Mail-Versand (USA, EU-Standardvertragsklauseln). resend.com/privacy' },
+                { name: 'Supabase Inc.',            desc: 'Datenbankhosting (USA, EU-Standardvertragsklauseln). supabase.com/privacy' },
+                { name: 'Stripe Inc.',              desc: 'Zahlungsabwicklung (USA, EU-Standardvertragsklauseln, PCI-DSS-zertifiziert). stripe.com/de/privacy' },
+                { name: 'Vercel Inc.',              desc: 'Hosting der Webanwendung (USA, EU-Standardvertragsklauseln). vercel.com/legal/privacy-policy' },
+                { name: 'Resend Inc.',              desc: 'E-Mail-Versand (USA, EU-Standardvertragsklauseln). resend.com/privacy' },
+                { name: 'Functional Software, Inc. (Sentry)', desc: 'Anonymes Fehler-Tracking zur Stabilität der Anwendung (USA, EU-Standardvertragsklauseln). Keine Session-Replays, keine PII (E-Mail, IP-Adresse) werden übertragen. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse). sentry.io/privacy/' },
               ].map(p => (
                 <div key={p.name} className="bg-zinc-50 border border-zinc-200 rounded-xl px-5 py-3.5">
                   <p className="font-semibold text-zinc-900 mb-0.5">{p.name}</p>
@@ -122,9 +123,17 @@ export default function DatenschutzPage() {
 
           <section>
             <h2 className="font-bold text-zinc-900 text-base mb-3">8. Cookies und Tracking</h2>
-            <p className="text-zinc-600">
+            <p className="text-zinc-600 mb-3">
               Diese Anwendung verwendet ausschließlich technisch notwendige Session-Cookies zur Authentifizierung.
-              Es werden keine Tracking- oder Marketing-Cookies eingesetzt.
+              Es werden keine Marketing-, Werbe- oder Analyse-Cookies eingesetzt.
+            </p>
+            <p className="text-zinc-600">
+              Zur Stabilität der Anwendung wird <strong className="text-zinc-800">Sentry</strong> eingesetzt — ausschließlich
+              zur Erfassung anonymer Fehler-Reports (JavaScript-Exceptions, Stack-Traces). Es werden{' '}
+              <strong className="text-zinc-800">keine Session-Replays</strong> aufgezeichnet, keine
+              IP-Adresse, E-Mail oder andere personenbezogenen Daten übertragen. Sentry verwendet hierfür{' '}
+              <strong className="text-zinc-800">keine Cookies</strong>. Rechtsgrundlage:
+              Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer stabilen Anwendung).
             </p>
           </section>
 
