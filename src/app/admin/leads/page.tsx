@@ -632,9 +632,16 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
         {/* Quick actions */}
         <div className="grid grid-cols-2 gap-2">
           {lead.phone && (
-            <a href={`tel:${lead.international_phone ?? lead.phone}`}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-xl text-sm">
-              📞 {lead.phone}
+            <PhoneButton
+              displayPhone={lead.phone}
+              dialPhone={lead.international_phone ?? lead.phone}
+            />
+          )}
+          {lead.phone && lead.international_phone && (
+            <a href={`https://wa.me/${lead.international_phone.replace(/\D/g, '')}`}
+              target="_blank" rel="noopener"
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-green-50 hover:bg-green-100 text-green-800 font-semibold rounded-xl text-sm">
+              💬 WhatsApp
             </a>
           )}
           {lead.website && (
@@ -772,6 +779,31 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
         </div>
       </div>
     </div>
+  )
+}
+
+function PhoneButton({ displayPhone, dialPhone }: { displayPhone: string; dialPhone: string }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleClick(e: React.MouseEvent) {
+    // Always copy first — works regardless of macOS Continuity setup
+    try {
+      navigator.clipboard?.writeText(dialPhone).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2200)
+      })
+    } catch { /* fallback to no copy */ }
+    // Don't prevent default — tel: link still tries (works on iPhone, may show
+    // Continuity dialog on macOS — user has choice)
+    e.stopPropagation()
+  }
+
+  return (
+    <a href={`tel:${dialPhone}`} onClick={handleClick}
+      className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-xl text-sm relative"
+      title="Klick: kopiert die Nummer + öffnet Phone-App (auf Mac via iPhone-Continuity)">
+      {copied ? <span>✓ Kopiert</span> : <><span>📞</span><span>{displayPhone}</span></>}
+    </a>
   )
 }
 
