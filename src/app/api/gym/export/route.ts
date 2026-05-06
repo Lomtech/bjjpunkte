@@ -89,18 +89,18 @@ export async function GET(req: Request) {
         'gdpr_consent_at, onboarding_status, consent_ip, consent_user_agent, consent_text,',
         'cancellation_requested_at, cancellation_note, parent_member_id, plan_id, requested_plan_id',
       ].join(' '))
-      .eq('gym_id', gym.id).order('created_at'),
+      .eq('gym_id', gym.id).order('created_at').limit(10000),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     svc.from('classes')
       .select('id, title, class_type, description, instructor, starts_at, ends_at, max_capacity, is_cancelled, recurrence_type, recurrence_until, recurrence_parent_id')
-      .eq('gym_id', gym.id).order('starts_at'),
+      .eq('gym_id', gym.id).order('starts_at').limit(5000),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     svc.from('leads')
       .select('id, first_name, last_name, email, phone, status, source, notes, trial_date, created_at, referred_by, contacted_at, converted_at')
       .eq('gym_id', gym.id).order('created_at').limit(10000),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     svc.from('gym_staff')
-      .select('name, email, role, accepted_at').eq('gym_id', gym.id),
+      .select('name, email, role, accepted_at').eq('gym_id', gym.id).limit(200),
   ])
 
   // ── Build ID → index maps ─────────────────────────────────────────────────

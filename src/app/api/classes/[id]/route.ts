@@ -22,6 +22,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
+  // Defense-in-depth: verify class belongs to the authenticated user's gym
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
+  const gymId = gym.id
+
   const body = await req.json()
 
   // For a recurring series update (future or all), we update multiple rows.
@@ -31,6 +36,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       .from('classes')
       .select('recurrence_parent_id, starts_at')
       .eq('id', id)
+      .eq('gym_id', gymId)
       .single()
 
     const parentId = (cls as { recurrence_parent_id: string | null } | null)?.recurrence_parent_id
@@ -105,6 +111,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     .from('classes')
     .update(updatePayload)
     .eq('id', id)
+    .eq('gym_id', gymId)
     .select()
     .single()
 
@@ -125,9 +132,14 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { data: { user } } = await supabase.auth.getUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
+  // Defense-in-depth: verify class belongs to the authenticated user's gym
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).single()
+  if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
+  const gymId = gym.id
+
   if (scope === 'delete_all' || scope === 'future' || scope === 'all') {
     const { data: cls } = await supabase
-      .from('classes').select('recurrence_parent_id, starts_at').eq('id', id).single()
+      .from('classes').select('recurrence_parent_id, starts_at').eq('id', id).eq('gym_id', gymId).single()
 
     const parentId = (cls as { recurrence_parent_id: string | null } | null)?.recurrence_parent_id
 
@@ -154,9 +166,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   // Default: cancel single occurrence
   const { data: cls } = await supabase
-    .from('classes').select('title, starts_at').eq('id', id).single()
+    .from('classes').select('title, starts_at').eq('id', id).eq('gym_id', gymId).single()
 
-  const { error } = await supabase.from('classes').update({ is_cancelled: true }).eq('id', id)
+  const { error } = await supabase.from('classes').update({ is_cancelled: true }).eq('id', id).eq('gym_id', gymId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Notify all booked members (confirmed + waitlist) about the cancellation

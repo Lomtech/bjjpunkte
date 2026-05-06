@@ -28,6 +28,7 @@ export async function GET(req: Request) {
     .select('id, title, cover_url, blocks, published_at, created_at, updated_at')
     .eq('gym_id', gymId)
     .order('created_at', { ascending: false })
+    .limit(200)
 
   return NextResponse.json(data ?? [])
 }
