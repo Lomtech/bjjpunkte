@@ -4,28 +4,26 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+// DSGVO/TTDSG: Session-Replay zeichnet User-Verhalten auf und braucht
+// Einwilligung nach § 25 TTDSG. Ohne Cookie-Banner: Replay komplett aus.
+// Error-Tracking (ohne Replay) läuft als berechtigtes Interesse weiter.
+// Falls später Replay gewünscht → erst Cookie-Banner einbauen, dann replaysSessionSampleRate aktivieren.
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN ?? "https://d913b462ad939dac84ad766db54e83d0@o4511339861049344.ingest.de.sentry.io/4511339862491216",
 
-  // Add optional integrations for additional features
-  integrations: [Sentry.replayIntegration()],
+  // Performance-Tracing in Production niedriger samplen
+  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
-  // Enable logs to be sent to Sentry
+  // Logs an Sentry senden (errors only, keine PII)
   enableLogs: true,
 
-  // Define how likely Replay events are sampled.
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
+  // Session-Replay aus — siehe Kommentar oben (DSGVO/TTDSG)
+  replaysSessionSampleRate: 0,
+  replaysOnErrorSampleRate: 0,
 
-  // Define how likely Replay events are sampled when an error occurs.
-  replaysOnErrorSampleRate: 1.0,
-
-  // Enable sending user PII (Personally Identifiable Information)
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
+  // Keine PII (Email, IP, etc.) automatisch senden — DSGVO-konform für
+  // anonyme Error-Reports
+  sendDefaultPii: false,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
