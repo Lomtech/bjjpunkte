@@ -150,48 +150,72 @@ function Opener({ lead, sportHook, cityPart, returning, primarySport }: { lead: 
         </p>
       ) : (
         <>
-          {/* PRIMARY OPENER — Lastschrift-Pain, breitester Pain-Coverage 75-85% */}
+          {/* PRIMARY OPENER — Struktur-Frage, NICHT privat (User-Stil) */}
           <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-300">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1">
-              🎯 PRIMÄR · Lastschrift-Pain (75-85% Coverage, direkte 0%-USP-Brücke)
+              🎯 PRIMÄR · Struktur-Frage (nicht privat, binär, öffnet 2 Wege)
             </p>
+
             <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „Hallo, Lom-Ali Imadaev hier. <strong>Kurze Frage</strong>: Ziehen die Beiträge bei euch
-              <strong> automatisch per Lastschrift</strong> ein — oder rennt ihr noch jeden Monat den
-              Mahnungen hinterher?"
+              „Hi, ich bin Lom-Ali Imadaev. <strong>Kurze Frage:</strong> Machst du die
+              Mitgliederverwaltung <strong>allein — oder macht das jemand für dich</strong>?"
             </p>
 
             <div className="text-xs text-emerald-800 mt-3 space-y-1 border-t border-emerald-200 pt-2">
               <p><strong>Warum es wirkt:</strong></p>
-              <p>• Trifft den Cash-Flow-Pain — DAS Business-Problem, nicht Komfort</p>
-              <p>• Coach-Sprache („Mahnung", „Lastschrift") — keiner muss übersetzen</p>
-              <p>• Binäre Frage mit 3 möglichen Wegen — alle führen weiter</p>
-              <p>• Direkte Brücke zur 0%-Plattformgebühr (vs. Eversports 1,5%+)</p>
+              <p>• Frage nach <strong>Struktur</strong>, nicht nach Zahlen → kein Geheimnis</p>
+              <p>• Binäre Antwort → er muss nicht nachdenken, keine Defense</p>
+              <p>• Öffnet automatisch den richtigen Folge-Pfad</p>
+              <p>• Klingt nicht wie Verkäufer, klingt wie ehrliches Interesse</p>
             </div>
 
-            <div className="text-xs text-emerald-700 mt-2 bg-emerald-100/50 rounded p-2 space-y-1.5">
-              <p className="font-semibold mb-1">Antwort-Decision-Tree:</p>
-              <p>→ <strong>„Automatisch / per Lastschrift"</strong> = WARM. Frag: <em>„Cool, mit welchem Tool? Und wie viel Plattformgebühr nehmen die von jedem Beitrag?"</em></p>
-              <p>→ <strong>„Hinterherlaufen / manuell"</strong> = 🔥 HEISS. Frag: <em>„Wie viele Stunden im Monat fressen Mahnungen ungefähr? Und wie viele Mitglieder zahlen aktuell zu spät?"</em></p>
-              <p>→ <strong>„Mischung"</strong> = WARM. Frag: <em>„Wie viel % läuft automatisch?"</em></p>
-              <p>→ <strong>„Wer bist du?"</strong> = Pacing zu schnell. Sag: „Ich bau Software speziell für Kampfsport-Gyms — frag gerade Coaches durch wo&apos;s wehtut, kein Verkauf jetzt."</p>
-              <p>→ <strong>„Geht dich nichts an"</strong> = DQ. „Verstehe, kein Stress. Tschüss." Auflegen.</p>
+            <div className="text-xs text-emerald-700 mt-3 bg-emerald-100/50 rounded p-2 space-y-2">
+              <p className="font-bold text-emerald-900">Folge-Fragen (je nach Antwort):</p>
+
+              <div>
+                <p>→ <strong>„Ich allein"</strong></p>
+                <p className="italic ml-3">&bdquo;Wie viele Stunden kostet dich das so in der Woche?"</p>
+                <p className="ml-3">[Wenn echte Zahl: &bdquo;Was ist so eine Sache, die du besonders ungern machst?"]</p>
+                <p className="ml-3 text-emerald-600">→ Hier kommt der echte Pain raus. ZUHÖREN.</p>
+              </div>
+
+              <div>
+                <p>→ <strong>„Trainer / Mitarbeiter"</strong></p>
+                <p className="italic ml-3">&bdquo;OK, und wie zufrieden bist du damit — läuft das gut, oder gibt&apos;s Reibung?"</p>
+                <p className="ml-3 text-emerald-600">→ Wenn Reibung: Pain. Wenn null Pain: DQ.</p>
+              </div>
+
+              <div>
+                <p>→ <strong>„Steuerberater macht alles"</strong></p>
+                <p className="italic ml-3">&bdquo;Cool — und wie übergibt ihr ihm die Zahlen? Excel, manuell, oder schon automatisch?"</p>
+                <p className="ml-3 text-emerald-600">→ Wenn manuell: DATEV-Wedge perfekt.</p>
+              </div>
+
+              <div>
+                <p>→ <strong>„Wer bist du?"</strong></p>
+                <p className="italic ml-3">&bdquo;Ich bau Software für Kampfsport-Gyms. Frag gerade Coaches durch um zu verstehen wo&apos;s wehtut. Kein Verkauf jetzt — nur Frage."</p>
+              </div>
+
+              <div>
+                <p>→ <strong>„Geht dich nichts an"</strong> = DQ. „Verstehe, kein Stress. Tschüss." Auflegen.</p>
+              </div>
             </div>
           </div>
 
-          {/* ALTERNATIVE 1 — Mahnungs-Direktfrage (höchste Pain-Konkretisierung) */}
+          {/* ALTERNATIVE 1 — Lastschrift-Pain (für vertrauensvollere Calls) */}
           <details className="bg-white rounded-lg border border-amber-200">
             <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Mahnungs-Direktfrage (für maximale Pain-Konkretisierung)
+              Alternative · Lastschrift-Pain (direkter, etwas privater)
             </summary>
             <div className="px-3 pb-3 space-y-2 text-sm">
               <p className="italic">
-                „Hallo, Lom-Ali Imadaev hier. Kurze Frage: <strong>Wie viele Mitglieder hast du gerade,
-                die noch nicht für diesen Monat gezahlt haben — und denen du hinterherlaufen musst?</strong>"
+                „Hallo, Lom-Ali Imadaev hier. Kurze Frage: <strong>Ziehen die Beiträge bei euch
+                automatisch per Lastschrift ein — oder rennt ihr noch jeden Monat den Mahnungen
+                hinterher?</strong>"
               </p>
               <p className="text-xs text-zinc-600">
-                → Wenn er eine konkrete Zahl nennt (&bdquo;5", &bdquo;10"): &bdquo;Wie viel Zeit kostet dich das pro Mahnung
-                ungefähr — Anruf, Mail schreiben, drüber nachdenken?"
+                → Direkter Cash-Flow-Pain. Manche Coaches finden das ein bisschen privat, aber wer
+                offen antwortet, ist heißer Lead.
               </p>
             </div>
           </details>
