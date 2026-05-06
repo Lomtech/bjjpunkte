@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { SalesLead, SalesActivity, SalesLeadStatus } from '@/types/database'
 import { CallScript } from './_components/CallScript'
@@ -485,6 +485,24 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
   const [activityOutcome, setActivityOutcome] = useState<string>('')
   const [activityBody, setActivityBody] = useState('')
 
+  // Auto-grow notes textarea — always show full content without scroll
+  const notesRef = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = notesRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [notes])
+
+  // Same auto-grow for the activity body textarea
+  const activityRef = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = activityRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.max(el.scrollHeight, 72)}px`
+  }, [activityBody])
+
   useEffect(() => { setNotes(lead.notes ?? '') }, [lead.id, lead.notes])
 
   function handleNotesBlur() {
@@ -571,12 +589,14 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
             className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" />
         </label>
 
-        {/* Notes */}
+        {/* Notes — auto-grows with content, no scroll needed */}
         <label className="block">
           <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Notizen</span>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} onBlur={handleNotesBlur} rows={4}
+          <textarea ref={notesRef}
+            value={notes} onChange={e => setNotes(e.target.value)} onBlur={handleNotesBlur}
             placeholder="Was hast du erfahren? Wer ist Ansprechpartner? …"
-            className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" />
+            style={{ minHeight: '96px' }}
+            className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm resize-none overflow-hidden" />
         </label>
 
         {/* Cold-Call Script */}
@@ -615,9 +635,11 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
               <option value="wrong_number">Falsche Nummer</option>
             </select>
           )}
-          <textarea value={activityBody} onChange={e => setActivityBody(e.target.value)} rows={3}
+          <textarea ref={activityRef}
+            value={activityBody} onChange={e => setActivityBody(e.target.value)}
             placeholder={activityKind === 'call' ? 'Was wurde besprochen?' : activityKind === 'email' ? 'Worum ging\'s?' : 'Notiz …'}
-            className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white" />
+            style={{ minHeight: '72px' }}
+            className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white resize-none overflow-hidden" />
           <button onClick={handleAddActivity}
             className="w-full px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-semibold rounded-lg">
             Loggen
