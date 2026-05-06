@@ -1137,6 +1137,38 @@ function QuotaBadge({ quota }: { quota: {
   )
 }
 
+// Render markdown-style image links + bare image URLs as <img> tags.
+// Supports:
+//   ![alt](https://...png)
+//   https://example.com/foo.png
+// Anything else stays as plain text. Lazy-loaded so 50 images don't kill mobile.
+function renderActivityBody(body: string): React.ReactNode[] {
+  const out: React.ReactNode[] = []
+  // Splits on either markdown image syntax or bare image URL
+  const re = /(!\[[^\]]*\]\((https?:\/\/[^\s)]+)\))|(https?:\/\/\S+\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?\S*)?)/gi
+  let lastIdx = 0
+  let match: RegExpExecArray | null
+  let key = 0
+  while ((match = re.exec(body)) !== null) {
+    if (match.index > lastIdx) {
+      out.push(<span key={`t-${key++}`}>{body.slice(lastIdx, match.index)}</span>)
+    }
+    const url = match[2] ?? match[3]
+    out.push(
+      <a key={`i-${key++}`} href={url} target="_blank" rel="noopener" className="block my-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="" loading="lazy"
+          className="max-w-full max-h-72 rounded-lg border border-zinc-200 bg-zinc-50 object-contain" />
+      </a>
+    )
+    lastIdx = match.index + match[0].length
+  }
+  if (lastIdx < body.length) {
+    out.push(<span key={`t-${key++}`}>{body.slice(lastIdx)}</span>)
+  }
+  return out
+}
+
 function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
   activity: SalesActivity
   leadId: string
@@ -1263,7 +1295,11 @@ function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
             </div>
           )}
         </div>
-        {activity.body && <p className="text-zinc-600 mt-0.5 whitespace-pre-wrap break-words">{activity.body}</p>}
+        {activity.body && (
+          <div className="text-zinc-600 mt-0.5 whitespace-pre-wrap break-words">
+            {renderActivityBody(activity.body)}
+          </div>
+        )}
         <p className="text-xs text-zinc-400 mt-0.5">{new Date(activity.occurred_at).toLocaleString('de-DE')}</p>
       </div>
     </li>
