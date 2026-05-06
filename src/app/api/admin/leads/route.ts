@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 // GET /api/admin/leads
 //   ?status=new,contacted&city=München&martial=true&search=foo&page=0&pageSize=50
 //   &sort=priority|next_followup|created|updated|name (default: priority)
+//   &due=true   → only follow-ups due today or earlier
 export async function GET(req: Request) {
   const auth = await requireAdmin(req)
   if ('error' in auth) return auth.error
@@ -16,6 +17,7 @@ export async function GET(req: Request) {
   const city      = url.searchParams.get('city')
   const martial   = url.searchParams.get('martial')
   const search    = url.searchParams.get('search')?.trim()
+  const due       = url.searchParams.get('due')
   const page      = Math.max(0, parseInt(url.searchParams.get('page') ?? '0', 10) || 0)
   const pageSize  = Math.min(200, Math.max(10, parseInt(url.searchParams.get('pageSize') ?? '50', 10) || 50))
   const sort      = url.searchParams.get('sort') ?? 'priority'
@@ -31,6 +33,11 @@ export async function GET(req: Request) {
   if (city)    q = q.ilike('city', `%${city}%`)
   if (martial === 'true')  q = q.eq('is_martial_arts', true)
   if (martial === 'false') q = q.eq('is_martial_arts', false)
+  if (due === 'true') {
+    const endOfToday = new Date()
+    endOfToday.setHours(23, 59, 59, 999)
+    q = q.not('next_followup_at', 'is', null).lte('next_followup_at', endOfToday.toISOString())
+  }
   if (search) {
     const safe = search.replace(/[%,]/g, '')
     q = q.or(`name.ilike.%${safe}%,formatted_address.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`)
@@ -54,10 +61,22 @@ export async function GET(req: Request) {
   // Stats
   const { data: stats } = await supabase
     .from('sales_leads')
-    .select('status', { count: 'exact', head: false })
+    .select('status, next_followup_at')
+    .limit(10000)
   const statusCounts: Record<string, number> = {}
-  for (const r of (stats ?? []) as Array<{ status: string }>) {
+  let overdueCount = 0
+  let todayCount = 0
+  const now = Date.now()
+  const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999)
+  const endOfTodayMs = endOfToday.getTime()
+
+  for (const r of (stats ?? []) as Array<{ status: string; next_followup_at: string | null }>) {
     statusCounts[r.status] = (statusCounts[r.status] ?? 0) + 1
+    if (r.next_followup_at) {
+      const t = new Date(r.next_followup_at).getTime()
+      if (t <= now) overdueCount++
+      else if (t <= endOfTodayMs) todayCount++
+    }
   }
 
   return NextResponse.json({
@@ -66,6 +85,8 @@ export async function GET(req: Request) {
     page,
     pageSize,
     statusCounts,
+    overdueCount,
+    todayCount,
   })
 }
 

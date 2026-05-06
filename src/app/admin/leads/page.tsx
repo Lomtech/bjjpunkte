@@ -27,11 +27,14 @@ export default function AdminLeadsPage() {
   const [leads, setLeads] = useState<SalesLead[]>([])
   const [total, setTotal] = useState(0)
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
+  const [overdueCount, setOverdueCount] = useState(0)
+  const [todayCount, setTodayCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   // filters
   const [statusFilter, setStatusFilter] = useState<Set<SalesLeadStatus>>(new Set(['new','researching','contacted','qualified']))
   const [martialOnly, setMartialOnly] = useState(true)
+  const [dueOnly, setDueOnly] = useState(false)
   const [city, setCity] = useState('')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -107,9 +110,10 @@ export default function AdminLeadsPage() {
     const params = new URLSearchParams()
     if (statusFilter.size > 0) params.set('status', [...statusFilter].join(','))
     if (martialOnly) params.set('martial', 'true')
+    if (dueOnly) params.set('due', 'true')
     if (city.trim()) params.set('city', city.trim())
     if (debouncedSearch) params.set('search', debouncedSearch)
-    params.set('sort', sort)
+    params.set('sort', dueOnly ? 'next_followup' : sort)
     params.set('page', String(page))
     params.set('pageSize', '50')
 
@@ -124,8 +128,10 @@ export default function AdminLeadsPage() {
     setLeads(data.leads ?? [])
     setTotal(data.total ?? 0)
     setStatusCounts(data.statusCounts ?? {})
+    setOverdueCount(data.overdueCount ?? 0)
+    setTodayCount(data.todayCount ?? 0)
     setLoading(false)
-  }, [token, statusFilter, martialOnly, city, debouncedSearch, sort, page])
+  }, [token, statusFilter, martialOnly, dueOnly, city, debouncedSearch, sort, page])
 
   useEffect(() => { loadLeads() }, [loadLeads])
 
@@ -244,6 +250,30 @@ export default function AdminLeadsPage() {
         </div>
       </header>
 
+      {/* Follow-up alert banner */}
+      {(overdueCount > 0 || todayCount > 0) && !dueOnly && (
+        <div className="max-w-[1600px] mx-auto px-6 pt-4">
+          <button onClick={() => { setDueOnly(true); setPage(0) }}
+            className={`w-full text-left rounded-xl border p-4 transition hover:scale-[1.005] ${
+              overdueCount > 0
+                ? 'bg-rose-50 border-rose-200 hover:bg-rose-100'
+                : 'bg-amber-50 border-amber-200 hover:bg-amber-100'
+            }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-sm font-bold ${overdueCount > 0 ? 'text-rose-900' : 'text-amber-900'}`}>
+                  {overdueCount > 0 && <>🔴 <strong>{overdueCount}</strong> überfällig{overdueCount === 1 ? '' : 'e'} Follow-up{overdueCount === 1 ? '' : 's'}</>}
+                  {overdueCount > 0 && todayCount > 0 && ' · '}
+                  {todayCount > 0 && <>📞 <strong>{todayCount}</strong> heute fällig</>}
+                </div>
+                <div className="text-xs text-zinc-600 mt-0.5">Klick → nur fällige anzeigen. Erinnerungs-E-Mails laufen stündlich.</div>
+              </div>
+              <span className="text-xl">→</span>
+            </div>
+          </button>
+        </div>
+      )}
+
       <div className="max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-12 gap-6">
         {/* Filter sidebar */}
         <aside className="col-span-12 lg:col-span-3 space-y-4">
@@ -271,6 +301,17 @@ export default function AdminLeadsPage() {
           </div>
 
           <div className="bg-white rounded-xl border border-zinc-200 p-4 space-y-3">
+            <label className="flex items-center justify-between gap-2 text-sm">
+              <span className="flex items-center gap-2">
+                <input type="checkbox" checked={dueOnly} onChange={e => { setDueOnly(e.target.checked); setPage(0) }} />
+                <span>Nur fällige Follow-ups</span>
+              </span>
+              {(overdueCount + todayCount) > 0 && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${overdueCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {overdueCount + todayCount}
+                </span>
+              )}
+            </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={martialOnly} onChange={e => { setMartialOnly(e.target.checked); setPage(0) }} />
               <span>Nur Kampfsport-Studios</span>

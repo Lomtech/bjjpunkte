@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/birthday",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/sales-followups",
+      "schedule": "0 * * * *"
     }
   ],
   "functions": {
@@ -16,6 +20,9 @@
     },
     "src/app/api/cron/birthday/route.ts": {
       "maxDuration": 120
+    },
+    "src/app/api/cron/sales-followups/route.ts": {
+      "maxDuration": 60
     },
     "src/app/api/gym/import/route.ts": {
       "maxDuration": 60
