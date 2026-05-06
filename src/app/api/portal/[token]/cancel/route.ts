@@ -6,6 +6,8 @@ import { notifyGym } from '@/lib/notify'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { getAppUrl } from '@/lib/app-url'
 
+export const runtime = 'nodejs'
+
 /** Escape HTML special chars to prevent XSS in email templates. */
 function escHtml(s: string): string {
   return s
