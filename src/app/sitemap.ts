@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
+import { ARTICLES_SORTED } from '@/lib/blog'
 
 const BASE_URL = 'https://www.osss.pro'
 
@@ -20,12 +21,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`,            lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
     { url: `${BASE_URL}/pricing`,     lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${BASE_URL}/blog`,        lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE_URL}/register`,    lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE_URL}/login`,       lastModified: now, changeFrequency: 'yearly',  priority: 0.4 },
     { url: `${BASE_URL}/datenschutz`, lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
     { url: `${BASE_URL}/impressum`,   lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
     { url: `${BASE_URL}/agb`,         lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
   ]
+
+  // Blog-Artikel — jeder Artikel ist eine SEO-Chance
+  const blogPages: MetadataRoute.Sitemap = ARTICLES_SORTED.map(a => ({
+    url: `${BASE_URL}/blog/${a.slug}`,
+    lastModified: new Date(a.updatedAt),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }))
 
   // Public Gym-Pages — alle Gyms mit abgeschlossenem Onboarding
   // Jedes Gym ist eine Long-Tail SEO-Chance ("BJJ in Hamburg", "Karate Köln", etc.)
@@ -50,5 +59,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Bei DB-Fehler trotzdem statische Sitemap ausliefern — besser als 500
   }
 
-  return [...staticPages, ...gymPages]
+  return [...staticPages, ...blogPages, ...gymPages]
 }

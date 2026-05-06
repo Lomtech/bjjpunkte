@@ -215,6 +215,7 @@ export default function Home() {
           <OsssLogo variant="dark" />
           <div className="flex items-center gap-6">
             <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
+            <Link href="/blog" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Blog</Link>
             <a href="mailto:oss@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</a>
             <LanguageSwitcher variant="minimal" />
             {checked && (loggedIn
@@ -271,10 +272,12 @@ export default function Home() {
         >
           <Image
             src="/tournament-podium.jpg"
-            alt="Wettkampf Siegerehrung"
+            alt="Kampfsport-Wettkampf Siegerehrung"
             fill
+            sizes="100vw"
             className="object-cover object-top"
             priority
+            fetchPriority="high"
           />
           {/* Dissolve gradient — top clear, bottom melts into white */}
           <div className="absolute inset-0" style={{
@@ -400,8 +403,10 @@ export default function Home() {
                 alt="Osss Dashboard — Mitgliederverwaltung, Zahlungen, Belt-Verteilung"
                 width={1796}
                 height={876}
+                sizes="(max-width: 1024px) 0vw, 50vw"
                 className="w-full"
                 priority
+                fetchPriority="high"
               />
             </div>
 
@@ -422,6 +427,7 @@ export default function Home() {
                   alt="Athleten auf dem Siegerpodest"
                   width={800}
                   height={600}
+                  sizes="(max-width: 1024px) 0vw, 25vw"
                   className="w-full object-cover object-top"
                 />
                 {/* Subtle amber overlay at bottom */}
@@ -471,7 +477,7 @@ export default function Home() {
             fill sizes="100vw"
             className="object-cover brightness-[0.88]"
             style={{ objectPosition: 'center 15%' }}
-            priority
+            loading="lazy"
           />
         </motion.div>
 
@@ -555,10 +561,12 @@ export default function Home() {
             </div>
             <Image
               src="/screenshot_betrieb.png"
-              alt="Osss Dashboard"
+              alt="Osss Dashboard mit Mitgliedern, Beiträgen und Belt-Verteilung"
               width={1796}
               height={876}
+              sizes="(max-width: 1024px) 90vw, 1024px"
               className="w-full"
+              loading="lazy"
             />
           </motion.div>
         </div>
@@ -765,7 +773,7 @@ export default function Home() {
               </motion.ul>
             </div>
             <motion.div variants={fadeUp} className="rounded-2xl overflow-hidden border border-zinc-200 shadow-xl shadow-zinc-200/60">
-              <Image src="/screenshot_stundenplan.png" alt="Stundenplan" width={2912} height={896} className="w-full" />
+              <Image src="/screenshot_stundenplan.png" alt="Wochenstundenplan mit Klassen-Buchungen" width={2912} height={896} sizes="(max-width: 768px) 90vw, 50vw" loading="lazy" className="w-full" />
             </motion.div>
           </div>
         </div>
@@ -1029,7 +1037,7 @@ export default function Home() {
             <div>
               <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">{lang === 'en' ? 'Product' : 'Produkt'}</p>
               <ul className="space-y-3">
-                {(lang === 'en' ? [{ label: 'Pricing', href: '/pricing' }, { label: 'Log in', href: '/login' }, { label: 'Register', href: '/register' }] : [{ label: 'Preise', href: '/pricing' }, { label: 'Anmelden', href: '/login' }, { label: 'Registrieren', href: '/register' }]).map(l => (
+                {(lang === 'en' ? [{ label: 'Pricing', href: '/pricing' }, { label: 'Blog', href: '/blog' }, { label: 'Log in', href: '/login' }, { label: 'Register', href: '/register' }] : [{ label: 'Preise', href: '/pricing' }, { label: 'Blog', href: '/blog' }, { label: 'Anmelden', href: '/login' }, { label: 'Registrieren', href: '/register' }]).map(l => (
                   <li key={l.label}><Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">{l.label}</Link></li>
                 ))}
               </ul>

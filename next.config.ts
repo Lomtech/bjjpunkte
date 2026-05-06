@@ -33,6 +33,12 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   images: {
+    // AVIF (~50% kleiner als WebP) > WebP (~30% kleiner als PNG/JPG) > Original.
+    // Next.js wählt automatisch das beste Format für den Browser.
+    formats: ['image/avif', 'image/webp'],
+    // Cache optimierte Bilder lange im CDN — Bilder ändern sich selten,
+    // bei Re-Deploy bekommen sie neue Hashes.
+    minimumCacheTTL: 60 * 60 * 24 * 365,
     remotePatterns: [
       {
         protocol: 'https',
@@ -40,6 +46,12 @@ const nextConfig: NextConfig = {
         pathname: '/storage/v1/object/public/**',
       },
     ],
+  },
+
+  // Reduziert JS-Bundle-Größe — wichtig für Core Web Vitals (LCP, INP).
+  // Next.js wandelt Wildcard-Imports in Tree-shake-fähige Imports um.
+  experimental: {
+    optimizePackageImports: ['framer-motion', 'lucide-react'],
   },
 
   async headers() {
