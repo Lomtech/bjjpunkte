@@ -6,13 +6,16 @@ import { getAppUrl } from '@/lib/app-url'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-// Cron: stündlich
+// Cron: täglich 7:00 UTC = 8:00/9:00 MEZ
+// (Vercel Hobby-Plan erlaubt nur 1× pro Tag — für stündliche Erinnerungen
+//  müsste man auf Pro Plan upgraden oder externen Cron-Service nutzen)
+//
 // Findet alle sales_leads bei denen:
 //   - next_followup_at <= jetzt + LOOKAHEAD_HOURS
 //   - followup_reminded_at IS NULL
 // Schickt eine zusammengefasste Erinnerungs-Email an alle ADMIN_EMAILS.
 // Markiert die Leads als reminded.
-const LOOKAHEAD_HOURS = 24 // remind 24h before — also today's + tomorrow's-morning
+const LOOKAHEAD_HOURS = 36 // 36h-Fenster: heute + morgen früh in einer Morgen-Mail
 
 type LeadRow = {
   id: string
