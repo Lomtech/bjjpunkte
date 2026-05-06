@@ -67,7 +67,7 @@ export function CallScript({ lead }: { lead: Lead }) {
           {/* Phase content */}
           <div className="bg-white border border-amber-200 rounded-lg p-3 text-sm leading-relaxed text-zinc-800 space-y-3">
             {phase === 'mindset'    && <Mindset />}
-            {phase === 'opener'     && <Opener  lead={lead} sportHook={sportHook} cityPart={cityPart} returning={isReturningCall} />}
+            {phase === 'opener'     && <Opener  lead={lead} sportHook={sportHook} cityPart={cityPart} returning={isReturningCall} primarySport={primarySport} />}
             {phase === 'discovery'  && <Discovery lead={lead} primarySport={primarySport} />}
             {phase === 'pitch'      && <Pitch lead={lead} primarySport={primarySport} />}
             {phase === 'objections' && <Objections />}
@@ -135,7 +135,7 @@ function Mindset() {
   )
 }
 
-function Opener({ lead, sportHook, cityPart, returning }: { lead: Lead; sportHook: string; cityPart: string; returning: boolean }) {
+function Opener({ lead, sportHook, cityPart, returning, primarySport }: { lead: Lead; sportHook: string; cityPart: string; returning: boolean; primarySport: string }) {
   void sportHook
   return (
     <>
@@ -150,32 +150,89 @@ function Opener({ lead, sportHook, cityPart, returning }: { lead: Lead; sportHoo
         </p>
       ) : (
         <>
-          {/* PRIMARY OPENER — kurz, direkt, Pain-Hook ohne Schwurbelei */}
+          {/* PRIMARY OPENER — Lastschrift-Pain, breitester Pain-Coverage 75-85% */}
           <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-300">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1">
-              🎯 PRIMÄR · Direkt-Pain-Hook (10 Sek, brutal kurz)
+              🎯 PRIMÄR · Lastschrift-Pain (75-85% Coverage, direkte 0%-USP-Brücke)
             </p>
             <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „Hallo, Lom-Ali Imadaev hier. <strong>Kurze Frage</strong>: Wie viele Stunden gehen bei
-              dir aktuell für die <strong>Monatsabrechnung</strong> drauf?"
+              „Hallo, Lom-Ali Imadaev hier. <strong>Kurze Frage</strong>: Ziehen die Beiträge bei euch
+              <strong> automatisch per Lastschrift</strong> ein — oder rennt ihr noch jeden Monat den
+              Mahnungen hinterher?"
             </p>
+
             <div className="text-xs text-emerald-800 mt-3 space-y-1 border-t border-emerald-200 pt-2">
               <p><strong>Warum es wirkt:</strong></p>
-              <p>• Voller Name = seriös, nicht wie Telemarketer</p>
-              <p>• &bdquo;Kurze Frage" = Pacing-Signal: er weiß, das wird nicht 10 Min</p>
-              <p>• Konkrete Zahl-Frage = er muss <em>nachdenken</em>, nicht abwehren</p>
-              <p>• Pattern-Interrupt: niemand erwartet so Direktheit</p>
+              <p>• Trifft den Cash-Flow-Pain — DAS Business-Problem, nicht Komfort</p>
+              <p>• Coach-Sprache („Mahnung", „Lastschrift") — keiner muss übersetzen</p>
+              <p>• Binäre Frage mit 3 möglichen Wegen — alle führen weiter</p>
+              <p>• Direkte Brücke zur 0%-Plattformgebühr (vs. Eversports 1,5%+)</p>
             </div>
-            <div className="text-xs text-emerald-700 mt-2 bg-emerald-100/50 rounded p-2">
-              <p className="font-semibold mb-1">Mögliche Antworten + Reaktion:</p>
-              <p>→ <strong>Konkrete Zahl</strong> („3-4 Stunden") = HEISS. Ab in Diagnose-Frage 2.</p>
-              <p>→ <strong>„Mache ich gar nicht selbst"</strong> = WARM. Frag: „Wer macht&apos;s?"</p>
-              <p>→ <strong>„Wer bist du?"</strong> = Pacing zu schnell. Sag: „Ich bau Software für Kampfsport-Gyms — frag aber gerade Coaches durch um zu verstehen wo&apos;s wehtut."</p>
-              <p>→ <strong>„Geht dich nichts an"</strong> = DQ. Sag: „Verstehe, kein Stress. Tschüss." Auflegen.</p>
+
+            <div className="text-xs text-emerald-700 mt-2 bg-emerald-100/50 rounded p-2 space-y-1.5">
+              <p className="font-semibold mb-1">Antwort-Decision-Tree:</p>
+              <p>→ <strong>„Automatisch / per Lastschrift"</strong> = WARM. Frag: <em>„Cool, mit welchem Tool? Und wie viel Plattformgebühr nehmen die von jedem Beitrag?"</em></p>
+              <p>→ <strong>„Hinterherlaufen / manuell"</strong> = 🔥 HEISS. Frag: <em>„Wie viele Stunden im Monat fressen Mahnungen ungefähr? Und wie viele Mitglieder zahlen aktuell zu spät?"</em></p>
+              <p>→ <strong>„Mischung"</strong> = WARM. Frag: <em>„Wie viel % läuft automatisch?"</em></p>
+              <p>→ <strong>„Wer bist du?"</strong> = Pacing zu schnell. Sag: „Ich bau Software speziell für Kampfsport-Gyms — frag gerade Coaches durch wo&apos;s wehtut, kein Verkauf jetzt."</p>
+              <p>→ <strong>„Geht dich nichts an"</strong> = DQ. „Verstehe, kein Stress. Tschüss." Auflegen.</p>
             </div>
           </div>
 
-          {/* ALTERNATIVE 1 — Story-First (sanfter, für Skeptiker) */}
+          {/* ALTERNATIVE 1 — Mahnungs-Direktfrage (höchste Pain-Konkretisierung) */}
+          <details className="bg-white rounded-lg border border-amber-200">
+            <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+              Alternative · Mahnungs-Direktfrage (für maximale Pain-Konkretisierung)
+            </summary>
+            <div className="px-3 pb-3 space-y-2 text-sm">
+              <p className="italic">
+                „Hallo, Lom-Ali Imadaev hier. Kurze Frage: <strong>Wie viele Mitglieder hast du gerade,
+                die noch nicht für diesen Monat gezahlt haben — und denen du hinterherlaufen musst?</strong>"
+              </p>
+              <p className="text-xs text-zinc-600">
+                → Wenn er eine konkrete Zahl nennt (&bdquo;5", &bdquo;10"): &bdquo;Wie viel Zeit kostet dich das pro Mahnung
+                ungefähr — Anruf, Mail schreiben, drüber nachdenken?"
+              </p>
+            </div>
+          </details>
+
+          {/* ALTERNATIVE 2 — Probetraining-Funnel (für wachsende Gyms) */}
+          <details className="bg-white rounded-lg border border-amber-200">
+            <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+              Alternative · Probetraining-Funnel (für wachsende Gyms, Insta/WhatsApp-Coaches)
+            </summary>
+            <div className="px-3 pb-3 space-y-2 text-sm">
+              <p className="italic">
+                „Hallo, Lom-Ali Imadaev hier. Kurze Frage: <strong>Wenn jemand auf Insta oder WhatsApp
+                ein Probetraining anfragt — wo landet das? Und wie hältst du den Überblick, wer schon da
+                war und wer nicht?</strong>"
+              </p>
+              <p className="text-xs text-zinc-600">
+                → Stark für Gyms mit Wachstumsambition. Schwach für stagnierende kleine Vereine.
+              </p>
+            </div>
+          </details>
+
+          {/* ALTERNATIVE 3 — Belt-Tracking (sport-spezifisch BJJ/Judo/Karate/TKD) */}
+          {(primarySport === 'bjj' || primarySport === 'judo' || primarySport === 'karate' || primarySport === 'taekwondo') && (
+            <details className="bg-white rounded-lg border border-amber-200">
+              <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                Alternative · Belt-Pain ({sportLabel(lead.sports)}-spezifisch, sehr emotional)
+              </summary>
+              <div className="px-3 pb-3 space-y-2 text-sm">
+                <p className="italic">
+                  „Hallo, Lom-Ali Imadaev hier. Kurze Frage: <strong>Wie tracked ihr eigentlich die
+                  Belt-Promotions — Excel, Whiteboard, oder im Kopf?</strong> Und wisst ihr immer genau, wer
+                  wann den letzten Streifen bekommen hat?"
+                </p>
+                <p className="text-xs text-zinc-600">
+                  → Sehr emotionaler Pain im {sportLabel(lead.sports)}. Lokomotive für Belt-Tracking-USP.
+                </p>
+              </div>
+            </details>
+          )}
+
+          {/* ALTERNATIVE 4 — Story-First (für skeptische Boomer-Coaches) */}
           <details className="bg-white rounded-lg border border-amber-200">
             <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
               Alternative · Story-First (sanfter, für skeptische Boomer-Coaches)
@@ -186,34 +243,11 @@ function Opener({ lead, sportHook, cityPart, returning }: { lead: Lead; sportHoo
                 {cityPart} ist bei mir auf der Liste. 30 Sekunden, dann legst du auf — fair?"
               </p>
               <p className="italic">
-                [Auf „ja" warten.] „Ich rede gerade mit vielen Coaches über die Monatsabrechnung. Die meisten
-                sagen mir &bdquo;das ist der Tag den ich hasse&ldquo;. Bei dir auch ein Thema — oder schon gut gelöst?"
+                [Auf „ja" warten.] „Ich rede gerade mit vielen Coaches über Beitragseinzug. Die meisten sagen
+                mir &bdquo;Mahnungen schreiben ist der Tag den ich am meisten hasse&ldquo;. Bei dir auch ein
+                Thema — oder schon gut gelöst?"
               </p>
             </div>
-          </details>
-
-          {/* ALTERNATIVE 2 — 3rd-Person-Story */}
-          <details className="bg-white rounded-lg border border-amber-200">
-            <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · 3rd-Person-Story (indirekt, für Defensive)
-            </summary>
-            <p className="italic text-sm px-3 pb-3 leading-relaxed">
-              „Hi, Lom hier. Ich hab gestern mit einem {sportLabel(lead.sports)}-Coach in {lead.city || 'Hamburg'}
-              gesprochen — der verbringt jeden Monatsersten ne ganze Stunde mit Beitrags-Tracking.
-              <strong> Kennst du das, oder läuft das bei euch automatisch?</strong>"
-            </p>
-          </details>
-
-          {/* ALTERNATIVE 3 — Honest-Outsider */}
-          <details className="bg-white rounded-lg border border-amber-200">
-            <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Honest-Outsider (maximale Ehrlichkeit)
-            </summary>
-            <p className="italic text-sm px-3 pb-3 leading-relaxed">
-              „Hi, ich ruf direkt durch — ehrlich: ich rufe bei Kampfsport-Gyms an die ich auf Google
-              gefunden habe. Eine einzige Frage, 30 Sekunden, <strong>danach hörst du nie wieder von
-              mir wenn&apos;s nicht passt</strong>. Frage: Was nervt dich am meisten an deiner aktuellen Verwaltung?"
-            </p>
           </details>
         </>
       )}
