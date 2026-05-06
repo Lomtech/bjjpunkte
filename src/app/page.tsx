@@ -46,7 +46,7 @@ const SPORT_FEATURES: Record<SportId, { title: string; items: string[] }> = {
 
 const PAIN_POINTS = [
   { icon: FileSpreadsheet, title: 'Excel & WhatsApp',   desc: 'Mitgliederlisten in Tabellen, Zahlungserinnerungen per Chat — fehleranfällig, zeitaufwändig, nicht skalierbar.' },
-  { icon: Globe,           title: 'US-Tools für €200+', desc: 'Mindbody, Glofox & Co. — auf Englisch, ohne deutsches Rechnungswesen und ohne DSGVO-Compliance.' },
+  { icon: Globe,           title: 'Internationale Tools', desc: 'Mindbody, Glofox & Co. — englische UI, kein DATEV-Export, kein deutsches Rechnungs-Layout.' },
   { icon: FileEdit,        title: 'Rechnungen manuell', desc: 'Jeden Monat Rechnungen per Hand — besonders als Kleinunternehmer ein bürokratischer Albtraum.' },
 ]
 
@@ -159,7 +159,7 @@ export default function Home() {
 
   const PAIN_POINTS_DATA = lang === 'en' ? [
     { icon: FileSpreadsheet, title: 'Excel & WhatsApp',  desc: 'Member lists in spreadsheets, payment reminders via chat — error-prone, time-consuming, not scalable.' },
-    { icon: Globe,           title: 'US tools for €200+', desc: 'Mindbody, Glofox & co. — in English, without German invoicing or GDPR compliance.' },
+    { icon: Globe,           title: 'International tools', desc: 'Mindbody, Glofox & co. — English-only UI, no DATEV export, no German invoice layout.' },
     { icon: FileEdit,        title: 'Manual invoicing',   desc: 'Creating invoices by hand every month — a bureaucratic nightmare, especially for small businesses.' },
   ] : PAIN_POINTS
 
