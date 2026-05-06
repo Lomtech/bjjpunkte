@@ -44,13 +44,11 @@ export async function POST(req: Request) {
 
   // ── Step 1: Cache lookup ─────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cacheLookup: any = supabase
-    .from('sales_search_history')
+  const { data: lastRuns } = await (supabase.from('sales_search_history') as any)
     .select('*')
     .ilike('query', queryLower)
     .order('ran_at', { ascending: false })
     .limit(1)
-  const { data: lastRuns } = await cacheLookup
   const lastRun = (lastRuns ?? [])[0] as {
     ran_at: string; result_count: number; inserted_count: number;
     updated_count: number; bias_lat: number | null; bias_lng: number | null; bias_radius: number | null;
