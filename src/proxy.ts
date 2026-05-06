@@ -2,37 +2,43 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Redis-based rate limiting (Upstash) with in-memory fallback
-let ratelimiter: { limit: (key: string) => Promise<{ success: boolean }> } | null = null
+type Limiter = { limit: (key: string) => Promise<{ success: boolean }> }
+let ratelimiter: Limiter | null = null
+let ratelimiterPromise: Promise<Limiter> | null = null
 
-function getRatelimiter() {
+async function getRatelimiter(): Promise<Limiter> {
   if (ratelimiter) return ratelimiter
+  if (ratelimiterPromise) return ratelimiterPromise
 
   const url = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
 
-  if (url && token) {
-    // Dynamic import to avoid build errors when package not installed
+  if (!url || !token) {
+    ratelimiter = createInMemoryLimiter()
+    return ratelimiter
+  }
+
+  // Edge runtime forbids require(); use dynamic ESM import.
+  ratelimiterPromise = (async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Redis } = require('@upstash/redis')
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Ratelimit } = require('@upstash/ratelimit')
+      const [{ Redis }, { Ratelimit }] = await Promise.all([
+        import('@upstash/redis'),
+        import('@upstash/ratelimit'),
+      ])
       const redis = new Redis({ url, token })
-      ratelimiter = new Ratelimit({
+      const rl = new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(30, '60 s'),
         analytics: false,
-      })
+      }) as unknown as Limiter
+      ratelimiter = rl
+      return rl
     } catch {
-      console.warn('[proxy] @upstash/ratelimit not available, using in-memory fallback')
       ratelimiter = createInMemoryLimiter()
+      return ratelimiter
     }
-  } else {
-    console.warn('[proxy] UPSTASH_REDIS_REST_URL not set, using in-memory rate limiting (not suitable for production)')
-    ratelimiter = createInMemoryLimiter()
-  }
-
-  return ratelimiter
+  })()
+  return ratelimiterPromise
 }
 
 // In-memory fallback (per-process, not distributed)
@@ -66,7 +72,7 @@ const RATE_LIMITED = /^\/(api\/portal|api\/public|api\/signup|api\/auth\/delete-
 export async function proxy(request: NextRequest) {
   if (RATE_LIMITED.test(request.nextUrl.pathname)) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
-    const rl = getRatelimiter()!
+    const rl = await getRatelimiter()
     const { success } = await rl.limit(`rl:${ip}`)
     if (!success) {
       return NextResponse.json(
