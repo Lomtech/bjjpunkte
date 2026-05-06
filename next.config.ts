@@ -72,9 +72,6 @@ export default withSentryConfig(nextConfig, {
   // Routes browser Sentry requests through Next.js to bypass ad-blockers
   tunnelRoute: "/monitoring",
 
-  // Hide source maps from browser to protect production code
-  hideSourceMaps: true,
-
   webpack: {
     // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
     // See the following for more information:
