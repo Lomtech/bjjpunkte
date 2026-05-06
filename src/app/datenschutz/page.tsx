@@ -131,6 +131,18 @@ export default function DatenschutzPage() {
               Diese Anwendung verwendet ausschließlich technisch notwendige Session-Cookies zur Authentifizierung.
               Es werden keine Marketing-, Werbe- oder Analyse-Cookies eingesetzt.
             </p>
+            <p className="text-zinc-600 mb-3">
+              Zur anonymen Reichweiten-Messung führen wir eine eigene, <strong className="text-zinc-800">cookielose
+              Statistik</strong> auf unserer Datenbank (Supabase, siehe §5). Erfasst werden nur:
+              aufgerufene URL, Referrer-Domain, Geräte-Typ (Mobile/Desktop), Browser-Kategorie und
+              Land (aus Server-Headern, ohne IP-Speicherung). Personenbezogene Daten werden NICHT
+              gespeichert. Statt einer IP-Adresse verwenden wir Kurz-Hashes mit
+              <strong className="text-zinc-800"> täglich rotierenden Salts</strong>, sodass kein
+              Personenbezug rekonstruierbar ist (anonym im Sinne von Erwägungsgrund 26 DSGVO).
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
+              Reichweiten-Statistik). Da keine Cookies oder Endgerät-Speicher verwendet werden,
+              ist diese Messung nach TTDSG § 25 Abs. 2 Nr. 2 ohne Einwilligung zulässig.
+            </p>
             <p className="text-zinc-600">
               Zur Stabilität der Anwendung wird <strong className="text-zinc-800">Sentry</strong> eingesetzt — ausschließlich
               zur Erfassung anonymer Fehler-Reports (JavaScript-Exceptions, Stack-Traces). Es werden{' '}

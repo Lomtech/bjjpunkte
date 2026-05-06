@@ -449,6 +449,12 @@ export interface Database {
         Update: { withdrawn_at?: string | null; withdrawn_reason?: string | null }
         Relationships: Rel[]
       }
+      page_views: {
+        Row: { id: string; path: string; referrer_domain: string | null; country: string | null; device_type: string | null; browser: string | null; visitor_hash: string | null; session_hash: string | null; created_at: string }
+        Insert: { path: string; referrer_domain?: string | null; country?: string | null; device_type?: string | null; browser?: string | null; visitor_hash?: string | null; session_hash?: string | null }
+        Update: never
+        Relationships: Rel[]
+      }
       belt_promotions: {
         Row: { id: string; member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; promoted_at: string; notes: string | null }
         Insert: { member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; notes?: string | null }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
+import { TrackPageView } from "@/components/TrackPageView";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -191,6 +192,8 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
         <LanguageProvider>{children}</LanguageProvider>
+        {/* Cookielose, DSGVO-anonyme Reichweiten-Messung — siehe /api/track */}
+        <TrackPageView />
       </body>
     </html>
   );
