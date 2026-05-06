@@ -667,6 +667,8 @@ export default function AdminLeadsPage() {
           onClose={() => setSelected(null)}
           onUpdate={patch => updateLead(selected.id, patch)}
           onActivity={payload => logActivity(selected.id, payload)}
+          setActivities={setActivities}
+          token={token}
         />
       )}
 
@@ -771,12 +773,14 @@ export default function AdminLeadsPage() {
   )
 }
 
-function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
+function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity, setActivities, token }: {
   lead: SalesLead
   activities: SalesActivity[]
   onClose: () => void
   onUpdate: (patch: Partial<SalesLead>) => void
   onActivity: (payload: Record<string, unknown>) => void
+  setActivities: React.Dispatch<React.SetStateAction<SalesActivity[]>>
+  token: string | null
 }) {
   const [notes, setNotes] = useState(lead.notes ?? '')
   const [activityKind, setActivityKind] = useState<'call' | 'email' | 'note'>('call')
@@ -980,18 +984,14 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
           ) : (
             <ul className="space-y-3">
               {activities.map(a => (
-                <li key={a.id} className="flex gap-3 text-sm">
-                  <span className="text-lg">{kindIcon(a.kind)}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-zinc-900">
-                      <span className="font-semibold">{kindLabel(a.kind)}</span>
-                      {a.outcome && <span className="ml-2 text-xs text-zinc-500">· {a.outcome}</span>}
-                      {a.subject && <span className="ml-2 text-zinc-700">— {a.subject}</span>}
-                    </div>
-                    {a.body && <p className="text-zinc-600 mt-0.5 whitespace-pre-wrap break-words">{a.body}</p>}
-                    <p className="text-xs text-zinc-400 mt-0.5">{new Date(a.occurred_at).toLocaleString('de-DE')}</p>
-                  </div>
-                </li>
+                <ActivityItem
+                  key={a.id}
+                  activity={a}
+                  leadId={lead.id}
+                  token={token}
+                  onUpdated={updated => setActivities(prev => prev.map(x => x.id === updated.id ? updated : x))}
+                  onDeleted={() => setActivities(prev => prev.filter(x => x.id !== a.id))}
+                />
               ))}
             </ul>
           )}
@@ -1134,6 +1134,139 @@ function QuotaBadge({ quota }: { quota: {
           style={{ width: `${Math.max(quota.pctUsed, quota.freePctUsed)}%` }} />
       </div>
     </div>
+  )
+}
+
+function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
+  activity: SalesActivity
+  leadId: string
+  token: string | null
+  onUpdated: (a: SalesActivity) => void
+  onDeleted: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [subject, setSubject] = useState(activity.subject ?? '')
+  const [body, setBody] = useState(activity.body ?? '')
+  const [outcome, setOutcome] = useState(activity.outcome ?? '')
+  const [busy, setBusy] = useState(false)
+
+  // Place_imported + status_change are system-logs — view-only by default
+  // (user can still expand "Mehr"-menu to delete if they really want)
+  const systemKind = activity.kind === 'place_imported' || activity.kind === 'status_change'
+
+  async function save() {
+    if (!token) return
+    setBusy(true)
+    try {
+      const patch: Record<string, unknown> = {
+        subject: subject || null,
+        body: body || null,
+      }
+      if (activity.kind === 'call') patch.outcome = outcome || null
+      const res = await fetch(`/api/admin/leads/${leadId}/activity/${activity.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(patch),
+      })
+      if (res.ok) {
+        const { activity: updated } = await res.json()
+        onUpdated(updated)
+        setEditing(false)
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function remove() {
+    if (!token) return
+    if (!confirm('Aktivität wirklich löschen?')) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/activity/${activity.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) onDeleted()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <li className="flex gap-3 text-sm bg-amber-50/50 -mx-2 px-2 py-2 rounded-lg">
+        <span className="text-lg">{kindIcon(activity.kind)}</span>
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="text-xs text-zinc-500">{kindLabel(activity.kind)} · {new Date(activity.occurred_at).toLocaleString('de-DE')}</div>
+          {activity.kind === 'call' && (
+            <select value={outcome} onChange={e => setOutcome(e.target.value)}
+              className="w-full px-3 py-2 text-base sm:text-sm border border-zinc-200 rounded-lg bg-white">
+              <option value="">Ergebnis …</option>
+              <option value="answered">Erreicht</option>
+              <option value="interested">Interessiert</option>
+              <option value="call_back">Rückruf vereinbart</option>
+              <option value="not_interested">Kein Interesse</option>
+              <option value="no_answer">Niemand am Apparat</option>
+              <option value="voicemail">Mailbox</option>
+              <option value="wrong_number">Falsche Nummer</option>
+            </select>
+          )}
+          <input type="text" value={subject} onChange={e => setSubject(e.target.value)}
+            placeholder="Betreff (optional)"
+            className="w-full px-3 py-2 text-base sm:text-sm border border-zinc-200 rounded-lg bg-white" />
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={3}
+            placeholder="Notiz/Beschreibung"
+            className="w-full px-3 py-2 text-base sm:text-sm border border-zinc-200 rounded-lg bg-white resize-y" />
+          <div className="flex gap-2">
+            <button onClick={save} disabled={busy}
+              className="flex-1 px-3 py-2 bg-zinc-900 text-white text-sm rounded-lg font-semibold disabled:opacity-50">
+              {busy ? '…' : 'Speichern'}
+            </button>
+            <button onClick={() => {
+                setSubject(activity.subject ?? '')
+                setBody(activity.body ?? '')
+                setOutcome(activity.outcome ?? '')
+                setEditing(false)
+              }}
+              className="px-3 py-2 border border-zinc-200 text-sm rounded-lg">
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      </li>
+    )
+  }
+
+  return (
+    <li className="flex gap-3 text-sm group">
+      <span className="text-lg">{kindIcon(activity.kind)}</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="text-zinc-900 min-w-0 flex-1">
+            <span className="font-semibold">{kindLabel(activity.kind)}</span>
+            {activity.outcome && <span className="ml-2 text-xs text-zinc-500">· {activity.outcome}</span>}
+            {activity.subject && <span className="ml-2 text-zinc-700">— {activity.subject}</span>}
+          </div>
+          {!systemKind && (
+            <div className="flex items-center gap-1 flex-shrink-0 opacity-50 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+              <button onClick={() => setEditing(true)} disabled={busy}
+                title="Bearbeiten"
+                className="p-1.5 rounded hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900">
+                ✎
+              </button>
+              <button onClick={remove} disabled={busy}
+                title="Löschen"
+                className="p-1.5 rounded hover:bg-rose-50 text-zinc-400 hover:text-rose-600">
+                🗑
+              </button>
+            </div>
+          )}
+        </div>
+        {activity.body && <p className="text-zinc-600 mt-0.5 whitespace-pre-wrap break-words">{activity.body}</p>}
+        <p className="text-xs text-zinc-400 mt-0.5">{new Date(activity.occurred_at).toLocaleString('de-DE')}</p>
+      </div>
+    </li>
   )
 }
 
