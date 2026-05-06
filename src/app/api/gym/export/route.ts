@@ -51,7 +51,7 @@ export async function GET(req: Request) {
   const svc = serviceClient()
 
   // ── Gym ───────────────────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data: gym, error: gymErr } = await svc.from('gyms')
     .select('*').eq('owner_id', user.id).single()
 
@@ -69,17 +69,17 @@ export async function GET(req: Request) {
     { data: leads },
     { data: staff },
   ] = await Promise.all([
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     svc.from('membership_plans')
       .select('name, description, price_cents, billing_interval, contract_months, is_active, sort_order')
       .eq('gym_id', gym.id).order('sort_order'),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     svc.from('gym_announcements')
       .select('title, body, is_pinned, expires_at').eq('gym_id', gym.id),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     svc.from('posts')
       .select('title, cover_url, blocks, published_at').eq('gym_id', gym.id).not('published_at', 'is', null),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     svc.from('members')
       .select([
         'id, first_name, last_name, email, phone, date_of_birth, address,',
@@ -90,36 +90,36 @@ export async function GET(req: Request) {
         'cancellation_requested_at, cancellation_note, parent_member_id, plan_id, requested_plan_id',
       ].join(' '))
       .eq('gym_id', gym.id).order('created_at').limit(10000),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     svc.from('classes')
       .select('id, title, class_type, description, instructor, starts_at, ends_at, max_capacity, is_cancelled, recurrence_type, recurrence_until, recurrence_parent_id')
       .eq('gym_id', gym.id).order('starts_at').limit(5000),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     svc.from('leads')
       .select('id, first_name, last_name, email, phone, status, source, notes, trial_date, created_at, referred_by, contacted_at, converted_at')
       .eq('gym_id', gym.id).order('created_at').limit(10000),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     svc.from('gym_staff')
       .select('name, email, role, accepted_at').eq('gym_id', gym.id).limit(200),
   ])
 
   // ── Build ID → index maps ─────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const memberIdx: Record<string, number> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(members ?? []).forEach((m: any, i: number) => { memberIdx[m.id] = i })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const planIdx: Record<string, number> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(plans ?? []).forEach((p: any, i: number) => { if (p.id) planIdx[p.id] = i })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const classIdx: Record<string, number> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(classes ?? []).forEach((c: any, i: number) => { classIdx[c.id] = i })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const leadIdx: Record<string, number> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(leads ?? []).forEach((l: any, i: number) => { leadIdx[l.id] = i })
@@ -138,37 +138,37 @@ export async function GET(req: Request) {
     { data: payments },
   ] = await Promise.all([
     classIds.length && memberIds.length
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       ? svc.from('class_bookings')
           .select('member_id, class_id, status, created_at')
           .in('class_id', classIds).in('member_id', memberIds).neq('status', 'cancelled').limit(50000)
       : { data: [] },
     memberIds.length
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       ? svc.from('attendance')
           .select('member_id, class_id, class_type, checked_in_at')
           .eq('gym_id', gym.id).in('member_id', memberIds).limit(50000)
       : { data: [] },
     memberIds.length
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       ? svc.from('belt_promotions')
           .select('member_id, previous_belt, new_belt, promoted_at, notes')
           .eq('gym_id', gym.id).in('member_id', memberIds).order('promoted_at').limit(5000)
       : { data: [] },
     leadIds.length && classIds.length
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       ? svc.from('lead_bookings')
           .select('lead_id, class_id, status, booked_at')
           .in('lead_id', leadIds).in('class_id', classIds).neq('status', 'cancelled')
       : { data: [] },
     memberIds.length
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       ? svc.from('training_logs')
           .select('member_id, note, class_type, logged_at')
           .eq('gym_id', gym.id).in('member_id', memberIds).limit(50000)
       : { data: [] },
     memberIds.length
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       ? svc.from('payments')
           .select('member_id, amount_cents, status, paid_at, created_at, invoice_number')
           .eq('gym_id', gym.id).in('member_id', memberIds).limit(20000)

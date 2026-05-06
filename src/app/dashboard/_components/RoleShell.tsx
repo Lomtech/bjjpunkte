@@ -98,7 +98,7 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
 
       if (staff) {
         const staffGymId = (staff as any).gym_id // eslint-disable-line @typescript-eslint/no-explicit-any
-        const { data: staffGym } = await supabase.from('gyms').select('name, logo_url').eq('id', staffGymId).maybeSingle() // eslint-disable-line @typescript-eslint/no-explicit-any
+        const { data: staffGym } = await supabase.from('gyms').select('name, logo_url').eq('id', staffGymId).maybeSingle()  
         const gName = (staffGym as any)?.name ?? '' // eslint-disable-line @typescript-eslint/no-explicit-any
         const gLogo = (staffGym as any)?.logo_url ?? null // eslint-disable-line @typescript-eslint/no-explicit-any
         writeCache({ role: 'trainer', gymName: gName, gymId: staffGymId ?? null, logoUrl: gLogo, onboardingDone: true, cachedAt: Date.now() })

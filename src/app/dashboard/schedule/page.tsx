@@ -87,7 +87,7 @@ export default function SchedulePage() {
     if (!gId) return
     setLoading(true)
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data } = await supabase.rpc('get_classes_for_gym', {
       p_gym_id: gId,
       p_from: from.toISOString(),
@@ -96,7 +96,7 @@ export default function SchedulePage() {
     const leadCounts = await loadLeadCounts(rows.map(c => c.id))
     setClasses(rows.map(c => ({ ...c, lead_count: leadCounts[c.id] ?? 0 })))
     setLoading(false)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [])
 
   // Initial load: session + gym + classes + members all in parallel
@@ -115,7 +115,7 @@ export default function SchedulePage() {
       gymIdRef.current = gId
       setGymId(gId)
       // Batch 2: classes and lead counts
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { data: classesData } = await supabase.rpc('get_classes_for_gym', {
         p_gym_id: gId,
         p_from: startOfWeek(new Date()).toISOString(),
@@ -200,7 +200,7 @@ export default function SchedulePage() {
   async function loadRoster(classId: string) {
     setRosterLoading(true)
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const [{ data: bookingsData }, { data: attendanceData }, { data: leadBookingsData }] = await Promise.all([
       (supabase as any)
         .from('class_bookings')

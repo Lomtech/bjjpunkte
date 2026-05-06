@@ -43,8 +43,8 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   // Resolve gym — owner first, then staff fallback
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let gymRow = await svc.from('gyms')
+   
+  const gymRow = await svc.from('gyms')
     .select('id, latitude, longitude, gps_radius_meters')
     .eq('owner_id', user.id)
     .maybeSingle()
@@ -53,13 +53,13 @@ export async function POST(req: Request) {
   let gym: any = gymRow.data
 
   if (!gym) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: staff } = await svc.from('gym_staff')
       .select('gym_id')
       .eq('user_id', user.id)
       .maybeSingle()
     if (staff?.gym_id) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { data: g } = await svc.from('gyms')
         .select('id, latitude, longitude, gps_radius_meters')
         .eq('id', staff.gym_id)
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
   }
 
   // Verify member belongs to this gym
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data: member } = await svc.from('members')
     .select('id')
     .eq('id', member_id)
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
 
   // Dedup: don't create a second attendance record for the same class
   if (class_id) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: existing } = await svc.from('attendance')
       .select('id, checked_in_at, class_type')
       .eq('member_id', member_id)
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
   }
 
   // Insert attendance
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data: entry, error: attErr } = await svc.from('attendance')
     .insert({
       gym_id:        gym.id,
@@ -143,7 +143,7 @@ export async function POST(req: Request) {
 
   // Upsert class_bookings so member shows up in schedule roster
   if (class_id) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     await svc.from('class_bookings').upsert(
       { gym_id: gym.id, member_id, class_id, status: 'confirmed' as const },
       { onConflict: 'member_id,class_id' }

@@ -97,7 +97,7 @@ function calcStats(attendance: { checked_in_at: string }[]) {
   for (const a of attendance) weekSet.add(startOfWeek(new Date(a.checked_in_at)).getTime())
 
   let streak = 0
-  let cursor = startOfWeek(now)
+  const cursor = startOfWeek(now)
   while (weekSet.has(cursor.getTime())) { streak++; cursor.setDate(cursor.getDate() - 7) }
 
   return { sessionsThisMonth, streak }

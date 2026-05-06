@@ -151,7 +151,7 @@ export default function MemberDetailPage() {
       }
       familyQueries.push(
         Promise.resolve(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           supabase.from('members').select('id, first_name, last_name').eq('parent_member_id', id)
         ).then(({ data }: { data: { id: string; first_name: string; last_name: string }[] | null }) => {
           if (data) setChildren(data)

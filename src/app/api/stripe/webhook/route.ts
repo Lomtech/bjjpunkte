@@ -195,6 +195,23 @@ export async function POST(req: Request) {
     }
   }
 
+  // ── account.application.deauthorized ────────────────────────────────────────
+  // Gym disconnected the Stripe Connect app — clear the link so further checkouts
+  // fail fast in the UI instead of silently 500'ing on the connected account.
+  if (event.type === 'account.application.deauthorized') {
+    const accountId = event.account ?? null
+    if (accountId) {
+      const { error: deauthErr } = await supabase
+        .from('gyms')
+        .update({ stripe_account_id: null, stripe_charges_enabled: false } as never)
+        .eq('stripe_account_id', accountId)
+      if (deauthErr) {
+        console.error('[webhook] deauthorized cleanup error:', deauthErr)
+        return NextResponse.json({ error: deauthErr.message }, { status: 500 })
+      }
+    }
+  }
+
   // ── charge.refunded ─────────────────────────────────────────────────────────
   if (event.type === 'charge.refunded') {
     const charge = event.data.object as Stripe.Charge

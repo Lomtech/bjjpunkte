@@ -146,7 +146,7 @@ export async function POST(req: Request) {
 
     const toResolve: (() => Promise<InvoiceResolved | null>)[] = pageInvoices.map(inv => async () => {
       const amountCents = inv.amount_paid
-      let meta: Record<string, string> = (inv as any).subscription_details?.metadata ?? inv.metadata ?? {}
+      const meta: Record<string, string> = (inv as any).subscription_details?.metadata ?? inv.metadata ?? {}
       let memberId = meta.memberId as string | undefined
       const gymId  = (meta.gymId as string | undefined) ?? (gym as any).id
 

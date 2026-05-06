@@ -184,7 +184,7 @@ export default function MembersPage() {
       // Load members + classes in parallel (look back 3 h for retroactive check-in)
       const now = new Date()
       const [classesRes, plansRes] = await Promise.all([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         supabase.rpc('get_classes_for_gym', { p_gym_id: gym.id, p_from: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString() }),
         supabase.from('membership_plans').select('id, price_cents').eq('gym_id', gym.id),
       ])

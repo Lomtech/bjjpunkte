@@ -44,7 +44,7 @@ function parseSupabaseUrl(url: string): { bucket: string; path: string } | null 
   } catch { return null }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function reuploadImage(
   src: string | null | undefined,
   destBucket: string,
@@ -117,13 +117,13 @@ export async function POST(req: Request) {
   }
 
   // Look up existing gym — maybeSingle() returns null without error if none found
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let { data: gym } = await svc.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
 
   // New Google/OAuth users have no gym yet — create one from the import data
   if (!gym) {
     const gymData = body.gym as Record<string, unknown>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: newGym, error: insertErr } = await svc.from('gyms')
       .insert({ owner_id: user.id, name: (gymData.name as string | undefined) ?? 'Importiertes Gym' })
       .select('id')
@@ -206,7 +206,7 @@ export async function POST(req: Request) {
   if (newHeroUrl) gymUpdate.hero_image_url = newHeroUrl
   if (newGalleryUrls.length > 0) gymUpdate.gallery_urls = newGalleryUrls.filter(Boolean)
   if (newAboutBlocks.length > 0) gymUpdate.about_blocks = newAboutBlocks
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (svc.from('gyms') as any).update(gymUpdate).eq('id', gym.id)
 
@@ -230,7 +230,7 @@ export async function POST(req: Request) {
       const chunk = planRows.slice(i, i + PLAN_CHUNK)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: inserted } = await (svc.from('membership_plans') as any).insert(chunk).select('id')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       for (const row of (inserted ?? [])) planIds.push(row.id ?? '')
     }
   }
@@ -251,7 +251,7 @@ export async function POST(req: Request) {
       const p = posts[i]
       const postTs = ts + i
       const newCoverUrl = await reuploadImage(p.cover_url, 'gym-media', `${gym.id}/post-${postTs}-cover`, svc)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       let newBlocks = Array.isArray(p.blocks) ? [...p.blocks] : []
       newBlocks = await Promise.all(newBlocks.map(async (block: any, j: number) => {
         if (block?.type === 'image' && block?.url) {
@@ -260,7 +260,7 @@ export async function POST(req: Request) {
         }
         return block
       }))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       await svc.from('posts').insert({
         gym_id: gym.id, title: p.title,
         cover_url: newCoverUrl ?? p.cover_url ?? null,
@@ -314,7 +314,7 @@ export async function POST(req: Request) {
         // Fill memberIds with empty strings to preserve index alignment for later passes
         for (let j = 0; j < chunk.length; j++) memberIds.push('')
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         for (const row of (inserted ?? [])) memberIds.push(row.id ?? '')
         // If fewer rows returned than sent (partial insert), pad with empty strings
         const returned = (inserted ?? []).length
@@ -367,7 +367,7 @@ export async function POST(req: Request) {
 
   // ── Classes (two passes for recurrence) ───────────────────────────────────
   // Pre-generate UUIDs so Pass 2 doesn't need IDs back from DB
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const classIds: string[] = Array.isArray(classes) ? classes.map(() => crypto.randomUUID()) : []
   if (Array.isArray(classes) && classes.length > 0) {
     const CLASS_CHUNK = 100
@@ -392,7 +392,7 @@ export async function POST(req: Request) {
       await svc.from('classes').insert(rows)
     }
     // Pass 2: link recurrence parents — parallel within 50-item windows
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const recurrenceUpdates = classes
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((c: any, i: number) => ({ classId: classIds[i], parentIdx: c.recurrence_parent_index as number | null }))
@@ -492,7 +492,7 @@ export async function POST(req: Request) {
         errors.push(`leads batch ${i}: ${error.message}`)
         for (let j = 0; j < chunk.length; j++) leadIds.push('')
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         for (const row of (inserted ?? [])) leadIds.push(row.id ?? '')
         const returned = (inserted ?? []).length
         for (let j = returned; j < chunk.length; j++) leadIds.push('')
