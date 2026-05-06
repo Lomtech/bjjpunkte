@@ -8,6 +8,35 @@ import { CallScript } from './_components/CallScript'
 
 const FILTERS_LS_KEY = 'osss-crm-leads-filters-v1'
 
+// Heuristic: Is this number likely on WhatsApp?
+// WhatsApp is registered to mobile numbers ~99% of the time. Showing the
+// button on landlines (089..., 030..., 040...) leads to dead links and
+// confused users.
+//
+// DE mobile prefixes: +49 15X, +49 16X, +49 17X (legacy +49 100X is gone)
+// AT mobile: +43 6XX
+// CH mobile: +41 7XX (also +41 76, 77, 78, 79)
+// Other: best-effort — return true if no leading 0 or country prefix
+//        we recognize (let user decide).
+function isLikelyMobile(internationalPhone: string | null, nationalPhone: string | null): boolean {
+  const digits = (internationalPhone ?? nationalPhone ?? '').replace(/\D/g, '')
+  if (!digits) return false
+
+  // German mobile (international format)
+  if (/^491[567]\d/.test(digits)) return true
+  // German mobile (national format, no country code)
+  if (/^01[567]\d/.test(digits)) return true
+  // Austrian mobile
+  if (/^436\d/.test(digits)) return true
+  // Swiss mobile
+  if (/^417[6789]\d/.test(digits)) return true
+  // US/Canada (NANP) — no easy way to tell mobile from landline; default false
+  if (/^1\d{10}$/.test(digits)) return false
+  // Anything else: be conservative, hide the button. User can long-press the
+  // 📞 button to copy the number and try WhatsApp manually if they want.
+  return false
+}
+
 const STATUSES: { v: SalesLeadStatus; label: string; color: string }[] = [
   { v: 'new',             label: 'Neu',          color: 'bg-zinc-100 text-zinc-700' },
   { v: 'researching',     label: 'Recherche',    color: 'bg-blue-50 text-blue-700' },
@@ -756,7 +785,7 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
               dialPhone={lead.international_phone ?? lead.phone}
             />
           )}
-          {lead.phone && lead.international_phone && (
+          {lead.phone && lead.international_phone && isLikelyMobile(lead.international_phone, lead.phone) && (
             <a href={`https://wa.me/${lead.international_phone.replace(/\D/g, '')}`}
               target="_blank" rel="noopener"
               className="flex items-center justify-center gap-2 px-4 py-4 bg-green-50 hover:bg-green-100 active:bg-green-200 text-green-800 font-semibold rounded-xl text-sm min-h-[52px]">
