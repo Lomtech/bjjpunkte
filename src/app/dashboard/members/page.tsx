@@ -175,7 +175,13 @@ export default function MembersPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id, monthly_fee_cents, belt_system, belt_system_enabled').single()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      const { data: gym } = await supabase
+        .from('gyms')
+        .select('id, monthly_fee_cents, belt_system, belt_system_enabled')
+        .eq('owner_id', user.id)
+        .maybeSingle()
       if (!gym) { setLoading(false); return }
       setGymId(gym.id)
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)

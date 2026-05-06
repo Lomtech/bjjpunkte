@@ -279,7 +279,13 @@ export default function ContentPage() {
     let gId = cachedGymId
 
     if (!gId) {
-      const { data: gym } = await supabase.from('gyms').select('id').single()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setPostsLoading(false); setAnnoLoading(false); return }
+      const { data: gym } = await supabase
+        .from('gyms')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle()
       if (!gym) { setPostsLoading(false); setAnnoLoading(false); return }
       gId = gym.id
     }

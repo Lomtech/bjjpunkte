@@ -72,10 +72,17 @@ export default function EditMemberPage() {
       }
 
       // Load all active members for parent dropdown
-      const { data: gymData } = await supabase.from('gyms').select('id').single()
-      if (gymData) {
-        const { data: membersData } = await supabase.from('members').select('id, first_name, last_name').eq('gym_id', gymData.id).eq('is_active', true).order('first_name')
-        if (membersData) setAllMembers(membersData)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: gymData } = await supabase
+          .from('gyms')
+          .select('id')
+          .eq('owner_id', user.id)
+          .maybeSingle()
+        if (gymData) {
+          const { data: membersData } = await supabase.from('members').select('id, first_name, last_name').eq('gym_id', gymData.id).eq('is_active', true).order('first_name')
+          if (membersData) setAllMembers(membersData)
+        }
       }
 
       setLoading(false)

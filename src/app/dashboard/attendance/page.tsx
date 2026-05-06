@@ -51,8 +51,13 @@ export default function AttendancePage() {
     let gymId: string | null = cachedGymId
 
     if (!gymId) {
-       
-      const { data: g } = await supabase.from('gyms').select('id, class_types, belt_system').single()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      const { data: g } = await supabase
+        .from('gyms')
+        .select('id, class_types, belt_system')
+        .eq('owner_id', user.id)
+        .maybeSingle()
       if (!g) { setLoading(false); return }
       gymId = g.id
       setBeltSystem(resolveBeltSystem(g.belt_system))
@@ -68,7 +73,7 @@ export default function AttendancePage() {
     try {
       const [gymSettingsRes, membersRes, attendanceRes, classesRes] = await Promise.all([
          
-        cachedGymId ? supabase.from('gyms').select('belt_system').eq('id', gymId).single() : Promise.resolve({ data: null }),
+        cachedGymId ? supabase.from('gyms').select('belt_system').eq('id', gymId).maybeSingle() : Promise.resolve({ data: null }),
         supabase.from('members')
           .select('id, first_name, last_name, belt, stripes')
           .eq('gym_id', gymId).eq('is_active', true).order('last_name'),

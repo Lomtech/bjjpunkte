@@ -94,7 +94,12 @@ export default function ImportPage() {
     setImporting(true)
     setError('')
     const supabase = createClient()
-    const { data: gym } = await (supabase.from('gyms') as any).select('id, plan_member_limit').single()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setError(t('memberImport', 'noGym')); setImporting(false); return }
+    const { data: gym } = await (supabase.from('gyms') as any)
+      .select('id, plan_member_limit')
+      .eq('owner_id', user.id)
+      .maybeSingle()
     if (!gym) { setError(t('memberImport', 'noGym')); setImporting(false); return }
 
     const limit: number = (gym as any).plan_member_limit ?? 30

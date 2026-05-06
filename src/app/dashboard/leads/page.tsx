@@ -105,7 +105,13 @@ export default function LeadsPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await supabase.from('gyms').select('id').single()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      const { data: gym } = await supabase
+        .from('gyms')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle()
       if (!gym) { setLoading(false); return }
       const { data } = await supabase.from('leads')
         .select('*').eq('gym_id', gym.id).order('created_at', { ascending: false }).limit(500)
@@ -124,7 +130,13 @@ export default function LeadsPage() {
     e.preventDefault()
     setSaving(true)
     const supabase = createClient()
-    const { data: gym } = await supabase.from('gyms').select('id').single()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSaving(false); return }
+    const { data: gym } = await supabase
+      .from('gyms')
+      .select('id')
+      .eq('owner_id', user.id)
+      .maybeSingle()
     if (!gym) { setSaving(false); return }
     const body: Record<string, unknown> = { gym_id: gym.id }
     for (const [k, v] of Object.entries(form)) {

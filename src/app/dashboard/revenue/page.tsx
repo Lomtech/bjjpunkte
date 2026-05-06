@@ -67,7 +67,12 @@ export default function RevenuePage() {
     setLoading(true)
     async function load() {
       const supabase = createClient()
-      const { data: gym } = await (supabase.from('gyms') as any).select('id, monthly_fee_cents, name').single()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+      const { data: gym } = await (supabase.from('gyms') as any)
+        .select('id, monthly_fee_cents, name')
+        .eq('owner_id', user.id)
+        .maybeSingle()
       if (!gym) { setLoading(false); return }
 
       const gymData = gym as { id: string; monthly_fee_cents: number; name: string }

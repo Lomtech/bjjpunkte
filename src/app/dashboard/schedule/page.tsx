@@ -103,13 +103,16 @@ export default function SchedulePage() {
   useEffect(() => {
     async function init() {
       const supabase = createClient()
-      // Batch 1: session and gym in parallel
-      const [{ data: { session } }, { data: gym }] = await Promise.all([
-        supabase.auth.getSession(),
-        supabase.from('gyms').select('id').single(),
-      ])
+      // Batch 1: session first (need user.id for owner_id filter)
+      const { data: { session } } = await supabase.auth.getSession()
       const tok = session?.access_token ?? ''
       setAccessToken(tok)
+      if (!session?.user) { setLoading(false); return }
+      const { data: gym } = await supabase
+        .from('gyms')
+        .select('id')
+        .eq('owner_id', session.user.id)
+        .maybeSingle()
       if (!gym) { setLoading(false); return }
       const gId = (gym as { id: string }).id
       gymIdRef.current = gId
