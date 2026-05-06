@@ -156,8 +156,20 @@ export default function PricingPage() {
     {
       q: en ? 'Does Osss work for other martial arts?' : 'Funktioniert Osss für andere Kampfsportarten?',
       a: en
-        ? 'Absolutely. BJJ, MMA, kickboxing, judo, karate — Osss is built for all martial arts gyms. The belt system is flexibly configurable.'
-        : 'Absolut. BJJ, MMA, Kickboxen, Judo, Karate — Osss ist für alle Kampfsport-Gyms ausgelegt. Das Gürtelsystem ist flexibel konfigurierbar.',
+        ? 'Yes — BJJ, Judo, Karate, Taekwondo, Wing Tsun, Kung Fu come pre-configured with the right belt system. MMA, Muay Thai, Boxing and Wrestling work without belts. The belt system can be customised or disabled per gym.'
+        : 'Ja — BJJ, Judo, Karate, Taekwondo, Wing Tsun und Kung Fu kommen mit dem passenden Gürtelsystem vorkonfiguriert. MMA, Muay Thai, Boxen und Ringen laufen ohne Belts. Das Gürtelsystem ist pro Gym anpassbar oder deaktivierbar.',
+    },
+    {
+      q: en ? 'Can I import my existing member data?' : 'Kann ich bestehende Mitgliederdaten importieren?',
+      a: en
+        ? 'Yes. CSV upload supports name, email, phone, birthdate, belt, contract details and more. We map fields automatically — you can also enter members manually if your dataset is small.'
+        : 'Ja. Per CSV-Upload werden Name, E-Mail, Telefon, Geburtsdatum, Gürtelgrad, Vertragsdetails und mehr übernommen. Felder werden automatisch zugeordnet — bei kleinen Datenmengen geht auch manuelles Eintragen.',
+    },
+    {
+      q: en ? 'Do you provide a Data Processing Agreement (DPA)?' : 'Gibt es einen Auftragsverarbeitungsvertrag (AVV)?',
+      a: en
+        ? 'Yes — and you can sign it electronically inside the dashboard (eIDAS Art. 25 compliant). All sub-processors (Supabase, Stripe, Vercel, Resend) are listed transparently. No paperwork, no email back-and-forth.'
+        : 'Ja — und du unterzeichnest ihn elektronisch direkt im Dashboard (eIDAS Art. 25 konform). Alle Sub-Auftragsverarbeiter (Supabase, Stripe, Vercel, Resend) sind transparent gelistet. Kein Papierkram, kein E-Mail-Hin-und-Her.',
     },
   ]
 
@@ -215,16 +227,16 @@ export default function PricingPage() {
         <div className="max-w-xl mx-auto relative">
           <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-6">
             <span className="text-zinc-300 text-xs font-semibold tracking-wide">
-              {en ? 'No Osss transaction fees — Stripe fees apply' : 'Keine Osss-Transaktionsgebühren — Stripe-Gebühren fallen an'}
+              {en ? '0% platform fee · Only Stripe processing applies' : '0% Plattformgebühr · Nur Stripe-Gebühren fallen an'}
             </span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tighter mb-4">
-            {en ? 'Simple, fair pricing' : 'Einfache, faire Preise'}
+            {en ? 'Four plans. Zero hidden costs.' : 'Vier Pläne. Keine Versteckkosten.'}
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed mb-8">
             {en
-              ? <>Start free with up to 30 members.<br />Pay only when your gym grows.</>
-              : <>Starte kostenlos mit bis zu 30 Mitgliedern.<br />Zahle erst wenn dein Gym wächst.</>
+              ? <>Free up to 30 members.<br />Pay only as your gym grows.</>
+              : <>Bis 30 Mitglieder kostenlos.<br />Du zahlst erst, wenn dein Gym wächst.</>
             }
           </p>
 
@@ -397,12 +409,12 @@ export default function PricingPage() {
         />
         <div className="max-w-md mx-auto relative">
           <h2 className="text-3xl font-black tracking-tight mb-3">
-            {en ? 'Ready to get started?' : 'Bereit loszulegen?'}
+            {en ? 'Try it before you decide.' : 'Erst testen, dann entscheiden.'}
           </h2>
           <p className="text-zinc-400 mb-8 text-sm leading-relaxed">
             {en
-              ? 'Start for free — no risk, no credit card. Your gym is live in 10 minutes.'
-              : 'Kostenlos starten — kein Risiko, keine Kreditkarte. Dein Gym läuft in 10 Minuten.'}
+              ? '30 days free. No credit card. Cancel with one click — your data stays.'
+              : '30 Tage gratis. Keine Kreditkarte. Kündigung in einem Klick — deine Daten bleiben.'}
           </p>
           <Link
             href="/register"

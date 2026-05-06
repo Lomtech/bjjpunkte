@@ -45,31 +45,31 @@ const SPORT_FEATURES: Record<SportId, { title: string; items: string[] }> = {
 }
 
 const PAIN_POINTS = [
-  { icon: FileSpreadsheet, title: 'Excel & WhatsApp',   desc: 'Mitgliederlisten in Tabellen, Zahlungserinnerungen per Chat — fehleranfällig, zeitaufwändig, nicht skalierbar.' },
+  { icon: FileSpreadsheet, title: 'Excel & WhatsApp',     desc: 'Mitgliederlisten in Tabellen, Zahlungserinnerungen per Chat. Drei Tools, kein Überblick — und am Monatsende die Stress-Buchhaltung.' },
   { icon: Globe,           title: 'Internationale Tools', desc: 'Mindbody, Glofox & Co. — englische UI, kein DATEV-Export, kein deutsches Rechnungs-Layout.' },
-  { icon: FileEdit,        title: 'Rechnungen manuell', desc: 'Jeden Monat Rechnungen per Hand — besonders als Kleinunternehmer ein bürokratischer Albtraum.' },
+  { icon: FileEdit,        title: 'Rechnungen per Hand',  desc: 'Jeden Monat dieselbe Stunde nur für Rechnungen. Sechs Stunden im Jahr für Routine, die Software längst übernehmen sollte.' },
 ]
 
 const FEATURES = [
-  { icon: Users,      title: 'Mitgliederverwaltung',    desc: 'Alle Mitglieder auf einen Blick. Gürtel-Tracking, Familienmitglieder, Notizen — alles an einem Ort.' },
-  { icon: CreditCard, title: 'Zahlungen & Rechnungen',  desc: 'Beiträge per Stripe einziehen. Automatische Rechnungen — DSGVO-konform, Kleinunternehmer-ready.' },
-  { icon: Smartphone, title: 'Member-Portal',           desc: 'Deine Mitglieder checken per QR-Code oder GPS ein, buchen Kurse und sehen ihre Trainingshistorie — ohne App.' },
-  { icon: Link2,      title: 'Öffentliche Gym-Seite',   desc: 'Dein Gym bekommt eine eigene Website unter osss.pro/gym/dein-name — Stundenplan, Preise, Fotos, alles ohne Code.' },
-  { icon: Target,     title: 'Lead-Portal & Pipeline',  desc: 'Interessenten füllen ein Formular aus und buchen direkt ein Probetraining. Du siehst jeden Lead von der Anfrage bis zur Mitgliedschaft.' },
-  { icon: Award,      title: 'Gürtel-Tracking',         desc: 'Promotions dokumentieren mit Datum und Verlauf — für alle Gürtelsysteme konfigurierbar.' },
+  { icon: Users,      title: 'Mitglieder verwalten',    desc: 'Stammdaten, Verträge, Familienmitglieder, Belts, Notizen — pro Mitglied eine Karte, alles an einem Ort.' },
+  { icon: CreditCard, title: 'Beiträge per SEPA',       desc: 'Stripe-Lastschrift einrichten, Mitglieder zahlen automatisch. Du erstellst nie wieder eine Rechnung von Hand.' },
+  { icon: Smartphone, title: 'Member-Portal',           desc: 'Mitglieder checken per QR-Code oder GPS ein, buchen Kurse, sehen ihre Trainingshistorie. Browser-basiert — keine App-Installation.' },
+  { icon: Link2,      title: 'Öffentliche Gym-Seite',   desc: 'osss.pro/gym/dein-name — Stundenplan, Preise, Fotos, Probetraining-Buchung. In 10 Minuten konfiguriert, ohne eine Zeile Code.' },
+  { icon: Target,     title: 'Lead-Pipeline',           desc: 'Anfragen aus deiner Website fließen direkt rein. Status, Notizen, Folge-Termine — vom Erstkontakt bis zum Mitglieds-Vertrag.' },
+  { icon: Award,      title: 'Belt-Tracking',           desc: 'Schülergrade, Kyu-Stufen, Sash-Farben — vorkonfiguriert für 6 Sportarten. Promotions mit Datum und Verlauf.' },
 ]
 
 const GERMAN_FEATURES = [
-  { icon: FileText,   title: 'Kleinunternehmer-Rechnungen', desc: 'Automatische §19 UStG Rechnungen — du trägst einmal deine Daten ein, den Rest erledigt Osss.' },
-  { icon: Download,   title: 'DATEV-Export',                desc: 'Buchungsdaten mit einem Klick als DATEV-CSV exportieren — dein Steuerberater freut sich. Kein anderes Gym-Tool bietet das.' },
-  { icon: Shield,     title: 'DSGVO von Anfang an',         desc: 'Daten auf europäischen Servern (Supabase EU). Keine Weitergabe an Dritte. Datenschutzerklärung inklusive.' },
-  { icon: Headphones, title: 'Support auf Deutsch',         desc: 'Kein englisches Support-Ticket. Direkt, schnell, verständlich — oss@osss.pro.' },
+  { icon: FileText,   title: '§19 UStG Rechnungen', desc: 'Kleinunternehmer-konforme Rechnungen — Pflichtangaben, fortlaufende Nummerierung, automatischer Versand. Einmal Daten eintragen, fertig.' },
+  { icon: Download,   title: 'DATEV-Export',         desc: 'Buchungsdaten als DATEV-CSV exportieren. Ein Klick, eine Datei — dein Steuerberater importiert sie direkt. Sonst niemand im Markt.' },
+  { icon: Shield,     title: 'DSGVO ab Tag eins',    desc: 'Server in der EU (Supabase Frankfurt). Auftragsverarbeitungsvertrag elektronisch im Dashboard. Keine Cookie-Banner-Tricks.' },
+  { icon: Headphones, title: 'Support auf Deutsch', desc: 'Kein Support-Ticket-System auf Englisch. Schreib uns direkt — oss@osss.pro.' },
 ]
 
 const STEPS = [
-  { num: '01', title: 'Konto erstellen',        desc: 'In 2 Minuten registriert — kostenlos, keine Kreditkarte.' },
-  { num: '02', title: 'Mitglieder importieren', desc: 'CSV-Upload oder manuell eintragen. Bestehende Daten kommen direkt rein.' },
-  { num: '03', title: 'Gym läuft',              desc: 'Zahlungen, Stundenplan, Portale — alles sofort einsatzbereit.' },
+  { num: '01', title: 'Account anlegen',        desc: 'E-Mail, Passwort, Sportart auswählen. Keine Kreditkarte. Keine Verkaufs-Demo.' },
+  { num: '02', title: 'Mitglieder importieren', desc: 'CSV-Upload aus deinem alten Tool oder manuell. Belts und Verträge bleiben erhalten.' },
+  { num: '03', title: 'Gym geht live',          desc: 'Stripe verbinden, Stundenplan füllen, Mitglieder-Portal teilen. Fertig.' },
 ]
 
 const MARQUEE_ITEMS_DE = [
@@ -158,31 +158,31 @@ export default function Home() {
   const { lang } = useLanguage()
 
   const PAIN_POINTS_DATA = lang === 'en' ? [
-    { icon: FileSpreadsheet, title: 'Excel & WhatsApp',  desc: 'Member lists in spreadsheets, payment reminders via chat — error-prone, time-consuming, not scalable.' },
-    { icon: Globe,           title: 'International tools', desc: 'Mindbody, Glofox & co. — English-only UI, no DATEV export, no German invoice layout.' },
-    { icon: FileEdit,        title: 'Manual invoicing',   desc: 'Creating invoices by hand every month — a bureaucratic nightmare, especially for small businesses.' },
+    { icon: FileSpreadsheet, title: 'Excel & WhatsApp',     desc: 'Member lists in spreadsheets, payment reminders in chat. Three tools, no overview — and the monthly accounting chaos at the end.' },
+    { icon: Globe,           title: 'International tools',  desc: 'Mindbody, Glofox & co. — English-only UI, no DATEV export, no German invoice layout.' },
+    { icon: FileEdit,        title: 'Manual invoices',      desc: 'The same hour every month, just for invoices. Six hours a year on routine work software should have automated long ago.' },
   ] : PAIN_POINTS
 
   const FEATURES_DATA = lang === 'en' ? [
-    { icon: Users,      title: 'Member management',     desc: 'All members at a glance. Belt tracking, family members, notes — everything in one place.' },
-    { icon: CreditCard, title: 'Payments & invoices',   desc: 'Collect dues via Stripe. Automatic invoices — GDPR-compliant, small-business ready.' },
-    { icon: Smartphone, title: 'Member portal',         desc: 'Members check in via QR code or GPS, book classes and view their training history — no app needed.' },
-    { icon: Link2,      title: 'Public gym website',    desc: 'Your gym gets its own website at osss.pro/gym/your-name — schedule, prices, photos, all without code.' },
-    { icon: Target,     title: 'Lead portal & pipeline', desc: 'Prospects fill out a form and book a trial class directly. You track every lead from enquiry to membership.' },
-    { icon: Award,      title: 'Belt tracking',         desc: 'Document promotions with date and history — configurable for all belt systems.' },
+    { icon: Users,      title: 'Manage members',        desc: 'Profiles, contracts, family members, belts, notes — one card per member, everything in one place.' },
+    { icon: CreditCard, title: 'Collect dues via SEPA', desc: 'Set up Stripe direct debit. Members pay automatically. You never write an invoice by hand again.' },
+    { icon: Smartphone, title: 'Member portal',         desc: 'Members check in via QR or GPS, book classes, view training history. Browser-based — no app install.' },
+    { icon: Link2,      title: 'Public gym website',    desc: 'osss.pro/gym/your-name — schedule, pricing, photos, trial-class booking. Configured in 10 minutes, no code.' },
+    { icon: Target,     title: 'Lead pipeline',         desc: 'Enquiries from your website flow in. Status, notes, follow-ups — from first contact to signed contract.' },
+    { icon: Award,      title: 'Belt tracking',         desc: 'Kyu grades, student grades, sash colours — pre-configured for 6 martial arts. Promotions with date and history.' },
   ] : FEATURES
 
   const GERMAN_FEATURES_DATA = lang === 'en' ? [
-    { icon: FileText,   title: 'German-compliant invoices', desc: 'Automatic §19 UStG invoices — enter your details once and Osss handles the rest.' },
-    { icon: Download,   title: 'DATEV export',              desc: 'Export booking data as DATEV CSV with one click — your accountant will love it. No other gym tool offers this.' },
-    { icon: Shield,     title: 'GDPR from day one',         desc: 'Data on European servers (Supabase EU). No third-party sharing. Privacy policy included.' },
-    { icon: Headphones, title: 'Support in your language',  desc: 'No English-only support ticket. Direct, fast, understandable — oss@osss.pro.' },
+    { icon: FileText,   title: 'German-spec invoices', desc: 'Compliant invoices for small businesses (§19 UStG) — required fields, sequential numbering, automatic dispatch. Set it up once, done.' },
+    { icon: Download,   title: 'DATEV export',         desc: 'Export booking data as DATEV CSV. One click, one file — your accountant imports it directly. Nobody else on the market offers this.' },
+    { icon: Shield,     title: 'GDPR from day one',    desc: 'Servers in the EU (Supabase Frankfurt). Data processing agreement signed electronically in your dashboard. No cookie-banner workarounds.' },
+    { icon: Headphones, title: 'Direct support',       desc: 'No English-only ticketing system. Write us directly — oss@osss.pro.' },
   ] : GERMAN_FEATURES
 
   const STEPS_DATA = lang === 'en' ? [
-    { num: '01', title: 'Create account',     desc: 'Registered in 2 minutes — free, no credit card.' },
-    { num: '02', title: 'Import members',     desc: 'CSV upload or manual entry. Existing data comes straight in.' },
-    { num: '03', title: 'Your gym is live',   desc: 'Payments, schedule, portals — everything ready to go.' },
+    { num: '01', title: 'Create account',     desc: 'Email, password, pick your sport. No credit card. No sales demo.' },
+    { num: '02', title: 'Import members',     desc: 'CSV upload from your old tool or enter manually. Belts and contracts carry over.' },
+    { num: '03', title: 'Gym goes live',      desc: 'Connect Stripe, fill the schedule, share the member portal. Done.' },
   ] : STEPS
 
   const SPORT_FEATURES_DATA: Record<SportId, { title: string; items: string[] }> = lang === 'en' ? {
@@ -293,15 +293,15 @@ export default function Home() {
             <motion.div variants={stagger} initial="hidden" animate="show" className="relative max-w-xl">
               <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 mb-8">
                 <Shield size={11} className="text-amber-600" />
-                <span className="text-amber-700 text-xs font-semibold tracking-wide">{lang === 'en' ? 'For martial arts gyms' : 'Für Kampfsport-Gyms'}</span>
+                <span className="text-amber-700 text-xs font-semibold tracking-wide">{lang === 'en' ? 'Made in Germany · For martial arts gyms' : 'Made in Germany · Für Kampfsport-Gyms'}</span>
               </motion.div>
 
               <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-black tracking-tighter leading-[0.9] mb-6 text-zinc-950">
-                {lang === 'en' ? <>No more spreadsheets.<br /><span className="text-amber-500">Your gym is live</span><br />in 10 minutes.</> : <>Schluss mit Excel.<br /><span className="text-amber-500">Dein Gym läuft</span><br />in 10 Minuten.</>}
+                {lang === 'en' ? <>Members. Belts. Payments.<br /><span className="text-amber-500">Live in 10 minutes.</span></> : <>Mitglieder. Belts. Beiträge.<br /><span className="text-amber-500">Live in 10 Minuten.</span></>}
               </motion.h1>
 
               <motion.p variants={fadeUp} className="text-zinc-500 text-lg mb-8 leading-relaxed">
-                {lang === 'en' ? 'Members, dues, schedule — all in one software. In your language. For martial arts gyms.' : 'Mitglieder, Beiträge, Stundenplan — alles in einer Software. Auf Deutsch. Für Kampfsport-Gyms.'}
+                {lang === 'en' ? 'The German software for martial arts gyms — with belt system, DATEV export and SEPA, built in.' : 'Die deutsche Software für Kampfsport-Gyms — mit Belt-System, DATEV-Export und SEPA. Alles direkt eingebaut.'}
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-8">
@@ -351,15 +351,15 @@ export default function Home() {
 
               <motion.div variants={fadeUp} className="flex flex-wrap gap-x-7 gap-y-3">
                 {(lang === 'en' ? [
-                  { val: '€0',     label: 'Setup cost' },
-                  { val: '10 min', label: 'Setup' },
-                  { val: '0%',     label: 'Osss fee — only Stripe costs' },
-                  { val: 'GDPR',   label: 'compliant' },
+                  { val: '30 days', label: 'free trial' },
+                  { val: '0%',      label: 'platform fee' },
+                  { val: 'DATEV',   label: 'export' },
+                  { val: 'GDPR',    label: 'EU servers' },
                 ] : [
-                  { val: '€0',     label: 'Startkosten' },
-                  { val: '10 Min', label: 'Setup' },
-                  { val: '0%',     label: 'Osss-Gebühr — nur Stripe-Kosten' },
-                  { val: 'DSGVO',  label: 'konform' },
+                  { val: '30 Tage', label: 'gratis testen' },
+                  { val: '0%',      label: 'Plattformgebühr' },
+                  { val: 'DATEV',   label: 'Export' },
+                  { val: 'DSGVO',   label: 'EU-Server' },
                 ]).map(s => (
                   <div key={s.label}>
                     <span className="text-zinc-950 font-black text-lg tracking-tight">{s.val}</span>
@@ -524,12 +524,12 @@ export default function Home() {
             transition={{ duration: 0.48, ease: EASE }}
             className="text-center mb-12"
           >
-            <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">{lang === 'en' ? 'Your gym. Your dashboard.' : 'Dein Gym. Dein Dashboard.'}</p>
+            <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">{lang === 'en' ? 'Your dashboard' : 'Dein Dashboard'}</p>
             <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">
-              {lang === 'en' ? 'Everything at a glance.' : 'Alles auf einen Blick.'}
+              {lang === 'en' ? 'The whole gym, at a glance.' : 'Das ganze Gym auf einen Blick.'}
             </h2>
             <p className="text-zinc-500 mt-3 text-sm max-w-sm mx-auto leading-relaxed">
-              {lang === 'en' ? 'Members, revenue, belt distribution — live and in real time.' : 'Mitglieder, Einnahmen, Belt-Verteilung — live und in Echtzeit.'}
+              {lang === 'en' ? 'Members, revenue, belt distribution — updated live as people train and pay.' : 'Mitglieder, Einnahmen, Belt-Verteilung — live aktualisiert, während trainiert und gezahlt wird.'}
             </p>
           </motion.div>
 
@@ -607,10 +607,10 @@ export default function Home() {
       <section className="bg-zinc-50 px-5 py-24 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto">
           <Section className="text-center mb-12">
-            <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'For every martial art' : 'Für jede Kampfsportart'}</motion.p>
+            <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? '10 martial arts pre-configured' : '10 Kampfsportarten vorkonfiguriert'}</motion.p>
             <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'What do you train?' : 'Was trainierst du?'}</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-sm mx-auto text-sm leading-relaxed">
-              {lang === 'en' ? 'Osss configures itself automatically — with or without a belt system.' : 'Osss konfiguriert sich automatisch — mit oder ohne Gürtelsystem.'}
+              {lang === 'en' ? 'Pick your sport. Osss sets up the belt system, class types and member fields automatically.' : 'Wähle deine Sportart. Osss konfiguriert Gürtelsystem, Klassen-Typen und Mitgliederfelder automatisch.'}
             </motion.p>
           </Section>
 
@@ -673,9 +673,9 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
             <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'The problem' : 'Das Problem'}</motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'What really frustrates gym owners' : 'Kennst du das?'}</motion.h2>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Three problems we solved' : 'Drei Probleme, die wir gelöst haben'}</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
-              {lang === 'en' ? 'Most gym software is too expensive, too complex, or not built for your market.' : 'Die meisten Gym-Softwares sind zu teuer, zu komplex oder nicht auf Deutschland ausgelegt.'}
+              {lang === 'en' ? 'Gym software is either too expensive, too complex, or not built for the German market.' : 'Gym-Software ist zu teuer, zu komplex — oder nicht für den deutschen Markt gebaut.'}
             </motion.p>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -696,10 +696,10 @@ export default function Home() {
       <Section className="py-24 px-5 bg-amber-50">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <motion.p variants={fadeUp} className="text-amber-700 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'That simple' : 'So einfach geht\'s'}</motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Live in 3 steps' : 'In 3 Schritten fertig'}</motion.h2>
+            <motion.p variants={fadeUp} className="text-amber-700 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'How it works' : 'So funktioniert\'s'}</motion.p>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'From signup to live in 10 minutes' : 'Vom Account zum Live-Gym in 10 Minuten'}</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-sm mx-auto text-sm leading-relaxed">
-              {lang === 'en' ? 'No lengthy onboarding process. You\'re live in under 10 minutes.' : 'Kein langer Onboarding-Prozess. Du bist in unter 10 Minuten live.'}
+              {lang === 'en' ? 'No sales call. No 14-day onboarding. Sign up, import, start.' : 'Kein Verkaufs-Call. Kein 14-Tage-Onboarding. Anmelden, importieren, loslegen.'}
             </motion.p>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -721,9 +721,9 @@ export default function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Features</motion.p>
-            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Everything in one platform' : 'Alles was dein Gym braucht'}</motion.h2>
+            <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Six tools. One system.' : 'Sechs Werkzeuge. Ein System.'}</motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
-              {lang === 'en' ? 'From member management to automatic invoices — in one software.' : 'Von der Mitgliederverwaltung bis zur automatischen Rechnung — in einer Software.'}
+              {lang === 'en' ? 'No add-ons to buy. No integrations to glue together. Everything works out of the box.' : 'Keine Add-Ons zu kaufen. Keine Integrationen zu basteln. Alles direkt einsatzbereit.'}
             </motion.p>
           </div>
           <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -847,7 +847,7 @@ export default function Home() {
             <div>
               <motion.p variants={fadeUp} className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Only at Osss' : 'Nur bei Osss'}</motion.p>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-8">
-                {lang === 'en' ? <>Built for<br />your market</> : <>Gemacht für<br />deutsche Gyms</>}
+                {lang === 'en' ? <>What no other<br />gym tool can do</> : <>Was kein anderes<br />Gym-Tool kann</>}
               </motion.h2>
               <motion.div variants={stagger} className="space-y-6">
                 {GERMAN_FEATURES_DATA.map(item => (
@@ -971,8 +971,8 @@ export default function Home() {
       <Section className="py-24 px-5 bg-white">
         <div className="max-w-3xl mx-auto text-center">
           <motion.p variants={fadeUp} className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Pricing' : 'Preise'}</motion.p>
-          <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Fair pricing. No fine print.' : 'Faire Preise. Kein Kleingedrucktes.'}</motion.h2>
-          <motion.p variants={fadeUp} className="text-zinc-500 mb-10 text-sm leading-relaxed">{lang === 'en' ? 'Start free with up to 30 members. Pay only when you grow.' : 'Starte kostenlos mit bis zu 30 Mitgliedern. Zahle erst wenn du wächst.'}</motion.p>
+          <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Four plans. Zero hidden costs.' : 'Vier Pläne. Keine Versteckkosten.'}</motion.h2>
+          <motion.p variants={fadeUp} className="text-zinc-500 mb-10 text-sm leading-relaxed">{lang === 'en' ? 'Free up to 30 members. Pay only as your gym grows.' : 'Bis 30 Mitglieder kostenlos. Du zahlst erst, wenn dein Gym wächst.'}</motion.p>
           <motion.div variants={stagger} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             {[
               { name: 'Free',    price: '€0',  members: lang === 'en' ? '30 mbrs.'   : '30 Mitgl.',  highlight: false },
@@ -1003,16 +1003,16 @@ export default function Home() {
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 70% 70% at 50% 110%, rgba(255,255,255,0.15) 0%, transparent 70%)' }} />
         <div className="max-w-xl mx-auto relative">
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-950 mb-5">{lang === 'en' ? 'Ready to get started?' : 'Bereit loszulegen?'}</h2>
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-950 mb-5">{lang === 'en' ? 'Your gym in 10 minutes.' : 'Dein Gym in 10 Minuten.'}</h2>
           <p className="text-zinc-800 text-lg mb-10 leading-relaxed">
-            {lang === 'en' ? <>Your gym is live in 10 minutes.<br />No credit card, no minimum term.</> : <>Dein Gym läuft in 10 Minuten.<br />Keine Kreditkarte, keine Mindestlaufzeit.</>}
+            {lang === 'en' ? <>30 days free, then €0–99 / month.<br />No credit card. No minimum term.</> : <>30 Tage gratis testen, dann €0–99 / Monat.<br />Keine Kreditkarte. Keine Mindestlaufzeit.</>}
           </p>
           <Link href="/register"
             className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-zinc-900/25">
             <Zap size={18} className="text-amber-400" />
-            {lang === 'en' ? 'Get started free' : 'Jetzt kostenlos starten'}
+            {lang === 'en' ? 'Start free now' : 'Jetzt kostenlos starten'}
           </Link>
-          <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? 'No credit card · No minimum term · Cancel anytime' : 'Keine Kreditkarte · Keine Mindestlaufzeit · Jederzeit kündbar'}</p>
+          <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? '30 days free · No credit card · Cancel anytime' : '30 Tage gratis · Keine Kreditkarte · Jederzeit kündbar'}</p>
         </div>
       </section>
 
@@ -1023,7 +1023,7 @@ export default function Home() {
             <div className="sm:col-span-2">
               <OsssLogo variant="dark" />
               <p className="text-zinc-400 text-sm mt-4 leading-relaxed max-w-xs">
-                {lang === 'en' ? 'The gym management software for martial arts — GDPR-compliant, from €0.' : 'Die Gym-Management-Software für Kampfsport — auf Deutsch, DSGVO-konform, ab €0.'}
+                {lang === 'en' ? 'The gym software for martial arts. Made in Germany. GDPR + DATEV included.' : 'Die Gym-Software für Kampfsport. Made in Germany. DSGVO + DATEV inklusive.'}
               </p>
             </div>
             <div>

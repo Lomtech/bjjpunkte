@@ -25,15 +25,15 @@ export default function RegisterPage() {
   const PERKS = en
     ? [
         'Free up to 30 members',
-        'No credit card needed',
+        'No credit card. No sales call.',
         'Live in 10 minutes',
-        'GDPR compliant · Made in Germany',
+        'DATEV export · GDPR · Made in Germany',
       ]
     : [
         'Kostenlos bis 30 Mitglieder',
-        'Keine Kreditkarte nötig',
+        'Keine Kreditkarte. Kein Verkaufs-Call.',
         'In 10 Minuten live',
-        'DSGVO-konform · Made in Germany',
+        'DATEV-Export · DSGVO · Made in Germany',
       ]
 
   const BULLETS = en
@@ -119,8 +119,8 @@ export default function RegisterPage() {
           </h2>
           <p className="text-zinc-400 text-sm leading-relaxed mb-8 max-w-xs">
             {en
-              ? 'Everything you need for a professional gym — in one piece of software.'
-              : 'Alles was du für ein professionelles Gym brauchst — in einer Software.'}
+              ? 'Members, payments, schedule, belts — one system for everything you run.'
+              : 'Mitglieder, Beiträge, Stundenplan, Belts — ein System für alles was du machst.'}
           </p>
           <ul className="space-y-3">
             {BULLETS.map(b => (

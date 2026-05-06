@@ -76,7 +76,7 @@ export default function LoginPage() {
             {lang === 'en' ? <>Welcome<br /><span className="text-amber-400">back.</span></> : <>Willkommen<br /><span className="text-amber-400">zurück.</span></>}
           </h2>
           <p className="text-zinc-400 text-sm leading-relaxed mb-8 max-w-xs">
-            {lang === 'en' ? 'Your gym awaits. Everything you need at a glance.' : 'Dein Gym wartet. Alles was du brauchst auf einen Blick.'}
+            {lang === 'en' ? 'Members, payments, schedule — one click away.' : 'Mitglieder, Beiträge, Stundenplan — einen Klick entfernt.'}
           </p>
           <ul className="space-y-3">
             {BULLETS.map(b => (
