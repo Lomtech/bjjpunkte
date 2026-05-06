@@ -105,14 +105,14 @@ export async function proxy(request: NextRequest) {
   return response
 }
 
-// Pass 22: matcher excludes /api/public/*, /api/portal/*, /api/signup, /api/sentry-example-api
-// from middleware altogether. Middleware was crashing on all GET requests to these paths
-// (proven by /api/public/ping with no Supabase imports also returning 500). The Supabase
-// session sync + Upstash dynamic import in proxy.ts is incompatible with these routes
-// in Vercel's Edge runtime. Public routes don't need Supabase session anyway — they use
-// service role for DB access.
+// Pass 22: matcher excludes /api/public/*, /api/portal/*, /api/signup, /api/sentry-example-api,
+// /api/admin/* from middleware altogether. Middleware was crashing on all GET requests to
+// these paths (proven by /api/public/ping with no Supabase imports also returning 500).
+// The Supabase session sync in proxy.ts is incompatible with these routes in Vercel's Edge
+// runtime. /api/admin/* uses its own Bearer-token auth via requireAdmin() — also doesn't
+// need session-sync.
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/public|api/portal|api/signup|api/sentry-example-api|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/public|api/portal|api/signup|api/admin|api/sentry-example-api|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
