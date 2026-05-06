@@ -391,7 +391,7 @@ export default function WebsitePage() {
   }) : 0
 
   const publicUrl = gym?.slug
-    ? (typeof window !== 'undefined' ? window.location.origin : 'https://osss.pro') + `/gym/${gym.slug}`
+    ? `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://osss.pro'}/gym/${gym.slug}`
     : null
 
   return (
