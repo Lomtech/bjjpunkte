@@ -187,7 +187,14 @@ function SettingsPageInner() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.from('gyms').select('*').single().then(async ({ data }) => {
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('gyms')
+        .select('*')
+        .eq('owner_id', user.id)
+        .maybeSingle()
       if (data) {
         setGymId(data.id ?? null)
         const existingSlug = data.slug ?? ''
@@ -246,7 +253,7 @@ function SettingsPageInner() {
         const { data: plansData } = await supabase.from('membership_plans').select('*').eq('gym_id', data.id).order('sort_order')
         if (plansData) setPlans(plansData)
       }
-    })
+    })()
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
       setUserAuthEmail(session.user.email ?? '')
