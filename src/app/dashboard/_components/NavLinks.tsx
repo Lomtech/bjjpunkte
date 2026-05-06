@@ -156,6 +156,7 @@ export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTra
 export function BottomNav({ isTrainer = false, onboardingDone = true }: { isTrainer?: boolean; onboardingDone?: boolean }) {
   const pathname = usePathname()
   const { t } = useLanguage()
+  const isAdmin = useIsAdmin()
 
   const BOTTOM_NAV = [
     { href: '/dashboard',             label: t('nav', 'overview'),    icon: LayoutDashboard, ownerOnly: false },
@@ -173,9 +174,16 @@ export function BottomNav({ isTrainer = false, onboardingDone = true }: { isTrai
   const baseItems = isTrainer ? TRAINER_BOTTOM_NAV : BOTTOM_NAV.filter(n => !n.ownerOnly || !isTrainer)
 
   // Prepend onboarding tab for owners who haven't finished setup
-  const items = (!isTrainer && !onboardingDone)
+  let items = (!isTrainer && !onboardingDone)
     ? [{ href: '/dashboard/onboarding', label: t('nav', 'setup'), icon: Rocket, ownerOnly: true }, ...baseItems]
     : baseItems
+
+  // Admins get an extra "CRM" tab — replace "Links" (less critical for them)
+  // to keep total tabs at 5 (iOS HIG: comfortable touch targets)
+  if (!isTrainer && isAdmin) {
+    items = items.filter(i => i.href !== '/dashboard/links')
+    items = [...items, { href: '/admin/leads', label: 'CRM', icon: Briefcase, ownerOnly: true }]
+  }
 
   return (
     <nav className="md:hidden flex-shrink-0 bg-white/96 backdrop-blur-md border-t border-zinc-100 z-40">
