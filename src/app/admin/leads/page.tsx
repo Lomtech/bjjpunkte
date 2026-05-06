@@ -91,7 +91,8 @@ export default function AdminLeadsPage() {
 
   // filters — persisted in localStorage so reloads keep the user's selection
   const [filtersHydrated, setFiltersHydrated] = useState(false)
-  const [statusFilter, setStatusFilter] = useState<Set<SalesLeadStatus>>(new Set(['new','researching','contacted','qualified']))
+  // Single-select Status-Filter: leeres Set = "Alle anzeigen", sonst genau 1 Status
+  const [statusFilter, setStatusFilter] = useState<Set<SalesLeadStatus>>(new Set())
   const [martialOnly, setMartialOnly] = useState(true)
   const [dueOnly, setDueOnly] = useState(false)
   const [city, setCity] = useState('')
@@ -112,7 +113,10 @@ export default function AdminLeadsPage() {
           city?: string
           sort?: string
         }
-        if (Array.isArray(f.statusFilter)) setStatusFilter(new Set(f.statusFilter))
+        // Single-select: alte Multi-Select-Werte (>1) ignorieren, dann Alle anzeigen
+        if (Array.isArray(f.statusFilter)) {
+          setStatusFilter(f.statusFilter.length === 1 ? new Set(f.statusFilter) : new Set())
+        }
         if (typeof f.martialOnly === 'boolean') setMartialOnly(f.martialOnly)
         if (typeof f.dueOnly === 'boolean') setDueOnly(f.dueOnly)
         if (typeof f.city === 'string') setCity(f.city)
@@ -475,7 +479,7 @@ export default function AdminLeadsPage() {
               <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Status</h3>
               <button
                 onClick={() => {
-                  setStatusFilter(new Set(['new','researching','contacted','qualified']))
+                  setStatusFilter(new Set())
                   setMartialOnly(true)
                   setDueOnly(false)
                   setCity('')
@@ -485,27 +489,62 @@ export default function AdminLeadsPage() {
                   try { localStorage.removeItem(FILTERS_LS_KEY) } catch {}
                 }}
                 className="text-[10px] text-zinc-400 hover:text-zinc-700 uppercase tracking-wide"
-                title="Filter auf Defaults zurücksetzen"
+                title="Filter zurücksetzen"
               >
                 Reset
               </button>
             </div>
+
+            {/* Single-select Status-Filter — Klick wechselt exklusiv, nochmal klicken zeigt wieder Alle */}
             <div className="space-y-1">
+              {/* "Alle" pseudo-Eintrag — aktiv wenn kein Status gewählt */}
+              <button
+                type="button"
+                onClick={() => { setStatusFilter(new Set()); setPage(0) }}
+                className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded transition-colors ${
+                  statusFilter.size === 0 ? 'bg-amber-50 ring-1 ring-amber-300' : 'hover:bg-zinc-50'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span className={`w-3.5 h-3.5 rounded-full border ${
+                    statusFilter.size === 0 ? 'bg-amber-500 border-amber-500' : 'border-zinc-300'
+                  }`} />
+                  <span className="text-xs font-medium text-zinc-700">Alle anzeigen</span>
+                </span>
+                <span className="text-xs text-zinc-400 tabular-nums">
+                  {Object.values(statusCounts).reduce((a, b) => a + (b ?? 0), 0)}
+                </span>
+              </button>
+
               {STATUSES.map(s => {
                 const checked = statusFilter.has(s.v)
                 const count = statusCounts[s.v] ?? 0
                 return (
-                  <label key={s.v} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded hover:bg-zinc-50 cursor-pointer">
+                  <button
+                    key={s.v}
+                    type="button"
+                    onClick={() => {
+                      // Klick auf bereits aktiven Status → wieder Alle
+                      // Klick auf anderen Status → exklusiv nur diesen
+                      if (statusFilter.size === 1 && statusFilter.has(s.v)) {
+                        setStatusFilter(new Set())
+                      } else {
+                        setStatusFilter(new Set([s.v]))
+                      }
+                      setPage(0)
+                    }}
+                    className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded transition-colors ${
+                      checked ? 'bg-amber-50 ring-1 ring-amber-300' : 'hover:bg-zinc-50'
+                    }`}
+                  >
                     <span className="flex items-center gap-2">
-                      <input type="checkbox" checked={checked} onChange={e => {
-                        const next = new Set(statusFilter)
-                        if (e.target.checked) next.add(s.v); else next.delete(s.v)
-                        setStatusFilter(next); setPage(0)
-                      }} />
+                      <span className={`w-3.5 h-3.5 rounded-full border flex-shrink-0 ${
+                        checked ? 'bg-amber-500 border-amber-500' : 'border-zinc-300'
+                      }`} />
                       <span className={`text-xs px-2 py-0.5 rounded-full ${s.color}`}>{s.label}</span>
                     </span>
                     <span className="text-xs text-zinc-400 tabular-nums">{count}</span>
-                  </label>
+                  </button>
                 )
               })}
             </div>
