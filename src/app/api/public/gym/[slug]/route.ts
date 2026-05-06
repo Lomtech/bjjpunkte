@@ -11,6 +11,20 @@ function serviceClient() {
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  try {
+    return await handleGet(params)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown error'
+    const stack = err instanceof Error ? err.stack : null
+    console.error('[public/gym] crash:', msg, stack)
+    return NextResponse.json(
+      { error: 'Gym konnte nicht geladen werden', detail: msg },
+      { status: 500 },
+    )
+  }
+}
+
+async function handleGet(params: Promise<{ slug: string }>) {
   const { slug } = await params
   const supabase = serviceClient()
 

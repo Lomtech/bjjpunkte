@@ -38,7 +38,7 @@ export async function GET() {
 
   const ok = Object.values(checks).every(c => c.ok)
   return NextResponse.json(
-    { ok, checks, ms: Date.now() - startedAt, time: new Date().toISOString() },
+    { ok, checks, ms: Date.now() - startedAt, time: new Date().toISOString(), build: 'pass-16' },
     { status: ok ? 200 : 503 },
   )
 }
