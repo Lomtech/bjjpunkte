@@ -6,8 +6,6 @@ import { notifyGym } from '@/lib/notify'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { getAppUrl } from '@/lib/app-url'
 
-export const runtime = 'nodejs'
-
 // Uses service role to bypass RLS — safe because we validate the signup_token
 function serviceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL

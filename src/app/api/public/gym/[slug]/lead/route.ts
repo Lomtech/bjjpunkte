@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyGym } from '@/lib/notify'
 
-export const runtime = 'nodejs'
-
 function serviceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
