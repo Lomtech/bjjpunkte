@@ -218,17 +218,19 @@ export default function DashboardPage() {
   const paidCount    = Array.from(memberPayStatus.values()).filter(s => s === 'paid').length
   const pendingCount = Array.from(memberPayStatus.values()).filter(s => s === 'pending').length
 
-  const hour = mounted ? new Date().getHours() : 12
+  // Use real hour on both server and client — suppressHydrationWarning handles
+  // the rare case where server/client time differs by 1 second across midnight
+  const hour = new Date().getHours()
   const greeting = hour < 12 ? t('dash', 'goodMorning') : hour < 18 ? t('dash', 'goodDay') : t('dash', 'goodEvening')
 
   return (
     <div className="p-4 md:p-6 max-w-5xl">
-      {/* Header */}
+      {/* Header — suppressHydrationWarning: date/time and lang intentionally differ server↔client */}
       <div className="mb-6">
-        <p className="text-xs text-zinc-400 font-medium mb-0.5">
+        <p suppressHydrationWarning className="text-xs text-zinc-400 font-medium mb-0.5">
           {mounted ? new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }) : ''}
         </p>
-        <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{greeting}</h1>
+        <h1 suppressHydrationWarning className="text-2xl font-black text-zinc-950 tracking-tight">{greeting}</h1>
       </div>
 
       {/* KPI Cards */}
