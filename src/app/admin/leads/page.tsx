@@ -822,30 +822,63 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
 }
 
 function QRModal({ lead, onClose }: { lead: SalesLead; onClose: () => void }) {
-  const url = typeof window !== 'undefined'
+  type Mode = 'call' | 'crm'
+  const [mode, setMode] = useState<Mode>(lead.phone ? 'call' : 'crm')
+  const dialPhone = lead.international_phone ?? lead.phone ?? ''
+  const telUrl = `tel:${dialPhone.replace(/\s/g, '')}`
+  const crmUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/admin/leads?lead=${lead.id}`
     : `https://www.osss.pro/admin/leads?lead=${lead.id}`
+  const value = mode === 'call' ? telUrl : crmUrl
+
   return (
     <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-zinc-900 mb-2">Auf iPhone öffnen</h3>
-        <p className="text-sm text-zinc-500 mb-4">
-          Scanne mit iPhone-Kamera → Lead öffnet sich im Browser → tel:-Link funktioniert direkt ohne Continuity-Drama.
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-zinc-900 mb-2 text-center">{lead.name}</h3>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-4 bg-zinc-100 rounded-xl p-1">
+          <button
+            disabled={!lead.phone}
+            onClick={() => setMode('call')}
+            className={`flex-1 px-3 py-2 text-sm rounded-lg font-semibold transition ${
+              mode === 'call' ? 'bg-emerald-400 text-zinc-900' : 'text-zinc-600 hover:bg-white disabled:opacity-40'
+            }`}>
+            📞 Direkt anrufen
+          </button>
+          <button
+            onClick={() => setMode('crm')}
+            className={`flex-1 px-3 py-2 text-sm rounded-lg font-semibold transition ${
+              mode === 'crm' ? 'bg-amber-400 text-zinc-900' : 'text-zinc-600 hover:bg-white'
+            }`}>
+            📋 CRM öffnen
+          </button>
+        </div>
+
+        <p className="text-sm text-zinc-500 mb-4 text-center">
+          {mode === 'call'
+            ? 'iPhone-Kamera über QR halten → Bestätigung „Anrufen?" → fertig.'
+            : 'Lead öffnet sich auf iPhone — Notizen + CRM-Aktionen.'}
         </p>
+
         <div className="flex justify-center mb-4">
           <div className="bg-white p-3 border border-zinc-200 rounded-xl">
-            <QRCodeSVG value={url} size={220} level="M" />
+            <QRCodeSVG value={value} size={220} level="M" />
           </div>
         </div>
-        <p className="text-xs text-zinc-400 break-all mb-4">{url}</p>
+
+        <p className="text-xs text-zinc-400 break-all text-center mb-4">
+          {mode === 'call' ? `📞 ${lead.phone}` : crmUrl}
+        </p>
+
         <div className="flex gap-2">
           <button
             onClick={() => {
-              navigator.clipboard?.writeText(url)
+              navigator.clipboard?.writeText(value)
               onClose()
             }}
             className="flex-1 px-4 py-2 text-sm rounded-lg border border-zinc-200 hover:bg-zinc-50">
-            Link kopieren
+            {mode === 'call' ? 'Nummer kopieren' : 'Link kopieren'}
           </button>
           <button onClick={onClose}
             className="flex-1 px-4 py-2 text-sm rounded-lg bg-zinc-900 text-white hover:bg-zinc-800">
