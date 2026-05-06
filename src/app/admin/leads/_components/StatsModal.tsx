@@ -173,25 +173,52 @@ export function StatsModal({ token, onClose }: { token: string; onClose: () => v
                 )}
               </Section>
 
-              {/* Calls per day */}
+              {/* Calls per day — pad with empty days for last 14 so chart doesn't look broken */}
               {Object.keys(stats.byDay).length > 0 && (
-                <Section title="Anrufe pro Tag">
-                  <div className="flex items-end gap-1 h-24">
-                    {Object.entries(stats.byDay)
-                      .sort(([a], [b]) => a.localeCompare(b))
-                      .slice(-30)
-                      .map(([day, count]) => {
-                        const max = Math.max(...Object.values(stats.byDay))
-                        const h = max > 0 ? (count / max * 100) : 0
-                        return (
-                          <div key={day} className="flex-1 flex flex-col items-center gap-1 group">
-                            <div className="text-[10px] text-zinc-400 opacity-0 group-hover:opacity-100">{count}</div>
-                            <div className="w-full bg-amber-300 rounded-t" style={{ height: `${h}%`, minHeight: count > 0 ? 4 : 0 }} />
-                            <div className="text-[9px] text-zinc-400">{day.slice(8)}</div>
-                          </div>
-                        )
-                      })}
-                  </div>
+                <Section title="Anrufe pro Tag (letzte 14 Tage)">
+                  {(() => {
+                    const days: { day: string; count: number; isToday: boolean }[] = []
+                    const now = new Date()
+                    for (let i = 13; i >= 0; i--) {
+                      const d = new Date(now)
+                      d.setDate(d.getDate() - i)
+                      const key = d.toISOString().slice(0, 10)
+                      days.push({
+                        day: key,
+                        count: stats.byDay[key] ?? 0,
+                        isToday: i === 0,
+                      })
+                    }
+                    const max = Math.max(1, ...days.map(d => d.count))
+                    const total = days.reduce((s, d) => s + d.count, 0)
+                    const avgPerDay = +(total / 14).toFixed(1)
+                    return (
+                      <>
+                        <div className="flex items-end gap-1.5 h-32 px-1">
+                          {days.map(({ day, count, isToday }) => {
+                            const h = (count / max) * 100
+                            const tone = isToday ? 'bg-amber-400' : count > 0 ? 'bg-amber-200' : 'bg-zinc-100'
+                            return (
+                              <div key={day} className="flex-1 flex flex-col items-center justify-end gap-1 min-w-0">
+                                <div className={`text-[10px] font-mono ${count > 0 ? 'text-zinc-700 font-bold' : 'text-zinc-300'}`}>
+                                  {count > 0 ? count : ''}
+                                </div>
+                                <div className={`w-full ${tone} rounded-t transition-all`}
+                                  style={{ height: count > 0 ? `${Math.max(h, 8)}%` : '4%' }} />
+                                <div className={`text-[10px] ${isToday ? 'text-amber-700 font-bold' : 'text-zinc-400'}`}>
+                                  {day.slice(8)}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-3">
+                          Ø <strong>{avgPerDay}</strong> Calls/Tag · gesamt <strong>{total}</strong>
+                          {avgPerDay < 10 && total > 0 && <span className="text-amber-700"> · Tipp: 20+/Tag für gesunden Sales-Funnel</span>}
+                        </p>
+                      </>
+                    )
+                  })()}
                 </Section>
               )}
 
