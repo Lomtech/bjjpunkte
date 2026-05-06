@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { SalesLead, SalesActivity, SalesLeadStatus } from '@/types/database'
+import { CallScript } from './_components/CallScript'
 
 const STATUSES: { v: SalesLeadStatus; label: string; color: string }[] = [
   { v: 'new',             label: 'Neu',          color: 'bg-zinc-100 text-zinc-700' },
@@ -577,6 +578,18 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity }: {
             placeholder="Was hast du erfahren? Wer ist Ansprechpartner? …"
             className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" />
         </label>
+
+        {/* Cold-Call Script */}
+        <CallScript lead={{
+          name: lead.name,
+          city: lead.city,
+          is_martial_arts: lead.is_martial_arts,
+          sports: lead.sports,
+          rating: lead.rating,
+          user_ratings_total: lead.user_ratings_total,
+          contact_count: lead.contact_count,
+          notes: lead.notes,
+        }} />
 
         {/* Add activity */}
         <div className="bg-zinc-50 rounded-xl p-4 space-y-3">
