@@ -5,6 +5,8 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+// Edge runtime config (currently nicht aktiv — siehe instrumentation.ts Pass 20).
+// Falls später wieder aktiviert: gleiche DSGVO-Regeln wie server config.
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
@@ -14,7 +16,6 @@ Sentry.init({
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
-  // Enable sending user PII (Personally Identifiable Information)
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
+  // KEIN PII — DSGVO-konform für anonymes Error-Tracking
+  sendDefaultPii: false,
 });
