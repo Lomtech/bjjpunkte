@@ -1380,6 +1380,8 @@ function SettingsPageInner() {
                     { id: 'judo',      label: 'Judo',      belt: true  },
                     { id: 'karate',    label: 'Karate',    belt: true  },
                     { id: 'taekwondo', label: 'Taekwondo', belt: true  },
+                    { id: 'wingtsun',  label: 'Wing Tsun', belt: true  },
+                    { id: 'kungfu',    label: 'Kung Fu',   belt: true  },
                     { id: 'mma',       label: 'MMA',       belt: false },
                     { id: 'muaythai',  label: 'Muay Thai', belt: false },
                     { id: 'boxing',    label: lang === 'en' ? 'Boxing'   : 'Boxen',   belt: false },

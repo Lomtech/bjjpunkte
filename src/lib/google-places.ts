@@ -116,7 +116,9 @@ const MARTIAL_KEYWORDS = [
   'muay thai', 'thai box', 'kickbox', 'kick-box',
   'boxen', 'box club',
   'wrestling', 'ringen',
-  'capoeira', 'krav maga', 'aikido', 'kung fu',
+  'capoeira', 'krav maga', 'aikido',
+  'kung fu', 'kungfu', 'kung-fu', 'wushu', 'shaolin',
+  'wing tsun', 'wing tsung', 'wingtsun', 'wing chun', 'ving tsun',
   'martial', 'combat',
 ]
 

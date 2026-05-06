@@ -103,6 +103,8 @@ export default function OnboardingPage() {
     { key: 'judo',      label: 'Judo',                          emoji: '🥇' },
     { key: 'karate',    label: 'Karate',                        emoji: '🥊' },
     { key: 'taekwondo', label: 'Taekwondo',                     emoji: '🦵' },
+    { key: 'wingtsun',  label: 'Wing Tsun',                     emoji: '🐉' },
+    { key: 'kungfu',    label: 'Kung Fu',                       emoji: '🐲' },
     { key: 'mma',       label: 'MMA',                           emoji: '🤼' },
     { key: 'muaythai',  label: 'Muay Thai',                     emoji: '🥊' },
     { key: 'boxing',    label: lang === 'en' ? 'Boxing' : 'Boxen',   emoji: '🥊' },
