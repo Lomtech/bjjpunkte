@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 
+// ─── Types ──────────────────────────────────────────────────────────────────
+
 type Lead = {
   name: string
   city: string | null
@@ -13,26 +15,34 @@ type Lead = {
   notes: string | null
 }
 
-type Phase = 'mindset' | 'opener' | 'discovery' | 'pitch' | 'objections' | 'close' | 'dq' | 'voicemail'
+type Phase =
+  | 'mindset'
+  | 'opener'
+  | 'discovery'
+  | 'pitch'
+  | 'objections'
+  | 'close'
+  | 'dq'
+  | 'voicemail'
 
 const PHASES: { id: Phase; label: string; icon: string }[] = [
-  { id: 'mindset',    label: 'Mindset',       icon: '🧠' },
-  { id: 'opener',     label: 'Einstieg',      icon: '👋' },
-  { id: 'discovery',  label: 'Diagnose',      icon: '🩺' },
-  { id: 'pitch',      label: 'Wedge',         icon: '🎯' },
-  { id: 'objections', label: 'Einwände',      icon: '🛡' },
-  { id: 'close',      label: 'Termin',        icon: '📅' },
-  { id: 'dq',         label: 'Disqualify',    icon: '🚪' },
-  { id: 'voicemail',  label: 'Mailbox',       icon: '📞' },
+  { id: 'mindset',    label: 'Mindset',    icon: '🧠' },
+  { id: 'opener',     label: 'Einstieg',   icon: '👋' },
+  { id: 'discovery',  label: 'Diagnose',   icon: '🩺' },
+  { id: 'pitch',      label: 'Wedge',      icon: '🎯' },
+  { id: 'objections', label: 'Einwände',   icon: '🛡' },
+  { id: 'close',      label: 'Termin',     icon: '📅' },
+  { id: 'dq',         label: 'Tschüss',    icon: '🚪' },
+  { id: 'voicemail',  label: 'Mailbox',    icon: '📞' },
 ]
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export function CallScript({ lead }: { lead: Lead }) {
   const [phase, setPhase] = useState<Phase>('mindset')
   const [showScript, setShowScript] = useState(false)
 
-  // Personalize: detect primary sport for tailored hook
   const primarySport = pickPrimarySport(lead.sports)
-  const sportHook = SPORT_HOOKS[primarySport] ?? SPORT_HOOKS.default
   const isReturningCall = lead.contact_count > 0
   const cityPart = lead.city ? ` in ${lead.city}` : ''
 
@@ -43,7 +53,8 @@ export function CallScript({ lead }: { lead: Lead }) {
         className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-amber-100/60 transition-colors"
       >
         <span className="text-sm font-bold text-amber-900 flex items-center gap-2">
-          📋 Anruf-Skript {isReturningCall && <span className="text-xs font-normal text-amber-700">(Folgeanruf)</span>}
+          📋 Anruf-Skript
+          {isReturningCall && <span className="text-xs font-normal text-amber-700">(Folgeanruf)</span>}
         </span>
         <span className="text-amber-700 text-lg">{showScript ? '▾' : '▸'}</span>
       </button>
@@ -53,12 +64,15 @@ export function CallScript({ lead }: { lead: Lead }) {
           {/* Phase tabs */}
           <div className="flex gap-1 flex-wrap text-xs">
             {PHASES.map(p => (
-              <button key={p.id} onClick={() => setPhase(p.id)}
+              <button
+                key={p.id}
+                onClick={() => setPhase(p.id)}
                 className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
                   phase === p.id
                     ? 'bg-amber-400 text-zinc-900'
                     : 'bg-white border border-amber-200 text-amber-800 hover:bg-amber-100'
-                }`}>
+                }`}
+              >
                 {p.icon} {p.label}
               </button>
             ))}
@@ -67,17 +81,18 @@ export function CallScript({ lead }: { lead: Lead }) {
           {/* Phase content */}
           <div className="bg-white border border-amber-200 rounded-lg p-3 text-sm leading-relaxed text-zinc-800 space-y-3">
             {phase === 'mindset'    && <Mindset />}
-            {phase === 'opener'     && <Opener  lead={lead} sportHook={sportHook} cityPart={cityPart} returning={isReturningCall} primarySport={primarySport} />}
-            {phase === 'discovery'  && <Discovery lead={lead} primarySport={primarySport} />}
-            {phase === 'pitch'      && <Pitch lead={lead} primarySport={primarySport} />}
+            {phase === 'opener'     && <Opener lead={lead} cityPart={cityPart} primarySport={primarySport} returning={isReturningCall} />}
+            {phase === 'discovery'  && <Discovery primarySport={primarySport} />}
+            {phase === 'pitch'      && <Pitch primarySport={primarySport} />}
             {phase === 'objections' && <Objections />}
-            {phase === 'close'      && <Close lead={lead} cityPart={cityPart} />}
+            {phase === 'close'      && <Close />}
             {phase === 'dq'         && <Disqualify />}
-            {phase === 'voicemail'  && <Voicemail sportHook={sportHook} cityPart={cityPart} />}
+            {phase === 'voicemail'  && <Voicemail cityPart={cityPart} />}
           </div>
 
           <div className="text-xs text-amber-800/80">
-            💡 <strong>Goldene Regel</strong>: Disqualifizieren ist kein Versagen — es ist Effizienz. 9 saubere DQs in einer Stunde sind besser als 1 lauwarme Demo, die nie konvertiert.
+            💡 <strong>Goldene Regel</strong>: Disqualifizieren ist kein Versagen, es ist Effizienz.
+            9 saubere DQs in einer Stunde sind besser als 1 lauwarme Demo, die nie konvertiert.
           </div>
         </div>
       )}
@@ -85,7 +100,7 @@ export function CallScript({ lead }: { lead: Lead }) {
   )
 }
 
-// ───────────────────────────────────────────────────────────────────────────
+// ─── Phases ─────────────────────────────────────────────────────────────────
 
 function Mindset() {
   return (
@@ -101,8 +116,8 @@ function Mindset() {
           Wenn ja → Demo-Termin. Wenn nein → höflich auflegen.
         </p>
         <p className="text-sm text-zinc-700">
-          <strong>Disqualifizieren ist KEIN Versagen.</strong> Es ist die einzige Art, in 1 Stunde 10 Leads
-          zu bewerten statt 3 zu überreden.
+          <strong>Disqualifizieren ist KEIN Versagen.</strong> Es ist die einzige Art, in 1 Stunde
+          10 Leads zu bewerten statt 3 zu überreden.
         </p>
       </div>
 
@@ -110,52 +125,52 @@ function Mindset() {
         <p className="font-bold text-rose-900 mb-2 text-xs uppercase tracking-wide">⚠️ Realitäts-Check</p>
         <p className="text-sm text-rose-900 mb-1.5">
           <strong>9 von 10 sagen „kein Bedarf" oder „Lösungen wie Sand am Meer".</strong>
-          Das ist kein Skill-Problem. Es ist die <strong>Wahrheit</strong>: gesättigter Markt + hohe Switching-Costs.
+          Das ist kein Skill-Problem — das ist der Markt. Gesättigt + hohe Switching-Costs.
         </p>
         <p className="text-sm text-rose-900">
-          → Akzeptiere das. Streite NIE dagegen an. Spare deine Energie für die 10. Person, die ein echtes
-          Problem hat.
+          → Akzeptiere das. Streite NIE dagegen an. Spare deine Energie für die 10. Person, die echten
+          Pain hat.
         </p>
       </div>
 
       <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
         <p className="font-bold text-emerald-900 mb-2 text-xs uppercase tracking-wide">✅ Dein Ziel pro Anruf</p>
         <ul className="text-sm text-emerald-900 space-y-1 list-disc pl-5">
-          <li><strong>1 spezifische Pain-Information</strong> bekommen (welches Tool, welcher Frust, welche Stunden)</li>
+          <li><strong>1 spezifischen Pain</strong> rausbekommen (was nervt konkret?)</li>
           <li>Wenn Pain echt → <strong>Demo-Termin</strong> setzen</li>
-          <li>Wenn Pain null → <strong>sauber „Tschüss"</strong> in 30 Sekunden</li>
+          <li>Wenn Pain null → <strong>sauber Tschüss</strong> in 30 Sek</li>
           <li><strong>NIEMALS</strong>: überreden, argumentieren, „aber wir können doch…"</li>
         </ul>
       </div>
 
-      <p className="text-xs text-zinc-500 italic">
-        Atemübung vor dem Wählen: 4 Sekunden ein, 4 halten, 6 aus. Stimme wird ruhiger, kein Verkaufston.
-      </p>
+      <div className="text-xs text-zinc-500 italic">
+        Atemübung vor dem Wählen: 4 Sek ein, 4 halten, 6 aus. Stimme wird ruhiger, kein Verkaufston.
+      </div>
     </>
   )
 }
 
-function Opener({ lead, sportHook, cityPart, returning, primarySport }: { lead: Lead; sportHook: string; cityPart: string; returning: boolean; primarySport: string }) {
-  void sportHook
+// ───────────────────────────────────────────────────────────────────────────
+
+function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityPart: string; primarySport: string; returning: boolean }) {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        ⏱ ZIEL: 12 Sekunden. Permission holen → DIREKT in Diagnose-Frage übergehen.
+        ⏱ ZIEL: 10 Sekunden. Nicht-invasive Struktur-Frage. Permission impliziert.
       </div>
 
       {returning ? (
         <p className="italic">
           „Hi, Lom hier. Wir hatten kurz Kontakt zu <strong>{lead.name}</strong>{cityPart}.
-          Hattest du Zeit drüber nachzudenken, oder ist es gerade einfach zu viel?"
+          Hattest du Zeit drüber nachzudenken — oder ist es gerade einfach zu viel?"
         </p>
       ) : (
         <>
-          {/* PRIMARY OPENER — Struktur-Frage, NICHT privat (User-Stil) */}
+          {/* PRIMARY OPENER — Struktur-Frage, nicht-privat */}
           <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-300">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1">
-              🎯 PRIMÄR · Struktur-Frage (nicht privat, binär, öffnet 2 Wege)
+              🎯 PRIMÄR · Struktur-Frage (nicht-privat, binär, 4 Folge-Pfade)
             </p>
-
             <p className="italic text-base leading-relaxed font-medium text-zinc-900">
               „Hi, ich bin Lom-Ali Imadaev. <strong>Kurze Frage:</strong> Machst du die
               Mitgliederverwaltung <strong>allein — oder macht das jemand für dich</strong>?"
@@ -163,37 +178,37 @@ function Opener({ lead, sportHook, cityPart, returning, primarySport }: { lead: 
 
             <div className="text-xs text-emerald-800 mt-3 space-y-1 border-t border-emerald-200 pt-2">
               <p><strong>Warum es wirkt:</strong></p>
-              <p>• Frage nach <strong>Struktur</strong>, nicht nach Zahlen → kein Geheimnis</p>
-              <p>• Binäre Antwort → er muss nicht nachdenken, keine Defense</p>
-              <p>• Öffnet automatisch den richtigen Folge-Pfad</p>
-              <p>• Klingt nicht wie Verkäufer, klingt wie ehrliches Interesse</p>
+              <p>• Frage nach <strong>Struktur</strong>, nicht Zahlen — kein Geheimnis</p>
+              <p>• Binär → keine Defense, schnelle Antwort</p>
+              <p>• Öffnet 4 verschiedene Folge-Pfade je nach Antwort</p>
+              <p>• Klingt wie echtes Interesse, nicht wie Verkäufer</p>
             </div>
 
             <div className="text-xs text-emerald-700 mt-3 bg-emerald-100/50 rounded p-2 space-y-2">
-              <p className="font-bold text-emerald-900">Folge-Fragen (je nach Antwort):</p>
+              <p className="font-bold text-emerald-900">Folge-Fragen je nach Antwort:</p>
 
               <div>
                 <p>→ <strong>„Ich allein"</strong></p>
-                <p className="italic ml-3">&bdquo;Wie viele Stunden kostet dich das so in der Woche?"</p>
-                <p className="ml-3">[Wenn echte Zahl: &bdquo;Was ist so eine Sache, die du besonders ungern machst?"]</p>
-                <p className="ml-3 text-emerald-600">→ Hier kommt der echte Pain raus. ZUHÖREN.</p>
+                <p className="italic ml-3">„Wie viele Stunden kostet dich das so in der Woche?"</p>
+                <p className="italic ml-3">„Was ist eine Sache, die du besonders ungern machst?"</p>
+                <p className="ml-3 text-emerald-600">→ ZUHÖREN. Hier kommt der echte Pain raus.</p>
               </div>
 
               <div>
                 <p>→ <strong>„Trainer / Mitarbeiter"</strong></p>
-                <p className="italic ml-3">&bdquo;OK, und wie zufrieden bist du damit — läuft das gut, oder gibt&apos;s Reibung?"</p>
-                <p className="ml-3 text-emerald-600">→ Wenn Reibung: Pain. Wenn null Pain: DQ.</p>
+                <p className="italic ml-3">„OK, und wie zufrieden bist du damit — läuft alles glatt oder gibt&apos;s Reibung?"</p>
+                <p className="ml-3 text-emerald-600">→ Reibung = Pain. Null Reibung = DQ.</p>
               </div>
 
               <div>
-                <p>→ <strong>„Steuerberater macht alles"</strong></p>
-                <p className="italic ml-3">&bdquo;Cool — und wie übergibt ihr ihm die Zahlen? Excel, manuell, oder schon automatisch?"</p>
-                <p className="ml-3 text-emerald-600">→ Wenn manuell: DATEV-Wedge perfekt.</p>
+                <p>→ <strong>„Steuerberater macht das"</strong></p>
+                <p className="italic ml-3">„Cool — und wie übergibt ihr ihm die Zahlen? Excel, manuell oder schon automatisch?"</p>
+                <p className="ml-3 text-emerald-600">→ Manuell = DATEV-Wedge perfekt.</p>
               </div>
 
               <div>
-                <p>→ <strong>„Wer bist du?"</strong></p>
-                <p className="italic ml-3">&bdquo;Ich bau Software für Kampfsport-Gyms. Frag gerade Coaches durch um zu verstehen wo&apos;s wehtut. Kein Verkauf jetzt — nur Frage."</p>
+                <p>→ <strong>„Wer bist du eigentlich?"</strong></p>
+                <p className="italic ml-3">„Ich bau Software für Kampfsport-Gyms. Frag gerade Coaches durch um zu verstehen wo&apos;s wehtut. Kein Verkauf jetzt — nur die Frage."</p>
               </div>
 
               <div>
@@ -202,64 +217,10 @@ function Opener({ lead, sportHook, cityPart, returning, primarySport }: { lead: 
             </div>
           </div>
 
-          {/* ALTERNATIVE 1 — Lastschrift-Pain (für vertrauensvollere Calls) */}
+          {/* ALTERNATIVE 1 — Story-First (für Boomer-Skeptiker) */}
           <details className="bg-white rounded-lg border border-amber-200">
             <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Lastschrift-Pain (direkter, etwas privater)
-            </summary>
-            <div className="px-3 pb-3 space-y-2 text-sm">
-              <p className="italic">
-                „Hallo, Lom-Ali Imadaev hier. Kurze Frage: <strong>Ziehen die Beiträge bei euch
-                automatisch per Lastschrift ein — oder rennt ihr noch jeden Monat den Mahnungen
-                hinterher?</strong>"
-              </p>
-              <p className="text-xs text-zinc-600">
-                → Direkter Cash-Flow-Pain. Manche Coaches finden das ein bisschen privat, aber wer
-                offen antwortet, ist heißer Lead.
-              </p>
-            </div>
-          </details>
-
-          {/* ALTERNATIVE 2 — Probetraining-Funnel (für wachsende Gyms) */}
-          <details className="bg-white rounded-lg border border-amber-200">
-            <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Probetraining-Funnel (für wachsende Gyms, Insta/WhatsApp-Coaches)
-            </summary>
-            <div className="px-3 pb-3 space-y-2 text-sm">
-              <p className="italic">
-                „Hallo, Lom-Ali Imadaev hier. Kurze Frage: <strong>Wenn jemand auf Insta oder WhatsApp
-                ein Probetraining anfragt — wo landet das? Und wie hältst du den Überblick, wer schon da
-                war und wer nicht?</strong>"
-              </p>
-              <p className="text-xs text-zinc-600">
-                → Stark für Gyms mit Wachstumsambition. Schwach für stagnierende kleine Vereine.
-              </p>
-            </div>
-          </details>
-
-          {/* ALTERNATIVE 3 — Belt-Tracking (sport-spezifisch BJJ/Judo/Karate/TKD) */}
-          {(primarySport === 'bjj' || primarySport === 'judo' || primarySport === 'karate' || primarySport === 'taekwondo') && (
-            <details className="bg-white rounded-lg border border-amber-200">
-              <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                Alternative · Belt-Pain ({sportLabel(lead.sports)}-spezifisch, sehr emotional)
-              </summary>
-              <div className="px-3 pb-3 space-y-2 text-sm">
-                <p className="italic">
-                  „Hallo, Lom-Ali Imadaev hier. Kurze Frage: <strong>Wie tracked ihr eigentlich die
-                  Belt-Promotions — Excel, Whiteboard, oder im Kopf?</strong> Und wisst ihr immer genau, wer
-                  wann den letzten Streifen bekommen hat?"
-                </p>
-                <p className="text-xs text-zinc-600">
-                  → Sehr emotionaler Pain im {sportLabel(lead.sports)}. Lokomotive für Belt-Tracking-USP.
-                </p>
-              </div>
-            </details>
-          )}
-
-          {/* ALTERNATIVE 4 — Story-First (für skeptische Boomer-Coaches) */}
-          <details className="bg-white rounded-lg border border-amber-200">
-            <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Story-First (sanfter, für skeptische Boomer-Coaches)
+              Alternative · Story-First (sanfter, für skeptische Coaches)
             </summary>
             <div className="px-3 pb-3 space-y-2 text-sm">
               <p className="italic">
@@ -267,205 +228,226 @@ function Opener({ lead, sportHook, cityPart, returning, primarySport }: { lead: 
                 {cityPart} ist bei mir auf der Liste. 30 Sekunden, dann legst du auf — fair?"
               </p>
               <p className="italic">
-                [Auf „ja" warten.] „Ich rede gerade mit vielen Coaches über Beitragseinzug. Die meisten sagen
-                mir &bdquo;Mahnungen schreiben ist der Tag den ich am meisten hasse&ldquo;. Bei dir auch ein
+                [Auf „ja" warten.] „Ich rede gerade mit vielen Coaches. Die meisten sagen mir,
+                dass die Mitgliederverwaltung mehr Zeit frisst als sie geben kann. Bei dir auch ein
                 Thema — oder schon gut gelöst?"
               </p>
             </div>
+          </details>
+
+          {/* ALTERNATIVE 2 — Belt-Pain (sport-conditional) */}
+          {(primarySport === 'bjj' || primarySport === 'judo' || primarySport === 'karate' || primarySport === 'taekwondo') && (
+            <details className="bg-white rounded-lg border border-amber-200">
+              <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                Alternative · Belt-Tracking ({sportLabel(lead.sports)}-spezifisch, emotionaler Pain)
+              </summary>
+              <p className="italic text-sm px-3 pb-3 leading-relaxed">
+                „Hi, ich bin Lom-Ali Imadaev. Kurze Frage: <strong>Wie tracked ihr eigentlich die
+                Belt-Promotions — Excel, Whiteboard, oder im Kopf?</strong>"
+              </p>
+            </details>
+          )}
+
+          {/* ALTERNATIVE 3 — Honest-Outsider (max. Ehrlichkeit) */}
+          <details className="bg-white rounded-lg border border-amber-200">
+            <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+              Alternative · Honest-Outsider (für Skeptiker)
+            </summary>
+            <p className="italic text-sm px-3 pb-3 leading-relaxed">
+              „Hi, ich ruf direkt durch — ehrlich: ich rufe bei Kampfsport-Gyms an die ich auf Google
+              gefunden habe. Eine einzige Frage, 30 Sekunden, <strong>danach hörst du nie wieder von
+              mir wenn&apos;s nicht passt</strong>. Frage: machst du die Mitgliederverwaltung allein
+              oder hast du Hilfe?"
+            </p>
           </details>
         </>
       )}
 
       <div className="text-xs text-zinc-700 bg-rose-50 rounded p-2 mt-2 space-y-1 border border-rose-200">
         <p className="font-bold text-rose-800">⚠️ NIE in den ersten 8 Sekunden:</p>
-        <p>❌ „Ich baue eine Software für Kampfsport-Gyms…" → triggert Defense-Reflex</p>
-        <p>❌ „Ich will Ihnen nichts verkaufen" → klassische Sales-Floskel, alle wissen es</p>
-        <p>❌ „Ich frage ob es Bedarf am Markt gibt" → klingt wie Marktforscher, sie wimmeln dich ab</p>
-        <p>❌ „Wie geht es Ihnen?" → sofortiger Aufleger</p>
+        <p>❌ „Ich baue eine Software für Kampfsport…" → Defense-Reflex sofort aktiv</p>
+        <p>❌ „Ich will Ihnen nichts verkaufen" → klassische Sales-Floskel</p>
+        <p>❌ „Ich frage, ob es Bedarf am Markt gibt" → Marktforscher-Vibe</p>
+        <p>❌ „Wie viele Mitglieder zahlen nicht?" → zu privat, sofort dicht</p>
       </div>
     </>
   )
 }
 
-function Discovery({ lead, primarySport }: { lead: Lead; primarySport: string }) {
-  void lead
+// ───────────────────────────────────────────────────────────────────────────
+
+function Discovery({ primarySport }: { primarySport: string }) {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        🩺 ZIEL: 90 Sekunden Diagnose. 3 Fragen. Wenn KEIN Pain → Disqualify.
+        🩺 ZIEL: 90 Sekunden Diagnose. Wenn nach 3 Fragen NULL Pain → Tab „Tschüss".
       </div>
 
       <p className="text-xs text-zinc-700">
-        Stelle die 3 Fragen <strong>genau in dieser Reihenfolge</strong>. Nach jeder Antwort: 2 Sekunden Pause,
-        zuhören, NICHTS dazu sagen außer „mhm" / „verstehe".
+        Folge dem natürlichen Gesprächsfluss. <strong>Eine Frage gleichzeitig, 2 Sekunden Pause</strong>,
+        zuhören, „mhm" / „verstehe" — sonst NICHTS dazu sagen.
       </p>
 
-      {/* FRAGE 1 — wer/wie? */}
+      {/* FRAGE 1 — Folge aus Opener */}
       <div className="bg-white rounded-lg p-3 border-l-4 border-amber-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">
-          1️⃣ WER macht es heute?
+          1️⃣ Konkretisieren: Stunden / Frequenz
         </p>
         <p className="italic text-sm">
-          „Wer macht bei euch die Beitragsabrechnung am Monatsende — du selbst, ein Trainer, oder eine Software?"
+          „Wie viele Stunden gehen pro Woche dafür drauf, ungefähr?"
         </p>
         <div className="text-xs text-zinc-600 mt-2 space-y-0.5">
-          <p>→ <strong>„Ich selbst"</strong> = HEISS. Pain ist persönlich, du bekommst die Aufmerksamkeit.</p>
-          <p>→ <strong>„Software X"</strong> = LAUWARM. Frag Frage 2 weiter, prüfe ob Frust da ist.</p>
-          <p>→ <strong>„Steuerberater macht alles"</strong> = KALT. Probable DQ — kein Pain bei ihm.</p>
+          <p>→ <strong>„2-3h"</strong> = LAUWARM — Pain ist da, aber nicht groß genug</p>
+          <p>→ <strong>„5h+"</strong> = WARM — Pain echt, weiter</p>
+          <p>→ <strong>„10h+"</strong> = 🔥 HEISS — direkter Demo-Kandidat</p>
+          <p>→ <strong>„keine Ahnung"</strong> = LAUWARM — Pain wird nicht spürbar gemessen</p>
         </div>
       </div>
 
-      {/* FRAGE 2 — was tut weh? */}
+      {/* FRAGE 2 — der echte Pain */}
       <div className="bg-white rounded-lg p-3 border-l-4 border-amber-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">
-          2️⃣ WAS tut weh?
+          2️⃣ Emotion-Trigger: was nervt am meisten?
         </p>
         <p className="italic text-sm">
-          „Was nervt dich aktuell am meisten am ganzen Beitrags-Thema — wenn du ehrlich bist?"
+          „Was ist eine Sache, die du <strong>besonders ungern</strong> machst?"
         </p>
         <div className="text-xs text-zinc-600 mt-2 space-y-0.5">
-          <p>→ <strong>Konkrete Antwort</strong> („Mahnungen sind manuell" / „SEPA-Stornos kosten Zeit") = HEISS</p>
-          <p>→ <strong>„Eigentlich nichts"</strong> = DQ. Akzeptiere und Tschüss.</p>
-          <p>→ <strong>„Kostet zu viel"</strong> = HEISS — du hast 0% Plattformgebühr</p>
-          <p>→ <strong>„Ist halt Zeit"</strong> = WARM — Frage 3 stellen für Zahl</p>
+          <p>→ Konkrete Antwort („Mahnungen", „SEPA-Stornos", „Datev-Übergabe") = <strong>Goldader</strong></p>
+          <p>→ „Eigentlich nichts" = DQ-Signal</p>
+          <p>→ Sport-conditional Bonus für {primarySport.toUpperCase()}: „Wie tracked ihr Belt-Promotions?"</p>
         </div>
-      </div>
-
-      {/* FRAGE 3 — wie teuer? */}
-      <div className="bg-white rounded-lg p-3 border-l-4 border-amber-400">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">
-          3️⃣ WIE TEUER ist es schon?
-        </p>
-        <p className="italic text-sm">
-          „Wie viele Stunden im Monat kostet dich das ungefähr — 2, 5, 10?"
-        </p>
         <div className="bg-amber-50 rounded p-2 mt-2 text-xs text-amber-900">
-          <p className="font-bold">💰 Pain-Calc (sage ihm DAS Zahl-Argument):</p>
-          <p>2h/Monat × 50 €/h = <strong>100 €/Monat = 1.200 €/Jahr</strong></p>
-          <p>5h/Monat × 50 €/h = <strong>250 €/Monat = 3.000 €/Jahr</strong></p>
-          <p>10h/Monat × 50 €/h = <strong>500 €/Monat = 6.000 €/Jahr</strong></p>
-          <p className="mt-1">→ <strong>„Osss kostet 29-99 €/Monat. Das ist 90% Ersparnis."</strong></p>
+          <strong>📝 SEINE EXAKTEN WORTE NOTIEREN!</strong> Du nutzt sie später im Pitch.
+          Wenn er „Mahnungen sind anstrengend" sagt → du sagst: „Genau für anstrengende Mahnungen…"
         </div>
       </div>
 
-      {/* Sport-spezifische Bonus-Frage falls Zeit übrig */}
-      {(primarySport === 'bjj' || primarySport === 'judo' || primarySport === 'karate') && (
-        <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-200">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
-            🥋 Bonus für {primarySport.toUpperCase()} (nur wenn Frage 1-3 positiv)
-          </p>
-          <p className="italic text-xs">
-            „Wie tracked ihr die Belt-Promotions? Excel, im Kopf, oder ne separate Liste?"
-          </p>
-          <p className="text-xs text-zinc-600 mt-1">→ Bei „Excel" / „im Kopf": <strong>perfektes Wedge-Use-Case</strong>.</p>
+      {/* FRAGE 3 — wie viel kostet's? */}
+      <div className="bg-white rounded-lg p-3 border-l-4 border-amber-400">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">
+          3️⃣ Pain in Geld umrechnen
+        </p>
+        <p className="italic text-sm">
+          „Wenn du das in Stunden hochrechnest — wie viel ist das im Jahr? 50, 100 Stunden?"
+        </p>
+        <div className="bg-amber-50 rounded p-2 mt-2 text-xs text-amber-900 space-y-1">
+          <p className="font-bold">💰 Pain-Calc (sage ihm das Zahl-Argument):</p>
+          <p>2 h/Woche × 50 Wochen × 50 €/h = <strong>5.000 €/Jahr</strong></p>
+          <p>5 h/Woche × 50 Wochen × 50 €/h = <strong>12.500 €/Jahr</strong></p>
+          <p>→ <strong>„Osss kostet 0–99 €/Monat. Du sparst Faktor 5–10× deine Lebenszeit."</strong></p>
         </div>
-      )}
+      </div>
 
       <div className="bg-rose-50 rounded-lg p-3 border border-rose-200 mt-3">
         <p className="font-bold text-rose-900 text-xs uppercase tracking-wide mb-1">🚪 Wenn nach 3 Fragen NULL Pain:</p>
         <p className="text-sm text-rose-900">
-          → Tab <strong>„Disqualify"</strong> öffnen. Sage: „OK, dann seid ihr wirklich gut versorgt. Danke für deine
-          Ehrlichkeit. Tschüss." → AUFLEGEN. Status auf „Kein Fit". Nächster Lead.
+          Tab <strong>„Tschüss"</strong> öffnen. Sage: „OK, dann seid ihr wirklich gut versorgt.
+          Danke für deine Ehrlichkeit." → AUFLEGEN. Status: „Kein Fit". Nächster Lead.
         </p>
       </div>
     </>
   )
 }
 
-function Pitch({ lead, primarySport }: { lead: Lead; primarySport: string }) {
-  void lead
+// ───────────────────────────────────────────────────────────────────────────
+
+function Pitch({ primarySport }: { primarySport: string }) {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        🎯 WEDGE statt Komplettverkauf. Kein Switching-Pitch — Lösung für EIN Problem.
+        🎯 WEDGE statt Komplettverkauf. Lösung für EIN Problem, nicht „wechselt zu Osss".
       </div>
 
       <div className="bg-amber-50 rounded-lg p-3 border border-amber-200 text-sm">
-        <p className="font-bold text-amber-900 mb-1">🪓 Strategie: Wedge-Use-Case</p>
+        <p className="font-bold text-amber-900 mb-1">🪓 Strategie</p>
         <p className="text-amber-900">
-          Die meisten haben schon ein Tool. Wechsel ist teuer. <strong>Verkaufe NICHT „wechselt zu Osss"</strong> — verkaufe
-          einen <strong>EINZELNEN konkreten Pain-Fix</strong>, der ihr aktuelles Tool ergänzt.
+          Die meisten haben schon ein Tool. Wechsel ist teuer. <strong>Verkaufe NICHT</strong>{' '}
+          „wechselt zu Osss" — biete einen <strong>EINZELNEN Pain-Fix</strong>, der ergänzt.
         </p>
       </div>
 
-      {/* Wedge 1 — DATEV-Export */}
+      {/* Wedge 1 — DATEV */}
       <div className="bg-white rounded-lg p-3 border-l-4 border-emerald-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">
-          🪓 Wedge 1 · Wenn Steuerberater-Pain genannt wurde
+          🪓 Wedge 1 · DATEV-Pain (Steuerberater-Übergabe)
         </p>
         <p className="italic text-sm">
-          „Hör mal — wir haben einen DATEV-Export der wirklich für deinen Steuerberater funktioniert.
-          Probier das einfach mal aus, kostet nichts. <strong>Du musst dafür nicht von Eversports wechseln</strong>.
-          Du exportierst einfach deine Beiträge als CSV und mein Tool macht dir DATEV draus. 5 Minuten Setup.
-          Soll ich dir einen Login schicken?"
+          „Wir haben einen DATEV-Export, der wirklich für deinen Steuerberater funktioniert.
+          <strong> Du musst dafür nicht von [aktuelles Tool] wechseln</strong>. Du exportierst
+          deine Beiträge als CSV, mein Tool macht dir DATEV draus. 5 Minuten Setup. Soll ich dir
+          einen Login schicken?"
         </p>
       </div>
 
-      {/* Wedge 2 — Belt-Tracking */}
+      {/* Wedge 2 — Belt (sport-conditional) */}
       {(primarySport === 'bjj' || primarySport === 'judo' || primarySport === 'karate' || primarySport === 'taekwondo') && (
         <div className="bg-white rounded-lg p-3 border-l-4 border-emerald-400">
           <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">
-            🪓 Wedge 2 · Wenn Belt-Tracking-Chaos genannt wurde
+            🪓 Wedge 2 · Belt-Tracking ({primarySport.toUpperCase()}-spezifisch)
           </p>
           <p className="italic text-sm">
-            „Belt-Tracking ist genau mein Thema. Ich hab das für {primarySport === 'bjj' ? 'BJJ' : primarySport === 'judo' ? 'Judo' : primarySport === 'karate' ? 'Karate' : 'Taekwondo'}-Schulen gebaut weil ich
-            es selbst trainiere. Promotion-History pro Mitglied, mit Datum, Trainer, Notes. <strong>Kostet bis 30
-            Mitglieder nichts.</strong> Soll ich dir den Free-Account schicken zum Anschauen?"
+            „Belt-Tracking ist genau mein Thema. Hab das gebaut weil ich es selbst trainiere.
+            Promotion-History pro Mitglied, mit Datum, Trainer, Notes. <strong>Bis 30 Mitglieder
+            kostet das nichts.</strong> Soll ich dir den Free-Account schicken?"
           </p>
         </div>
       )}
 
-      {/* Wedge 3 — Beitragseinzug-Pain */}
+      {/* Wedge 3 — Zeit-Pain */}
       <div className="bg-white rounded-lg p-3 border-l-4 border-emerald-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">
-          🪓 Wedge 3 · Wenn Beitragseinzug viel Zeit kostet
+          🪓 Wedge 3 · Zeit-Argument (mit konkreten €-Zahlen aus Diagnose)
         </p>
         <p className="italic text-sm">
-          „Bei eurer Größe und {'<X>'} Stunden im Monat = ungefähr {'<Y>'} € im Jahr was du verlierst.
-          Mein Tool kostet dich 29 €/Monat = 348 €/Jahr. <strong>Du sparst {'<Z>'} € pro Jahr — und zwar
-          deine eigene Zeit, nicht Geld auf Papier.</strong> Wenn du willst, mach ich dir 5 Minuten Demo,
-          du entscheidest danach."
+          „Bei deinen {'<X>'} Stunden pro Woche × 50 Wochen × 50 €/h = ungefähr {'<Y>'} € im Jahr,
+          die du in Verwaltung steckst statt Training. Mein Tool kostet 29 €/Monat = 348 €/Jahr.
+          <strong> Du sparst {'<Z>'} € pro Jahr deiner Lebenszeit.</strong> Wenn du willst, mach
+          ich dir 5 Min Demo, du entscheidest danach."
         </p>
       </div>
 
-      {/* Wedge 4 — Komplett-Wechsler (selten) */}
+      {/* Wedge 4 — Komplett-Wechsel (selten) */}
       <div className="bg-white rounded-lg p-3 border-l-4 border-zinc-300">
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
-          🪓 Wedge 4 · Nur wenn echter Frust mit aktuellem Tool
+          🪓 Wedge 4 · Komplett-Wechsel (NUR bei echtem Frust mit aktuellem Tool)
         </p>
         <p className="italic text-sm">
-          „Klingt als wärst du wirklich unzufrieden mit {'<aktuelles Tool>'}. Lass uns kurz drüber sprechen
-          ob ein Wechsel überhaupt Sinn macht — kein Verkauf, ich frag dich konkret was funktionieren muss.
-          15 Minuten morgen oder Donnerstag?"
+          „Klingt als wärst du wirklich unzufrieden mit {'<aktuelles Tool>'}. Lass uns kurz drüber
+          sprechen ob ein Wechsel überhaupt Sinn macht — kein Verkauf, ich frag dich konkret was
+          funktionieren muss. 15 Minuten morgen oder Donnerstag?"
         </p>
       </div>
 
       <div className="bg-rose-50 rounded-lg p-3 border border-rose-200 text-sm">
         <p className="font-bold text-rose-900 mb-1">⛔ NIE pitchen ohne Pain</p>
         <p className="text-rose-900">
-          Wenn aus den 3 Diagnose-Fragen <strong>kein konkreter Pain</strong> rausgekommen ist: gehe NICHT
-          in den Pitch. Direkt auf Tab <strong>„Disqualify"</strong>. Pitchen ohne Pain = du klingst wie
-          ein Verkäufer. Mit Pain = du klingst wie eine Lösung.
+          Wenn aus den 3 Diagnose-Fragen <strong>kein konkreter Pain</strong> rausgekommen ist:
+          gehe NICHT in den Pitch. Direkt auf Tab „Tschüss". Pitchen ohne Pain = du klingst wie
+          Verkäufer. Mit Pain = du klingst wie Lösung.
         </p>
       </div>
 
       <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2">
-        🎯 <strong>Nach Wedge-Pitch immer:</strong> <em>„Macht das für dich Sinn?"</em> und WARTE.
+        🎯 <strong>Nach Wedge-Pitch IMMER:</strong> <em>„Macht das für dich Sinn?"</em> und WARTE.
         Stille = der Punkt wo der Lead entscheidet. Nicht reinreden!
       </div>
     </>
   )
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+
 function Objections() {
-  const items: { obj: string; reply: string }[] = [
+  const items: { obj: string; reply: string; tone?: 'top' }[] = [
     {
+      tone: 'top',
       obj: '⭐ „Wir brauchen nichts." / „Lösungen wie Sand am Meer." (häufigster Einwand!)',
-      reply: 'Du hast völlig recht — der Markt ist voll. Eine letzte Frage und ich lege auf: Was nervt dich denn aktuell am meisten an dem was ihr habt — oder läuft wirklich alles glatt? … [Wenn ECHT „läuft alles glatt" → DQ-Tab, sauber Tschüss. Wenn jetzt doch ein Pain rauskommt → „Ah ok, genau das löse ich. 5 Min Demo wenn du magst — falls nicht, kein Stress, kein Follow-up."]',
+      reply: 'Du hast völlig recht — der Markt ist voll. Eine letzte Frage und ich lege auf: Was nervt dich aktuell am meisten an dem was ihr habt — oder läuft wirklich alles glatt? … [Wenn ECHT „läuft alles glatt" → Tab Tschüss, sauber Auflegen. Wenn jetzt doch Pain rauskommt → „Ah ok, genau das löse ich. 5 Min Demo wenn du magst — sonst kein Stress, kein Follow-up."]',
     },
     {
       obj: '„Kein Interesse." (sofort, ohne Erklärung)',
-      reply: 'Verstehe. Letzte Frage und ich lege auf: Wenn du EINE Sache an deiner aktuellen Mitgliederverwaltung ändern könntest — was wäre das? … [Zuhören. Wenn echt: „Genau das löst mein Tool. Soll ich dir 5 Minuten zeigen?". Wenn null Pain: DQ-Tab.]',
+      reply: 'Verstehe. Letzte Frage und ich lege auf: Wenn du EINE Sache an deiner Mitgliederverwaltung ändern könntest — was wäre das? … [Zuhören. Wenn echt: „Genau das löst mein Tool. 5 Minuten zeigen?" Wenn null Pain: Tab Tschüss.]',
     },
     {
       obj: '„Bin gerade im Training / habe keine Zeit."',
@@ -473,7 +455,7 @@ function Objections() {
     },
     {
       obj: '„Schick mir Infos per Mail."',
-      reply: 'Mache ich — aber ehrlich: ich schick keine 8-seitige PDF die du nie liest. 3 Sätze + 1 Link, 60 Sekunden zum Lesen. Welche Mail-Adresse? [E-Mail-Adresse abgreifen. Bei zögern: „Schick einfach an die info@…?" — wenn ja, du hast nichts gewonnen. Besser direkt Demo.]',
+      reply: 'Mache ich — aber ehrlich: ich schick keine 8-seitige PDF die du nie liest. 3 Sätze + 1 Link, 60 Sekunden zum Lesen. Welche Mail-Adresse?',
     },
     {
       obj: '„Wir sind happy mit Eversports / Magicline."',
@@ -512,47 +494,55 @@ function Objections() {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        ⏱ ZIEL: ruhig bleiben. Einwand = Interesse.
+        🛡 EINWANDBEHANDLUNG · Wahrheit zustimmen → eine ehrliche Frage → wenn null Pain auflegen
       </div>
       <ul className="space-y-3">
         {items.map((it, i) => (
-          <li key={i}>
-            <div className="font-semibold text-rose-700">❌ {it.obj}</div>
+          <li key={i} className={it.tone === 'top' ? 'bg-amber-50 border border-amber-200 rounded-lg p-3' : ''}>
+            <div className={`font-semibold ${it.tone === 'top' ? 'text-amber-900' : 'text-rose-700'}`}>
+              {it.tone === 'top' ? it.obj : `❌ ${it.obj}`}
+            </div>
             <div className="italic text-zinc-700 mt-1">→ {it.reply}</div>
           </li>
         ))}
       </ul>
       <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2">
-        💡 <strong>Regel</strong>: Niemals direkt widersprechen. Erst zustimmen („verstehe", „gute Frage"), dann rückfragen, dann antworten.
+        💡 <strong>Regel</strong>: Niemals direkt widersprechen. Erst zustimmen („verstehe", „gute Frage"),
+        dann rückfragen, dann antworten. Wenn keine Pain rauskommt → Tab „Tschüss", nicht überreden.
       </div>
     </>
   )
 }
 
-function Close({ lead, cityPart }: { lead: Lead; cityPart: string }) {
+// ───────────────────────────────────────────────────────────────────────────
+
+function Close() {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        ⏱ ZIEL: konkreter Termin. Diese Woche oder nächste.
+        📅 ZIEL: konkreter Termin. Diese Woche oder nächste.
       </div>
       <p className="italic">
-        „Cool, dann mach ich dir einen Vorschlag: Ich schick dir einen Demo-Link, du klickst dich in 5 Minuten durch.
-        Wenn dir was gefällt, machen wir 15 Minuten Video-Call. Passt das?"
+        „Cool, dann mach ich dir einen Vorschlag: Ich schick dir einen Demo-Link, du klickst dich in
+        5 Minuten durch. Wenn dir was gefällt, machen wir 15 Minuten Video-Call. Passt das?"
       </p>
       <p className="italic">
         „Wann passt es dir besser — eher Anfang oder Ende der Woche?"
       </p>
       <p className="italic">
-        „Ok, sagen wir <strong>Donnerstag um 14:00</strong>? Schick ich dir gleich eine Kalender-Einladung an … welche E-Mail nutzt du?"
+        „Ok, sagen wir <strong>Donnerstag um 14:00</strong>? Schick ich dir gleich eine Kalender-
+        Einladung an … welche E-Mail nutzt du?"
       </p>
-      <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2">
-        ✅ <strong>Wichtig</strong>: Konkreter Tag + Uhrzeit + Email. Nicht „melde mich nochmal".<br />
-        📝 <strong>Direkt im CRM</strong>: nach dem Anruf <em>Status → „Demo geplant"</em>, <em>Next Follow-up</em> auf den Termin setzen.<br />
-        📧 <strong>Innerhalb 5 Min</strong>: Calendar-Invite + 3-Satz-Mail mit dem Link zu osss.pro/gym/cscffb (Demo-Gym).
+      <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2 space-y-1">
+        <p>✅ <strong>Konkreter Tag + Uhrzeit + Email</strong>. Niemals „melde mich nochmal".</p>
+        <p>📝 <strong>Direkt im CRM</strong>: Status → „Demo geplant", Next Follow-up auf den Termin setzen.</p>
+        <p>📧 <strong>Innerhalb 5 Min</strong>: Calendar-Invite + 3-Satz-Mail mit Demo-Link.</p>
       </div>
     </>
   )
 }
+
+// ───────────────────────────────────────────────────────────────────────────
 
 function Disqualify() {
   return (
@@ -567,7 +557,7 @@ function Disqualify() {
           <li>1 sauberer DQ in 90 Sek = 10× mehr Zeit für die nächsten 9 Leads</li>
           <li>Du baust <strong>Reputation</strong> als ehrlicher Anrufer auf — sie empfehlen dich vielleicht weiter</li>
           <li>Jeder Lead, den du nicht überredest, kann <strong>später</strong> wiederkommen wenn der Pain echt wird</li>
-          <li>Überreden kostet 20+ Minuten und konvertiert 3% — DQ kostet 90 Sek und konvertiert 0% (ehrlich)</li>
+          <li>Überreden kostet 20+ Min und konvertiert ~3% — DQ kostet 90 Sek und schützt deine Energie</li>
         </ul>
       </div>
 
@@ -580,7 +570,7 @@ function Disqualify() {
           ich respektier das. Hab einen guten Tag."
         </p>
         <p className="text-xs text-zinc-600 mt-2">
-          → Direkt auflegen. Status im CRM: <strong>„Kein Fit"</strong>. Notiz: warum (z.B. „happy mit Eversports", „kein Pain genannt").
+          → Direkt auflegen. Status: <strong>„Kein Fit"</strong>. Notiz: warum (z.B. „happy mit Eversports", „kein Pain").
         </p>
       </div>
 
@@ -589,27 +579,27 @@ function Disqualify() {
           🎤 Wenn sie sagen „Lösungen wie Sand am Meer"
         </p>
         <p className="italic text-sm">
-          „Stimmt absolut. Ich würde auch sagen: wechsel nicht ohne Grund. Wenn dir aktuell nichts wirklich
-          wehtut, ist das auch keine gute Investition. Danke für deine Ehrlichkeit. Tschüss."
+          „Stimmt absolut. Ich würde auch sagen: wechsel nicht ohne Grund. Wenn dir aktuell nichts
+          wirklich wehtut, ist das auch keine gute Investition. Danke für deine Ehrlichkeit. Tschüss."
         </p>
         <p className="text-xs text-zinc-600 mt-2">
-          → Stimme der Realität zu. Du bist nicht der Verkäufer, der überreden will. Das schafft <strong>Trust</strong>
+          → Stimme der Realität zu. Du bist nicht der Verkäufer der überreden will. Das schafft <strong>Trust</strong>
           — wenn er später Pain bekommt, ruft er VON SICH AUS bei dir an.
         </p>
       </div>
 
       <div className="bg-white rounded-lg p-3 border-l-4 border-zinc-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
-          🎤 „Ich werd&apos;s mir nochmal überlegen / merken"
+          🎤 „Ich werd&apos;s mir nochmal überlegen"
         </p>
         <p className="italic text-sm">
-          „Klar. Eine Sache: <strong>Ich melde mich NICHT von alleine wieder.</strong> Wenn du jemals einen
-          Anlass hast — Steuerberater stresst, Beitragsabrechnung killt deinen Sonntag — dann ruf direkt durch.
-          Ich heb auch am Wochenende ab. Tschüss."
+          „Klar. Eine Sache: <strong>Ich melde mich NICHT von alleine wieder.</strong> Wenn du jemals
+          einen Anlass hast — Steuerberater stresst, Beitragsabrechnung killt deinen Sonntag — dann
+          ruf direkt durch. Ich heb auch am Wochenende ab. Tschüss."
         </p>
         <p className="text-xs text-zinc-600 mt-2">
-          → Pattern-Interrupt: die meisten erwarten Hartnäckigkeit. Wenn du sie loslässt, bleiben sie hängen
-          (Reverse-Reciprocity). Status: <strong>„Nicht kontaktieren"</strong>.
+          → Pattern-Interrupt: die meisten erwarten Hartnäckigkeit. Wenn du sie loslässt, bleiben sie
+          hängen (Reverse-Reciprocity). Status: <strong>„Nicht kontaktieren"</strong>.
         </p>
       </div>
 
@@ -626,29 +616,32 @@ function Disqualify() {
   )
 }
 
-function Voicemail({ sportHook, cityPart }: { sportHook: string; cityPart: string }) {
+// ───────────────────────────────────────────────────────────────────────────
+
+function Voicemail({ cityPart }: { cityPart: string }) {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        ⏱ ZIEL: max 20 Sek. Neugier wecken, nicht pitchen.
+        📞 Maximal 20 Sekunden. Konkret, Name + Rückrufnummer + 1 Hook.
       </div>
       <p className="italic">
-        „Hi, hier ist Lom Aliimadaev — ich baue Software für {sportHook}{cityPart}.
-        Ich rufe nicht an um was zu verkaufen, sondern weil ich kurz wissen wollte ob ihr noch mit Eversports oder Magicline arbeitet —
-        oder ob ihr da mal was neues sehen wollt mit 0 % Plattformgebühr.
-        Erreichen Sie mich unter <strong>0151 ...</strong> oder lom@osss.pro. Bis dann!"
+        „Hi, hier ist Lom-Ali Imadaev. Ich rufe wegen einer kurzen Frage zur Mitgliederverwaltung an
+        — ich bau gerade was speziell für Kampfsport-Gyms{cityPart}. Wenn das interessant ist:
+        ruf mich zurück unter <strong>[deine Nummer]</strong>. Wenn nicht: kein Stress, melde mich
+        nicht nochmal."
       </p>
-      <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2">
-        💡 <strong>Tipp</strong>: <em>„0 % Plattformgebühr"</em> + <em>„nicht verkaufen"</em> sind die Trigger die Rückrufe bringen.<br />
-        📞 <strong>Direkt im CRM</strong>: Anruf-Outcome <em>„Mailbox"</em>, Notiz <em>„Voicemail hinterlassen — Pitch X"</em>.
+      <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2 space-y-1">
+        <p>✅ Direkt nach Mailbox: <strong>Activity-Log „Voicemail" anlegen</strong>, Status auf
+          „Kontaktiert".</p>
+        <p>✅ Nicht zweimal die gleiche Mailbox besprechen — wirkt aufdringlich.</p>
+        <p>✅ Bei Rückruf: <strong>Tab „Einstieg"</strong> nutzen, du beginnst von vorn.</p>
       </div>
     </>
   )
 }
 
-// ───────────────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-// Friendlicher Sport-Label für Story-Hooks ("BJJ-Coach" / "Karate-Coach")
 function sportLabel(sports: string[]): string {
   const primary = pickPrimarySport(sports)
   const labels: Record<string, string> = {
@@ -677,16 +670,4 @@ function pickPrimarySport(sports: string[]): string {
     }
   }
   return 'default'
-}
-
-const SPORT_HOOKS: Record<string, string> = {
-  bjj:        'BJJ-Studios — Belt-Tracking, SEPA, DATEV',
-  judo:       'Judo-Vereine — Gurtprüfungen, SEPA, DATEV',
-  mma:        'MMA-Gyms — Mitgliederverwaltung, SEPA, DATEV',
-  'muay-thai':'Thai-Box-Schulen — Klassen-Plan, SEPA, DATEV',
-  kickbox:    'Kickbox-Schulen — Klassen-Plan, SEPA, DATEV',
-  boxen:      'Boxclubs — Mitgliederverwaltung, SEPA, DATEV',
-  karate:     'Karate-Dojos — Gürtelprüfungen, SEPA, DATEV',
-  taekwondo:  'Taekwondo-Schulen — Gurtsystem, SEPA, DATEV',
-  default:    'Kampfsport-Studios — SEPA-Lastschrift, DATEV-Export, 0 % Plattformgebühr',
 }
