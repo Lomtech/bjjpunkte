@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s | Osss",
   },
   description:
-    "Die deutsche Gym-Software für Kampfsport. Mit Belt-System, DATEV-Export und SEPA-Lastschrift. DSGVO-konform, EU-Server, ab €0/Monat.",
+    "Die deutsche Gym-Software für Kampfsport. Mit Belt-System, DATEV-Export und SEPA-Lastschrift. DSGVO-konform, ab €0/Monat.",
   applicationName: "Osss",
   keywords: [
     "Gym Software",

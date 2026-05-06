@@ -48,7 +48,7 @@
 | **Betroffene Personen** | Mitglieder der angeschlossenen Gyms |
 | **Datenkategorien** | Vor-/Nachname, E-Mail, Telefon, Geburtsdatum, Anschrift, Mitgliedschaftsstatus, Beitritt, Kündigung |
 | **Empfänger** | Supabase (Datenbank), Vercel (Hosting), Stripe (Zahlungen) |
-| **Drittlandtransfer** | Ja — USA. Absicherung: EU-SCCs + Data Privacy Framework (Stripe, Vercel zertifiziert), AVV mit Supabase |
+| **Drittlandtransfer** | Datenstandort Supabase: **London/UK (eu-west-2)** — abgedeckt durch EU-Angemessenheitsbeschluss 2021/1772 (gültig bis 27.06.2031). Stripe + Vercel + Resend in USA: EU-SCCs + Data Privacy Framework. |
 | **Speicherdauer** | Bis Vertragsende + 10 Jahre für rechnungsrelevante Daten (§ 257 HGB / § 147 AO), sonst Löschung auf Anfrage |
 | **TOMs** | Verschlüsselung at-rest (Supabase pgsodium), in-transit (TLS 1.3), RLS, MFA-fähige Auth, regelmäßige Backups (Supabase 7d PITR) |
 | **Bemerkung** | Gym ist eigenständiger Verantwortlicher für seine Mitgliederdaten (Zwei-Stufen-Modell). Osss ist Auftragsverarbeiter. → AVV zwischen Osss und Gym nötig (siehe `compliance/avv-vorlage-osss-gym.md`) |
@@ -238,7 +238,7 @@
 
 | Anbieter | Zweck | AVV abgeschlossen? | Datum AVV | Drittland | Absicherung |
 |---|---|:---:|---|---|---|
-| Supabase Inc. | Datenbank, Auth, Storage | ☐ | _[YYYY-MM-DD]_ | USA | SCCs |
+| Supabase Inc. | Datenbank, Auth, Storage | ☐ | _[YYYY-MM-DD]_ | UK (Daten) / USA (Vertrag) | EU-Adequacy UK + SCCs für USA |
 | Stripe Inc. / Stripe Payments Europe Ltd. | Zahlungsabwicklung | ☐ | _[YYYY-MM-DD]_ | USA / IE | SCCs + DPF + PCI-DSS |
 | Vercel Inc. | Hosting | ☐ | _[YYYY-MM-DD]_ | USA | SCCs + DPF |
 | Resend Inc. | E-Mail-Versand | ☐ | _[YYYY-MM-DD]_ | USA | SCCs |

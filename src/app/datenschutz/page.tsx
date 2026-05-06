@@ -4,7 +4,9 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Datenschutzerklärung',
-  description: 'Datenschutzerklärung der Osss Gym-Software',
+  description: 'Datenschutzerklärung der Osss Gym-Software. DSGVO-konforme Datenverarbeitung, EU/UK-Server, transparente Auftragsverarbeiter-Liste.',
+  alternates: { canonical: '/datenschutz' },
+  robots: { index: true, follow: true },
 }
 
 export default function DatenschutzPage() {
@@ -80,7 +82,7 @@ export default function DatenschutzPage() {
             <h2 className="font-bold text-zinc-900 text-base mb-3">5. Auftragsverarbeiter / Drittanbieter</h2>
             <div className="space-y-3 text-zinc-600">
               {[
-                { name: 'Supabase Inc.',            desc: 'Datenbankhosting (USA, EU-Standardvertragsklauseln). supabase.com/privacy' },
+                { name: 'Supabase Inc.',            desc: 'Datenbank, Authentifizierung, Storage. Datenstandort: London (Vereinigtes Königreich, eu-west-2). Vertragspartner: Supabase Inc., USA. Schutzmaßnahme: EU-Angemessenheitsbeschluss 2021/1772 für UK (gültig bis 27.06.2031) sowie EU-Standardvertragsklauseln für die US-Vertragsbeziehung. supabase.com/privacy' },
                 { name: 'Stripe Inc.',              desc: 'Zahlungsabwicklung (USA, EU-Standardvertragsklauseln, PCI-DSS-zertifiziert). stripe.com/de/privacy' },
                 { name: 'Vercel Inc.',              desc: 'Hosting der Webanwendung (USA, EU-Standardvertragsklauseln). vercel.com/legal/privacy-policy' },
                 { name: 'Resend Inc.',              desc: 'E-Mail-Versand (USA, EU-Standardvertragsklauseln). resend.com/privacy' },

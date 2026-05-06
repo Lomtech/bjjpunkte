@@ -194,7 +194,7 @@ function Objections() {
     },
     {
       obj: '„Datenschutz / DSGVO?"',
-      reply: 'Server in Deutschland (Frankfurt). DSGVO-Export pro Mitglied per Knopfdruck. Steuerberater-Export nach DATEV. Auftragsverarbeitungsvertrag schick ich euch.',
+      reply: 'Daten in der EU/UK (London, EU-Angemessenheitsbeschluss). DSGVO-Export pro Mitglied. AVV ist direkt im Dashboard elektronisch unterzeichenbar — kein Papierkram, kein E-Mail-Hin-und-Her.',
     },
     {
       obj: '„Was wenn das Ding pleite geht?"',

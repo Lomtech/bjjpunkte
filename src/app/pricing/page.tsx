@@ -150,8 +150,8 @@ export default function PricingPage() {
     {
       q: en ? 'Is Osss GDPR compliant?' : 'Ist Osss DSGVO-konform?',
       a: en
-        ? 'Yes. All data is stored on European servers (Supabase EU). Member data is used exclusively for gym management and is never shared with third parties.'
-        : 'Ja. Alle Daten liegen auf europäischen Servern (Supabase EU). Mitgliederdaten werden ausschließlich für die Gym-Verwaltung verarbeitet und nicht an Dritte weitergegeben.',
+        ? 'Yes. Member data is stored in the EU/UK (Supabase London — covered by the EU adequacy decision for the UK, no SCCs needed). Used exclusively for gym management, never shared with third parties.'
+        : 'Ja. Mitgliederdaten liegen in der EU/UK (Supabase London — durch den EU-Angemessenheitsbeschluss für UK abgedeckt, keine SCCs nötig). Genutzt ausschließlich für die Gym-Verwaltung, niemals an Dritte weitergegeben.',
     },
     {
       q: en ? 'Does Osss work for other martial arts?' : 'Funktioniert Osss für andere Kampfsportarten?',
@@ -188,8 +188,59 @@ export default function PricingPage() {
     setLoadingPlan(null)
   }
 
+  // FAQ-Schema → Rich Snippets in Google. Hilft, dass die FAQs direkt
+  // unter dem Such-Ergebnis erscheinen (höhere CTR, mehr SERP-Real-Estate).
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQS.map(f => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: f.a,
+      },
+    })),
+  }
+
+  // Product/Offer-Schema für die 4 Pläne
+  const offerSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: 'Osss Gym-Software',
+    description: en
+      ? 'Gym management software for martial arts. Belt tracking, SEPA, DATEV, GDPR.'
+      : 'Gym-Software für Kampfsport. Belt-Tracking, SEPA, DATEV, DSGVO.',
+    brand: { '@type': 'Brand', name: 'Osss' },
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'EUR',
+      lowPrice: '0',
+      highPrice: '99',
+      offerCount: 4,
+      offers: PLANS.map(p => ({
+        '@type': 'Offer',
+        name: p.name,
+        price: p.price,
+        priceCurrency: 'EUR',
+        availability: 'https://schema.org/InStock',
+        url: `https://www.osss.pro/pricing#${p.planKey}`,
+      })),
+    },
+  }
+
   return (
     <div className="min-h-screen bg-white">
+
+      {/* Structured Data — FAQ + Offer für Google Rich Snippets */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(offerSchema) }}
+      />
 
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100">

@@ -4,7 +4,9 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Impressum',
-  description: 'Impressum von Osss — Angaben gemäß §5 TMG',
+  description: 'Impressum der Osss Gym-Software — Angaben gemäß §5 TMG.',
+  alternates: { canonical: '/impressum' },
+  robots: { index: true, follow: true },
 }
 
 export default function ImpressumPage() {

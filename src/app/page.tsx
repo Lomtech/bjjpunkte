@@ -62,7 +62,7 @@ const FEATURES = [
 const GERMAN_FEATURES = [
   { icon: FileText,   title: '§19 UStG Rechnungen', desc: 'Kleinunternehmer-konforme Rechnungen — Pflichtangaben, fortlaufende Nummerierung, automatischer Versand. Einmal Daten eintragen, fertig.' },
   { icon: Download,   title: 'DATEV-Export',         desc: 'Buchungsdaten als DATEV-CSV exportieren. Ein Klick, eine Datei — dein Steuerberater importiert sie direkt. Sonst niemand im Markt.' },
-  { icon: Shield,     title: 'DSGVO ab Tag eins',    desc: 'Server in der EU (Supabase Frankfurt). Auftragsverarbeitungsvertrag elektronisch im Dashboard. Keine Cookie-Banner-Tricks.' },
+  { icon: Shield,     title: 'DSGVO ab Tag eins',    desc: 'Daten in der EU/UK (London, Adequacy Decision der EU-Kommission). Auftragsverarbeitungsvertrag elektronisch im Dashboard. Keine Cookie-Banner-Tricks.' },
   { icon: Headphones, title: 'Support auf Deutsch', desc: 'Kein Support-Ticket-System auf Englisch. Schreib uns direkt — oss@osss.pro.' },
 ]
 
@@ -175,7 +175,7 @@ export default function Home() {
   const GERMAN_FEATURES_DATA = lang === 'en' ? [
     { icon: FileText,   title: 'German-spec invoices', desc: 'Compliant invoices for small businesses (§19 UStG) — required fields, sequential numbering, automatic dispatch. Set it up once, done.' },
     { icon: Download,   title: 'DATEV export',         desc: 'Export booking data as DATEV CSV. One click, one file — your accountant imports it directly. Nobody else on the market offers this.' },
-    { icon: Shield,     title: 'GDPR from day one',    desc: 'Servers in the EU (Supabase Frankfurt). Data processing agreement signed electronically in your dashboard. No cookie-banner workarounds.' },
+    { icon: Shield,     title: 'GDPR from day one',    desc: 'Data in EU/UK (London, EU adequacy decision). DPA signed electronically in your dashboard. No cookie-banner workarounds.' },
     { icon: Headphones, title: 'Direct support',       desc: 'No English-only ticketing system. Write us directly — oss@osss.pro.' },
   ] : GERMAN_FEATURES
 
@@ -354,12 +354,12 @@ export default function Home() {
                   { val: '30 days', label: 'free trial' },
                   { val: '0%',      label: 'platform fee' },
                   { val: 'DATEV',   label: 'export' },
-                  { val: 'GDPR',    label: 'EU servers' },
+                  { val: 'GDPR',    label: 'compliant' },
                 ] : [
                   { val: '30 Tage', label: 'gratis testen' },
                   { val: '0%',      label: 'Plattformgebühr' },
                   { val: 'DATEV',   label: 'Export' },
-                  { val: 'DSGVO',   label: 'EU-Server' },
+                  { val: 'DSGVO',   label: 'konform' },
                 ]).map(s => (
                   <div key={s.label}>
                     <span className="text-zinc-950 font-black text-lg tracking-tight">{s.val}</span>
@@ -1045,7 +1045,7 @@ export default function Home() {
           </div>
           <div className="pt-6 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-zinc-400 text-xs" suppressHydrationWarning>© {new Date().getFullYear()} Osss · {lang === 'en' ? 'The martial arts gym software' : 'Die Kampfsport-Gym-Software'}</p>
-            <p className="text-zinc-300 text-xs">{lang === 'en' ? 'Made in Germany · GDPR-compliant · Data on EU servers' : 'Made in Germany · DSGVO-konform · Daten auf EU-Servern'}</p>
+            <p className="text-zinc-300 text-xs">{lang === 'en' ? 'Made in Germany · GDPR-compliant · Data in EU/UK' : 'Made in Germany · DSGVO-konform · Daten in EU/UK'}</p>
           </div>
         </div>
       </footer>

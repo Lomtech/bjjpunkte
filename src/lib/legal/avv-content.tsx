@@ -20,7 +20,7 @@ export const AVV_PROVIDER = {
 
 /** Sub-Auftragsverarbeiter laut Art. 28(2) DSGVO. Bei Änderung Version bumpen! */
 export const AVV_SUBPROCESSORS = [
-  { name: 'Supabase Inc.',                        purpose: 'Datenbank, Authentifizierung, Storage', country: 'USA',     safeguard: 'EU-Standardvertragsklauseln' },
+  { name: 'Supabase Inc.',                        purpose: 'Datenbank, Authentifizierung, Storage', country: 'UK / USA', safeguard: 'EU-Adequacy-Decision UK + SCCs für US-Mutter' },
   { name: 'Stripe Payments Europe Ltd. / Stripe Inc.', purpose: 'Zahlungsabwicklung',                country: 'IE / USA', safeguard: 'EU-SCCs + DPF + PCI-DSS' },
   { name: 'Vercel Inc.',                          purpose: 'Hosting der Webanwendung',              country: 'USA',     safeguard: 'EU-SCCs + EU-US Data Privacy Framework' },
   { name: 'Resend Inc.',                          purpose: 'Transaktionaler E-Mail-Versand',        country: 'USA',     safeguard: 'EU-Standardvertragsklauseln' },

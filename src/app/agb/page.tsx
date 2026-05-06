@@ -3,8 +3,10 @@ import { OsssLogo } from '@/components/Logo'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'AGB – Osss',
-  description: 'Allgemeine Geschäftsbedingungen der Osss Gym-Management-Software',
+  title: 'AGB',
+  description: 'Allgemeine Geschäftsbedingungen der Osss Gym-Management-Software. Vertragsbedingungen, Tarife, Datenschutz, Verfügbarkeit.',
+  alternates: { canonical: '/agb' },
+  robots: { index: true, follow: true },
 }
 
 export default function AgbPage() {
@@ -139,7 +141,9 @@ export default function AgbPage() {
             <p className="mt-3">
               Einzelheiten zur Datenverarbeitung durch Osss sind der{' '}
               <Link href="/datenschutz" className="text-amber-600 hover:underline">Datenschutzerklärung</Link>{' '}
-              zu entnehmen. Daten werden ausschließlich auf europäischen Servern (Supabase EU West) gespeichert.
+              zu entnehmen. Personenbezogene Mitgliederdaten werden in der EU bzw. im Vereinigten Königreich
+              gespeichert (Supabase, Datenstandort London — abgedeckt durch den EU-Angemessenheitsbeschluss
+              2021/1772 vom 28. Juni 2021, zuletzt verlängert bis 27. Juni 2031).
             </p>
           </section>
 
