@@ -6,6 +6,60 @@ export type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' 
 export type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page'
 export type BookingStatus = 'confirmed' | 'waitlist' | 'cancelled'
 export type LeadBookingStatus = 'booked' | 'checked_in' | 'cancelled'
+export type SalesLeadStatus = 'new' | 'researching' | 'contacted' | 'qualified' | 'demo_scheduled' | 'demo_done' | 'negotiating' | 'won' | 'lost' | 'not_a_fit' | 'do_not_contact'
+export type SalesActivityKind = 'call' | 'email' | 'sms' | 'whatsapp' | 'meeting' | 'demo' | 'note' | 'status_change' | 'followup_scheduled' | 'place_imported'
+export type SalesActivityOutcome = 'answered' | 'no_answer' | 'voicemail' | 'interested' | 'not_interested' | 'call_back' | 'wrong_number' | 'sent' | 'replied' | 'bounced' | 'positive' | 'neutral' | 'negative'
+
+export interface SalesLead {
+  id: string
+  google_place_id: string | null
+  name: string
+  formatted_address: string | null
+  phone: string | null
+  international_phone: string | null
+  email: string | null
+  website: string | null
+  instagram_url: string | null
+  facebook_url: string | null
+  google_maps_url: string | null
+  latitude: number | null
+  longitude: number | null
+  rating: number | null
+  user_ratings_total: number | null
+  business_status: string | null
+  primary_type: string | null
+  types: string[] | null
+  city: string | null
+  country_code: string | null
+  status: SalesLeadStatus
+  priority: number
+  notes: string | null
+  sports: string[]
+  is_martial_arts: boolean
+  next_followup_at: string | null
+  last_contacted_at: string | null
+  contact_count: number
+  converted_gym_id: string | null
+  converted_at: string | null
+  assigned_to: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SalesActivity {
+  id: string
+  lead_id: string
+  user_id: string | null
+  kind: SalesActivityKind
+  outcome: SalesActivityOutcome | null
+  subject: string | null
+  body: string | null
+  duration_seconds: number | null
+  occurred_at: string
+  created_at: string
+}
+
 
 type Rel = { foreignKeyName: string; columns: string[]; isOneToOne?: boolean; referencedRelation: string; referencedColumns: string[] }
 
@@ -369,6 +423,18 @@ export interface Database {
         Row: { id: string; job_name: string; executed_at: string; created_at: string }
         Insert: { job_name: string; executed_at: string; id?: string; created_at?: string }
         Update: Record<string, never>
+        Relationships: Rel[]
+      }
+      sales_leads: {
+        Row: { id: string; google_place_id: string | null; name: string; formatted_address: string | null; phone: string | null; international_phone: string | null; email: string | null; website: string | null; instagram_url: string | null; facebook_url: string | null; google_maps_url: string | null; latitude: number | null; longitude: number | null; rating: number | null; user_ratings_total: number | null; business_status: string | null; primary_type: string | null; types: string[] | null; city: string | null; country_code: string | null; status: string; priority: number; notes: string | null; sports: string[]; is_martial_arts: boolean; next_followup_at: string | null; last_contacted_at: string | null; contact_count: number; converted_gym_id: string | null; converted_at: string | null; assigned_to: string | null; created_by: string | null; created_at: string; updated_at: string }
+        Insert: { name: string; google_place_id?: string | null; formatted_address?: string | null; phone?: string | null; international_phone?: string | null; email?: string | null; website?: string | null; instagram_url?: string | null; facebook_url?: string | null; google_maps_url?: string | null; latitude?: number | null; longitude?: number | null; rating?: number | null; user_ratings_total?: number | null; business_status?: string | null; primary_type?: string | null; types?: string[] | null; city?: string | null; country_code?: string | null; status?: string; priority?: number; notes?: string | null; sports?: string[]; is_martial_arts?: boolean; next_followup_at?: string | null; last_contacted_at?: string | null; assigned_to?: string | null; created_by?: string | null }
+        Update: { name?: string; phone?: string | null; email?: string | null; website?: string | null; instagram_url?: string | null; facebook_url?: string | null; city?: string | null; status?: string; priority?: number; notes?: string | null; sports?: string[]; is_martial_arts?: boolean; next_followup_at?: string | null; last_contacted_at?: string | null; contact_count?: number; converted_gym_id?: string | null; converted_at?: string | null; assigned_to?: string | null; formatted_address?: string | null; international_phone?: string | null; google_maps_url?: string | null; latitude?: number | null; longitude?: number | null; rating?: number | null; user_ratings_total?: number | null; business_status?: string | null; primary_type?: string | null; types?: string[] | null }
+        Relationships: Rel[]
+      }
+      sales_activities: {
+        Row: { id: string; lead_id: string; user_id: string | null; kind: string; outcome: string | null; subject: string | null; body: string | null; duration_seconds: number | null; occurred_at: string; created_at: string }
+        Insert: { lead_id: string; kind: string; user_id?: string | null; outcome?: string | null; subject?: string | null; body?: string | null; duration_seconds?: number | null; occurred_at?: string }
+        Update: { outcome?: string | null; subject?: string | null; body?: string | null; duration_seconds?: number | null; occurred_at?: string }
         Relationships: Rel[]
       }
       belt_promotions: {
