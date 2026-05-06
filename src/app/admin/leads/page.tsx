@@ -415,9 +415,14 @@ export default function AdminLeadsPage() {
               </button>
               <button onClick={() => setShowStats(true)}
                 className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-zinc-700"
-                aria-label="Statistik">
+                aria-label="Sales-Statistik">
                 📊
               </button>
+              <a href="/admin/analytics"
+                className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-zinc-700"
+                aria-label="Web-Analytics" title="Web-Analytics (DSGVO-anonym)">
+                📈
+              </a>
               {quota && <div className="hidden sm:block"><QuotaBadge quota={quota} /></div>}
               <button onClick={() => setShowSearchModal(true)}
                 disabled={!!quota && quota.remainingToday === 0}
