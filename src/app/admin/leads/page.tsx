@@ -99,6 +99,7 @@ export default function AdminLeadsPage() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [sort, setSort] = useState('priority')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(0)
 
   // Hydrate filters from localStorage on mount
@@ -112,6 +113,7 @@ export default function AdminLeadsPage() {
           dueOnly?: boolean
           city?: string
           sort?: string
+          sortDir?: 'asc' | 'desc'
         }
         // Single-select: alte Multi-Select-Werte (>1) ignorieren, dann Alle anzeigen
         if (Array.isArray(f.statusFilter)) {
@@ -121,6 +123,7 @@ export default function AdminLeadsPage() {
         if (typeof f.dueOnly === 'boolean') setDueOnly(f.dueOnly)
         if (typeof f.city === 'string') setCity(f.city)
         if (typeof f.sort === 'string') setSort(f.sort)
+        if (f.sortDir === 'asc' || f.sortDir === 'desc') setSortDir(f.sortDir)
       }
     } catch { /* ignore corrupt LS */ }
     setFiltersHydrated(true)
@@ -136,9 +139,10 @@ export default function AdminLeadsPage() {
         dueOnly,
         city,
         sort,
+        sortDir,
       }))
     } catch { /* quota / private mode → ignore */ }
-  }, [filtersHydrated, statusFilter, martialOnly, dueOnly, city, sort])
+  }, [filtersHydrated, statusFilter, martialOnly, dueOnly, city, sort, sortDir])
 
   // panels
   const [selected, setSelected] = useState<SalesLead | null>(null)
@@ -253,6 +257,7 @@ export default function AdminLeadsPage() {
     if (city.trim()) params.set('city', city.trim())
     if (debouncedSearch) params.set('search', debouncedSearch)
     params.set('sort', dueOnly ? 'next_followup' : sort)
+    if (!dueOnly) params.set('dir', sortDir)
     params.set('page', String(page))
     params.set('pageSize', '50')
 
@@ -270,7 +275,7 @@ export default function AdminLeadsPage() {
     setOverdueCount(data.overdueCount ?? 0)
     setTodayCount(data.todayCount ?? 0)
     setLoading(false)
-  }, [token, filtersHydrated, statusFilter, martialOnly, dueOnly, city, debouncedSearch, sort, page])
+  }, [token, filtersHydrated, statusFilter, martialOnly, dueOnly, city, debouncedSearch, sort, sortDir, page])
 
   useEffect(() => { loadLeads() }, [loadLeads])
 
@@ -393,6 +398,19 @@ export default function AdminLeadsPage() {
         </div>
       </div>
     )
+  }
+
+  // Sort-Handler für klickbare Tabellen-Header.
+  // Klick auf bereits aktive Spalte → Richtung toggeln.
+  // Klick auf neue Spalte → Spalte wechseln, sinnvolle Default-Richtung setzen.
+  function handleSort(col: string, defaultDesc: boolean) {
+    if (sort === col) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSort(col)
+      setSortDir(defaultDesc ? 'desc' : 'asc')
+    }
+    setPage(0)
   }
 
   return (
@@ -641,12 +659,12 @@ export default function AdminLeadsPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-zinc-50 border-b border-zinc-200">
                     <tr className="text-left text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-                      <th className="px-4 py-3">Studio</th>
-                      <th className="px-4 py-3">Stadt</th>
+                      <SortableTh col="name"     label="Studio"  sort={sort} sortDir={sortDir} onSort={handleSort} defaultDesc={false} />
+                      <SortableTh col="city"     label="Stadt"   sort={sort} sortDir={sortDir} onSort={handleSort} defaultDesc={false} />
                       <th className="px-4 py-3">Kontakt</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Prio</th>
-                      <th className="px-4 py-3">Rating</th>
+                      <SortableTh col="status"   label="Status"  sort={sort} sortDir={sortDir} onSort={handleSort} defaultDesc={false} />
+                      <SortableTh col="priority" label="Prio"    sort={sort} sortDir={sortDir} onSort={handleSort} defaultDesc={true} />
+                      <SortableTh col="rating"   label="Rating"  sort={sort} sortDir={sortDir} onSort={handleSort} defaultDesc={true} />
                       <th className="px-4 py-3"></th>
                     </tr>
                   </thead>
@@ -1372,4 +1390,33 @@ function kindLabel(kind: string): string {
     followup_scheduled: 'Follow-up geplant', place_imported: 'Importiert',
   }
   return map[kind] ?? kind
+}
+
+// Klickbarer Tabellen-Header mit Sort-Pfeil-Indicator
+function SortableTh({
+  col, label, sort, sortDir, onSort, defaultDesc,
+}: {
+  col: string
+  label: string
+  sort: string
+  sortDir: 'asc' | 'desc'
+  onSort: (col: string, defaultDesc: boolean) => void
+  defaultDesc: boolean
+}) {
+  const isActive = sort === col
+  const arrow = isActive ? (sortDir === 'asc' ? '↑' : '↓') : '↕'
+  return (
+    <th
+      onClick={() => onSort(col, defaultDesc)}
+      className={`px-4 py-3 cursor-pointer select-none transition-colors ${
+        isActive ? 'text-amber-700 bg-amber-50' : 'hover:bg-zinc-100 hover:text-zinc-700'
+      }`}
+      title={`Nach ${label} sortieren`}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <span className={`text-[10px] ${isActive ? 'opacity-100' : 'opacity-40'}`}>{arrow}</span>
+      </span>
+    </th>
+  )
 }

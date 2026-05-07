@@ -6,8 +6,9 @@ export const dynamic = 'force-dynamic'
 
 // GET /api/admin/leads
 //   ?status=new,contacted&city=München&martial=true&search=foo&page=0&pageSize=50
-//   &sort=priority|next_followup|created|updated|name (default: priority)
-//   &due=true   → only follow-ups due today or earlier
+//   &sort=priority|next_followup|created|updated|name|city|status|rating  (default: priority)
+//   &dir=asc|desc   (optional — sonst sinnvoller Default je Sort-Key)
+//   &due=true       → only follow-ups due today or earlier
 export async function GET(req: Request) {
   const auth = await requireAdmin(req)
   if ('error' in auth) return auth.error
@@ -21,6 +22,7 @@ export async function GET(req: Request) {
   const page      = Math.max(0, parseInt(url.searchParams.get('page') ?? '0', 10) || 0)
   const pageSize  = Math.min(200, Math.max(10, parseInt(url.searchParams.get('pageSize') ?? '50', 10) || 50))
   const sort      = url.searchParams.get('sort') ?? 'priority'
+  const dirParam  = url.searchParams.get('dir')
 
   const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,14 +45,23 @@ export async function GET(req: Request) {
     q = q.or(`name.ilike.%${safe}%,formatted_address.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`)
   }
 
-  // sort
+  // Sort: dir-Param ist optional — wenn nicht gesetzt, wird sinnvoller Default je Key gewählt.
+  // Klick auf Spalten-Header übergibt direkt asc/desc → echte Bidirektionalität.
+  function applyOrder(column: string, defaultDesc: boolean) {
+    const ascending = dirParam ? dirParam === 'asc' : !defaultDesc
+    return { ascending, nullsFirst: false }
+  }
+
   switch (sort) {
-    case 'next_followup': q = q.order('next_followup_at', { ascending: true, nullsFirst: false }); break
-    case 'created':       q = q.order('created_at', { ascending: false }); break
-    case 'updated':       q = q.order('updated_at', { ascending: false }); break
-    case 'name':          q = q.order('name', { ascending: true }); break
+    case 'next_followup': q = q.order('next_followup_at', applyOrder('next_followup_at', false)); break
+    case 'created':       q = q.order('created_at',       applyOrder('created_at',       true));  break
+    case 'updated':       q = q.order('updated_at',       applyOrder('updated_at',       true));  break
+    case 'name':          q = q.order('name',             applyOrder('name',             false)); break
+    case 'city':          q = q.order('city',             applyOrder('city',             false)); break
+    case 'status':        q = q.order('status',           applyOrder('status',           false)); break
+    case 'rating':        q = q.order('rating',           applyOrder('rating',           true));  break
     case 'priority':
-    default:              q = q.order('priority', { ascending: false }).order('updated_at', { ascending: false })
+    default:              q = q.order('priority', applyOrder('priority', true)).order('updated_at', { ascending: false })
   }
 
   q = q.range(page * pageSize, page * pageSize + pageSize - 1)
