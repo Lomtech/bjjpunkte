@@ -34,37 +34,42 @@ export async function POST(req: Request) {
   const { member_id, class_type, class_id } = await req.json()
   if (!member_id) return NextResponse.json({ error: 'member_id fehlt' }, { status: 400 })
 
-  // Verify member belongs to this gym
-   
-  const { data: member } = await svc.from('members')
-    .select('id')
+  // Verify member belongs to this gym + lade membership_source für Wellpass-Flag
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: member } = await (svc.from('members') as any)
+    .select('id, membership_source')
     .eq('id', member_id)
     .eq('gym_id', gym.id)
     .maybeSingle()
 
   if (!member) return NextResponse.json({ error: 'Mitglied nicht gefunden' }, { status: 404 })
 
+  const memberSource = (member as { membership_source?: string | null }).membership_source ?? null
+  const isProviderMember = memberSource != null
+    && ['wellpass', 'hansefit', 'egym', 'urban_sports'].includes(memberSource)
+
   // Dedup: if class_id provided, don't create a second attendance record for the same class
   if (class_id) {
-     
     const { data: existing } = await svc.from('attendance')
       .select('id, checked_in_at, class_type')
       .eq('member_id', member_id)
       .eq('class_id', class_id)
       .maybeSingle()
     if (existing) {
-      return NextResponse.json({ ok: true, entry: existing, already_checked_in: true })
+      return NextResponse.json({ ok: true, entry: existing, already_checked_in: true, via_wellpass: isProviderMember })
     }
   }
 
-   
-  const { data: entry, error } = await svc.from('attendance')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: entry, error } = await (svc.from('attendance') as any)
     .insert({
       gym_id:       gym.id,
       member_id,
       class_type:   class_type ?? 'gi',
       class_id:     class_id ?? null,
       checked_in_at: new Date().toISOString(),
+      via_wellpass:                  isProviderMember,
+      membership_source_at_checkin:  memberSource,
     })
     .select('id, checked_in_at, class_type')
     .single()

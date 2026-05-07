@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Copy, Check, ExternalLink, QrCode, UserPlus, Dumbbell, Printer, Download } from 'lucide-react'
+import { Copy, Check, ExternalLink, QrCode, UserPlus, Dumbbell, Printer, Download, Sparkles } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react'
 
@@ -68,7 +68,11 @@ interface QrCardProps {
   accentHex: string
   defaultTitle: string
   defaultDescription: string
+  /** Saubere URL für Copy/Open (ohne Tracking-Parameter). */
   url: string | null
+  /** URL die im QR-Code eingebettet wird — kann Tracking-Parameter wie ?src=qr enthalten.
+      Wenn nicht gesetzt, wird `url` verwendet. */
+  qrUrl?: string | null
   gymName: string
   emptyText: string
   copied: boolean
@@ -78,7 +82,7 @@ interface QrCardProps {
 function QrCard({
   icon, accentBg, accentText, accentHex,
   defaultTitle, defaultDescription,
-  url, gymName, emptyText, copied, onCopy,
+  url, qrUrl, gymName, emptyText, copied, onCopy,
 }: QrCardProps) {
   const { t } = useLanguage()
   const [title, setTitle]       = useState(defaultTitle)
@@ -138,15 +142,17 @@ function QrCard({
       </div>
 
       <div className="p-5 flex flex-col sm:flex-row gap-6">
-        {/* QR + actions */}
+        {/* QR + actions — QR-URL kann Tracking-Parameter (z.B. ?src=qr) enthalten,
+            damit Anmeldungen via gescanntem QR-Code im Gym von Online-Klicks
+            unterscheidbar sind. Copy/Open verwenden die saubere URL. */}
         <div className="flex-shrink-0 flex flex-col items-center gap-3">
           {/* Visible SVG (used for print) */}
           <div ref={svgRef} className="p-4 rounded-2xl border border-zinc-100 bg-zinc-50">
-            <QRCodeSVG value={url} size={160} fgColor="#09090b" bgColor="transparent" level="M" />
+            <QRCodeSVG value={qrUrl ?? url} size={160} fgColor="#09090b" bgColor="transparent" level="M" />
           </div>
           {/* Hidden canvas for PNG download */}
           <div className="sr-only">
-            <QRCodeCanvas id={canvasId} value={url} size={600} level="M" />
+            <QRCodeCanvas id={canvasId} value={qrUrl ?? url} size={600} level="M" />
           </div>
           <div className="flex gap-2 w-full justify-center">
             <button
@@ -214,10 +220,12 @@ export default function LinksPage() {
   const { t, lang } = useLanguage()
   const [signupUrl,    setSignupUrl]   = useState<string | null>(null)
   const [trialUrl,     setTrialUrl]    = useState<string | null>(null)
+  const [wellpassUrl,  setWellpassUrl] = useState<string | null>(null)
   const [gymName,      setGymName]     = useState('')
   const [loading,      setLoading]     = useState(true)
   const [copiedSignup, setCopiedSignup] = useState(false)
   const [copiedTrial,  setCopiedTrial]  = useState(false)
+  const [copiedWellpass, setCopiedWellpass] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -232,22 +240,34 @@ export default function LinksPage() {
 
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://osss.pro'
       if (gym?.signup_token) setSignupUrl(`${origin}/signup/${gym.signup_token}`)
-      if ((gym as any)?.slug)  setTrialUrl(`${origin}/trial/${(gym as any).slug}`)
+      if ((gym as any)?.slug) {
+        setTrialUrl(`${origin}/trial/${(gym as any).slug}`)
+        setWellpassUrl(`${origin}/wellpass/${(gym as any).slug}`)
+      }
       setGymName((gym as any)?.name ?? '')
       setLoading(false)
     }
     load()
   }, [])
 
-  function copy(url: string, which: 'signup' | 'trial') {
+  function copy(url: string, which: 'signup' | 'trial' | 'wellpass') {
     navigator.clipboard.writeText(url)
     if (which === 'signup') {
       setCopiedSignup(true)
       setTimeout(() => setCopiedSignup(false), 2000)
-    } else {
+    } else if (which === 'trial') {
       setCopiedTrial(true)
       setTimeout(() => setCopiedTrial(false), 2000)
+    } else {
+      setCopiedWellpass(true)
+      setTimeout(() => setCopiedWellpass(false), 2000)
     }
+  }
+
+  /** Hängt ?src=qr an die URL — markiert „im Gym vor Ort gescannt" für Statistik. */
+  function withQrSrc(u: string | null): string | null {
+    if (!u) return null
+    return u.includes('?') ? `${u}&src=qr` : `${u}?src=qr`
   }
 
   if (loading) {
@@ -262,12 +282,21 @@ export default function LinksPage() {
   const trialDefaultDesc   = lang === 'en'
     ? 'Come by, try it out — no commitment, no membership needed.'
     : 'Komm vorbei und probier es aus — kostenlos und unverbindlich.'
+  const wellpassDefaultTitle = lang === 'en' ? 'Wellpass / Hansefit / EGYM' : 'Wellpass / Hansefit / EGYM'
+  const wellpassDefaultDesc  = lang === 'en'
+    ? 'Sign up via your provider — no SEPA needed. Adults only (18+).'
+    : 'Direkt über deinen Anbieter anmelden — kein SEPA. Nur für Erwachsene (ab 18).'
 
   return (
     <div className="p-4 md:p-6 max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('links', 'title')}</h1>
         <p className="text-zinc-400 text-xs mt-0.5 font-medium">{t('links', 'subtitle')}</p>
+        <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+          {lang === 'en'
+            ? <>QR codes printed in the gym automatically tag scans as <strong>QR (in gym)</strong> in your stats — separated from online clicks.</>
+            : <>QR-Codes, die im Gym ausgedruckt werden, markieren Scans automatisch als <strong>QR (im Gym)</strong> in der Statistik — getrennt von Online-Klicks.</>}
+        </p>
       </div>
 
       <div className="space-y-5">
@@ -279,6 +308,7 @@ export default function LinksPage() {
           defaultTitle={signupDefaultTitle}
           defaultDescription={signupDefaultDesc}
           url={signupUrl}
+          qrUrl={withQrSrc(signupUrl)}
           gymName={gymName}
           emptyText={t('links', 'noLink')}
           copied={copiedSignup}
@@ -293,10 +323,26 @@ export default function LinksPage() {
           defaultTitle={trialDefaultTitle}
           defaultDescription={trialDefaultDesc}
           url={trialUrl}
+          qrUrl={withQrSrc(trialUrl)}
           gymName={gymName}
           emptyText={t('links', 'noSlug')}
           copied={copiedTrial}
           onCopy={() => trialUrl && copy(trialUrl, 'trial')}
+        />
+
+        <QrCard
+          icon={<Sparkles size={17} />}
+          accentBg="bg-emerald-50"
+          accentText="text-emerald-600"
+          accentHex="#10b981"
+          defaultTitle={wellpassDefaultTitle}
+          defaultDescription={wellpassDefaultDesc}
+          url={wellpassUrl}
+          qrUrl={withQrSrc(wellpassUrl)}
+          gymName={gymName}
+          emptyText={t('links', 'noSlug')}
+          copied={copiedWellpass}
+          onCopy={() => wellpassUrl && copy(wellpassUrl, 'wellpass')}
         />
       </div>
     </div>

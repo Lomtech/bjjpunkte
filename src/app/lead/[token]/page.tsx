@@ -36,6 +36,8 @@ interface GymInfo {
   logo_url: string | null
   address: string | null
   slug: string
+  latitude: number | null
+  longitude: number | null
 }
 
 interface LeadInfo {
@@ -333,19 +335,40 @@ export default function LeadPortalPage() {
           )}
         </div>
 
-        {/* Map */}
+        {/* Map — OpenStreetMap embed (zuverlässiger als Google Maps ohne API-Key).
+            Bei vorhandenen lat/lng: Marker + Bounding-Box exakt um den Studio-Punkt.
+            Sonst: Fallback auf Address-Link ohne iframe. */}
         {gym?.address && (
           <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
-            <iframe
-              src={`https://maps.google.com/maps?q=${encodeURIComponent(gym.address)}&output=embed&z=15`}
-              width="100%" height="220"
-              style={{ border: 0, display: 'block' }}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title={lang === 'en' ? 'Location' : 'Standort'}
-            />
+            {gym.latitude != null && gym.longitude != null ? (
+              <iframe
+                src={(() => {
+                  const lat = gym.latitude
+                  const lon = gym.longitude
+                  const d = 0.005 // ~500 m bbox
+                  return `https://www.openstreetmap.org/export/embed.html?bbox=${lon - d},${lat - d / 2},${lon + d},${lat + d / 2}&layer=mapnik&marker=${lat},${lon}`
+                })()}
+                width="100%" height="220"
+                style={{ border: 0, display: 'block' }}
+                loading="lazy"
+                title={lang === 'en' ? 'Location' : 'Standort'}
+              />
+            ) : (
+              // Kein lat/lng — zeige Karten-Platzhalter mit „auf Karte öffnen"-Link
+              <a
+                href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(gym.address)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center gap-2 h-[220px] bg-gradient-to-br from-amber-50 to-zinc-50 hover:from-amber-100 hover:to-zinc-100 transition-colors"
+              >
+                <MapPin size={28} className="text-amber-500" />
+                <span className="text-sm font-bold text-zinc-700">
+                  {lang === 'en' ? 'Open on map' : 'Auf Karte öffnen'}
+                </span>
+                <span className="text-xs text-zinc-500">{gym.address}</span>
+              </a>
+            )}
             <a
-              href={`https://maps.google.com/?q=${encodeURIComponent(gym.address)}`}
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(gym.address)}`}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
             >

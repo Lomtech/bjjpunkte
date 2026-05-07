@@ -10,7 +10,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
 
 type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
-type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page'
+type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page' | 'gym_qr'
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
   new:             'bg-zinc-100 text-zinc-600 border-zinc-200',
@@ -24,6 +24,7 @@ const STATUS_COLORS: Record<LeadStatus, string> = {
 const SOURCE_COLORS: Partial<Record<LeadSource, string>> = {
   signup_link: 'bg-amber-50 text-amber-700 border-amber-200',
   public_page: 'bg-amber-50 text-amber-700 border-amber-200',
+  gym_qr:      'bg-emerald-50 text-emerald-700 border-emerald-200',
 }
 
 const STATUS_ORDER: LeadStatus[] = ['new', 'contacted', 'trial_scheduled', 'trial_done', 'converted', 'lost']
@@ -71,6 +72,7 @@ export default function LeadsPage() {
     other:        t('leads', 'sourceOther'),
     signup_link:  t('leads', 'sourceSignup'),
     public_page:  t('leads', 'sourcePublic'),
+    gym_qr:       lang === 'en' ? 'QR (in gym)' : 'QR (im Gym)',
   }
 
   const [leads, setLeads]           = useState<Lead[]>([])

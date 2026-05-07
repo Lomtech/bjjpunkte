@@ -22,7 +22,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const body = await req.json()
-  const { first_name, last_name, email, phone, message, class_id, trial_consent_accepted, trial_consent_text } = body
+  const { first_name, last_name, email, phone, message, class_id, trial_consent_accepted, trial_consent_text, src } = body
 
   if (!first_name || !last_name || !email) {
     return NextResponse.json({ error: 'Name und E-Mail sind erforderlich' }, { status: 400 })
@@ -35,6 +35,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const consentUa   = req.headers.get('user-agent') ?? null
   const consentNow  = trial_consent_accepted === true ? new Date().toISOString() : null
 
+  // QR-Tracking: bei ?src=qr (im Gym vor Ort gescannt) → source='gym_qr'.
+  // Sonst Default 'public_page' (über Online-Link / soziale Medien gekommen).
+  const sourceVal = src === 'qr' ? 'gym_qr' : 'public_page'
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: lead, error } = await (supabase.from('leads') as any).insert({
     gym_id:     gym.id,
@@ -44,7 +48,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     phone:      phone?.trim() || null,
     notes:      message?.trim() || null,
     status:     'new',
-    source:     'public_page',
+    source:     sourceVal,
     trial_consent_at:   consentNow,
     trial_consent_ip:   consentNow ? consentIp : null,
     trial_consent_ua:   consentNow ? consentUa : null,

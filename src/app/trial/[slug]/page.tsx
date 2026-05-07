@@ -108,6 +108,11 @@ export default function TrialPage() {
     setSubmitting(true)
     setError('')
     try {
+      // QR-Tracking: wenn die Page über einen QR-Code im Gym geöffnet wurde
+      // (?src=qr in der URL), reichen wir das an die API durch.
+      const src = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('src')
+        : null
       const res = await fetch(`/api/public/gym/${encodeURIComponent(slug)}/lead`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,6 +125,7 @@ export default function TrialPage() {
           class_id:   classId,
           trial_consent_accepted: true,
           trial_consent_text:     trialContract,
+          src,  // 'qr' = im Gym vor Ort gescannt
         }),
       })
       const data = await res.json()

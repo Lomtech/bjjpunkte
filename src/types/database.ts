@@ -3,7 +3,7 @@ export type ClassType = 'gi' | 'no-gi' | 'open mat' | 'kids' | 'competition'
 export type SubscriptionStatus = 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'
 export type GymPlan = 'free' | 'starter' | 'grow' | 'pro'
 export type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
-export type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page'
+export type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page' | 'gym_qr'
 export type BookingStatus = 'confirmed' | 'waitlist' | 'cancelled'
 export type LeadBookingStatus = 'booked' | 'checked_in' | 'cancelled'
 export type SalesLeadStatus = 'new' | 'researching' | 'contacted' | 'qualified' | 'demo_scheduled' | 'demo_done' | 'negotiating' | 'won' | 'lost' | 'not_a_fit' | 'do_not_contact'
@@ -509,9 +509,9 @@ export interface Database {
         Relationships: Rel[]
       }
       attendance: {
-        Row: { id: string; member_id: string; gym_id: string; checked_in_at: string; class_type: ClassType; checked_out_at: string | null; class_id: string | null }
-        Insert: { member_id: string; gym_id: string; class_type?: ClassType; checked_in_at?: string; checked_out_at?: string | null; class_id?: string | null }
-        Update: { class_type?: ClassType; checked_out_at?: string | null; class_id?: string | null }
+        Row: { id: string; member_id: string; gym_id: string; checked_in_at: string; class_type: ClassType; checked_out_at: string | null; class_id: string | null; via_wellpass: boolean | null; membership_source_at_checkin: string | null }
+        Insert: { member_id: string; gym_id: string; class_type?: ClassType; checked_in_at?: string; checked_out_at?: string | null; class_id?: string | null; via_wellpass?: boolean | null; membership_source_at_checkin?: string | null }
+        Update: { class_type?: ClassType; checked_out_at?: string | null; class_id?: string | null; via_wellpass?: boolean | null; membership_source_at_checkin?: string | null }
         Relationships: Rel[]
       }
       classes: {

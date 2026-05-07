@@ -65,7 +65,7 @@ export async function GET(
   ] = await Promise.all([
     supabase
       .from('gyms')
-      .select('id, name, logo_url, address, slug')
+      .select('id, name, logo_url, address, slug, latitude, longitude')
       .eq('id', gymId)
       .single(),
 

@@ -15,6 +15,8 @@ interface AttendanceEntry {
   class_type: string
   member_id: string
   class_id: string | null
+  via_wellpass: boolean | null
+  membership_source_at_checkin: string | null
 }
 interface Member { id: string; first_name: string; last_name: string; belt: string; stripes: number }
 
@@ -78,7 +80,7 @@ export default function AttendancePage() {
           .select('id, first_name, last_name, belt, stripes')
           .eq('gym_id', gymId).eq('is_active', true).order('last_name'),
         supabase.from('attendance')
-          .select('id, checked_in_at, class_type, member_id, class_id')
+          .select('id, checked_in_at, class_type, member_id, class_id, via_wellpass, membership_source_at_checkin')
           .eq('gym_id', gymId)
           .gte('checked_in_at', today.toISOString())
           .order('checked_in_at', { ascending: false }),
@@ -170,27 +172,46 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      {/* Stat strip */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-              <UserCheck size={13} className="text-amber-600" />
-            </span>
-            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">{t('common', 'today')}</p>
+      {/* Stat strip — bei Wellpass-Checkins zusätzliche Spalte für Anbieter-Statistik */}
+      {(() => {
+        const wellpassCount = todayLog.filter(e => e.via_wellpass === true).length
+        const hasWellpass   = wellpassCount > 0
+        return (
+          <div className={`grid gap-3 mb-6 ${hasWellpass ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <div className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <UserCheck size={13} className="text-amber-600" />
+                </span>
+                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">{t('common', 'today')}</p>
+              </div>
+              <p className="text-2xl font-black text-zinc-950 tracking-tight">{todayLog.length}</p>
+            </div>
+            <div className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <CalendarDays size={13} className="text-amber-600" />
+                </span>
+                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">{t('attendance', 'todayClasses')}</p>
+              </div>
+              <p className="text-2xl font-black text-zinc-950 tracking-tight">{todayClasses.length}</p>
+            </div>
+            {hasWellpass && (
+              <div className="bg-white rounded-2xl p-4 border border-emerald-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <span className="text-emerald-600 text-[10px] font-black">W</span>
+                  </span>
+                  <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-widest" title="Wellpass / Hansefit / EGYM / Urban Sports — heute">
+                    Anbieter
+                  </p>
+                </div>
+                <p className="text-2xl font-black text-emerald-700 tracking-tight tabular-nums">{wellpassCount}</p>
+              </div>
+            )}
           </div>
-          <p className="text-2xl font-black text-zinc-950 tracking-tight">{todayLog.length}</p>
-        </div>
-        <div className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-              <CalendarDays size={13} className="text-amber-600" />
-            </span>
-            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest">{t('attendance', 'todayClasses')}</p>
-          </div>
-          <p className="text-2xl font-black text-zinc-950 tracking-tight">{todayClasses.length}</p>
-        </div>
-      </div>
+        )
+      })()}
 
       {/* Attendance grouped by class */}
       {groups.length === 0 ? (
