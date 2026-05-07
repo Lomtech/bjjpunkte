@@ -10,6 +10,7 @@ import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
 import { readCachedGymId } from '../_components/RoleShell'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { CommunicationTabs } from '../_components/CommunicationTabs'
 
 interface Announcement {
   id:         string
@@ -388,11 +389,13 @@ export default function ContentPage() {
         onConfirm={confirmState.onConfirm}
         onCancel={closeConfirm}
       />
-      {/* Header */}
+      {/* Geteilte Sub-Tabs „Mail | Inhalte" — siehe CommunicationTabs */}
+      <CommunicationTabs />
+
+      {/* Page-spezifischer Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900">{t('content', 'title')}</h1>
-          <p className="text-zinc-400 text-xs mt-0.5">{t('content', 'subtitle')}</p>
+          <p className="text-zinc-400 text-xs">{t('content', 'subtitle')}</p>
         </div>
         {activeTab === 'posts' && (
           <button type="button" onClick={() => setEditorPost({})}

@@ -186,6 +186,7 @@ export const translations = {
     revenue:      { de: 'Einnahmen',      en: 'Revenue' },
     website:      { de: 'Webseite',       en: 'Website' },
     content:      { de: 'Inhalte',        en: 'Content' },
+    communication:{ de: 'Kommunikation',  en: 'Communication' },
     links:        { de: 'Anmeldelink',    en: 'Signup Link' },
     settings:     { de: 'Einstellungen',  en: 'Settings' },
     setup:        { de: 'Einrichtung',    en: 'Setup' },

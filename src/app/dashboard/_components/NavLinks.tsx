@@ -48,6 +48,11 @@ function useIsAdmin(): boolean {
 
 function isActive(href: string, pathname: string) {
   if (href === '/dashboard') return pathname === '/dashboard'
+  // Sammel-Eintrag „Kommunikation" deckt sowohl /communication als auch /content ab,
+  // weil beide jetzt unter EINER Sektion zusammengefasst sind (Mail + Inhalte).
+  if (href === '/dashboard/communication') {
+    return pathname.startsWith('/dashboard/communication') || pathname.startsWith('/dashboard/content')
+  }
   return pathname.startsWith(href)
 }
 
@@ -64,9 +69,8 @@ export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTra
     { href: '/dashboard/leads',       label: t('nav', 'leads'),       icon: UserPlus,        ownerOnly: true  },
     { href: '/dashboard/revenue',     label: t('nav', 'revenue'),     icon: TrendingUp,      ownerOnly: true  },
     { href: '/dashboard/inkasso',     label: 'Inkasso',                icon: FileWarning,     ownerOnly: true  },
-    { href: '/dashboard/communication', label: 'Mails',                icon: Mail,            ownerOnly: true  },
+    { href: '/dashboard/communication', label: t('nav', 'communication'), icon: Mail,        ownerOnly: true  },
     { href: '/dashboard/website',     label: t('nav', 'website'),     icon: Globe,           ownerOnly: true  },
-    { href: '/dashboard/content',     label: t('nav', 'content'),     icon: FileText,        ownerOnly: true  },
     { href: '/dashboard/links',       label: t('nav', 'links'),       icon: Link2,           ownerOnly: true  },
     { href: '/dashboard/settings',    label: t('nav', 'settings'),    icon: Settings,        ownerOnly: true  },
   ]

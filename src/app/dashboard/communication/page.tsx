@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, Send, Users, UserPlus, AlertCircle, Check, Loader2, Clock, Megaphone, FileText, Image as ImageIcon } from 'lucide-react'
+import { CommunicationTabs } from '@/app/dashboard/_components/CommunicationTabs'
 
 /**
  * Communication-Dashboard für Owner.
@@ -95,8 +96,9 @@ export default function CommunicationPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-4xl">
+      {/* Geteilte Sub-Tabs „Mail | Inhalte" — siehe CommunicationTabs */}
+      <CommunicationTabs />
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-1">Kommunikation</h1>
         <p className="text-sm text-zinc-500 leading-relaxed max-w-2xl">
           Verschicke <strong>Ank&uuml;ndigungen</strong> (kurz, Trainings­info, Hinweis) und{' '}
           <strong>Beiträge</strong> (länger, Turnier-Bericht, Newsletter mit Cover-Bild) an

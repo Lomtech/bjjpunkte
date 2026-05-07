@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendGymBulkEmail } from '@/lib/notify'
 
@@ -17,9 +18,32 @@ export const maxDuration = 60
  * Loggt jeden Versand in gym_bulk_mails (Audit) für GDPR-Nachweis.
  */
 export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+  // Dual-Auth: Bearer-Token im Header ODER Cookie-Session
+  let userId: string | null = null
+  const authHeader = req.headers.get('Authorization')
+  const accessToken = authHeader?.replace('Bearer ', '')
+  if (accessToken) {
+    const sb = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+    )
+    const { data } = await sb.auth.getUser(accessToken)
+    userId = data.user?.id ?? null
+  } else {
+    const sb = await createServerClient()
+    const { data } = await sb.auth.getUser()
+    userId = data.user?.id ?? null
+  }
+  if (!userId) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const supabase = accessToken
+    ? createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+      )
+    : await createServerClient()
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
   const audience = (typeof body.audience === 'string' ? body.audience : 'members') as 'members' | 'leads' | 'both'
@@ -41,7 +65,7 @@ export async function POST(req: Request) {
   const { data: gym } = await supabase
     .from('gyms')
     .select('id, name, email')
-    .eq('owner_id', user.id)
+    .eq('owner_id', userId)
     .maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Kein Gym gefunden' }, { status: 404 })
 
@@ -106,7 +130,7 @@ export async function POST(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: auditRow } = await (service.from('gym_bulk_mails') as any).insert({
     gym_id: gym.id,
-    sent_by: user.id,
+    sent_by: userId,
     subject,
     body_preview: html.slice(0, 500),
     audience,
