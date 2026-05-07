@@ -232,6 +232,7 @@ interface BulkRecipient {
  */
 export async function sendGymBulkEmail({
   gymName, fromEmail, recipients, subject, htmlBody, audience,
+  kind = 'announcement', coverUrl = null,
 }: {
   gymName: string
   fromEmail: string
@@ -239,6 +240,10 @@ export async function sendGymBulkEmail({
   subject: string
   htmlBody: string
   audience: 'members' | 'leads' | 'both'
+  /** 'announcement' (kurz, schlank) oder 'post' (mit Cover-Bild + Banner). Default: 'announcement'. */
+  kind?: 'announcement' | 'post'
+  /** Bei kind='post' optional verfügbar — wird oben als Banner gerendert. */
+  coverUrl?: string | null
 }): Promise<{ sent: number; failed: number }> {
   if (!process.env.RESEND_API_KEY) return { sent: 0, failed: recipients.length }
 
@@ -263,7 +268,7 @@ export async function sendGymBulkEmail({
           from: fromEmail,
           to: r.email,
           subject,
-          html: wrapGymMail(gymName, personalizedBody, unsubscribeUrl),
+          html: wrapGymMail({ gymName, body: personalizedBody, unsubscribeUrl, kind, coverUrl, subject }),
         }),
       })
     }))
@@ -275,23 +280,58 @@ export async function sendGymBulkEmail({
   return { sent, failed }
 }
 
-function wrapGymMail(gymName: string, body: string, unsubscribeUrl: string) {
+/**
+ * HTML-Wrapper mit zwei Varianten:
+ *  - kind='announcement' → schlanker Mail-Look (kurz, ohne Cover)
+ *  - kind='post'         → Newsletter-Look mit optionalem Cover-Bild + Headline
+ */
+function wrapGymMail({
+  gymName, body, unsubscribeUrl, kind, coverUrl, subject,
+}: {
+  gymName: string
+  body: string
+  unsubscribeUrl: string
+  kind: 'announcement' | 'post'
+  coverUrl: string | null
+  subject: string
+}) {
+  // Cover-Banner nur bei 'post' und valider URL
+  const safeCover = (kind === 'post' && coverUrl && /^https?:\/\//i.test(coverUrl)) ? coverUrl : null
+  const coverBlock = safeCover
+    ? `<tr><td style="padding:0;border-radius:14px 14px 0 0;overflow:hidden">
+         <img src="${safeCover}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border-radius:14px 14px 0 0" />
+       </td></tr>`
+    : ''
+
+  // Headline-Block nur bei 'post'
+  const headlineBlock = kind === 'post'
+    ? `<tr><td style="padding:28px 36px 8px 36px;background:#fff;${safeCover ? '' : 'border-radius:14px 14px 0 0;'}">
+         <p style="margin:0;color:#fbbf24;font-size:11px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase">Neuer Beitrag</p>
+         <h1 style="margin:6px 0 0 0;color:#18181b;font-size:22px;font-weight:800;letter-spacing:-0.015em;line-height:1.25">${escapeHtml(subject)}</h1>
+       </td></tr>`
+    : ''
+
+  // Card-Border-Radius variiert je nach ob Cover/Headline davor war
+  const bodyTopRadius = (kind === 'post' && (safeCover || headlineBlock)) ? '0' : '14px 14px 0 0'
+
   return `<!DOCTYPE html>
 <html lang="de">
 <head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;padding:32px 16px">
     <tr><td align="center">
-      <table width="100%" style="max-width:560px">
-        <tr><td style="padding:8px 0 24px;text-align:center">
-          <p style="margin:0;color:#18181b;font-size:18px;font-weight:800;letter-spacing:-0.01em">${gymName}</p>
+      <table width="100%" style="max-width:560px;background:#fff;border:1px solid #e4e4e7;border-radius:14px;overflow:hidden">
+        <tr><td style="padding:8px 0 24px;text-align:center;background:#fafafa">
+          <p style="margin:0;color:#18181b;font-size:18px;font-weight:800;letter-spacing:-0.01em">${escapeHtml(gymName)}</p>
         </td></tr>
-        <tr><td style="background:#fff;padding:36px;border:1px solid #e4e4e7;border-radius:14px;font-size:15px;line-height:1.6;color:#3f3f46">
+        ${coverBlock}
+        ${headlineBlock}
+        <tr><td style="background:#fff;padding:${kind === 'post' ? '12px' : '36px'} 36px 36px 36px;font-size:15px;line-height:1.6;color:#3f3f46;border-radius:${bodyTopRadius} 14px 14px;">
           ${body}
         </td></tr>
-        <tr><td style="padding:16px 0;text-align:center">
+        <tr><td style="padding:16px 0;text-align:center;background:#fafafa">
           <p style="margin:0;color:#a1a1aa;font-size:11px;line-height:1.5">
-            Du bekommst diese Mail von <strong>${gymName}</strong>.<br/>
+            Du bekommst diese Mail von <strong>${escapeHtml(gymName)}</strong>.<br/>
             Keine Lust mehr? <a href="${unsubscribeUrl}" style="color:#71717a">Hier abmelden</a> — 1 Klick reicht.
           </p>
         </td></tr>
@@ -300,6 +340,10 @@ function wrapGymMail(gymName: string, body: string, unsubscribeUrl: string) {
   </table>
 </body>
 </html>`
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 function wrapNewsletter(body: string) {

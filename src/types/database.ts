@@ -491,9 +491,9 @@ export interface Database {
         Relationships: Rel[]
       }
       gym_bulk_mails: {
-        Row: { id: string; gym_id: string; sent_by: string | null; subject: string; body_preview: string | null; audience: string; filter_status: string | null; recipients_count: number; sent_count: number; failed_count: number; created_at: string }
-        Insert: { gym_id: string; subject: string; audience: string; sent_by?: string | null; body_preview?: string | null; filter_status?: string | null; recipients_count?: number; sent_count?: number; failed_count?: number }
-        Update: { sent_count?: number; failed_count?: number }
+        Row: { id: string; gym_id: string; sent_by: string | null; subject: string; body_preview: string | null; audience: string; filter_status: string | null; recipients_count: number; sent_count: number; failed_count: number; created_at: string; kind: string | null; cover_url: string | null }
+        Insert: { gym_id: string; subject: string; audience: string; sent_by?: string | null; body_preview?: string | null; filter_status?: string | null; recipients_count?: number; sent_count?: number; failed_count?: number; kind?: string | null; cover_url?: string | null }
+        Update: { sent_count?: number; failed_count?: number; kind?: string | null; cover_url?: string | null }
         Relationships: Rel[]
       }
       newsletter_subscribers: {

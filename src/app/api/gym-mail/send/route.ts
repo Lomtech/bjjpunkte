@@ -26,9 +26,15 @@ export async function POST(req: Request) {
   const filter = typeof body.filter === 'string' ? body.filter : 'active'
   const subject = typeof body.subject === 'string' ? body.subject.trim().slice(0, 200) : ''
   const html = typeof body.html === 'string' ? body.html.trim() : ''
+  const kindRaw = typeof body.kind === 'string' ? body.kind : 'announcement'
+  const kind: 'announcement' | 'post' = kindRaw === 'post' ? 'post' : 'announcement'
+  const coverRaw = typeof body.cover_url === 'string' ? body.cover_url.trim() : ''
+  const coverUrl = (kind === 'post' && coverRaw && /^https?:\/\//i.test(coverRaw)) ? coverRaw.slice(0, 1024) : null
 
   if (!subject) return NextResponse.json({ error: 'Betreff fehlt' }, { status: 400 })
-  if (!html || html.length < 20) return NextResponse.json({ error: 'Inhalt zu kurz' }, { status: 400 })
+  // Ankündigung darf kürzer sein (10 Zeichen reichen), Beitrag braucht etwas Substanz
+  const minBody = kind === 'post' ? 50 : 10
+  if (!html || html.length < minBody) return NextResponse.json({ error: `Inhalt zu kurz (mindestens ${minBody} Zeichen)` }, { status: 400 })
   if (html.length > 50000) return NextResponse.json({ error: 'Inhalt zu lang (max 50.000 Zeichen)' }, { status: 400 })
 
   // Belongs-to check
@@ -108,6 +114,8 @@ export async function POST(req: Request) {
     recipients_count: unique.length,
     sent_count: 0,
     failed_count: 0,
+    kind,
+    cover_url: coverUrl,
   }).select().single()
 
   // Versand
@@ -118,6 +126,8 @@ export async function POST(req: Request) {
     subject,
     htmlBody: html,
     audience,
+    kind,
+    coverUrl,
   })
 
   // Audit-Log nach Versand updaten

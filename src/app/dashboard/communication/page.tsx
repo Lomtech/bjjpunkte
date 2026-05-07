@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Send, Users, UserPlus, AlertCircle, Check, Loader2, Clock } from 'lucide-react'
+import { Mail, Send, Users, UserPlus, AlertCircle, Check, Loader2, Clock, Megaphone, FileText, Image as ImageIcon } from 'lucide-react'
 
 /**
  * Communication-Dashboard für Owner.
@@ -17,6 +17,7 @@ import { Mail, Send, Users, UserPlus, AlertCircle, Check, Loader2, Clock } from 
 
 type Audience = 'members' | 'leads' | 'both'
 type Filter = 'active' | 'all' | 'recent'
+type MailKind = 'announcement' | 'post'
 
 interface RecipientPreview {
   audience: Audience
@@ -30,6 +31,8 @@ interface RecipientPreview {
 export default function CommunicationPage() {
   const [audience, setAudience] = useState<Audience>('members')
   const [filter, setFilter] = useState<Filter>('active')
+  const [kind, setKind] = useState<MailKind>('announcement')
+  const [coverUrl, setCoverUrl] = useState('')
   const [subject, setSubject] = useState('')
   const [html, setHtml] = useState('')
   const [preview, setPreview] = useState<RecipientPreview | null>(null)
@@ -71,13 +74,14 @@ export default function CommunicationPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ audience, filter, subject, html }),
+        body: JSON.stringify({ audience, filter, subject, html, kind, cover_url: coverUrl.trim() || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Versand fehlgeschlagen')
       setResult({ sent: data.sent, failed: data.failed, recipients: data.recipients })
       setSubject('')
       setHtml('')
+      setCoverUrl('')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unbekannter Fehler')
     } finally {
@@ -86,16 +90,18 @@ export default function CommunicationPage() {
     }
   }
 
-  const canSend = subject.trim().length > 0 && html.trim().length >= 20 && (preview?.total ?? 0) > 0
+  const minBody = kind === 'post' ? 50 : 10
+  const canSend = subject.trim().length > 0 && html.trim().length >= minBody && (preview?.total ?? 0) > 0
 
   return (
     <div className="p-4 md:p-6 max-w-4xl">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-1">Kommunikation</h1>
         <p className="text-sm text-zinc-500 leading-relaxed max-w-2xl">
-          Schicke Ank&uuml;ndigungen, Turnier-Infos oder Newsletter an deine Mitglieder.
-          DSGVO-konform: Mitgliedern (Bestandskunden) darfst du schreiben, Leads nur wenn sie
-          beim Probetraining-Formular zugestimmt haben.
+          Verschicke <strong>Ank&uuml;ndigungen</strong> (kurz, Trainings­info, Hinweis) und{' '}
+          <strong>Beiträge</strong> (länger, Turnier-Bericht, Newsletter mit Cover-Bild) an
+          Mitglieder, Probetraining-Leads oder beide. DSGVO-konform: Mitglieder ({'§'}§6(1)(f)),
+          Leads nur mit Marketing-Consent. Jede Mail hat 1-Klick-Unsubscribe.
         </p>
       </div>
 
@@ -120,6 +126,43 @@ export default function CommunicationPage() {
           <strong>Fehler:</strong> {error}
         </div>
       )}
+
+      {/* Type-Picker — Ankündigung vs. Beitrag */}
+      <div className="bg-white rounded-2xl border border-zinc-200 p-3 mb-4">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2 px-1">Art der Nachricht</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setKind('announcement')}
+            className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-colors ${
+              kind === 'announcement' ? 'bg-amber-50 border-amber-300' : 'border-zinc-200 hover:border-zinc-300'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${kind === 'announcement' ? 'bg-amber-500 text-white' : 'bg-zinc-100 text-zinc-500'}`}>
+              <Megaphone size={16} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-zinc-900 text-sm">📢 Ankündigung</p>
+              <p className="text-xs text-zinc-500 leading-snug mt-0.5">Kurze Info — Trainings­änderung, Hinweis, Erinnerung. Schlanker Mail-Look.</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setKind('post')}
+            className={`flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-colors ${
+              kind === 'post' ? 'bg-amber-50 border-amber-300' : 'border-zinc-200 hover:border-zinc-300'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${kind === 'post' ? 'bg-amber-500 text-white' : 'bg-zinc-100 text-zinc-500'}`}>
+              <FileText size={16} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-zinc-900 text-sm">📝 Beitrag</p>
+              <p className="text-xs text-zinc-500 leading-snug mt-0.5">Längerer Inhalt — Turnier-Bericht, Newsletter, Story. Mit optionalem Cover-Bild.</p>
+            </div>
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
@@ -188,35 +231,65 @@ export default function CommunicationPage() {
         {/* Editor */}
         <div className="bg-white rounded-2xl border border-zinc-200 p-5 lg:col-span-2">
           <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4 flex items-center gap-2">
-            <Mail size={14} /> Mail verfassen
+            {kind === 'post' ? <><FileText size={14} /> Beitrag verfassen</> : <><Megaphone size={14} /> Ankündigung verfassen</>}
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Betreff *</label>
+              <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
+                {kind === 'post' ? 'Titel *' : 'Betreff *'}
+              </label>
               <input
                 type="text"
                 value={subject}
                 onChange={e => setSubject(e.target.value.slice(0, 200))}
-                placeholder="z.B. Vereinsmeisterschaft am 15. Mai — Anmeldung offen"
+                placeholder={kind === 'post'
+                  ? 'z.B. Erfolg beim Bayern-Cup — 3 Gold, 2 Silber'
+                  : 'z.B. Trainingsausfall am Freitag wegen Feiertag'}
                 className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none"
               />
               <p className="text-[10px] text-zinc-400 mt-1">{subject.length}/200 Zeichen</p>
             </div>
 
+            {/* Cover-Bild — nur bei Beitrag */}
+            {kind === 'post' && (
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center gap-1.5">
+                  <ImageIcon size={11} /> Cover-Bild URL <span className="text-zinc-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={coverUrl}
+                  onChange={e => setCoverUrl(e.target.value.slice(0, 1024))}
+                  placeholder="https://… z.B. ein Foto vom Turnier oder Event"
+                  className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none"
+                />
+                <p className="text-[10px] text-zinc-400 mt-1">
+                  Wird oben im Beitrag als Banner angezeigt. https:// erforderlich. Leer lassen = kein Banner.
+                </p>
+                {coverUrl && /^https?:\/\//i.test(coverUrl) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={coverUrl} alt="" className="mt-2 max-h-32 rounded-lg border border-zinc-200 object-cover w-full"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                )}
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-                Nachricht * <span className="text-zinc-400 font-normal">(HTML erlaubt — &lt;b&gt;, &lt;a href=&quot;…&quot;&gt;, &lt;br&gt;)</span>
+                {kind === 'post' ? 'Inhalt' : 'Nachricht'} * <span className="text-zinc-400 font-normal">(HTML erlaubt — &lt;b&gt;, &lt;a href=&quot;…&quot;&gt;, &lt;br&gt;)</span>
               </label>
               <textarea
                 value={html}
                 onChange={e => setHtml(e.target.value.slice(0, 50000))}
-                placeholder={`Hallo {{first_name}},\n\nam 15. Mai ist unsere Vereinsmeisterschaft. Anmeldung läuft bis Sonntag — Details auf der Pinnwand.\n\nViele Grüße,\nDein Coach-Team`}
-                rows={14}
+                placeholder={kind === 'post'
+                  ? `Hallo {{first_name}},\n\nam Wochenende war unser Team beim Bayern-Cup in Augsburg.\nMit dabei waren: Anna, Max, Tom und Lisa — alle haben großartig gekämpft.\n\nErgebnisse:\n• Anna: Gold (Damen –63 kg)\n• Max: Silber (Herren –83 kg)\n• …\n\nNächstes Highlight: Vereinsmeisterschaft am 15. Mai. Anmeldung läuft.\n\nOss,\nDein Coach-Team`
+                  : `Hallo {{first_name}},\n\nam Freitag fällt das Abendtraining wegen Feiertag aus. Samstag normal um 10:00 Uhr.\n\nViele Grüße,\nDein Coach-Team`}
+                rows={kind === 'post' ? 18 : 8}
                 className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm font-mono focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none resize-y"
               />
               <p className="text-[10px] text-zinc-400 mt-1">
-                {html.length}/50.000 Zeichen · Variable <code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> wird pro Empfänger ersetzt
+                {html.length}/50.000 Zeichen · min {minBody} · Variable <code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> wird pro Empfänger ersetzt
               </p>
             </div>
 
@@ -250,10 +323,15 @@ export default function CommunicationPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl"
             onClick={e => e.stopPropagation()}>
             <p className="text-xs font-bold uppercase tracking-wider text-amber-700 mb-2">⚠️ Bestätigung</p>
-            <h3 className="text-xl font-black text-zinc-900 mb-3">An <span className="text-amber-600 tabular-nums">{preview.total}</span> Empfänger senden?</h3>
+            <h3 className="text-xl font-black text-zinc-900 mb-3">
+              {kind === 'post' ? 'Beitrag' : 'Ankündigung'} an <span className="text-amber-600 tabular-nums">{preview.total}</span> Empfänger senden?
+            </h3>
             <div className="bg-zinc-50 rounded-lg p-3 mb-4 text-xs text-zinc-600 leading-relaxed">
-              <p><strong>Betreff:</strong> {subject}</p>
+              <p><strong>{kind === 'post' ? 'Titel' : 'Betreff'}:</strong> {subject}</p>
               <p className="mt-1"><strong>Empfänger:</strong> {preview.member_count} Mitglieder + {preview.lead_count} Leads</p>
+              {kind === 'post' && coverUrl && /^https?:\/\//i.test(coverUrl) && (
+                <p className="mt-1"><strong>Cover:</strong> <span className="break-all">{coverUrl.length > 60 ? coverUrl.slice(0, 60) + '…' : coverUrl}</span></p>
+              )}
             </div>
             <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
               <Clock size={11} className="inline mr-1" />
