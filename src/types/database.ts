@@ -150,6 +150,10 @@ export interface Database {
           payment_method_types: string[] | null
           // Plan
           plan_expires_at: string | null
+          // Dunning / Inkasso config
+          dunning_late_fee_cents: number
+          dunning_days_to_level_2: number
+          dunning_days_to_level_3: number
         }
         Insert: {
           owner_id: string
@@ -215,6 +219,9 @@ export interface Database {
           gps_radius_meters?: number | null
           payment_method_types?: string[] | null
           plan_expires_at?: string | null
+          dunning_late_fee_cents?: number
+          dunning_days_to_level_2?: number
+          dunning_days_to_level_3?: number
         }
         Update: {
           name?: string
@@ -279,6 +286,9 @@ export interface Database {
           gps_radius_meters?: number | null
           payment_method_types?: string[] | null
           plan_expires_at?: string | null
+          dunning_late_fee_cents?: number
+          dunning_days_to_level_2?: number
+          dunning_days_to_level_3?: number
         }
         Relationships: Rel[]
       }

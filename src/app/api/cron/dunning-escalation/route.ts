@@ -9,17 +9,22 @@ export const maxDuration = 60
 /**
  * GET /api/cron/dunning-escalation
  *
- * Auto-Eskaliert Mahnstufen nach Frist-Ablauf:
- *  - Level 1, last_action älter 14 Tage → Level 2 (second_reminder)
- *  - Level 2, started_at  älter 28 Tage → Level 3 (final_warning)
+ * Auto-Eskaliert Mahnstufen nach Frist-Ablauf — Fristen pro Gym
+ * konfigurierbar via `gyms.dunning_days_to_level_2/3`:
+ *  - Level 1, last_action älter `gym.dunning_days_to_level_2` Tage → Level 2
+ *  - Level 2, started_at  älter `gym.dunning_days_to_level_3` Tage → Level 3
  *  - Level 3 wird NICHT auto-eskaliert (Inkasso-Übergabe ist manuell).
+ *
+ * Defaults: 14d / 28d (durch DB-Defaults gesetzt, hier nur als Fallback
+ * gegen NULL-Werte aus älteren Rows, die theoretisch nicht existieren
+ * sollten — wir sind defensiv).
  *
  * Vercel-Cron: täglich 08:00 UTC (= 09:00 Berlin im Winter, 10:00 im Sommer).
  * Auth: Bearer ${CRON_SECRET} (Vercel-Standard, via cronGuard).
  *
  * Idempotenz:
  *  - DB-Level via cron_runs(job_name, executed_at) UNIQUE → 2× Aufruf am gleichen Tag = early-return.
- *  - Logik-Level: nach Update ist dunning_last_action_at = now → Filter `< day14` matcht nicht mehr.
+ *  - Logik-Level: nach Update ist dunning_last_action_at = now → Filter matcht nicht mehr.
  */
 export async function GET(req: Request) {
   const guard = cronGuard(req)
@@ -40,22 +45,49 @@ export async function GET(req: Request) {
   }
 
   const now = new Date()
-  const day14 = new Date(now.getTime() - 14 * 86400000).toISOString()
-  const day28 = new Date(now.getTime() - 28 * 86400000).toISOString()
+  const nowMs = now.getTime()
+
+  // ── Gym-Config in Map laden — vermeidet N+1 SELECTs.
+  // dunning_days_to_level_2/3 sind NOT NULL DEFAULT in der DB; defensive
+  // Fallbacks (14/28) decken uns ab, falls eine Row diese Defaults verletzt.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: gymsRows, error: gymsErr } = await (supabase.from('gyms') as any)
+    .select('id, dunning_days_to_level_2, dunning_days_to_level_3')
+
+  const errors: string[] = []
+  if (gymsErr) {
+    errors.push(`gyms query: ${gymsErr.message}`)
+  }
+
+  type GymCfg = { l2Days: number; l3Days: number }
+  const gymConfig = new Map<string, GymCfg>()
+  for (const g of (gymsRows ?? []) as Array<{
+    id: string
+    dunning_days_to_level_2: number | null
+    dunning_days_to_level_3: number | null
+  }>) {
+    gymConfig.set(g.id, {
+      l2Days: typeof g.dunning_days_to_level_2 === 'number' ? g.dunning_days_to_level_2 : 14,
+      l3Days: typeof g.dunning_days_to_level_3 === 'number' ? g.dunning_days_to_level_3 : 28,
+    })
+  }
+
+  // Default für Member, deren Gym (theoretisch) nicht in der Map ist —
+  // sollte nicht passieren wegen FK, aber defensive Programmierung.
+  const fallbackCfg: GymCfg = { l2Days: 14, l3Days: 28 }
 
   let escalatedToLevel2 = 0
   let escalatedToLevel3 = 0
-  const errors: string[] = []
 
-  // ── Level 1 → 2 (14 Tage seit letzter Aktion ohne Reaktion)
-  // Defensiv: NULL last_action_at wird durch `.lt(...)` automatisch ausgeschlossen,
-  // da NULL-Vergleiche in SQL false ergeben — kein zusätzlicher Filter nötig.
-  const { data: level1Members, error: l1Err } = await supabase
-    .from('members')
+  // ── Level 1 → 2: alle L1-Member laden, pro-Gym-Frist clientseitig prüfen
+  // Wir laden ALLE L1-Member (kein date-Filter), weil die Frist pro Gym
+  // unterschiedlich ist. Hard limit 2000, um runaway zu vermeiden.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: level1Members, error: l1Err } = await (supabase.from('members') as any)
     .select('id, gym_id, dunning_amount_cents, dunning_last_action_at')
     .eq('dunning_level', 1)
-    .lt('dunning_last_action_at', day14)
-    .limit(500)
+    .not('dunning_last_action_at', 'is', null)
+    .limit(2000)
 
   if (l1Err) {
     errors.push(`L1 query: ${l1Err.message}`)
@@ -65,16 +97,22 @@ export async function GET(req: Request) {
     id: string
     gym_id: string
     dunning_amount_cents: number | null
-    dunning_last_action_at: string
+    dunning_last_action_at: string | null
   }>) {
     try {
+      if (!m.dunning_last_action_at) continue
+      const cfg = gymConfig.get(m.gym_id) ?? fallbackCfg
+      const cutoffMs = nowMs - cfg.l2Days * 86400000
+      const lastActionMs = new Date(m.dunning_last_action_at).getTime()
+      if (lastActionMs >= cutoffMs) continue // Frist noch nicht abgelaufen
+
       const amount = m.dunning_amount_cents ?? 0
       const { error: insErr } = await supabase.from('dunning_actions').insert({
         member_id: m.id,
         gym_id: m.gym_id,
         action_type: 'second_reminder',
         amount_cents: amount,
-        notes: 'Auto-Eskalation: 14 Tage seit 1. Mahnung ohne Reaktion',
+        notes: `Auto-Eskalation: ${cfg.l2Days} Tage seit 1. Mahnung ohne Reaktion`,
         performed_by: null,
       })
       if (insErr) throw new Error(`insert dunning_action: ${insErr.message}`)
@@ -112,13 +150,13 @@ export async function GET(req: Request) {
     }
   }
 
-  // ── Level 2 → 3 (28 Tage seit Mahnungs-Beginn)
-  const { data: level2Members, error: l2Err } = await supabase
-    .from('members')
+  // ── Level 2 → 3: Frist relativ zu started_at, pro-Gym
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: level2Members, error: l2Err } = await (supabase.from('members') as any)
     .select('id, gym_id, dunning_amount_cents, dunning_started_at')
     .eq('dunning_level', 2)
-    .lt('dunning_started_at', day28)
-    .limit(500)
+    .not('dunning_started_at', 'is', null)
+    .limit(2000)
 
   if (l2Err) {
     errors.push(`L2 query: ${l2Err.message}`)
@@ -128,16 +166,22 @@ export async function GET(req: Request) {
     id: string
     gym_id: string
     dunning_amount_cents: number | null
-    dunning_started_at: string
+    dunning_started_at: string | null
   }>) {
     try {
+      if (!m.dunning_started_at) continue
+      const cfg = gymConfig.get(m.gym_id) ?? fallbackCfg
+      const cutoffMs = nowMs - cfg.l3Days * 86400000
+      const startedMs = new Date(m.dunning_started_at).getTime()
+      if (startedMs >= cutoffMs) continue
+
       const amount = m.dunning_amount_cents ?? 0
       const { error: insErr } = await supabase.from('dunning_actions').insert({
         member_id: m.id,
         gym_id: m.gym_id,
         action_type: 'final_warning',
         amount_cents: amount,
-        notes: 'Auto-Eskalation: 28 Tage seit Mahn-Beginn — letzte Mahnung vor Inkasso',
+        notes: `Auto-Eskalation: ${cfg.l3Days} Tage seit Mahn-Beginn — letzte Mahnung vor Inkasso`,
         performed_by: null,
       })
       if (insErr) throw new Error(`insert dunning_action: ${insErr.message}`)

@@ -223,6 +223,13 @@ export function DunningPanel({ member, onUpdate }: { member: MemberInfo; onUpdat
         </div>
       )}
 
+      {/* Inkasso-Übergabe-Dossier — nur ab Stufe 3 (Inkasso) */}
+      {level >= 3 && (
+        <div className="mb-4">
+          <DunningHandoffPdfButton memberId={member.id} />
+        </div>
+      )}
+
       {/* History */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">Verlauf ({actions.length})</p>
@@ -306,6 +313,64 @@ function DunningPdfButton({ memberId, level }: { memberId: string; level: number
       >
         <FileText size={13} />
         {busy ? 'Wird geladen…' : 'Mahnungs-PDF anzeigen'}
+      </button>
+      {err && <span className="text-xs text-rose-600">{err}</span>}
+    </div>
+  )
+}
+
+/**
+ * Öffnet das Inkasso-Übergabe-Dossier-PDF in einem neuen Tab.
+ * Komplett analog zu `DunningPdfButton` — Bearer-Token-fetch + Blob-URL,
+ * vermeidet Cookie-Probleme bei `<a target="_blank">`.
+ *
+ * Roter Akzent (statt amber), weil das die finale Eskalation ist:
+ * der Fall verlässt das Studio und geht ans Inkasso-Büro.
+ */
+function DunningHandoffPdfButton({ memberId }: { memberId: string }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  async function open() {
+    setBusy(true)
+    setErr(null)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setErr('Nicht eingeloggt')
+        return
+      }
+      const res = await fetch(`/api/members/${memberId}/dunning/handoff-pdf`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setErr(j.error ?? `Fehler ${res.status}`)
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Fehler')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={open}
+        disabled={busy}
+        title="Komplettes Übergabe-Dossier (Stammdaten + Forderung + Mahnungs-Verlauf) als PDF zum Versand an Inkasso-Dienstleister"
+        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-800 text-xs font-bold transition-colors shadow-sm"
+      >
+        <FileText size={13} />
+        {busy ? 'Wird geladen…' : '📋 Inkasso-Übergabe-Dossier (PDF)'}
       </button>
       {err && <span className="text-xs text-rose-600">{err}</span>}
     </div>

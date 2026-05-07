@@ -50,6 +50,13 @@ export interface DunningPdfGym {
   address: string | null
   email: string | null
   iban: string | null
+  /**
+   * Pauschale Mahngebühr in Cent (Default 1000 = 10 €). Wird ab der
+   * 2. Mahnung berechnet (× 1) und bei der letzten Mahnung kumuliert (× 2).
+   * Optional, damit Aufrufer ohne neuen Settings-Wert weiterhin den
+   * §-288-Abs.-4-konformen Default nutzen.
+   */
+  dunning_late_fee_cents?: number | null
 }
 
 export interface DunningPdfData {
@@ -61,8 +68,31 @@ export interface DunningPdfData {
   issued_at: Date
   /** Frist für die Zahlung (default: issued_at + 14 Tage) */
   due_date: Date
-  /** zusätzliche Mahngebühr in Cent (nur bei 2. Mahnung relevant) */
-  fee_cents: number
+  /**
+   * Optional: bereits berechnete Mahngebühr in Cent. Wenn nicht gesetzt
+   * leitet sich der Wert aus `gym.dunning_late_fee_cents` × Stufe ab
+   * (1× bei second_reminder, 2× bei final_warning).
+   */
+  fee_cents?: number
+}
+
+/**
+ * Defaults bei NULL — sollte dank DB-Defaults nicht passieren, aber
+ * defensiv für ältere Caller / Tests / Preview-Routen.
+ */
+const DEFAULT_LATE_FEE_CENTS = 1000
+
+/**
+ * Stufenspezifische Mahngebühr aus Gym-Config (oder Default 10 €):
+ *  - first_reminder  → 0
+ *  - second_reminder → 1× late_fee
+ *  - final_warning   → 2× late_fee (kumulativ)
+ */
+function feeForKind(gym: DunningPdfGym, kind: DunningKind): number {
+  const base = gym.dunning_late_fee_cents ?? DEFAULT_LATE_FEE_CENTS
+  if (kind === 'second_reminder') return base
+  if (kind === 'final_warning') return base * 2
+  return 0
 }
 
 interface RenderArgs {
@@ -296,9 +326,12 @@ function subjectFor(kind: DunningKind): string {
 function DunningPdf({ member, gym, dunning, kind }: RenderArgs) {
   const fullName = `${member.first_name} ${member.last_name}`.trim()
   const subject = subjectFor(kind)
+  // Mahngebühr aus Gym-Config ableiten (Default 10 €), explizit
+  // übergebener Wert in `dunning.fee_cents` hat Vorrang (Tests / Preview).
+  const feeCents = dunning.fee_cents ?? feeForKind(gym, kind)
   const amountFmt = formatEur(dunning.amount_cents)
-  const feeFmt = formatEur(dunning.fee_cents)
-  const totalFmt = formatEur(dunning.amount_cents + dunning.fee_cents)
+  const feeFmt = formatEur(feeCents)
+  const totalFmt = formatEur(dunning.amount_cents + feeCents)
   const dueFmt = formatDate(dunning.due_date)
   const issuedFmt = formatDate(dunning.issued_at)
   const startedFmt = dunning.started_at ? formatDate(dunning.started_at) : null
@@ -393,7 +426,7 @@ function DunningPdf({ member, gym, dunning, kind }: RenderArgs) {
             <Text style={styles.amountLabel}>Offener Betrag</Text>
             <Text style={styles.amountValue}>{amountFmt}</Text>
           </View>
-          {dunning.fee_cents > 0 && (
+          {feeCents > 0 && (
             <View style={styles.amountRow}>
               <Text style={styles.amountLabel}>Mahngebühr</Text>
               <Text style={styles.amountValue}>{feeFmt}</Text>
@@ -423,7 +456,7 @@ function DunningPdf({ member, gym, dunning, kind }: RenderArgs) {
         </View>
 
         {/* Hinweis bei 2. Mahnung */}
-        {kind === 'second_reminder' && dunning.fee_cents > 0 && (
+        {kind === 'second_reminder' && feeCents > 0 && (
           <Text style={styles.paragraph}>
             Bitte beachten Sie, dass wir wegen des andauernden Zahlungsverzugs eine pauschale
             Mahngebühr in Höhe von {feeFmt} berechnen müssen.

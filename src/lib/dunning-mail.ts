@@ -53,11 +53,12 @@ function subjectFor(kind: DunningKind): string {
   }
 }
 
-function feeForKind(kind: DunningKind): number {
-  // Pauschale Mahngebühr (in Cent) — nur ab der 2. Mahnung üblich.
+function feeForKind(kind: DunningKind, lateFeeCents: number): number {
+  // Pauschale Mahngebühr (in Cent) aus Gym-Settings.
   // Höhe ist § 288 Abs. 4 BGB / Rspr.-konform (üblich: 5–10 EUR pauschal).
-  if (kind === 'second_reminder') return 1000 // 10,00 EUR
-  if (kind === 'final_warning') return 1000 // 10,00 EUR (kumulativ)
+  // Default 1000 (= 10 €) wird vom Aufrufer durchgereicht.
+  if (kind === 'second_reminder') return lateFeeCents // 1× Mahngebühr
+  if (kind === 'final_warning') return lateFeeCents * 2 // 2× kumulativ
   return 0
 }
 
@@ -145,10 +146,14 @@ export async function sendDunningMail(
     }
   }
 
-  // Gym laden (für Briefkopf, Absender-Adresse, IBAN)
+  // Gym laden (für Briefkopf, Absender-Adresse, IBAN, Inkasso-Config).
+  // dunning_late_fee_cents/days_to_level_2/3 werden hier mitgelesen,
+  // um die Mahngebühr im PDF gym-spezifisch zu berechnen.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: gym, error: gymErr } = await (supabase.from('gyms') as any)
-    .select('name, address, email, bank_iban_enc, bank_iban')
+    .select(
+      'name, address, email, bank_iban_enc, bank_iban, dunning_late_fee_cents, dunning_days_to_level_2, dunning_days_to_level_3',
+    )
     .eq('id', member.gym_id)
     .maybeSingle()
 
@@ -171,7 +176,13 @@ export async function sendDunningMail(
   const dueDate =
     opts?.dueDate ??
     new Date(issuedAt.getTime() + 14 * 24 * 60 * 60 * 1000)
-  const feeCents = feeForKind(kind)
+  // Mahngebühr aus Gym-Config (Default 1000 = 10 €) — defensiv gegen NULL,
+  // obwohl die Spalte NOT NULL DEFAULT 1000 ist.
+  const lateFeeCents =
+    typeof gym.dunning_late_fee_cents === 'number' && gym.dunning_late_fee_cents >= 0
+      ? gym.dunning_late_fee_cents
+      : 1000
+  const feeCents = feeForKind(kind, lateFeeCents)
 
   let pdfBuffer: Buffer
   try {
@@ -188,6 +199,7 @@ export async function sendDunningMail(
         address: gym.address,
         email: gym.email,
         iban: getIbanFromGym(gym),
+        dunning_late_fee_cents: lateFeeCents,
       },
       dunning: {
         amount_cents: safeAmountCents,

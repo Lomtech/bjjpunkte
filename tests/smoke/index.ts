@@ -10,11 +10,13 @@
  *   npm run test:smoke:prod      → explizit gegen https://www.osss.pro
  *
  * Optionale ENV-Vars:
- *   TEST_API_BASE         API-Base-URL (default https://www.osss.pro)
- *   TEST_GYM_SLUG         Gym-Slug für Public-Tests (default cscffb)
- *   TEST_OWNER_EMAIL      Supabase-Owner-Email (für Auth-Tests)
- *   TEST_OWNER_PASSWORD   Supabase-Owner-Password (für Auth-Tests)
- *   TEST_MEMBER_ID        Member-UUID für PDF-Tests
+ *   TEST_API_BASE                   API-Base-URL (default https://www.osss.pro)
+ *   TEST_GYM_SLUG                   Gym-Slug für Public-Tests (default cscffb)
+ *   TEST_OWNER_EMAIL                Supabase-Owner-Email (für Auth-Tests)
+ *   TEST_OWNER_PASSWORD             Supabase-Owner-Password (für Auth-Tests)
+ *   TEST_MEMBER_ID                  Member-UUID für PDF/Dunning-Tests
+ *   TEST_CRON_SECRET                Cron-Bearer-Secret für Cron-Endpoint (Auth-Test)
+ *   TEST_CRON_TRIGGER_ALLOWED=1     Opt-in: erlaubt 200-Trigger-Aufruf (gefährlich!)
  */
 
 import {
@@ -26,6 +28,8 @@ import {
   getTestSlug,
 } from './helpers'
 import { runBulkMailTests } from './bulk-mail.test'
+import { runCronTests } from './cron.test'
+import { runDunningTests } from './dunning.test'
 import { runPdfExportTests } from './pdf-export.test'
 import { runTrialBookingTests } from './trial-booking.test'
 import { runWellpassOnboardingTests } from './wellpass-onboarding.test'
@@ -47,6 +51,8 @@ async function main() {
   await runTrialBookingTests()
   await runPdfExportTests()
   await runBulkMailTests()
+  await runDunningTests()
+  await runCronTests()
 
   // ── Final Summary ──────────────────────────────────────────────────────────
   const passed  = counter.entries.filter(e => e.status === 'pass').length

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { encryptIban } from '@/lib/encryption'
+import { uploadSignature } from '@/lib/signature-storage'
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -193,7 +195,7 @@ export async function POST(req: Request) {
     'video_url', 'video_urls',
     'is_kleinunternehmer', 'invoice_prefix',
     'legal_name', 'legal_address', 'legal_email', 'tax_number', 'ustid',
-    'bank_iban', 'bank_bic', 'bank_name',
+    'bank_bic', 'bank_name',
     'datev_beraternummer', 'datev_mandantennummer', 'datev_sachkontenlänge',
     'latitude', 'longitude', 'gps_radius_meters',
     'callmebot_api_key',
@@ -201,6 +203,23 @@ export async function POST(req: Request) {
   const gymUpdate: Record<string, unknown> = {}
   for (const key of gymAllowed) {
     if (gymData[key] !== undefined) gymUpdate[key] = gymData[key]
+  }
+  // IBAN: niemals als Plaintext in bank_iban schreiben — verschlüsselt in
+  // bank_iban_enc ablegen. Akzeptiert sowohl `bank_iban` (Klartext aus Export)
+  // als auch ggf. `bank_iban_enc` (1:1-Migration zwischen Studios mit gleichem Key).
+  const rawIban = typeof gymData.bank_iban === 'string' ? gymData.bank_iban.trim() : ''
+  if (rawIban) {
+    try {
+      gymUpdate.bank_iban_enc = encryptIban(rawIban)
+      // Plaintext-Spalte explizit leeren — DSGVO Art. 32.
+      gymUpdate.bank_iban = null
+    } catch (e) {
+      console.warn('[import] IBAN-Verschlüsselung fehlgeschlagen:', (e as Error)?.message)
+    }
+  } else if (typeof gymData.bank_iban_enc === 'string' && gymData.bank_iban_enc.length > 0) {
+    // 1:1 Migration: encrypted-Wert direkt übernehmen (Edge Case).
+    gymUpdate.bank_iban_enc = gymData.bank_iban_enc
+    gymUpdate.bank_iban = null
   }
   if (newLogoUrl) gymUpdate.logo_url       = newLogoUrl
   if (newHeroUrl) gymUpdate.hero_image_url = newHeroUrl
@@ -271,39 +290,49 @@ export async function POST(req: Request) {
   }
 
   // ── Members — pass 1: insert all members (without parent/plan links) ───────
+  // signature_data: data-URLs aus dem Import werden NICHT direkt eingefügt
+  // (DSGVO Art. 32 — keine Plaintext-Signaturen in DB). Stattdessen Phase 4
+  // mit Storage-Upload + Path-Update. Schon-Storage-Paths (Edge Case bei
+  // 1:1-Migration ohne data-URL) werden 1:1 übernommen.
   const memberIds: string[] = []   // index → new DB id
   const errors: string[] = []
   if (Array.isArray(members) && members.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const memberRows = members.map((m: any) => anyRow({
-      gym_id:                     gym.id,
-      first_name:                 m.first_name,
-      last_name:                  m.last_name,
-      email:                      m.email ?? null,
-      phone:                      m.phone ?? null,
-      date_of_birth:              m.date_of_birth ?? null,
-      address:                    m.address ?? null,
-      belt:                       m.belt ?? 'white',
-      stripes:                    m.stripes ?? 0,
-      join_date:                  m.join_date ?? new Date().toISOString().split('T')[0],
-      is_active:                  m.is_active ?? true,
-      emergency_contact_name:     m.emergency_contact_name ?? null,
-      emergency_contact_phone:    m.emergency_contact_phone ?? null,
-      notes:                      m.notes ?? null,
-      belt_awarded_at:            m.belt_awarded_at ?? null,
-      subscription_status:        m.subscription_status ?? 'pending',
-      contract_end_date:          m.contract_end_date ?? null,
-      monthly_fee_override_cents: m.monthly_fee_override_cents ?? null,
-      signature_data:             m.signature_data ?? null,
-      contract_signed_at:         m.contract_signed_at ?? null,
-      gdpr_consent_at:            m.gdpr_consent_at ?? null,
-      onboarding_status:          m.onboarding_status ?? null,
-      consent_ip:                 m.consent_ip ?? null,
-      consent_user_agent:         m.consent_user_agent ?? null,
-      consent_text:               m.consent_text ?? null,
-      cancellation_requested_at:  m.cancellation_requested_at ?? null,
-      cancellation_note:          m.cancellation_note ?? null,
-    }))
+    const memberRows = members.map((m: any) => {
+      const sig: string | null = typeof m.signature_data === 'string' ? m.signature_data : null
+      // data-URLs werden in Phase 4 als Storage hochgeladen, daher hier null.
+      // Storage-Paths (kein data:-Prefix) werden 1:1 übernommen.
+      const initialSignature = sig && sig.startsWith('data:image/') ? null : sig
+      return anyRow({
+        gym_id:                     gym.id,
+        first_name:                 m.first_name,
+        last_name:                  m.last_name,
+        email:                      m.email ?? null,
+        phone:                      m.phone ?? null,
+        date_of_birth:              m.date_of_birth ?? null,
+        address:                    m.address ?? null,
+        belt:                       m.belt ?? 'white',
+        stripes:                    m.stripes ?? 0,
+        join_date:                  m.join_date ?? new Date().toISOString().split('T')[0],
+        is_active:                  m.is_active ?? true,
+        emergency_contact_name:     m.emergency_contact_name ?? null,
+        emergency_contact_phone:    m.emergency_contact_phone ?? null,
+        notes:                      m.notes ?? null,
+        belt_awarded_at:            m.belt_awarded_at ?? null,
+        subscription_status:        m.subscription_status ?? 'pending',
+        contract_end_date:          m.contract_end_date ?? null,
+        monthly_fee_override_cents: m.monthly_fee_override_cents ?? null,
+        signature_data:             initialSignature,
+        contract_signed_at:         m.contract_signed_at ?? null,
+        gdpr_consent_at:            m.gdpr_consent_at ?? null,
+        onboarding_status:          m.onboarding_status ?? null,
+        consent_ip:                 m.consent_ip ?? null,
+        consent_user_agent:         m.consent_user_agent ?? null,
+        consent_text:               m.consent_text ?? null,
+        cancellation_requested_at:  m.cancellation_requested_at ?? null,
+        cancellation_note:          m.cancellation_note ?? null,
+      })
+    })
     const MEMBER_CHUNK = 100
     for (let i = 0; i < memberRows.length; i += MEMBER_CHUNK) {
       const chunk = memberRows.slice(i, i + MEMBER_CHUNK)
@@ -362,6 +391,30 @@ export async function POST(req: Request) {
           (svc.from('members') as any).update(update as any).eq('id', id)
         ))
       }
+    }
+  }
+
+  // ── Members — pass 4: signature data-URLs nach Storage hochladen ─────────
+  // Verbindlich für DSGVO Art. 32: Signaturen liegen NUR als binäre PNGs in
+  // Storage, NICHT als Plaintext-Base64 in der Spalte.
+  let signaturesImported = 0
+  if (Array.isArray(members) && members.length > 0) {
+    const sigUploads = members
+      .map((m, i) => ({ raw: m.signature_data, memberId: memberIds[i] }))
+      .filter(({ raw, memberId }) =>
+        typeof raw === 'string' && raw.startsWith('data:image/') && memberId
+      ) as Array<{ raw: string; memberId: string }>
+    const SIG_CHUNK = 20
+    for (let c = 0; c < sigUploads.length; c += SIG_CHUNK) {
+      const chunk = sigUploads.slice(c, c + SIG_CHUNK)
+      await Promise.all(chunk.map(async ({ raw, memberId }) => {
+        const path = await uploadSignature(gym.id, memberId, raw)
+        if (path) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (svc.from('members') as any).update({ signature_data: path }).eq('id', memberId)
+          signaturesImported++
+        }
+      }))
     }
   }
 
@@ -576,6 +629,7 @@ export async function POST(req: Request) {
       announcements:      announcements?.length    ?? 0,
       posts:              postsImported,
       members:            memberIds.filter(Boolean).length,
+      signatures_uploaded: signaturesImported,
       classes:            classIds.filter(Boolean).length,
       class_bookings:     bookingsImported,
       attendance:         attendanceImported,

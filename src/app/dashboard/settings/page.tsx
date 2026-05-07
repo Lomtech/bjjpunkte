@@ -134,6 +134,14 @@ function SettingsPageInner() {
   const [datevSaving, setDatevSaving]                   = useState(false)
   const [datevSaved, setDatevSaved]                     = useState(false)
 
+  // Inkasso & Mahnungen (pro-Gym Konfiguration der Mahn-Pipeline)
+  const [dunningLateFee, setDunningLateFee]       = useState('10.00') // EUR (Display)
+  const [dunningDaysL2, setDunningDaysL2]         = useState(14)
+  const [dunningDaysL3, setDunningDaysL3]         = useState(28)
+  const [dunningSaving, setDunningSaving]         = useState(false)
+  const [dunningSaved, setDunningSaved]           = useState(false)
+  const [dunningError, setDunningError]           = useState<string | null>(null)
+
   // Export / Import
   const [importFile, setImportFile]         = useState<File | null>(null)
   const [importing, setImporting]           = useState(false)
@@ -266,6 +274,16 @@ function SettingsPageInner() {
         setBankName(data.bank_name ?? '')
         setDatevBeraternummer(data.datev_beraternummer ?? '')
         setDatevMandantennummer(data.datev_mandantennummer ?? '')
+        // Inkasso-Defaults: 10 €, 14d, 28d. NULL sollte dank DB-DEFAULT
+        // nicht vorkommen, defensiv trotzdem fallbacken.
+        const lateFeeCents = (data as { dunning_late_fee_cents?: number | null }).dunning_late_fee_cents
+        setDunningLateFee(typeof lateFeeCents === 'number'
+          ? (lateFeeCents / 100).toFixed(2)
+          : '10.00')
+        const daysL2 = (data as { dunning_days_to_level_2?: number | null }).dunning_days_to_level_2
+        setDunningDaysL2(typeof daysL2 === 'number' ? daysL2 : 14)
+        const daysL3 = (data as { dunning_days_to_level_3?: number | null }).dunning_days_to_level_3
+        setDunningDaysL3(typeof daysL3 === 'number' ? daysL3 : 28)
         const rawClassTypes = data.class_types
         if (Array.isArray(rawClassTypes)) setClassTypesInput(rawClassTypes.join(', '))
         const savedSport = data.sport_type as SportType | undefined
@@ -636,6 +654,44 @@ function SettingsPageInner() {
       datev_mandantennummer: datevMandantennummer || null,
     }).eq('owner_id', user?.id ?? '')
     setDatevSaving(false); setDatevSaved(true); setTimeout(() => setDatevSaved(false), 2000)
+  }
+
+  async function handleDunningSave() {
+    setDunningError(null)
+    // Client-Validierung — DB hat zusätzlich CHECK-Constraints, aber wir
+    // wollen UI-Feedback ohne Roundtrip.
+    const feeEur = parseFloat(dunningLateFee.replace(',', '.'))
+    if (!Number.isFinite(feeEur) || feeEur < 0 || feeEur > 50) {
+      setDunningError('Mahngebühr muss zwischen 0 und 50 € liegen.')
+      return
+    }
+    if (!Number.isInteger(dunningDaysL2) || dunningDaysL2 < 1 || dunningDaysL2 > 90) {
+      setDunningError('Tage bis 2. Mahnung müssen zwischen 1 und 90 liegen.')
+      return
+    }
+    if (!Number.isInteger(dunningDaysL3) || dunningDaysL3 < 7 || dunningDaysL3 > 180) {
+      setDunningError('Tage bis Inkasso-Drohung müssen zwischen 7 und 180 liegen.')
+      return
+    }
+    if (dunningDaysL3 <= dunningDaysL2) {
+      setDunningError('Inkasso-Drohung muss nach 2. Mahnung erfolgen.')
+      return
+    }
+    setDunningSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const lateFeeCents = Math.round(feeEur * 100)
+    const { error } = await supabase.from('gyms').update({
+      dunning_late_fee_cents: lateFeeCents,
+      dunning_days_to_level_2: dunningDaysL2,
+      dunning_days_to_level_3: dunningDaysL3,
+    }).eq('owner_id', user?.id ?? '')
+    setDunningSaving(false)
+    if (error) {
+      setDunningError(error.message)
+      return
+    }
+    setDunningSaved(true); setTimeout(() => setDunningSaved(false), 2000)
   }
 
   async function handleGpsLocate() {
@@ -1378,6 +1434,87 @@ function SettingsPageInner() {
               <button type="button" onClick={handleDatevSave} disabled={datevSaving} className={saveBtnCls}>
                 <Save size={14} />
                 {datevSaved ? t('settings', 'saved') : datevSaving ? t('settings', 'saving') : t('settings', 'saveDatev')}
+              </button>
+            </div>
+          </div>
+
+          {/* Inkasso & Mahnungen — pro-Gym Konfiguration der Mahn-Pipeline */}
+          <div className={sectionCls}>
+            <SectionHeader icon={<AlertCircle size={12} />} title="Inkasso & Mahnungen" />
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-zinc-500">
+                Diese Werte werden auf Mahn-PDFs und im Auto-Eskalations-Cron verwendet.
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">
+                  Mahngebühr (in €)
+                </label>
+                <input
+                  type="number"
+                  step={0.5}
+                  min={0}
+                  max={50}
+                  value={dunningLateFee}
+                  onChange={e => setDunningLateFee(e.target.value)}
+                  placeholder="10.00"
+                  className={inputCls}
+                />
+                <p className="text-xs text-zinc-400 mt-1">
+                  Pauschal ab 2. Mahnung (1×) und letzter Mahnung (2× kumuliert).
+                  § 288 Abs. 4 BGB-konform, üblich 5–10 €.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">
+                    Tage bis 2. Mahnung
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={dunningDaysL2}
+                    onChange={e => setDunningDaysL2(parseInt(e.target.value, 10) || 0)}
+                    className={inputCls}
+                  />
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Frist nach 1. Mahnung (Default 14).
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">
+                    Tage bis Inkasso-Drohung
+                  </label>
+                  <input
+                    type="number"
+                    min={7}
+                    max={180}
+                    value={dunningDaysL3}
+                    onChange={e => setDunningDaysL3(parseInt(e.target.value, 10) || 0)}
+                    className={inputCls}
+                  />
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Frist seit Mahn-Beginn (Default 28).
+                  </p>
+                </div>
+              </div>
+              {dunningError && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {dunningError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleDunningSave}
+                disabled={dunningSaving}
+                className={saveBtnCls}
+              >
+                <Save size={14} />
+                {dunningSaved
+                  ? t('settings', 'saved')
+                  : dunningSaving
+                    ? t('settings', 'saving')
+                    : 'Inkasso-Einstellungen speichern'}
               </button>
             </div>
           </div>

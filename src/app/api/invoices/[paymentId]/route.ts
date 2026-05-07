@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getIbanFromGym } from '@/lib/encryption'
 import React from 'react'
 import {
   Document, Page, Text, View, StyleSheet, renderToBuffer, Font,
@@ -293,7 +294,7 @@ async function loadInvoiceData(paymentId: string) {
     .select(`
       *,
       members (first_name, last_name, email, address),
-      gyms (name, address, phone, email, tax_number, ustid, is_kleinunternehmer, invoice_prefix, invoice_counter, bank_iban, bank_bic, bank_name, legal_name, legal_address, legal_email)
+      gyms (name, address, phone, email, tax_number, ustid, is_kleinunternehmer, invoice_prefix, invoice_counter, bank_iban, bank_iban_enc, bank_bic, bank_name, legal_name, legal_address, legal_email)
     `)
     .eq('id', paymentId)
     .single()
@@ -375,6 +376,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   const rawCents      = typeof pmt.amount_cents === 'number' ? pmt.amount_cents : 0
   const amountEur     = (rawCents / 100).toFixed(2).replace('.', ',')
 
+  // IBAN aus encrypted-Spalte (mit Fallback auf Plaintext während Backfill).
+  const iban = getIbanFromGym(gym as { bank_iban_enc?: string | null; bank_iban?: string | null })
+
   // ── PDF response ──────────────────────────────────────────────────────────
   if (format === 'pdf') {
     const invoiceData: InvoiceData = {
@@ -393,7 +397,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
         taxNumber:          (gym.tax_number as string | null) ?? null,
         ustid:              (gym.ustid as string | null) ?? null,
         isKleinunternehmer: Boolean(gym.is_kleinunternehmer),
-        bankIban:           (gym.bank_iban as string | null) ?? null,
+        bankIban:           iban,
         bankBic:            (gym.bank_bic as string | null) ?? null,
         bankName:           (gym.bank_name as string | null) ?? null,
       },
@@ -552,12 +556,12 @@ ${gym.is_kleinunternehmer
   : taxSection
 }
 
-${gym.bank_iban ? `
+${iban ? `
 <div class="bank-section">
   <h3>Bankverbindung</h3>
   <div class="bank-grid">
     ${gym.bank_name ? `<div><div class="label">Bank</div><div>${escHtml(gym.bank_name as string)}</div></div>` : ''}
-    <div><div class="label">IBAN</div><div>${escHtml(gym.bank_iban as string)}</div></div>
+    <div><div class="label">IBAN</div><div>${escHtml(iban)}</div></div>
     ${gym.bank_bic ? `<div><div class="label">BIC</div><div>${escHtml(gym.bank_bic as string)}</div></div>` : ''}
   </div>
 </div>` : ''}

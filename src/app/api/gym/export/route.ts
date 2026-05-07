@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { getIbanFromGym } from '@/lib/encryption'
+import { loadSignatureForPdf } from '@/lib/signature-storage'
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -176,38 +178,42 @@ export async function GET(req: Request) {
   ])
 
   // ── Serialize with index references ───────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const membersExport = (members ?? []).map((m: any) => ({
-    first_name:                 m.first_name,
-    last_name:                  m.last_name,
-    email:                      m.email,
-    phone:                      m.phone,
-    date_of_birth:              m.date_of_birth,
-    address:                    m.address,
-    belt:                       m.belt,
-    stripes:                    m.stripes,
-    join_date:                  m.join_date,
-    is_active:                  m.is_active,
-    emergency_contact_name:     m.emergency_contact_name,
-    emergency_contact_phone:    m.emergency_contact_phone,
-    notes:                      m.notes,
-    belt_awarded_at:            m.belt_awarded_at,
-    subscription_status:        m.subscription_status,
-    contract_end_date:          m.contract_end_date,
-    monthly_fee_override_cents: m.monthly_fee_override_cents,
-    signature_data:             m.signature_data,
-    contract_signed_at:         m.contract_signed_at,
-    gdpr_consent_at:            m.gdpr_consent_at,
-    onboarding_status:          m.onboarding_status,
-    consent_ip:                 m.consent_ip,
-    consent_user_agent:         m.consent_user_agent,
-    consent_text:               m.consent_text,
-    cancellation_requested_at:  m.cancellation_requested_at,
-    cancellation_note:          m.cancellation_note,
-    parent_member_index:        m.parent_member_id != null ? (memberIdx[m.parent_member_id] ?? null) : null,
-    plan_index:                 m.plan_id != null ? (planIdx[m.plan_id] ?? null) : null,
-    requested_plan_index:       m.requested_plan_id != null ? (planIdx[m.requested_plan_id] ?? null) : null,
-  }))
+  // signature_data: Storage-Path ODER Legacy-data-URL → in beiden Fällen als
+  // data-URL exportieren (DSGVO Art. 20: Owner darf alle eigenen Daten klartext).
+  const membersExport = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (members ?? []).map(async (m: any) => ({
+      first_name:                 m.first_name,
+      last_name:                  m.last_name,
+      email:                      m.email,
+      phone:                      m.phone,
+      date_of_birth:              m.date_of_birth,
+      address:                    m.address,
+      belt:                       m.belt,
+      stripes:                    m.stripes,
+      join_date:                  m.join_date,
+      is_active:                  m.is_active,
+      emergency_contact_name:     m.emergency_contact_name,
+      emergency_contact_phone:    m.emergency_contact_phone,
+      notes:                      m.notes,
+      belt_awarded_at:            m.belt_awarded_at,
+      subscription_status:        m.subscription_status,
+      contract_end_date:          m.contract_end_date,
+      monthly_fee_override_cents: m.monthly_fee_override_cents,
+      signature_data:             await loadSignatureForPdf(m.signature_data),
+      contract_signed_at:         m.contract_signed_at,
+      gdpr_consent_at:            m.gdpr_consent_at,
+      onboarding_status:          m.onboarding_status,
+      consent_ip:                 m.consent_ip,
+      consent_user_agent:         m.consent_user_agent,
+      consent_text:               m.consent_text,
+      cancellation_requested_at:  m.cancellation_requested_at,
+      cancellation_note:          m.cancellation_note,
+      parent_member_index:        m.parent_member_id != null ? (memberIdx[m.parent_member_id] ?? null) : null,
+      plan_index:                 m.plan_id != null ? (planIdx[m.plan_id] ?? null) : null,
+      requested_plan_index:       m.requested_plan_id != null ? (planIdx[m.requested_plan_id] ?? null) : null,
+    }))
+  )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const classesExport = (classes ?? []).map((c: any) => ({
@@ -348,7 +354,8 @@ export async function GET(req: Request) {
       legal_email:          gym.legal_email ?? null,
       tax_number:           gym.tax_number ?? null,
       ustid:                gym.ustid ?? null,
-      bank_iban:            gym.bank_iban ?? null,
+      // DSGVO Art. 20 — Owner exportiert eigene Daten, daher Klartext-IBAN.
+      bank_iban:            getIbanFromGym(gym as { bank_iban_enc?: string | null; bank_iban?: string | null }),
       bank_bic:             gym.bank_bic ?? null,
       bank_name:            gym.bank_name ?? null,
       // DATEV
