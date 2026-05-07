@@ -281,26 +281,107 @@ function Empty() {
 
 function Timeline({ data }: { data: { date: string; count: number }[] }) {
   if (data.length === 0) return <Empty />
-  const max = Math.max(...data.map(d => d.count), 1)
+
+  // SVG-Line-Chart mit gefüllter Area — sieht auch bei 1 Datenpunkt sauber aus
+  const W = 800   // ViewBox-Breite (skaliert per CSS)
+  const H = 160   // ViewBox-Höhe
+  const PAD_L = 40
+  const PAD_R = 10
+  const PAD_T = 10
+  const PAD_B = 28
+  const innerW = W - PAD_L - PAD_R
+  const innerH = H - PAD_T - PAD_B
+
+  const max = Math.max(...data.map(d => d.count), 4)
+  // Y-Achse auf nächste runde Zahl
+  const niceMax = max <= 5 ? 5 : max <= 10 ? 10 : max <= 50 ? Math.ceil(max / 10) * 10 : Math.ceil(max / 100) * 100
+  const today = new Date().toISOString().slice(0, 10)
+
+  // Punkte berechnen
+  const points = data.map((d, i) => {
+    const x = PAD_L + (data.length === 1 ? innerW / 2 : (i / (data.length - 1)) * innerW)
+    const y = PAD_T + innerH - (d.count / niceMax) * innerH
+    return { x, y, ...d, isToday: d.date === today }
+  })
+
+  // Path-D für Line
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+
+  // Path-D für Area-Fill
+  const areaPath = data.length === 1
+    ? '' // kein Area bei 1 Punkt
+    : `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(PAD_T + innerH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(PAD_T + innerH).toFixed(1)} Z`
+
+  // Y-Achse Ticks
+  const yTicks = [0, niceMax / 4, niceMax / 2, (niceMax * 3) / 4, niceMax].map(v => Math.round(v))
+
+  // X-Achse: zeige nur jeden 5. Tag (sonst überlappt)
+  const xLabelStep = Math.max(1, Math.ceil(data.length / 7))
+
   return (
-    <div className="flex items-end gap-0.5 h-32">
-      {data.map(d => {
-        const h = Math.max(2, (d.count / max) * 100)
-        const isToday = d.date === new Date().toISOString().slice(0, 10)
-        return (
-          <div key={d.date} className="flex-1 flex flex-col items-center justify-end group relative">
-            <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900 text-white text-[10px] px-1.5 py-0.5 rounded font-mono whitespace-nowrap z-10">
-              {d.date} · {d.count}
-            </div>
-            <div
-              className={`w-full rounded-t transition-all ${
-                isToday ? 'bg-amber-400' : d.count > 0 ? 'bg-zinc-300 group-hover:bg-zinc-400' : 'bg-zinc-100'
-              }`}
-              style={{ height: `${h}%` }}
-            />
-          </div>
-        )
-      })}
+    <div className="w-full">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="none">
+        {/* Grid-Linien (Y-Achse) */}
+        {yTicks.map((tick, i) => {
+          const y = PAD_T + innerH - (tick / niceMax) * innerH
+          return (
+            <g key={i}>
+              <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y}
+                stroke="#e4e4e7" strokeWidth="1" strokeDasharray={i === 0 ? '0' : '2 3'} />
+              <text x={PAD_L - 6} y={y + 3} textAnchor="end"
+                fontSize="9" fill="#a1a1aa" fontFamily="monospace">{tick}</text>
+            </g>
+          )
+        })}
+
+        {/* Area-Fill */}
+        {areaPath && (
+          <path d={areaPath} fill="url(#timeline-grad)" opacity="0.6" />
+        )}
+        <defs>
+          <linearGradient id="timeline-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Linie */}
+        <path d={linePath} fill="none" stroke="#fbbf24" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Datenpunkte */}
+        {points.map((p, i) => (
+          <g key={i} className="group">
+            {/* Größerer Hover-Bereich (transparent) */}
+            <circle cx={p.x} cy={p.y} r={10} fill="transparent" />
+            {/* Sichtbarer Punkt */}
+            <circle cx={p.x} cy={p.y} r={p.isToday ? 5 : 3}
+              fill={p.isToday ? '#f59e0b' : '#fbbf24'}
+              stroke="#fff" strokeWidth="2" />
+            {/* Tooltip on hover */}
+            <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <rect x={p.x - 38} y={p.y - 30} width={76} height={20} rx={4}
+                fill="#18181b" />
+              <text x={p.x} y={p.y - 16} textAnchor="middle"
+                fontSize="9" fill="#fafafa" fontFamily="monospace">
+                {p.date.slice(5)} · {p.count}
+              </text>
+            </g>
+          </g>
+        ))}
+
+        {/* X-Achse Labels */}
+        {points.map((p, i) => {
+          if (i % xLabelStep !== 0 && i !== points.length - 1) return null
+          return (
+            <text key={i} x={p.x} y={H - 10} textAnchor="middle"
+              fontSize="9" fill={p.isToday ? '#d97706' : '#a1a1aa'}
+              fontWeight={p.isToday ? '700' : '400'}>
+              {p.date.slice(8, 10)}.{p.date.slice(5, 7)}
+            </text>
+          )
+        })}
+      </svg>
     </div>
   )
 }
