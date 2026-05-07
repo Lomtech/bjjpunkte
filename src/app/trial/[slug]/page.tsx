@@ -57,6 +57,8 @@ export default function TrialPage() {
   const [phone,     setPhone]     = useState('')
   const [message,   setMessage]   = useState('')
   const [classId,   setClassId]   = useState<string | null>(null)
+  const [trialContract, setTrialContract] = useState<string>('')
+  const [rulesAccepted, setRulesAccepted] = useState(false)
 
   useEffect(() => {
     fetch(`/api/public/gym/${encodeURIComponent(slug)}`)
@@ -65,6 +67,7 @@ export default function TrialPage() {
         if (data.error) { setLoadErr(data.error); return }
         setGymInfo({ id: data.gym.id, name: data.gym.name, logo_url: data.gym.logo_url })
         setClasses(data.classes ?? [])
+        setTrialContract(typeof data.trialContract === 'string' ? data.trialContract : '')
       })
       .catch(() => setLoadErr(lang === 'en' ? 'Connection error – please check your internet connection.' : 'Verbindungsfehler – bitte Internetverbindung prüfen.'))
       .finally(() => setLoading(false))
@@ -73,13 +76,29 @@ export default function TrialPage() {
   const step1Valid = firstName.trim() && lastName.trim() && email.trim().includes('@')
 
   async function submit() {
+    if (!rulesAccepted) {
+      setError(lang === 'en'
+        ? 'You must accept the trial rules to book a session.'
+        : 'Bitte akzeptiere die Probetraining-Regelungen, um eine Stunde zu buchen.')
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
       const res = await fetch(`/api/public/gym/${encodeURIComponent(slug)}/lead`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ first_name: firstName.trim(), last_name: lastName.trim(), email: email.trim(), phone: phone.trim() || null, message: message.trim() || null, class_id: classId }),
+        body: JSON.stringify({
+          first_name: firstName.trim(),
+          last_name:  lastName.trim(),
+          email:      email.trim(),
+          phone:      phone.trim() || null,
+          message:    message.trim() || null,
+          class_id:   classId,
+          // eIDAS Art. 25(1) Acknowledgment — Server speichert IP + UA
+          trial_consent_accepted: true,
+          trial_consent_text:     trialContract,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || (lang === 'en' ? 'Unknown error' : 'Unbekannter Fehler'))
@@ -284,6 +303,31 @@ export default function TrialPage() {
               </div>
             )}
 
+            {/* Probetraining-Regelungen — Pflicht-Acknowledgment vor Submit */}
+            {trialContract && (
+              <div className="mb-4 bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50">
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                    {lang === 'en' ? 'Trial rules' : 'Probetraining-Regelungen'}
+                  </p>
+                </div>
+                <pre className="px-4 py-3 max-h-56 overflow-y-auto text-xs text-zinc-600 font-sans whitespace-pre-wrap leading-relaxed">{trialContract}</pre>
+                <label className="flex items-start gap-3 px-4 py-3 border-t border-zinc-100 cursor-pointer hover:bg-amber-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={rulesAccepted}
+                    onChange={e => setRulesAccepted(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded accent-amber-500"
+                  />
+                  <span className="text-sm text-zinc-700 leading-relaxed">
+                    {lang === 'en'
+                      ? <>I have <strong>read and accepted</strong> the rules above (liability, conduct, house rules).</>
+                      : <>Ich habe die Regelungen oben (Haftung, Verhalten, Hausordnung) <strong>gelesen und akzeptiere</strong> sie.</>}
+                  </span>
+                </label>
+              </div>
+            )}
+
             {error && (
               <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
                 <AlertCircle size={15} className="flex-shrink-0" /> {error}
@@ -297,8 +341,8 @@ export default function TrialPage() {
               </button>
               <button
                 onClick={submit}
-                disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-zinc-950 font-bold text-sm transition-colors"
+                disabled={submitting || (!!trialContract && !rulesAccepted)}
+                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed text-zinc-950 font-bold text-sm transition-colors"
               >
                 {submitting ? (
                   <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-zinc-400 border-t-zinc-900 rounded-full animate-spin" /> {lang === 'en' ? 'Sending…' : 'Wird gesendet…'}</span>

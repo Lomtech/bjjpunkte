@@ -264,6 +264,84 @@ export default function LeadsPage() {
         ))}
       </div>
 
+      {/* Probetraining-Conversion-Funnel —
+          Misst, wie effektiv das Studio neue Leads in Mitglieder konvertiert.
+          Aus CSC-FFB-Pain-Point-Liste: „kein Probetraining-Tracking & Auswertung". */}
+      {leads.length > 0 && (() => {
+        const totalLeads      = leads.length
+        const trialScheduled  = counts.trial_scheduled + counts.trial_done + counts.converted
+        const trialDone       = counts.trial_done + counts.converted
+        const converted       = counts.converted
+        const lost            = counts.lost
+
+        const pct = (n: number, base: number) => base > 0 ? Math.round((n / base) * 100) : 0
+        const showRate = pct(trialScheduled, totalLeads)
+        const tDoneRate = pct(trialDone, trialScheduled)
+        const convRate  = pct(converted, trialDone)
+        const lostRate  = pct(lost, totalLeads)
+
+        const FUNNEL = [
+          { label: lang === 'en' ? 'All leads'         : 'Alle Leads',         value: totalLeads,     pct: 100,        tone: 'zinc' },
+          { label: lang === 'en' ? 'Trial scheduled'   : 'Probetraining geplant', value: trialScheduled, pct: showRate,   tone: 'amber' },
+          { label: lang === 'en' ? 'Trial done'        : 'Probetraining absolviert', value: trialDone,      pct: tDoneRate,  tone: 'amber' },
+          { label: lang === 'en' ? 'Converted'         : 'Mitglied geworden', value: converted,      pct: convRate,   tone: 'emerald' },
+        ]
+        const TONE: Record<string, string> = {
+          zinc:    'bg-zinc-100   text-zinc-700',
+          amber:   'bg-amber-100  text-amber-800',
+          emerald: 'bg-emerald-100 text-emerald-800',
+        }
+        return (
+          <div className="mb-4 bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                {lang === 'en' ? 'Conversion funnel' : 'Conversion-Funnel'}
+              </h2>
+              <p className="text-[10px] text-zinc-400">
+                {lang === 'en' ? 'How leads move toward membership' : 'Wie Leads zur Mitgliedschaft werden'}
+              </p>
+            </div>
+            <div className="p-5 space-y-2.5">
+              {FUNNEL.map((row, idx) => {
+                const isFirst = idx === 0
+                const stageRate = isFirst ? null : row.pct
+                const widthPct = isFirst ? 100 : pct(row.value, totalLeads)
+                return (
+                  <div key={row.label}>
+                    <div className="flex items-center justify-between mb-1 text-xs">
+                      <span className="font-semibold text-zinc-700">{row.label}</span>
+                      <span className="tabular-nums text-zinc-500">
+                        <span className="font-black text-zinc-900">{row.value}</span>
+                        {stageRate !== null && (
+                          <span className="ml-2 text-[10px] text-zinc-400">
+                            {stageRate}% {lang === 'en' ? 'conversion' : 'Übergang'}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${TONE[row.tone]}`}
+                        style={{ width: `${widthPct}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+              {/* Lost-Rate als Warnung */}
+              {lost > 0 && (
+                <div className="pt-3 mt-2 border-t border-zinc-100 flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-500">{lang === 'en' ? 'Lost / churned' : 'Verloren / nicht angefangen'}</span>
+                  <span className="font-mono text-rose-600">
+                    {lost} ({lostRate}%)
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* New lead form */}
       {showForm && (
         <div className="mb-4 bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">

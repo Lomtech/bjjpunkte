@@ -11,7 +11,7 @@ import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
-import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck } from 'lucide-react'
+import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck, FileText } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
 
@@ -468,7 +468,7 @@ export default function MemberDetailPage() {
         </div>
 
         {/* Action buttons — same row, same height */}
-        <div className="flex items-center gap-2 mt-4">
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
           <Link
             href={`/dashboard/members/${member.id}/edit`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-sm font-medium transition-colors shadow-sm"
@@ -480,6 +480,23 @@ export default function MemberDetailPage() {
             isActive={member.is_active}
             onToggled={active => setMember(m => m ? { ...m, is_active: active } : m)}
           />
+          {/* PDF-Vertrag — kind richtet sich nach membership_source */}
+          <a
+            href={`/api/members/${member.id}/contract?kind=${
+              ((member as { membership_source?: string }).membership_source === 'wellpass'
+                || (member as { membership_source?: string }).membership_source === 'hansefit'
+                || (member as { membership_source?: string }).membership_source === 'egym'
+                || (member as { membership_source?: string }).membership_source === 'urban_sports')
+                ? 'wellpass'
+                : 'membership'
+            }`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Unterschriebenen Vertrag als PDF öffnen"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-sm font-medium transition-colors shadow-sm"
+          >
+            <FileText size={13} /> Vertrag (PDF)
+          </a>
         </div>
       </div>
 

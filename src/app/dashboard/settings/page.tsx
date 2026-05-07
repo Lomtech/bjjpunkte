@@ -87,6 +87,8 @@ function SettingsPageInner() {
   const [signupSaving, setSignupSaving]         = useState(false)
   const [signupSaved, setSignupSaved]           = useState(false)
   const [copiedSignup, setCopiedSignup]         = useState(false)
+  const [copiedWellpass, setCopiedWellpass]     = useState(false)
+  const [copiedTrial, setCopiedTrial]           = useState(false)
 
   // Class Types
   const [classTypesInput, setClassTypesInput]   = useState('gi, no-gi, open mat, kids, competition')
@@ -172,6 +174,15 @@ function SettingsPageInner() {
 
   const signupUrl = typeof window !== 'undefined' && signupToken
     ? `${window.location.origin}/signup/${signupToken}`
+    : null
+
+  // Public Onboarding-URLs für Wellpass + Probetraining nutzen den Slug
+  // (nicht den Signup-Token — sind öffentlich, kein Geheimnis nötig).
+  const wellpassUrl = typeof window !== 'undefined' && gymSlug
+    ? `${window.location.origin}/wellpass/${gymSlug}`
+    : null
+  const trialUrl = typeof window !== 'undefined' && gymSlug
+    ? `${window.location.origin}/trial/${gymSlug}`
     : null
 
   const stripeConnected = searchParams.get('stripe_connected') === '1'
@@ -1555,6 +1566,44 @@ function SettingsPageInner() {
                   )}
                   <p className="text-xs text-zinc-400 mt-1">
                     {signupEnabled ? t('settings', 'signupActiveHint') : t('settings', 'signupInactiveHint')}
+                  </p>
+                </div>
+              )}
+
+              {/* Wellpass-Onboarding-Link — nur sichtbar wenn Slug gesetzt */}
+              {wellpassUrl && (
+                <div>
+                  <CopyRow
+                    label="Wellpass-Anmeldelink"
+                    value={wellpassUrl}
+                    copied={copiedWellpass}
+                    onCopy={() => copyWithFeedback(wellpassUrl, setCopiedWellpass)}
+                  />
+                  <a href={wellpassUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-amber-600 hover:underline mt-1">
+                    <ExternalLink size={11} /> Vorschau
+                  </a>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Für Wellpass / Hansefit / EGYM / Urban-Sports-Mitglieder. Kein SEPA — der Anbieter zahlt.
+                  </p>
+                </div>
+              )}
+
+              {/* Trial-Onboarding-Link */}
+              {trialUrl && (
+                <div>
+                  <CopyRow
+                    label="Probetraining-Link"
+                    value={trialUrl}
+                    copied={copiedTrial}
+                    onCopy={() => copyWithFeedback(trialUrl, setCopiedTrial)}
+                  />
+                  <a href={trialUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-amber-600 hover:underline mt-1">
+                    <ExternalLink size={11} /> Vorschau
+                  </a>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Public-Page für Probestunden mit Hausordnung-Akzeptanz und Conversion-Tracking.
                   </p>
                 </div>
               )}

@@ -32,7 +32,8 @@ async function handleGet(params: Promise<{ slug: string }>) {
       class_types, belt_system, belt_system_enabled, sport_type,
       tagline, about, about_blocks, hero_image_url, hero_image_position, gallery_urls, video_url, video_urls,
       whatsapp_number, instagram_url, facebook_url, website_url,
-      founded_year, opening_hours, impressum_text
+      founded_year, opening_hours, impressum_text,
+      trial_rules_template, wellpass_agreement_template
     `)
     .eq('slug', slug)
     .single()
@@ -72,6 +73,12 @@ async function handleGet(params: Promise<{ slug: string }>) {
 
   const g = gym as typeof gym & Record<string, unknown>
 
+  // Trial- und Wellpass-Vertrag rendern (Platzhalter durch Studio-Daten ersetzen)
+  const { resolveTemplate } = await import('@/lib/legal/default-contract')
+  const gymInfo = { name: gym.name, address: gym.address, url: g.website_url as string | null }
+  const trialContract    = resolveTemplate('trial',    g.trial_rules_template as string | null, gymInfo)
+  const wellpassContract = resolveTemplate('wellpass', g.wellpass_agreement_template as string | null, gymInfo)
+
   const payload = {
     gym: {
       id:               gym.id,
@@ -101,6 +108,8 @@ async function handleGet(params: Promise<{ slug: string }>) {
     classes: classes ?? [],
     plans:   plans   ?? [],
     posts:   posts   ?? [],
+    trialContract,
+    wellpassContract,
   }
 
   return NextResponse.json(payload, {

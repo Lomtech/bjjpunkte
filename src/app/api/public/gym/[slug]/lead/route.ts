@@ -22,13 +22,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   const body = await req.json()
-  const { first_name, last_name, email, phone, message, class_id } = body
+  const { first_name, last_name, email, phone, message, class_id, trial_consent_accepted, trial_consent_text } = body
 
   if (!first_name || !last_name || !email) {
     return NextResponse.json({ error: 'Name und E-Mail sind erforderlich' }, { status: 400 })
   }
 
-  const { data: lead, error } = await supabase.from('leads').insert({
+  // Trial-Vertrag-Acknowledgment ist Pflicht für Probetraining-Buchung.
+  // Wenn der Client das Consent gesetzt hat, dokumentieren wir IP + UA für eIDAS Art. 25(1).
+  const forwarded   = req.headers.get('x-forwarded-for')
+  const consentIp   = forwarded ? forwarded.split(',')[0].trim() : (req.headers.get('x-real-ip') ?? null)
+  const consentUa   = req.headers.get('user-agent') ?? null
+  const consentNow  = trial_consent_accepted === true ? new Date().toISOString() : null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: lead, error } = await (supabase.from('leads') as any).insert({
     gym_id:     gym.id,
     first_name: first_name.trim(),
     last_name:  last_name.trim(),
@@ -37,6 +45,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     notes:      message?.trim() || null,
     status:     'new',
     source:     'public_page',
+    trial_consent_at:   consentNow,
+    trial_consent_ip:   consentNow ? consentIp : null,
+    trial_consent_ua:   consentNow ? consentUa : null,
+    trial_consent_text: consentNow ? (typeof trial_consent_text === 'string' ? trial_consent_text.slice(0, 5000) : null) : null,
   }).select('id, lead_token').single()
 
   if (error || !lead) return NextResponse.json({ error: error?.message ?? 'Fehler' }, { status: 500 })
