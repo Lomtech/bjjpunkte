@@ -44,6 +44,15 @@ export function TrackPageView() {
       return
     }
 
+    // Owner/Admin-Filter: wer je auf /admin/analytics war, hat ein
+    // Opt-Out-Flag in localStorage — eigene Test-Visits verfälschen
+    // sonst die Statistik. Wird in /admin/analytics automatisch gesetzt.
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('osss-no-track') === '1') {
+        return
+      }
+    } catch { /* localStorage könnte blockiert sein */ }
+
     const payload = JSON.stringify({
       path: trackedPath,
       referrer: typeof document !== 'undefined' ? document.referrer : null,

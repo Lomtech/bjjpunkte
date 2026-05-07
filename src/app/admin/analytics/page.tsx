@@ -51,6 +51,12 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState<Range>('30d')
 
+  // Owner-Opt-Out für Tracking: wer auf dieser Seite war, ist Admin/Owner und
+  // soll seine eigenen Visits nicht in der Statistik haben.
+  useEffect(() => {
+    try { localStorage.setItem('osss-no-track', '1') } catch { /* ignore */ }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -233,6 +239,9 @@ export default function AnalyticsPage() {
               </Section>
             </div>
 
+            {/* Owner-Filter-Hinweis */}
+            <OwnerFilterBanner />
+
             {/* DSGVO-Hinweis */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 leading-relaxed">
               <p className="font-bold mb-1">🔒 DSGVO-anonyme Reichweiten-Messung</p>
@@ -277,6 +286,56 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Empty() {
   return <p className="text-sm text-zinc-400 italic">Noch keine Daten in diesem Zeitraum.</p>
+}
+
+function OwnerFilterBanner() {
+  const [excluded, setExcluded] = useState(true)
+
+  useEffect(() => {
+    try {
+      setExcluded(localStorage.getItem('osss-no-track') === '1')
+    } catch { /* ignore */ }
+  }, [])
+
+  function toggle() {
+    try {
+      if (excluded) {
+        localStorage.removeItem('osss-no-track')
+        setExcluded(false)
+      } else {
+        localStorage.setItem('osss-no-track', '1')
+        setExcluded(true)
+      }
+    } catch { /* ignore */ }
+  }
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-3">
+      <div className="flex items-start gap-3">
+        <div className="text-amber-600 flex-shrink-0 mt-0.5">👤</div>
+        <div className="flex-1 text-xs leading-relaxed">
+          <p className="font-bold text-amber-900 mb-1">
+            Tracking auf diesem Browser: {excluded ? <span className="text-emerald-700">DEAKTIVIERT</span> : <span className="text-rose-700">AKTIV (du wirst gezählt!)</span>}
+          </p>
+          <p className="text-amber-800">
+            {excluded
+              ? 'Deine eigenen Page-Views werden NICHT in die Statistik gezählt. Beim ersten Besuch dieser Seite automatisch gesetzt — pro Browser einmal nötig.'
+              : '⚠️ Deine Visits werden gerade in der Statistik gezählt. Klicke unten, um dich auszuschließen.'}
+          </p>
+          <button
+            onClick={toggle}
+            className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
+              excluded
+                ? 'text-zinc-700 hover:bg-zinc-100'
+                : 'text-white bg-zinc-900 hover:bg-zinc-700'
+            }`}
+          >
+            {excluded ? '🔁 Tracking wieder aktivieren' : '🚫 Mich nicht mehr tracken'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function Timeline({ data }: { data: { date: string; count: number }[] }) {
