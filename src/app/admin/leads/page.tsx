@@ -306,7 +306,12 @@ export default function AdminLeadsPage() {
       })
 
       if (stillMatches) {
-        setLeads(prev => prev.map(l => l.id === id ? lead : l))
+        // Nach Update lokal neu sortieren, damit Lead automatisch in
+        // die richtige Reihenfolge rutscht (z.B. nach Prio-Änderung)
+        setLeads(prev => {
+          const updated = prev.map(l => l.id === id ? lead : l)
+          return sortLeadsLocal(updated, sort, sortDir)
+        })
       } else {
         setLeads(prev => prev.filter(l => l.id !== id))
         setTotal(t => Math.max(0, t - 1))
@@ -1390,6 +1395,39 @@ function kindLabel(kind: string): string {
     followup_scheduled: 'Follow-up geplant', place_imported: 'Importiert',
   }
   return map[kind] ?? kind
+}
+
+// Lokale Sort-Funktion — wird nach jedem updateLead() aufgerufen, damit
+// Leads sofort in die richtige Reihenfolge rutschen (kein doppelter Klick
+// auf Spalten-Header mehr nötig). Spiegelt die API-Sort-Logik 1:1.
+function sortLeadsLocal(leads: SalesLead[], sortKey: string, dir: 'asc' | 'desc'): SalesLead[] {
+  const arr = [...leads]
+  const m = dir === 'asc' ? 1 : -1
+  const num = (v: number | null | undefined): number => v ?? -Infinity
+  const dateMs = (v: string | null | undefined, fallback = -Infinity): number =>
+    v ? new Date(v).getTime() : fallback
+  const followupMs = (v: string | null | undefined): number =>
+    // null next_followup_at landet ans Ende beim asc-Sort (nullsFirst: false)
+    v ? new Date(v).getTime() : Number.MAX_SAFE_INTEGER
+
+  arr.sort((a, b) => {
+    let cmp = 0
+    switch (sortKey) {
+      case 'name':         cmp = (a.name || '').localeCompare(b.name || '', 'de'); break
+      case 'city':         cmp = (a.city || '').localeCompare(b.city || '', 'de'); break
+      case 'status':       cmp = (a.status || '').localeCompare(b.status || '', 'de'); break
+      case 'priority':     cmp = num(a.priority) - num(b.priority); break
+      case 'rating':       cmp = num(a.rating) - num(b.rating); break
+      case 'created':      cmp = dateMs(a.created_at) - dateMs(b.created_at); break
+      case 'updated':      cmp = dateMs(a.updated_at) - dateMs(b.updated_at); break
+      case 'next_followup':
+        // asc: früheste zuerst, null ans Ende → unabhängig vom dir-Multiplier
+        return followupMs(a.next_followup_at) - followupMs(b.next_followup_at)
+      default:             cmp = num(a.priority) - num(b.priority)
+    }
+    return cmp * m
+  })
+  return arr
 }
 
 // Klickbarer Tabellen-Header mit Sort-Pfeil-Indicator
