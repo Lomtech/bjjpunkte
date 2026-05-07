@@ -386,6 +386,74 @@ export async function POST(req: Request) {
       } catch (notifyErr) {
         console.error('[webhook] dunning notification failed:', notifyErr)
       }
+
+      // Auto-Mahnung (dunning escalation): increment dunning_level, log dunning_actions row,
+      // optionally send dunning mail. Wrapped in try/catch — DB failures here MUST NOT cause
+      // Stripe to retry (event-dedup on stripe_events handles that idempotently).
+      try {
+        const { data: dunningRow } = await supabase.from('members')
+          .select('dunning_level, dunning_amount_cents, dunning_started_at, gym_id')
+          .eq('id', memberId).maybeSingle()
+
+        const currentLevel = (dunningRow as { dunning_level?: number | null } | null)?.dunning_level ?? 0
+        const newLevel = Math.min(currentLevel + 1, 3)
+        const actionType: 'first_reminder' | 'second_reminder' | 'final_warning' | 'note' =
+          newLevel === 1 ? 'first_reminder'
+          : newLevel === 2 ? 'second_reminder'
+          : newLevel === 3 ? (currentLevel === 3 ? 'note' : 'final_warning')
+          : 'note'
+
+        const failedAmountCents = inv.amount_due ?? inv.total ?? 0
+        const prevAmount = (dunningRow as { dunning_amount_cents?: number | null } | null)?.dunning_amount_cents ?? 0
+        const newAmountCents = prevAmount + failedAmountCents
+        const dGymId = (dunningRow as { gym_id?: string | null } | null)?.gym_id ?? null
+
+        const { error: insertActionErr } = await supabase.from('dunning_actions').insert({
+          member_id: memberId,
+          gym_id: dGymId,
+          action_type: actionType,
+          amount_cents: failedAmountCents,
+          notes: `Auto-Trigger: Stripe-Zahlung fehlgeschlagen (Invoice ${inv.id ?? '?'})`,
+          performed_by: null,
+        } as never)
+        if (insertActionErr) {
+          console.error('[webhook] dunning_actions insert failed:', insertActionErr)
+        }
+
+        const updates: Record<string, unknown> = {
+          dunning_level: newLevel,
+          dunning_amount_cents: newAmountCents,
+          dunning_last_action_at: new Date().toISOString(),
+        }
+        if (!(dunningRow as { dunning_started_at?: string | null } | null)?.dunning_started_at) {
+          updates.dunning_started_at = new Date().toISOString()
+        }
+        const { error: dunningUpdErr } = await supabase.from('members')
+          .update(updates as never)
+          .eq('id', memberId)
+        if (dunningUpdErr) {
+          console.error('[webhook] members dunning update failed:', dunningUpdErr)
+        }
+
+        // Optional dunning mail to member (defensive dynamic import — sibling agent may not
+        // have created the helper yet; never crash the webhook because of this).
+        try {
+          // @ts-ignore — module may not exist yet; runtime catches missing module
+          const mod = (await import('@/lib/dunning-mail')) as {
+            sendDunningMail?: (memberId: string, level: number, amountCents: number) => Promise<unknown>
+          }
+          if (typeof mod.sendDunningMail === 'function') {
+            await mod.sendDunningMail(memberId, newLevel, failedAmountCents).catch((err: unknown) => {
+              console.error('[webhook] dunning mail failed (non-critical):', err)
+            })
+          }
+        } catch (importErr) {
+          console.warn('[webhook] dunning-mail helper not available yet:', importErr)
+        }
+      } catch (dunningErr) {
+        // Swallow: webhook still returns 200; Stripe event-dedup prevents replays.
+        console.error('[webhook] dunning escalation failed (non-critical):', dunningErr)
+      }
     } else if (meta.type === 'owner_plan') {
       const gymId = meta.gymId
       if (gymId) {

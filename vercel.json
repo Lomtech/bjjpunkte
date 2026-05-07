@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/sales-followups",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/dunning-escalation",
+      "schedule": "0 8 * * *"
     }
   ],
   "functions": {
@@ -22,6 +26,9 @@
       "maxDuration": 120
     },
     "src/app/api/cron/sales-followups/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/dunning-escalation/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/gym/import/route.ts": {

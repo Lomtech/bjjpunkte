@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { AlertTriangle, Check, Loader2, FileWarning } from 'lucide-react'
+import { AlertTriangle, Check, Loader2, FileWarning, FileText } from 'lucide-react'
 
 /**
  * Inkasso-Panel für Member-Detail-Seite.
@@ -216,6 +216,13 @@ export function DunningPanel({ member, onUpdate }: { member: MemberInfo; onUpdat
         </div>
       )}
 
+      {/* PDF-Vorschau */}
+      {level > 0 && (
+        <div className="mb-4">
+          <DunningPdfButton memberId={member.id} level={level} />
+        </div>
+      )}
+
       {/* History */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">Verlauf ({actions.length})</p>
@@ -246,6 +253,61 @@ export function DunningPanel({ member, onUpdate }: { member: MemberInfo; onUpdat
           })}
         </ul>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Öffnet das Mahnungs-PDF (für aktuelle Stufe) in einem neuen Tab.
+ * Holt das PDF via Bearer-Token-fetch + Blob-URL — vermeidet Cookie-Probleme
+ * beim direkten <a target="_blank">-Aufruf (analog ContractDownloadButton).
+ */
+function DunningPdfButton({ memberId, level }: { memberId: string; level: number }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  async function open() {
+    setBusy(true)
+    setErr(null)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setErr('Nicht eingeloggt')
+        return
+      }
+      const res = await fetch(`/api/members/${memberId}/dunning/pdf?level=${level}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setErr(j.error ?? `Fehler ${res.status}`)
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Fehler')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={open}
+        disabled={busy}
+        title="Aktuelles Mahnschreiben als PDF anzeigen"
+        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 disabled:opacity-50 text-zinc-700 text-xs font-semibold transition-colors shadow-sm"
+      >
+        <FileText size={13} />
+        {busy ? 'Wird geladen…' : 'Mahnungs-PDF anzeigen'}
+      </button>
+      {err && <span className="text-xs text-rose-600">{err}</span>}
     </div>
   )
 }
