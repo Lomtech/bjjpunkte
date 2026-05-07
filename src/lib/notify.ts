@@ -217,6 +217,91 @@ export async function sendNewsletterWelcomeEmail(email: string, unsubscribeToken
   }))
 }
 
+// ─── Gym Bulk-Mail (an Mitglieder + Leads) ─────────────────────────────────
+
+interface BulkRecipient {
+  email: string
+  firstName?: string | null
+  unsubscribeToken: string
+}
+
+/**
+ * Sendet eine Bulk-Mail an mehrere Empfänger via Resend.
+ * Versendet einzeln (nicht Resend-Batch) damit jeder Empfänger einen
+ * personalisierten Unsubscribe-Link bekommt + List-Unsubscribe-Header.
+ */
+export async function sendGymBulkEmail({
+  gymName, fromEmail, recipients, subject, htmlBody, audience,
+}: {
+  gymName: string
+  fromEmail: string
+  recipients: BulkRecipient[]
+  subject: string
+  htmlBody: string
+  audience: 'members' | 'leads' | 'both'
+}): Promise<{ sent: number; failed: number }> {
+  if (!process.env.RESEND_API_KEY) return { sent: 0, failed: recipients.length }
+
+  let sent = 0
+  let failed = 0
+  // 5er-Batches parallel — bleibt unter Resend-Rate-Limit (100 RPS)
+  const BATCH_SIZE = 5
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE)
+    const results = await Promise.allSettled(batch.map(r => {
+      const unsubscribeUrl = `${APP_URL}/api/gym-mail/unsubscribe/${r.unsubscribeToken}?audience=${audience === 'leads' ? 'lead' : 'member'}`
+      const personalizedBody = htmlBody.replace(/\{\{first_name\}\}/g, r.firstName?.trim() || 'Hallo')
+      return fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: r.email,
+          subject,
+          html: wrapGymMail(gymName, personalizedBody, unsubscribeUrl),
+        }),
+      })
+    }))
+    for (const res of results) {
+      if (res.status === 'fulfilled' && res.value.ok) sent++
+      else failed++
+    }
+  }
+  return { sent, failed }
+}
+
+function wrapGymMail(gymName: string, body: string, unsubscribeUrl: string) {
+  return `<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;padding:32px 16px">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px">
+        <tr><td style="padding:8px 0 24px;text-align:center">
+          <p style="margin:0;color:#18181b;font-size:18px;font-weight:800;letter-spacing:-0.01em">${gymName}</p>
+        </td></tr>
+        <tr><td style="background:#fff;padding:36px;border:1px solid #e4e4e7;border-radius:14px;font-size:15px;line-height:1.6;color:#3f3f46">
+          ${body}
+        </td></tr>
+        <tr><td style="padding:16px 0;text-align:center">
+          <p style="margin:0;color:#a1a1aa;font-size:11px;line-height:1.5">
+            Du bekommst diese Mail von <strong>${gymName}</strong>.<br/>
+            Keine Lust mehr? <a href="${unsubscribeUrl}" style="color:#71717a">Hier abmelden</a> — 1 Klick reicht.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
 function wrapNewsletter(body: string) {
   return `<!DOCTYPE html>
 <html lang="de">

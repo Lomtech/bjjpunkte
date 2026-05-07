@@ -308,6 +308,9 @@ export interface Database {
           consent_text: string | null
           contract_signed_at: string | null
           gdpr_consent_at: string | null
+          marketing_email_consent: boolean
+          marketing_consent_at: string | null
+          marketing_unsubscribe_token: string | null
         }
         Insert: {
           gym_id: string
@@ -342,6 +345,8 @@ export interface Database {
           consent_text?: string | null
           contract_signed_at?: string | null
           gdpr_consent_at?: string | null
+          marketing_email_consent?: boolean
+          marketing_consent_at?: string | null
         }
         Update: {
           first_name?: string
@@ -375,6 +380,8 @@ export interface Database {
           consent_text?: string | null
           contract_signed_at?: string | null
           gdpr_consent_at?: string | null
+          marketing_email_consent?: boolean
+          marketing_consent_at?: string | null
         }
         Relationships: Rel[]
       }
@@ -455,6 +462,12 @@ export interface Database {
         Update: never
         Relationships: Rel[]
       }
+      gym_bulk_mails: {
+        Row: { id: string; gym_id: string; sent_by: string | null; subject: string; body_preview: string | null; audience: string; filter_status: string | null; recipients_count: number; sent_count: number; failed_count: number; created_at: string }
+        Insert: { gym_id: string; subject: string; audience: string; sent_by?: string | null; body_preview?: string | null; filter_status?: string | null; recipients_count?: number; sent_count?: number; failed_count?: number }
+        Update: { sent_count?: number; failed_count?: number }
+        Relationships: Rel[]
+      }
       newsletter_subscribers: {
         Row: { id: string; email: string; status: string; confirm_token: string; unsubscribe_token: string; source: string | null; ip_address: string | null; user_agent: string | null; subscribed_at: string; confirmed_at: string | null; unsubscribed_at: string | null; unsubscribe_reason: string | null; created_at: string }
         Insert: { email: string; confirm_token: string; status?: string; unsubscribe_token?: string; source?: string | null; ip_address?: string | null; user_agent?: string | null }
@@ -492,9 +505,9 @@ export interface Database {
         Relationships: Rel[]
       }
       leads: {
-        Row: { id: string; gym_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; status: LeadStatus; source: LeadSource; notes: string | null; trial_date: string | null; referred_by: string | null; lead_token: string | null; created_at: string; contacted_at: string | null; converted_at: string | null }
-        Insert: { gym_id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; lead_token?: string | null }
-        Update: { first_name?: string; last_name?: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; contacted_at?: string | null; converted_at?: string | null }
+        Row: { id: string; gym_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; status: LeadStatus; source: LeadSource; notes: string | null; trial_date: string | null; referred_by: string | null; lead_token: string | null; created_at: string; contacted_at: string | null; converted_at: string | null; marketing_email_consent: boolean; marketing_consent_at: string | null; marketing_unsubscribe_token: string | null }
+        Insert: { gym_id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; lead_token?: string | null; marketing_email_consent?: boolean; marketing_consent_at?: string | null }
+        Update: { first_name?: string; last_name?: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; contacted_at?: string | null; converted_at?: string | null; marketing_email_consent?: boolean; marketing_consent_at?: string | null }
         Relationships: Rel[]
       }
       lead_bookings: {
