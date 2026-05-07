@@ -480,23 +480,20 @@ export default function MemberDetailPage() {
             isActive={member.is_active}
             onToggled={active => setMember(m => m ? { ...m, is_active: active } : m)}
           />
-          {/* PDF-Vertrag — kind richtet sich nach membership_source */}
-          <a
-            href={`/api/members/${member.id}/contract?kind=${
-              ((member as { membership_source?: string }).membership_source === 'wellpass'
-                || (member as { membership_source?: string }).membership_source === 'hansefit'
-                || (member as { membership_source?: string }).membership_source === 'egym'
-                || (member as { membership_source?: string }).membership_source === 'urban_sports')
+          {/* PDF-Vertrag — kind richtet sich nach membership_source.
+              Wir verwenden fetch+Bearer (statt <a target="_blank">), weil
+              das robuster ist als der Cookie-Auth-Pfad und keine Cross-Tab-
+              Cookie-Probleme hat. Der PDF-Blob wird dann via window.open()
+              in neuem Tab geöffnet. */}
+          <ContractDownloadButton
+            memberId={member.id}
+            kind={
+              (['wellpass', 'hansefit', 'egym', 'urban_sports']
+                .includes((member as { membership_source?: string }).membership_source ?? ''))
                 ? 'wellpass'
                 : 'membership'
-            }`}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Unterschriebenen Vertrag als PDF öffnen"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-sm font-medium transition-colors shadow-sm"
-          >
-            <FileText size={13} /> Vertrag (PDF)
-          </a>
+            }
+          />
         </div>
       </div>
 
@@ -725,6 +722,60 @@ function InfoCard({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest mb-1 truncate">{label}</p>
       <p className="text-zinc-950 font-black text-base tracking-tight truncate">{value}</p>
     </div>
+  )
+}
+
+/**
+ * Lädt den Vertrag per fetch (mit Bearer-Token aus der Supabase-Session)
+ * und öffnet ihn als Blob-URL in einem neuen Tab. Dual-Auth-tauglich,
+ * vermeidet Cookie-Probleme bei direkten <a target="_blank">-Aufrufen.
+ */
+function ContractDownloadButton({ memberId, kind }: { memberId: string; kind: 'membership' | 'wellpass' }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr]   = useState<string | null>(null)
+
+  async function open() {
+    setBusy(true); setErr(null)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setErr('Nicht eingeloggt'); return }
+
+      const res = await fetch(`/api/members/${memberId}/contract?kind=${kind}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setErr(j.error ?? `Fehler ${res.status}`)
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      // PDF wird vom Browser geladen → Blob-URL nach 60s freigeben
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Fehler')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={open}
+        disabled={busy}
+        title="Unterschriebenen Vertrag als PDF öffnen"
+        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 disabled:opacity-50 text-zinc-700 text-sm font-medium transition-colors shadow-sm"
+      >
+        <FileText size={13} /> {busy ? 'Wird geladen…' : 'Vertrag (PDF)'}
+      </button>
+      {err && (
+        <span className="text-xs text-red-600 ml-2 self-center">{err}</span>
+      )}
+    </>
   )
 }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveTemplate, type ContractKind } from '@/lib/legal/default-contract'
 import { renderToStream, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
@@ -8,6 +9,29 @@ import React from 'react'
 // Node-Runtime, weil @react-pdf/renderer auf Node-APIs angewiesen ist.
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+/**
+ * Dual-Auth: akzeptiert Bearer-Token (Frontend `fetch` mit Authorization-Header)
+ * ODER Cookie-Session (direkter Browser-Aufruf via <a href>).
+ * Returns null wenn unauthentifiziert.
+ */
+async function authenticateUser(req: Request): Promise<{ id: string } | null> {
+  const authHeader = req.headers.get('Authorization')
+  const accessToken = authHeader?.replace('Bearer ', '')
+  if (accessToken) {
+    const sb = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    })
+    const { data } = await sb.auth.getUser(accessToken)
+    return data.user ? { id: data.user.id } : null
+  }
+  const sb = await createServerClient()
+  const { data } = await sb.auth.getUser()
+  return data.user ? { id: data.user.id } : null
+}
 
 /**
  * GET /api/members/[id]/contract?kind=membership|wellpass|trial
@@ -149,19 +173,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const VALID_KINDS: ContractKind[] = ['membership', 'wellpass', 'trial']
   const kind: ContractKind = (VALID_KINDS as string[]).includes(kindParam) ? (kindParam as ContractKind) : 'membership'
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await authenticateUser(req)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  // Verify member belongs to user's gym
+  // Service-Client für DB-Reads (RLS-Bypass; wir prüfen Ownership selbst).
+  const service = createServiceClient()
+
+  // Verify caller owns a gym + this member belongs to that gym.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: gym } = await (supabase.from('gyms') as any)
+  const { data: gym } = await (service.from('gyms') as any)
     .select('id, name, address, website_url, contract_template, wellpass_agreement_template, trial_rules_template')
     .eq('owner_id', user.id)
     .maybeSingle()
   if (!gym) return NextResponse.json({ error: 'Kein Gym' }, { status: 404 })
-
-  const service = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: member } = await (service.from('members') as any)
     .select('id, first_name, last_name, email, phone, address, date_of_birth, contract_signed_at, consent_ip, consent_user_agent, signature_data, membership_source')
