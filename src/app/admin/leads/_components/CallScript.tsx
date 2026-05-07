@@ -26,14 +26,14 @@ type Phase =
   | 'voicemail'
 
 const PHASES: { id: Phase; label: string; icon: string }[] = [
-  { id: 'mindset',    label: 'Mindset',    icon: '🧠' },
-  { id: 'opener',     label: 'Einstieg',   icon: '👋' },
-  { id: 'discovery',  label: 'Diagnose',   icon: '🩺' },
-  { id: 'pitch',      label: 'Wedge',      icon: '🎯' },
-  { id: 'objections', label: 'Einwände',   icon: '🛡' },
-  { id: 'close',      label: 'Termin',     icon: '📅' },
-  { id: 'dq',         label: 'Tschüss',    icon: '🚪' },
-  { id: 'voicemail',  label: 'Mailbox',    icon: '📞' },
+  { id: 'mindset',    label: 'Mindset',       icon: '🧠' },
+  { id: 'opener',     label: 'Pilot-Anfrage', icon: '👋' },
+  { id: 'discovery',  label: 'Fit-Check',     icon: '🩺' },
+  { id: 'pitch',      label: 'Pilot-Deal',    icon: '🎯' },
+  { id: 'objections', label: 'Einwände',      icon: '🛡' },
+  { id: 'close',      label: 'Setup-Termin',  icon: '📅' },
+  { id: 'dq',         label: 'Tschüss',       icon: '🚪' },
+  { id: 'voicemail',  label: 'Mailbox',       icon: '📞' },
 ]
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ export function CallScript({ lead }: { lead: Lead }) {
         className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-amber-100/60 transition-colors"
       >
         <span className="text-sm font-bold text-amber-900 flex items-center gap-2">
-          📋 Anruf-Skript
+          📋 Pilot-Skript
           {isReturningCall && <span className="text-xs font-normal text-amber-700">(Folgeanruf)</span>}
         </span>
         <span className="text-amber-700 text-lg">{showScript ? '▾' : '▸'}</span>
@@ -81,9 +81,9 @@ export function CallScript({ lead }: { lead: Lead }) {
           {/* Phase content */}
           <div className="bg-white border border-amber-200 rounded-lg p-3 text-sm leading-relaxed text-zinc-800 space-y-3">
             {phase === 'mindset'    && <Mindset />}
-            {phase === 'opener'     && <Opener lead={lead} cityPart={cityPart} primarySport={primarySport} returning={isReturningCall} />}
+            {phase === 'opener'     && <Opener lead={lead} cityPart={cityPart} returning={isReturningCall} />}
             {phase === 'discovery'  && <Discovery primarySport={primarySport} />}
-            {phase === 'pitch'      && <Pitch primarySport={primarySport} />}
+            {phase === 'pitch'      && <PilotDeal primarySport={primarySport} />}
             {phase === 'objections' && <Objections />}
             {phase === 'close'      && <Close />}
             {phase === 'dq'         && <Disqualify />}
@@ -91,8 +91,8 @@ export function CallScript({ lead }: { lead: Lead }) {
           </div>
 
           <div className="text-xs text-amber-800/80">
-            💡 <strong>Goldene Regel</strong>: Disqualifizieren ist kein Versagen, es ist Effizienz.
-            9 saubere DQs in einer Stunde sind besser als 1 lauwarme Demo, die nie konvertiert.
+            💡 <strong>Goldene Regel</strong>: Du suchst <strong>3 Pilot-Gyms</strong>, kein Geld.
+            Knappheit bewahren — wer nicht passt, ist raus. Lieber 0 Pilots als der Falsche.
           </div>
         </div>
       )}
@@ -106,184 +106,139 @@ function Mindset() {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        🧠 30 Sekunden Pre-Call. Lies das BEVOR du wählst.
+        🧠 30 Sekunden vor dem Wählen — Mindset-Reset.
       </div>
 
       <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-        <p className="font-bold text-zinc-900 mb-2">Du rufst nicht an, um zu verkaufen.</p>
+        <p className="font-bold text-zinc-900 mb-2">Du verkaufst NICHTS. Du bietest etwas an.</p>
         <p className="text-sm text-zinc-700 mb-2">
-          Du rufst an, um in 90 Sekunden zu erkennen, ob hier <strong>echte Schmerzen</strong> existieren.
-          Wenn ja → Demo-Termin. Wenn nein → höflich auflegen.
+          Du bietest 3 ausgewählten Gyms an, deine Software <strong>6 Monate gratis</strong> zu testen.
+          Im Gegenzug: ehrliches Feedback. Das ist kein Sales-Pitch — das ist eine
+          <strong> Einladung zum Pilot-Programm</strong>.
         </p>
         <p className="text-sm text-zinc-700">
-          <strong>Disqualifizieren ist KEIN Versagen.</strong> Es ist die einzige Art, in 1 Stunde
-          10 Leads zu bewerten statt 3 zu überreden.
-        </p>
-      </div>
-
-      <div className="bg-rose-50 rounded-lg p-3 border border-rose-200">
-        <p className="font-bold text-rose-900 mb-2 text-xs uppercase tracking-wide">⚠️ Realitäts-Check</p>
-        <p className="text-sm text-rose-900 mb-1.5">
-          <strong>9 von 10 sagen „kein Bedarf" oder „Lösungen wie Sand am Meer".</strong>
-          Das ist kein Skill-Problem — das ist der Markt. Gesättigt + hohe Switching-Costs.
-        </p>
-        <p className="text-sm text-rose-900">
-          → Akzeptiere das. Streite NIE dagegen an. Spare deine Energie für die 10. Person, die echten
-          Pain hat.
+          → Wenn der Coach „Nein" sagt: <strong>er verliert die Chance</strong>, nicht du den Verkauf.
         </p>
       </div>
 
       <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-        <p className="font-bold text-emerald-900 mb-2 text-xs uppercase tracking-wide">✅ Dein Ziel pro Anruf</p>
+        <p className="font-bold text-emerald-900 mb-2 text-xs uppercase tracking-wide">✅ Knappheit ist deine Stärke</p>
         <ul className="text-sm text-emerald-900 space-y-1 list-disc pl-5">
-          <li><strong>1 spezifischen Pain</strong> rausbekommen (was nervt konkret?)</li>
-          <li>Wenn Pain echt → <strong>Demo-Termin</strong> setzen</li>
-          <li>Wenn Pain null → <strong>sauber Tschüss</strong> in 30 Sek</li>
-          <li><strong>NIEMALS</strong>: überreden, argumentieren, „aber wir können doch…"</li>
+          <li><strong>3 Pilot-Plätze.</strong> Nicht 30, nicht 10. Drei.</li>
+          <li>Du suchst <strong>einen Fit</strong>, keine Mitleids-Tester</li>
+          <li>Wenn er nicht passt → schade, nächster.</li>
+          <li>Wenn er passt → er bekommt einen <strong>persönlichen Setup-Termin</strong> mit dir</li>
         </ul>
       </div>
 
-      <div className="text-xs text-zinc-500 italic">
-        Atemübung vor dem Wählen: 4 Sek ein, 4 halten, 6 aus. Stimme wird ruhiger, kein Verkaufston.
+      <div className="bg-rose-50 rounded-lg p-3 border border-rose-200">
+        <p className="font-bold text-rose-900 mb-2 text-xs uppercase tracking-wide">⚠️ Anti-Pattern</p>
+        <ul className="text-sm text-rose-900 space-y-1 list-disc pl-5">
+          <li>❌ Bittstellerig wirken (&bdquo;Hätten Sie vielleicht Lust...")</li>
+          <li>❌ Sich entschuldigen für den Anruf</li>
+          <li>❌ Auf jeden Einwand nochmal nachsetzen</li>
+          <li>❌ „Sind Sie sicher? Bedenken Sie..." — niemals überreden</li>
+        </ul>
       </div>
+
+      <p className="text-xs text-zinc-500 italic">
+        Atemübung: 4 Sek ein, 4 halten, 6 aus. Stimme ruhiger, nicht nervös.
+      </p>
     </>
   )
 }
 
 // ───────────────────────────────────────────────────────────────────────────
 
-function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityPart: string; primarySport: string; returning: boolean }) {
+function Opener({ lead, cityPart, returning }: { lead: Lead; cityPart: string; returning: boolean }) {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        ⏱ ZIEL: 10 Sekunden. Nicht-invasive Struktur-Frage. Permission impliziert.
+        ⏱ ZIEL: 15 Sek Pilot-Anfrage. Knappheit. Wert. Klare Frage am Ende.
       </div>
 
       {returning ? (
         <p className="italic">
           „Hi, Lom hier. Wir hatten kurz Kontakt zu <strong>{lead.name}</strong>{cityPart}.
-          Hattest du Zeit drüber nachzudenken — oder ist es gerade einfach zu viel?"
+          Hattest du Zeit drüber nachzudenken — oder ist es gerade zu viel?"
         </p>
       ) : (
         <>
-          {/* PRIMARY OPENER — Positions-Satz + 3-Fragen-Sequenz in Sie-Form */}
+          {/* PRIMARY — Pilot-Anfrage */}
           <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-300">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-2">
-              🎯 PRIMÄR · Position + 3-Fragen-Diagnose (Sie-Form, je 1 Frage pro Atemzug)
+              🎯 PRIMÄR · Pilot-Anfrage (15 Sek, Knappheit + Wert)
             </p>
 
             <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „Hallo, ich bin Lom-Ali Imadaev. Ich helfe Kampfsportgyms dabei, <strong>Zeit bei der
-              Verwaltung zu sparen</strong>."
+              „Hallo, ich bin <strong>Lom-Ali Imadaev</strong>. Direkt: ich hab eine
+              <strong> Software für Kampfsport-Gyms</strong> entwickelt — Mitgliederverwaltung,
+              Beitragseinzug, Belt-Tracking."
             </p>
-            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[1 Sek Pause — er weiß: was Konkretes für SEINE Branche.]</p>
+            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[1 Sek Pause — er weiß: Mensch + Branche.]</p>
 
             <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „Kurze Frage."
+              „Suche gerade <strong>3 Pilot-Gyms</strong>, die&apos;s <strong>6 Monate gratis</strong> testen
+              wollen. <strong>Ich richte alles persönlich ein</strong>, im Gegenzug: ehrliches Feedback."
             </p>
-            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[2 Sek Pause — er weiß: jetzt kommt der Hook.]</p>
+            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[2 Sek Pause — Wertangebot soll wirken.]</p>
 
-            <div className="space-y-3 mt-3 border-t border-emerald-200 pt-3">
-              {/* Frage 1 */}
-              <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 1 · Automatisch oder manuell? (outcome-focused, kein Sales-Vibe)</p>
-                <p className="italic text-sm">
-                  „Läuft die Mitgliederverwaltung bei Ihnen <strong>automatisch</strong> oder machen Sie das <strong>manuell</strong>?"
-                </p>
-                <p className="text-xs text-zinc-500 mt-1">[Antwort abwarten. Nicht selbst weiterreden.]</p>
-                <p className="text-xs text-emerald-700 mt-1 italic">💡 „Automatisch" pflanzt das Konzept ein — wenn er „manuell" sagt, nimmt er die Pain-Position selbst ein.</p>
-              </div>
-
-              {/* Frage 2 */}
-              <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 2 · Quantifizieren (Stunden = Pain in Zahl)</p>
-                <p className="italic text-sm">
-                  „Wie viel Stunden Zeit kostet das in der Woche?"
-                </p>
-                <p className="text-xs text-zinc-500 mt-1">[Erwarte: 1, 2, 5, 10. Notieren!]</p>
-              </div>
-
-              {/* Frage 3 */}
-              <div className="bg-white rounded p-3 border-l-4 border-emerald-500">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Frage 3 · Emotion-Trigger (echter Pain kommt raus)</p>
-                <p className="italic text-sm">
-                  „Was machen Sie <strong>besonders ungern</strong>?"
-                </p>
-                <p className="text-xs text-zinc-500 mt-1">[ZUHÖREN. Seine exakten Worte notieren — du nutzt sie später im Pitch.]</p>
-              </div>
-            </div>
+            <p className="italic text-base leading-relaxed font-medium text-zinc-900">
+              „<strong>Wäre das was für euer Gym?</strong>"
+            </p>
 
             <div className="text-xs text-emerald-800 mt-3 space-y-1 border-t border-emerald-200 pt-2">
-              <p className="font-semibold">⚡ Wichtig zum Vortrag:</p>
-              <p>• Sage <strong>NICHT</strong> alle 3 Fragen auf einmal — er hört sonst nur die letzte</p>
-              <p>• <strong>Eine Frage, Pause, Antwort, dann nächste Frage</strong></p>
-              <p>• Bei jeder Antwort: 2 Sek warten, „mhm" / „verstehe" — keine Pitches</p>
-              <p>• Nach Frage 3 entweder direkt Wedge-Pitch (wenn Pain echt) oder DQ (wenn null Pain)</p>
-            </div>
-
-            <div className="text-xs text-emerald-700 mt-3 bg-emerald-100/50 rounded p-2 space-y-1.5">
-              <p className="font-bold text-emerald-900">Antwort-Pfade nach Frage 1:</p>
-              <p>→ <strong>„Automatisch / mit [Tool]"</strong>: weiter mit Frage 2 + 3. Bei Frage 3 hörst du Frust mit dem Tool → Wedge.</p>
-              <p>→ <strong>„Manuell / Excel"</strong> = 🔥 HEISS. Frage 2 + 3, dann konkreter Pain-Calc.</p>
-              <p>→ <strong>„Halb-halb / kommt drauf an"</strong>: „Was läuft automatisch, was machen Sie noch von Hand?" → Pain konkretisieren.</p>
-              <p>→ <strong>„Trainer / Steuerberater macht das"</strong>: „Wie zufrieden sind Sie damit?"</p>
-              <p>→ <strong>„Wer sind Sie eigentlich?"</strong>: „Ich baue Software für Kampfsport-Gyms. Frage gerade Coaches durch um zu verstehen, wo&apos;s wehtut. Kein Verkauf — nur die Fragen."</p>
-              <p>→ <strong>„Geht Sie nichts an"</strong> = DQ. „Verstehe, kein Stress. Auf Wiederhören." Auflegen.</p>
+              <p><strong>Warum es wirkt:</strong></p>
+              <p>• <strong>Direkt</strong> — kein Verkaufs-Drumherum, sofort zur Sache</p>
+              <p>• <strong>Software für Kampfsport-Gyms</strong> — 4 Wörter, sofort klar wer&apos;s ist</p>
+              <p>• <strong>3 Pilot-Gyms</strong> — Knappheit aktiviert FOMO</p>
+              <p>• <strong>6 Monate gratis + persönliches Setup</strong> — konkreter Wert ohne Risiko</p>
+              <p>• <strong>Klare Ja/Nein-Frage</strong> am Ende — er muss antworten</p>
             </div>
           </div>
 
-          {/* ALTERNATIVE 1 — Story-First (für Boomer-Skeptiker) */}
+          {/* ALTERNATIVE 1 — kürzer */}
           <details className="bg-white rounded-lg border border-amber-200">
             <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Story-First (sanfter, für skeptische Coaches)
+              Alternative · Ultra-kurz (für viel-beschäftigte Coaches)
             </summary>
             <div className="px-3 pb-3 space-y-2 text-sm">
               <p className="italic">
-                „Hi, Lom hier. Ich rufe gerade Kampfsport-Gyms in DACH durch — <strong>{lead.name}</strong>
-                {cityPart} ist bei mir auf der Liste. 30 Sekunden, dann legst du auf — fair?"
+                „Hallo, ich bin Lom-Ali Imadaev. Ich habe eine Software für Kampfsport-Gyms entwickelt
+                und suche 3 Pilot-Gyms zum kostenlosen Testen. Wäre das was für euch?"
               </p>
-              <p className="italic">
-                [Auf „ja" warten.] „Ich rede gerade mit vielen Coaches. Die meisten sagen mir,
-                dass die Mitgliederverwaltung mehr Zeit frisst als sie geben kann. Bei dir auch ein
-                Thema — oder schon gut gelöst?"
+              <p className="text-xs text-zinc-600">
+                → 8 Sek. Maximal effizient. Wenn er „erzähl mehr" sagt, gehst du in die Diagnose.
               </p>
             </div>
           </details>
 
-          {/* ALTERNATIVE 2 — Belt-Pain (sport-conditional) */}
-          {(primarySport === 'bjj' || primarySport === 'judo' || primarySport === 'karate' || primarySport === 'taekwondo') && (
-            <details className="bg-white rounded-lg border border-amber-200">
-              <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                Alternative · Belt-Tracking ({sportLabel(lead.sports)}-spezifisch, emotionaler Pain)
-              </summary>
-              <p className="italic text-sm px-3 pb-3 leading-relaxed">
-                „Hi, ich bin Lom-Ali Imadaev. Kurze Frage: <strong>Wie tracked ihr eigentlich die
-                Belt-Promotions — Excel, Whiteboard, oder im Kopf?</strong>"
-              </p>
-            </details>
-          )}
-
-          {/* ALTERNATIVE 3 — Honest-Outsider (max. Ehrlichkeit) */}
+          {/* ALTERNATIVE 2 — mit Empfehlungs-Hinweis */}
           <details className="bg-white rounded-lg border border-amber-200">
             <summary className="cursor-pointer p-3 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Alternative · Honest-Outsider (für Skeptiker)
+              Alternative · Empfehlungs-Trigger (wenn er nicht passt)
             </summary>
-            <p className="italic text-sm px-3 pb-3 leading-relaxed">
-              „Hi, ich ruf direkt durch — ehrlich: ich rufe bei Kampfsport-Gyms an die ich auf Google
-              gefunden habe. Eine einzige Frage, 30 Sekunden, <strong>danach hörst du nie wieder von
-              mir wenn&apos;s nicht passt</strong>. Frage: machst du die Mitgliederverwaltung allein
-              oder hast du Hilfe?"
-            </p>
+            <div className="px-3 pb-3 space-y-2 text-sm">
+              <p className="italic">
+                „Hallo, ich bin Lom-Ali Imadaev. Ich suche gerade 3 Pilot-Gyms, die meine Software
+                für Kampfsport 6 Monate gratis testen. <strong>Falls das nichts für euch ist —
+                kennt ihr vielleicht ein Gym, dem das gerade weiterhelfen würde?</strong>"
+              </p>
+              <p className="text-xs text-zinc-600">
+                → Niedrigere Schwelle. Selbst bei „nicht für uns" gewinnst du potenziell eine
+                Empfehlung.
+              </p>
+            </div>
           </details>
         </>
       )}
 
       <div className="text-xs text-zinc-700 bg-rose-50 rounded p-2 mt-2 space-y-1 border border-rose-200">
-        <p className="font-bold text-rose-800">⚠️ NIE in den ersten 8 Sekunden:</p>
-        <p>❌ „Ich baue eine Software für Kampfsport…" → Defense-Reflex sofort aktiv</p>
-        <p>❌ „Ich will Ihnen nichts verkaufen" → klassische Sales-Floskel</p>
-        <p>❌ „Ich frage, ob es Bedarf am Markt gibt" → Marktforscher-Vibe</p>
-        <p>❌ „Wie viele Mitglieder zahlen nicht?" → zu privat, sofort dicht</p>
+        <p className="font-bold text-rose-800">⚠️ NIE in den ersten 15 Sekunden:</p>
+        <p>❌ „Hätten Sie vielleicht Interesse..." — bittstellerig</p>
+        <p>❌ „Entschuldigen Sie die Störung" — Schwäche signalisieren</p>
+        <p>❌ „Ich bin Solo-Founder und brauche..." — du bittest nicht um Mitleid</p>
+        <p>❌ „Ich will Ihnen nichts verkaufen" — klassische Floskel</p>
       </div>
     </>
   )
@@ -295,70 +250,78 @@ function Discovery({ primarySport }: { primarySport: string }) {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        🩺 ZIEL: 90 Sekunden Diagnose. Wenn nach 3 Fragen NULL Pain → Tab „Tschüss".
+        🩺 ZIEL: 60 Sek Fit-Check. Passt der Gym als Pilot? Wenn nicht → DQ.
       </div>
 
       <p className="text-xs text-zinc-700">
-        Folge dem natürlichen Gesprächsfluss. <strong>Eine Frage gleichzeitig, 2 Sekunden Pause</strong>,
-        zuhören, „mhm" / „verstehe" — sonst NICHTS dazu sagen.
+        Du bist nicht der Bittsteller — du <strong>prüfst, ob ER reinpasst</strong>. Pilot-Plätze
+        sind knapp.
       </p>
 
-      {/* FRAGE 1 — Folge aus Opener */}
+      {/* FRAGE 1 — Größe / Aktivität */}
       <div className="bg-white rounded-lg p-3 border-l-4 border-amber-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">
-          1️⃣ Konkretisieren: Stunden / Frequenz
+          1️⃣ Größe & Aktivität (Fit-Check 1)
         </p>
         <p className="italic text-sm">
-          „Wie viele Stunden gehen pro Woche dafür drauf, ungefähr?"
+          „Wie groß seid ihr ungefähr — Mitgliederzahl, Stundenplan, paar Trainer?"
         </p>
         <div className="text-xs text-zinc-600 mt-2 space-y-0.5">
-          <p>→ <strong>„2-3h"</strong> = LAUWARM — Pain ist da, aber nicht groß genug</p>
-          <p>→ <strong>„5h+"</strong> = WARM — Pain echt, weiter</p>
-          <p>→ <strong>„10h+"</strong> = 🔥 HEISS — direkter Demo-Kandidat</p>
-          <p>→ <strong>„keine Ahnung"</strong> = LAUWARM — Pain wird nicht spürbar gemessen</p>
+          <p>→ <strong>20-150 Mitglieder</strong> = ✅ idealer Pilot-Sweet-Spot</p>
+          <p>→ <strong>&lt;20 Mitglieder</strong> = ⚠️ wenig Daten zum Testen</p>
+          <p>→ <strong>&gt;200 Mitglieder</strong> = ⚠️ Migration komplex, ggf. zu groß</p>
         </div>
       </div>
 
-      {/* FRAGE 2 — der echte Pain */}
+      {/* FRAGE 2 — aktuelle Lösung */}
       <div className="bg-white rounded-lg p-3 border-l-4 border-amber-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">
-          2️⃣ Emotion-Trigger: was nervt am meisten?
+          2️⃣ Was nutzt ihr aktuell? (Migration-Aufwand klären)
         </p>
         <p className="italic text-sm">
-          „Was ist eine Sache, die du <strong>besonders ungern</strong> machst?"
+          „Mit was verwaltet ihr aktuell — Excel, Eversports, Magicline, oder gar nichts?"
         </p>
         <div className="text-xs text-zinc-600 mt-2 space-y-0.5">
-          <p>→ Konkrete Antwort („Mahnungen", „SEPA-Stornos", „Datev-Übergabe") = <strong>Goldader</strong></p>
-          <p>→ „Eigentlich nichts" = DQ-Signal</p>
-          <p>→ Sport-conditional Bonus für {primarySport.toUpperCase()}: „Wie tracked ihr Belt-Promotions?"</p>
-        </div>
-        <div className="bg-amber-50 rounded p-2 mt-2 text-xs text-amber-900">
-          <strong>📝 SEINE EXAKTEN WORTE NOTIEREN!</strong> Du nutzt sie später im Pitch.
-          Wenn er „Mahnungen sind anstrengend" sagt → du sagst: „Genau für anstrengende Mahnungen…"
+          <p>→ <strong>„Excel / nichts"</strong> = 🔥 perfekt — Migration trivial</p>
+          <p>→ <strong>„Eversports / Magicline"</strong> = ⚠️ Switching-Costs hoch — wirklich offen?</p>
+          <p>→ <strong>„Spezial-Tool"</strong> = nachfragen welches</p>
         </div>
       </div>
 
-      {/* FRAGE 3 — wie viel kostet's? */}
+      {/* FRAGE 3 — Bereitschaft */}
       <div className="bg-white rounded-lg p-3 border-l-4 border-amber-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">
-          3️⃣ Pain in Geld umrechnen
+          3️⃣ Setup-Bereitschaft (Pilot-Commit-Check)
         </p>
         <p className="italic text-sm">
-          „Wenn du das in Stunden hochrechnest — wie viel ist das im Jahr? 50, 100 Stunden?"
+          „Wenn das passt: Wärst du bereit, 1-2 Stunden Setup mit mir zu machen — Daten importieren,
+          Trainer einrichten, alles?"
         </p>
-        <div className="bg-amber-50 rounded p-2 mt-2 text-xs text-amber-900 space-y-1">
-          <p className="font-bold">💰 Pain-Calc (sage ihm das Zahl-Argument):</p>
-          <p>2 h/Woche × 50 Wochen × 50 €/h = <strong>5.000 €/Jahr</strong></p>
-          <p>5 h/Woche × 50 Wochen × 50 €/h = <strong>12.500 €/Jahr</strong></p>
-          <p>→ <strong>„Osss kostet 0–99 €/Monat. Du sparst Faktor 5–10× deine Lebenszeit."</strong></p>
+        <div className="text-xs text-zinc-600 mt-2 space-y-0.5">
+          <p>→ <strong>„Klar, kein Problem"</strong> = ✅ echtes Commitment</p>
+          <p>→ <strong>„Hmm, viel Aufwand..."</strong> = ⚠️ wird&apos;s nicht durchziehen</p>
+          <p>→ <strong>„Nur wenn schnell geht"</strong> = ✅ ehrlich, Versprechen halten</p>
         </div>
       </div>
+
+      {/* Sport-spezifische Bonus-Frage */}
+      {(primarySport === 'bjj' || primarySport === 'judo' || primarySport === 'karate' || primarySport === 'taekwondo') && (
+        <div className="bg-zinc-50 rounded-lg p-3 border border-zinc-200">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
+            🥋 Bonus für {primarySport.toUpperCase()} (Fit-Boost)
+          </p>
+          <p className="italic text-xs">
+            „Tracked ihr Belt-Promotions — also wer wann welchen Streifen oder Grad bekommen hat?"
+          </p>
+          <p className="text-xs text-zinc-600 mt-1">→ Wenn ja: <strong>perfektes Pilot-Match</strong> (das ist Osss&apos; Killer-Feature).</p>
+        </div>
+      )}
 
       <div className="bg-rose-50 rounded-lg p-3 border border-rose-200 mt-3">
-        <p className="font-bold text-rose-900 text-xs uppercase tracking-wide mb-1">🚪 Wenn nach 3 Fragen NULL Pain:</p>
+        <p className="font-bold text-rose-900 text-xs uppercase tracking-wide mb-1">🚪 Wenn nach 3 Fragen kein Fit:</p>
         <p className="text-sm text-rose-900">
-          Tab <strong>„Tschüss"</strong> öffnen. Sage: „OK, dann seid ihr wirklich gut versorgt.
-          Danke für deine Ehrlichkeit." → AUFLEGEN. Status: „Kein Fit". Nächster Lead.
+          Tab <strong>„Tschüss"</strong>. Sag: „Klingt als wären wir aktuell nicht der richtige
+          Fit fürs Pilot-Programm. Danke für deine Offenheit!" Auflegen. Status: „Kein Fit".
         </p>
       </div>
     </>
@@ -367,85 +330,69 @@ function Discovery({ primarySport }: { primarySport: string }) {
 
 // ───────────────────────────────────────────────────────────────────────────
 
-function Pitch({ primarySport }: { primarySport: string }) {
+function PilotDeal({ primarySport }: { primarySport: string }) {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        🎯 WEDGE statt Komplettverkauf. Lösung für EIN Problem, nicht „wechselt zu Osss".
+        🎯 ZIEL: in 60 Sek den Pilot-Deal erklären. Knappheit. Wert. Verpflichtung.
       </div>
 
-      <div className="bg-amber-50 rounded-lg p-3 border border-amber-200 text-sm">
-        <p className="font-bold text-amber-900 mb-1">🪓 Strategie</p>
-        <p className="text-amber-900">
-          Die meisten haben schon ein Tool. Wechsel ist teuer. <strong>Verkaufe NICHT</strong>{' '}
-          „wechselt zu Osss" — biete einen <strong>EINZELNEN Pain-Fix</strong>, der ergänzt.
-        </p>
-      </div>
+      <p className="text-xs text-zinc-700">
+        Sag NUR diese Punkte — nicht mehr. Keine Feature-Liste, keine Demo-Versuch am Telefon.
+      </p>
 
-      {/* Wedge 1 — DATEV */}
-      <div className="bg-white rounded-lg p-3 border-l-4 border-emerald-400">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">
-          🪓 Wedge 1 · DATEV-Pain (Steuerberater-Übergabe)
+      <div className="bg-white rounded-lg p-3 border-l-4 border-emerald-400 space-y-3">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+          📋 Was im Pilot-Programm enthalten ist
         </p>
+
         <p className="italic text-sm">
-          „Wir haben einen DATEV-Export, der wirklich für deinen Steuerberater funktioniert.
-          <strong> Du musst dafür nicht von [aktuelles Tool] wechseln</strong>. Du exportierst
-          deine Beiträge als CSV, mein Tool macht dir DATEV draus. 5 Minuten Setup. Soll ich dir
-          einen Login schicken?"
+          „Cool — dann erkläre ich kurz wie das Pilot-Programm funktioniert:"
         </p>
-      </div>
 
-      {/* Wedge 2 — Belt (sport-conditional) */}
-      {(primarySport === 'bjj' || primarySport === 'judo' || primarySport === 'karate' || primarySport === 'taekwondo') && (
-        <div className="bg-white rounded-lg p-3 border-l-4 border-emerald-400">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">
-            🪓 Wedge 2 · Belt-Tracking ({primarySport.toUpperCase()}-spezifisch)
+        <div className="space-y-2 text-sm">
+          <p>
+            <strong>1. Du bekommst 6 Monate volle Software gratis</strong> — Mitgliederverwaltung,
+            SEPA-Lastschrift, Belt-Tracking{primarySport && primarySport !== 'default' ? ` (${primarySport.toUpperCase()}-konfiguriert)` : ''},
+            DATEV-Export, Mitglieder-Portal, alles.
           </p>
-          <p className="italic text-sm">
-            „Belt-Tracking ist genau mein Thema. Hab das gebaut weil ich es selbst trainiere.
-            Promotion-History pro Mitglied, mit Datum, Trainer, Notes. <strong>Bis 30 Mitglieder
-            kostet das nichts.</strong> Soll ich dir den Free-Account schicken?"
+          <p>
+            <strong>2. Ich richte alles persönlich ein</strong> — wir machen 1-2 Stunden Setup-Call,
+            ich migriere deine Daten, schule dich. Kein Self-Service.
+          </p>
+          <p>
+            <strong>3. Im Gegenzug:</strong> 3-4 Feedback-Calls à 20 Min über die 6 Monate. Ehrliches
+            Feedback — was funktioniert, was nervt, was fehlt.
+          </p>
+          <p>
+            <strong>4. Nach 6 Monaten</strong> entscheidest du frei: weitermachen für 0-99 €/Monat
+            (je nach Größe), oder aufhören und alle Daten als Export mitnehmen.
           </p>
         </div>
-      )}
-
-      {/* Wedge 3 — Zeit-Pain */}
-      <div className="bg-white rounded-lg p-3 border-l-4 border-emerald-400">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">
-          🪓 Wedge 3 · Zeit-Argument (mit konkreten €-Zahlen aus Diagnose)
-        </p>
-        <p className="italic text-sm">
-          „Bei deinen {'<X>'} Stunden pro Woche × 50 Wochen × 50 €/h = ungefähr {'<Y>'} € im Jahr,
-          die du in Verwaltung steckst statt Training. Mein Tool kostet 29 €/Monat = 348 €/Jahr.
-          <strong> Du sparst {'<Z>'} € pro Jahr deiner Lebenszeit.</strong> Wenn du willst, mach
-          ich dir 5 Min Demo, du entscheidest danach."
-        </p>
       </div>
 
-      {/* Wedge 4 — Komplett-Wechsel (selten) */}
-      <div className="bg-white rounded-lg p-3 border-l-4 border-zinc-300">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
-          🪓 Wedge 4 · Komplett-Wechsel (NUR bei echtem Frust mit aktuellem Tool)
-        </p>
-        <p className="italic text-sm">
-          „Klingt als wärst du wirklich unzufrieden mit {'<aktuelles Tool>'}. Lass uns kurz drüber
-          sprechen ob ein Wechsel überhaupt Sinn macht — kein Verkauf, ich frag dich konkret was
-          funktionieren muss. 15 Minuten morgen oder Donnerstag?"
+      <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+        <p className="font-bold text-amber-900 mb-1 text-sm">⚡ Wichtig zu sagen:</p>
+        <p className="italic text-sm text-amber-900">
+          „Ich nehm nur 3 Gyms ins Pilot-Programm — weil ich jeden persönlich einrichte und betreue.
+          Wenn das passt, wäre der nächste Schritt ein 30-Min-Setup-Termin diese oder nächste Woche.
+          <strong>Was sagst du?</strong>"
         </p>
       </div>
 
       <div className="bg-rose-50 rounded-lg p-3 border border-rose-200 text-sm">
-        <p className="font-bold text-rose-900 mb-1">⛔ NIE pitchen ohne Pain</p>
-        <p className="text-rose-900">
-          Wenn aus den 3 Diagnose-Fragen <strong>kein konkreter Pain</strong> rausgekommen ist:
-          gehe NICHT in den Pitch. Direkt auf Tab „Tschüss". Pitchen ohne Pain = du klingst wie
-          Verkäufer. Mit Pain = du klingst wie Lösung.
-        </p>
+        <p className="font-bold text-rose-900 mb-1">⛔ NICHT machen:</p>
+        <ul className="text-rose-900 list-disc pl-5 space-y-0.5">
+          <li>Feature-für-Feature-Liste runterleiern</li>
+          <li>Vergleich mit Konkurrenz starten</li>
+          <li>Tech-Details (Server, DSGVO, etc.) vorab erklären</li>
+          <li>„Wenn Ihnen das gefällt..." — kein Sales-Speak</li>
+        </ul>
       </div>
 
       <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2">
-        🎯 <strong>Nach Wedge-Pitch IMMER:</strong> <em>„Macht das für dich Sinn?"</em> und WARTE.
-        Stille = der Punkt wo der Lead entscheidet. Nicht reinreden!
+        🎯 <strong>Nach dem Pitch IMMER:</strong> <em>„Was sagst du?"</em> und WARTE.
+        Stille = der Punkt wo er entscheidet. Nicht reinreden.
       </div>
     </>
   )
@@ -457,59 +404,59 @@ function Objections() {
   const items: { obj: string; reply: string; tone?: 'top' }[] = [
     {
       tone: 'top',
-      obj: '⭐ „Wir brauchen nichts." / „Lösungen wie Sand am Meer." (häufigster Einwand!)',
-      reply: 'Du hast völlig recht — der Markt ist voll. Eine letzte Frage und ich lege auf: Was nervt dich aktuell am meisten an dem was ihr habt — oder läuft wirklich alles glatt? … [Wenn ECHT „läuft alles glatt" → Tab Tschüss, sauber Auflegen. Wenn jetzt doch Pain rauskommt → „Ah ok, genau das löse ich. 5 Min Demo wenn du magst — sonst kein Stress, kein Follow-up."]',
-    },
-    {
-      obj: '„Kein Interesse." (sofort, ohne Erklärung)',
-      reply: 'Verstehe. Letzte Frage und ich lege auf: Wenn du EINE Sache an deiner Mitgliederverwaltung ändern könntest — was wäre das? … [Zuhören. Wenn echt: „Genau das löst mein Tool. 5 Minuten zeigen?" Wenn null Pain: Tab Tschüss.]',
-    },
-    {
-      obj: '„Bin gerade im Training / habe keine Zeit."',
-      reply: 'Klar — passt 17:00 oder eher 19:30 besser zum Zurückrufen? [Zwei konkrete Slots geben, nie offen lassen. „Ich melde mich" → Nein. „Ich rufe um 19:30 zurück" → Ja.]',
-    },
-    {
-      obj: '„Schick mir Infos per Mail."',
-      reply: 'Mache ich — aber ehrlich: ich schick keine 8-seitige PDF die du nie liest. 3 Sätze + 1 Link, 60 Sekunden zum Lesen. Welche Mail-Adresse?',
+      obj: '⭐ „Was ist der Haken? Warum gratis?" (häufigster Pilot-Einwand)',
+      reply: 'Fair. Ehrliche Antwort: Ich bin Solo-Entwickler, baue das Tool nebenher zum SAP-Job. Statt 50.000€ Marketing-Budget für Werbung wähle ich 3 echte Pilot-Gyms. Ihr bekommt 6 Monate gratis + persönliches Setup, ich bekomme echtes Feedback statt Marketing-Bauchgefühl. Win-Win, kein Haken.',
     },
     {
       obj: '„Wir sind happy mit Eversports / Magicline."',
-      reply: 'Cool, freut mich. Was funktioniert da besonders gut für euch? … [ZUHÖREN — keine Argumente bauen!]. Und gibt&apos;s irgendwas wo du dir was wünschen würdest? … [Hier kommt der Pain. Wenn ja → „Genau das hab ich anders gelöst, 5 Min Demo?". Wenn nein → „OK, dann seid ihr gut versorgt. Tschüss."]',
+      reply: 'Cool, freut mich. Pilot-Programm ist auch nicht für Wechsler gedacht. Falls dir das passt — ich kenne aber genug Gyms die unzufrieden sind: Wer aus deinem Umfeld könnte das spannend finden? Dann hab ich meine 3 schneller voll.',
     },
     {
       obj: '„Wir machen das mit Excel — funktioniert."',
-      reply: 'Versteh ich — Excel ist gratis und niemand redet rein. Frage: Was passiert wenn am 5. eine SEPA-Lastschrift platzt? Wie merkst du das? Manuell oder automatisch? … [Wenn manuell → „Da liegt mein Tool 80 € im Monat günstiger als deine Lebenszeit." Wenn automatisch → „Welches Tool nutzt du dann? Vielleicht passt meines gar nicht — wäre fair zu sagen."]',
-    },
-    {
-      obj: '„Wer hat Ihnen meine Nummer gegeben?"',
-      reply: 'Google Maps — ihr seid dort öffentlich gelistet, deshalb rufe ich auch direkt an statt einen Lead-Anbieter zu bezahlen. Das ist ehrlich gemeint — wenn dich das stört, lege ich auf, kein Problem.',
-    },
-    {
-      obj: '„Wir haben kein Budget."',
-      reply: 'Verstehe. Bis 30 Mitglieder ist Osss kostenlos — ihr seid wie viele? … [Wenn <30: „Dann zahlt ihr nichts. Soll ich dir trotzdem 5 Min zeigen?". Wenn >30: „Ab 50 sind&apos;s 29 €/Monat. Was kostet euch aktuell die Beitragsverwaltung an Zeit pro Monat? Multipliziert mit eurem Stundensatz?"]',
-    },
-    {
-      obj: '„Wer steht dahinter? Ist das ein großes Unternehmen?"',
-      reply: 'Solo-Founder, ich allein. SAP-Berater im Hauptberuf, baue Osss nebenher. Das heißt: kein Investor-Druck, kein Pleite-Risiko durch Burn, kein Sales-Mitarbeiter der dir hinterherrennt. Du redest direkt mit dem Coder — wenn dir was fehlt, baue ich&apos;s in 1-2 Tagen.',
-    },
-    {
-      obj: '„Datenschutz / DSGVO?"',
-      reply: 'Daten in der EU/UK (London, EU-Angemessenheitsbeschluss). DSGVO-Export pro Mitglied. AVV ist direkt im Dashboard elektronisch unterzeichenbar — kein Papierkram, kein E-Mail-Hin-und-Her.',
-    },
-    {
-      obj: '„Was wenn das Ding pleite geht?"',
-      reply: 'Faire Frage. CSV + JSON-Export jederzeit. Du nimmst alles mit. Plus: keinen Investor, keinen Burn — ich kann nicht „pleite gehen" wie ein VC-finanziertes Startup. Bin auch in 5 Jahren noch da.',
+      reply: 'Excel funktioniert für vieles. Pilot ist genau für Gyms wo Excel langsam an die Grenze stößt — 50+ Mitglieder, SEPA-Themen, Belt-Tracking. Wenn ihr noch nicht da seid: kein Problem. Wenn doch: 6 Monate gratis testen, kein Risiko.',
     },
     {
       obj: '„Ich denk drüber nach / sprech mit meinem Partner."',
-      reply: 'Klar. Damit ich keine Folge-Mail rumschicke die du nie liest: Wann hast du wieder Zeit dafür — Donnerstag oder eher nächste Woche? [Konkreter Termin oder Auflegen, kein „Ich melde mich".]',
+      reply: 'Klar. Ich nehm 3 Pilot-Gyms — wenn die voll sind, ist das Programm zu. Damit ich dich nicht ewig blocke: Wann sprichst du mit deinem Partner? Donnerstag oder eher Anfang nächste Woche? Ich melde mich dann nochmal kurz.',
+    },
+    {
+      obj: '„Was kostet das danach?"',
+      reply: '0 bis 99 € pro Monat je nach Mitgliederzahl. Bis 30 Mitglieder kostenlos für immer. 50 Mitglieder = 29 €. 150 = 59 €. Unbegrenzt = 99 €. Keine Plattform-Gebühr auf eure Beiträge. Aber: erst nach den 6 Pilot-Monaten — und du entscheidest dann frei.',
+    },
+    {
+      obj: '„Schick mir Infos per Mail."',
+      reply: 'Mache ich — aber ehrlich: 8-Seiten-PDF liest niemand. Ich schick 3 Sätze + Demo-Link. Welche Mail-Adresse? [Email-Adresse aufnehmen. Bei Zögern: „Lass uns gleich einen 15-Min-Setup-Termin machen, ist effizienter."]',
+    },
+    {
+      obj: '„Wer steht dahinter? Ist das ein großes Unternehmen?"',
+      reply: 'Solo-Entwickler, ich allein. SAP-Berater im Hauptberuf, baue Osss nebenher. Heißt: kein Investor-Druck, kein Burn, kein Sales-Mitarbeiter. Du redest direkt mit dem Coder — wenn dir was fehlt, baue ich&apos;s in 1-2 Tagen.',
+    },
+    {
+      obj: '„Datenschutz / DSGVO?"',
+      reply: 'Daten in der EU/UK (London, EU-Angemessenheitsbeschluss). DSGVO-Export pro Mitglied. AVV ist im Dashboard elektronisch unterzeichenbar — kein Papierkram. Beim Pilot-Setup machen wir den AVV in 2 Minuten zusammen.',
+    },
+    {
+      obj: '„Was wenn das Ding pleite geht?"',
+      reply: 'Faire Frage. CSV + JSON-Export jederzeit, du nimmst alles mit. Plus: keinen Investor, keinen Burn — ich kann nicht „pleite gehen" wie ein VC-Startup. Bin auch in 5 Jahren noch da.',
+    },
+    {
+      obj: '„Bin gerade im Training / hab keine Zeit."',
+      reply: 'Klar — passt 17:00 oder 19:30 zum Zurückrufen? [Konkreter Slot. „Ich melde mich" → Nein. „Ich rufe um 19:30" → Ja.]',
+    },
+    {
+      obj: '„Kein Interesse." (sofort, ohne Begründung)',
+      reply: 'Verstehe, kein Stress. Falls du jemanden kennst dem das Pilot-Programm helfen würde: ich nehm Empfehlungen gerne. Ansonsten: Tschüss und alles Gute. [Auflegen. Status: Kein Fit.]',
+    },
+    {
+      obj: '„Wer hat Ihnen meine Nummer gegeben?"',
+      reply: 'Google Maps — ihr seid öffentlich gelistet. Ich rufe direkt an, statt teure Lead-Anbieter zu nutzen. Falls dich das stört, lege ich auf, kein Problem.',
     },
   ]
 
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        🛡 EINWANDBEHANDLUNG · Wahrheit zustimmen → eine ehrliche Frage → wenn null Pain auflegen
+        🛡 EINWANDBEHANDLUNG — Pilot-Mode. Knappheit + Wert hochhalten, niemals überreden.
       </div>
       <ul className="space-y-3">
         {items.map((it, i) => (
@@ -522,8 +469,8 @@ function Objections() {
         ))}
       </ul>
       <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2">
-        💡 <strong>Regel</strong>: Niemals direkt widersprechen. Erst zustimmen („verstehe", „gute Frage"),
-        dann rückfragen, dann antworten. Wenn keine Pain rauskommt → Tab „Tschüss", nicht überreden.
+        💡 <strong>Pilot-Regel</strong>: Wer überredet werden muss, ist <strong>kein guter Pilot</strong>.
+        Pilot heißt Commitment. Ohne Commitment kein Setup, kein Feedback, kein Wert für dich.
       </div>
     </>
   )
@@ -535,23 +482,35 @@ function Close() {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        📅 ZIEL: konkreter Termin. Diese Woche oder nächste.
+        📅 ZIEL: Konkreter Setup-Termin diese oder nächste Woche.
       </div>
+
       <p className="italic">
-        „Cool, dann mach ich dir einen Vorschlag: Ich schick dir einen Demo-Link, du klickst dich in
-        5 Minuten durch. Wenn dir was gefällt, machen wir 15 Minuten Video-Call. Passt das?"
+        „Cool, dann lass uns das durchziehen. <strong>Setup-Termin: 60 Minuten Video-Call</strong>.
+        Da migrieren wir deine Daten, richten Trainer ein, schalten dein Mitglieder-Portal frei.
+        Danach läuft alles."
       </p>
       <p className="italic">
-        „Wann passt es dir besser — eher Anfang oder Ende der Woche?"
+        „Was passt besser — eher Vormittag oder Abend?"
       </p>
       <p className="italic">
-        „Ok, sagen wir <strong>Donnerstag um 14:00</strong>? Schick ich dir gleich eine Kalender-
-        Einladung an … welche E-Mail nutzt du?"
+        „Ok, sagen wir <strong>Donnerstag um 19:00</strong>? Schick ich dir gleich Calendar-Invite +
+        eine Email mit kurzer Vorbereitungs-Liste. Welche Mail-Adresse?"
       </p>
+
+      <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200 text-sm">
+        <p className="font-bold text-emerald-900 mb-1">🎁 Pilot-Bonus erwähnen:</p>
+        <p className="italic text-emerald-900">
+          „Übrigens — du bist <strong>Pilot Nr. {'<2/3>'}</strong>. Wenn alles glatt läuft, kannst
+          du gerne als Referenz dabei sein, wenn ich öffentlich starte. Klar nur freiwillig."
+        </p>
+      </div>
+
       <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2 space-y-1">
         <p>✅ <strong>Konkreter Tag + Uhrzeit + Email</strong>. Niemals „melde mich nochmal".</p>
-        <p>📝 <strong>Direkt im CRM</strong>: Status → „Demo geplant", Next Follow-up auf den Termin setzen.</p>
-        <p>📧 <strong>Innerhalb 5 Min</strong>: Calendar-Invite + 3-Satz-Mail mit Demo-Link.</p>
+        <p>📝 <strong>Direkt im CRM</strong>: Status → „Demo geplant", Next Follow-up auf den Setup-Termin.</p>
+        <p>📧 <strong>Innerhalb 5 Min nach Auflegen</strong>: Calendar-Invite + Vorbereitungs-Mail.</p>
+        <p>📋 <strong>Vorbereitungs-Mail enthält</strong>: Mitglieder-CSV-Export-Anleitung, Stripe-Account-Hinweis, AVV-Erklärung.</p>
       </div>
     </>
   )
@@ -563,58 +522,58 @@ function Disqualify() {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        🚪 SAUBER AUFLEGEN. Kein Pain = kein Kunde. Spare deine Energie für den nächsten Lead.
+        🚪 SAUBER AUFLEGEN. Falscher Pilot ist schlimmer als keiner.
       </div>
 
       <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-300">
-        <p className="font-bold text-emerald-900 mb-2">✅ Warum Disqualifizieren ein Sieg ist</p>
+        <p className="font-bold text-emerald-900 mb-2">✅ Warum DQ ein Sieg ist</p>
         <ul className="text-sm text-emerald-900 list-disc pl-5 space-y-1">
-          <li>1 sauberer DQ in 90 Sek = 10× mehr Zeit für die nächsten 9 Leads</li>
-          <li>Du baust <strong>Reputation</strong> als ehrlicher Anrufer auf — sie empfehlen dich vielleicht weiter</li>
-          <li>Jeder Lead, den du nicht überredest, kann <strong>später</strong> wiederkommen wenn der Pain echt wird</li>
-          <li>Überreden kostet 20+ Min und konvertiert ~3% — DQ kostet 90 Sek und schützt deine Energie</li>
+          <li><strong>1 falscher Pilot</strong> = 6 Monate Support-Last ohne ehrliches Feedback</li>
+          <li><strong>1 sauberer DQ</strong> = du machst Platz für den richtigen Pilot</li>
+          <li>Du baust Reputation als <strong>ehrlicher Anrufer</strong> auf</li>
+          <li>Wer abgewiesen wurde, kann später wiederkommen — wenn der Pain echt wird</li>
         </ul>
       </div>
 
       <div className="bg-white rounded-lg p-3 border-l-4 border-zinc-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
-          🎤 Standard-Auflegen (90% der Fälle)
+          🎤 Standard-Auflegen (kein Fit)
         </p>
         <p className="italic text-sm">
-          „OK — dann seid ihr wirklich gut versorgt. Danke dass du dir die 30 Sekunden genommen hast,
-          ich respektier das. Hab einen guten Tag."
+          „Klingt als wären wir gerade nicht der richtige Fit fürs Pilot-Programm. Danke für deine
+          Offenheit. Falls du jemanden kennst, dem das Pilot-Angebot helfen würde — ich freu mich
+          über Empfehlungen. Hab einen guten Tag."
         </p>
         <p className="text-xs text-zinc-600 mt-2">
-          → Direkt auflegen. Status: <strong>„Kein Fit"</strong>. Notiz: warum (z.B. „happy mit Eversports", „kein Pain").
+          → Auflegen. Status: <strong>„Kein Fit"</strong>. Notiz: warum (z.B. „zu klein", „zu groß",
+          „kein Migration-Commit").
         </p>
       </div>
 
       <div className="bg-white rounded-lg p-3 border-l-4 border-zinc-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
-          🎤 Wenn sie sagen „Lösungen wie Sand am Meer"
+          🎤 „Wir testen ungerne neue Tools"
         </p>
         <p className="italic text-sm">
-          „Stimmt absolut. Ich würde auch sagen: wechsel nicht ohne Grund. Wenn dir aktuell nichts
-          wirklich wehtut, ist das auch keine gute Investition. Danke für deine Ehrlichkeit. Tschüss."
+          „Verständlich — Pilot ist eben Commitment. Wenn das gerade nicht passt, ist das auch
+          ehrlich. Falls sich was ändert: meine Mail ist oss@osss.pro. Ansonsten: alles Gute."
         </p>
         <p className="text-xs text-zinc-600 mt-2">
-          → Stimme der Realität zu. Du bist nicht der Verkäufer der überreden will. Das schafft <strong>Trust</strong>
-          — wenn er später Pain bekommt, ruft er VON SICH AUS bei dir an.
+          → Stimme zu. Du verteidigst den Pilot nicht — du suchst nur Fit.
         </p>
       </div>
 
       <div className="bg-white rounded-lg p-3 border-l-4 border-zinc-400">
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1">
-          🎤 „Ich werd&apos;s mir nochmal überlegen"
+          🎤 „Schick mir was zum Anschauen, dann meld ich mich"
         </p>
         <p className="italic text-sm">
-          „Klar. Eine Sache: <strong>Ich melde mich NICHT von alleine wieder.</strong> Wenn du jemals
-          einen Anlass hast — Steuerberater stresst, Beitragsabrechnung killt deinen Sonntag — dann
-          ruf direkt durch. Ich heb auch am Wochenende ab. Tschüss."
+          „Mache ich — aber damit ich dich nicht ewig nerve: <strong>Ich melde mich NICHT von alleine
+          wieder.</strong> Falls du nach dem Anschauen Lust hast, ruf direkt durch. Tschüss."
         </p>
         <p className="text-xs text-zinc-600 mt-2">
-          → Pattern-Interrupt: die meisten erwarten Hartnäckigkeit. Wenn du sie loslässt, bleiben sie
-          hängen (Reverse-Reciprocity). Status: <strong>„Nicht kontaktieren"</strong>.
+          → Reverse-Reciprocity. Status: <strong>„Nicht kontaktieren"</strong>. Eine 3-Satz-Mail
+          schicken, dann Funkstille.
         </p>
       </div>
 
@@ -622,8 +581,8 @@ function Disqualify() {
         <p className="font-bold text-amber-900 mb-1">📊 Nach dem Auflegen — sofort im CRM:</p>
         <ol className="list-decimal pl-5 text-amber-900 space-y-0.5">
           <li>Status auf <strong>„Kein Fit"</strong> oder <strong>„Nicht kontaktieren"</strong></li>
-          <li>Activity-Log: was war der Hauptgrund? („happy mit X", „kein Pain", „kein Budget")</li>
-          <li><strong>Nicht</strong> auf „Kontaktiert" lassen — sonst landet er in deinem morgigen Follow-up-Loop</li>
+          <li>Notiz: was war der Hauptgrund? („zu klein", „happy mit X", „kein Setup-Commit")</li>
+          <li>Wenn er Empfehlung andeutete: in Notes festhalten, später nachfragen</li>
           <li>Nächsten Lead ziehen, weiter</li>
         </ol>
       </div>
@@ -637,41 +596,24 @@ function Voicemail({ cityPart }: { cityPart: string }) {
   return (
     <>
       <div className="font-bold text-amber-900 text-xs uppercase tracking-wide">
-        📞 Maximal 20 Sekunden. Konkret, Name + Rückrufnummer + 1 Hook.
+        📞 Maximal 25 Sekunden. Knappheit. Konkrete Frage. Keine zweite Mailbox.
       </div>
       <p className="italic">
-        „Hi, hier ist Lom-Ali Imadaev. Ich rufe wegen einer kurzen Frage zur Mitgliederverwaltung an
-        — ich bau gerade was speziell für Kampfsport-Gyms{cityPart}. Wenn das interessant ist:
-        ruf mich zurück unter <strong>[deine Nummer]</strong>. Wenn nicht: kein Stress, melde mich
-        nicht nochmal."
+        „Hi, hier ist Lom-Ali Imadaev. Ich hab eine Software für Kampfsport-Gyms entwickelt
+        und suche gerade <strong>3 Pilot-Gyms{cityPart}</strong> für 6 Monate kostenloses Testen.
+        Falls das interessant klingt: ruf zurück unter <strong>[deine Nummer]</strong>. Ansonsten:
+        kein Stress, ich melde mich nicht nochmal."
       </p>
       <div className="text-xs text-zinc-600 bg-zinc-50 rounded p-2 mt-2 space-y-1">
-        <p>✅ Direkt nach Mailbox: <strong>Activity-Log „Voicemail" anlegen</strong>, Status auf
-          „Kontaktiert".</p>
+        <p>✅ Direkt nach Mailbox: <strong>Activity-Log „Voicemail"</strong>, Status auf „Kontaktiert".</p>
         <p>✅ Nicht zweimal die gleiche Mailbox besprechen — wirkt aufdringlich.</p>
-        <p>✅ Bei Rückruf: <strong>Tab „Einstieg"</strong> nutzen, du beginnst von vorn.</p>
+        <p>✅ Bei Rückruf: Tab „Pilot-Anfrage" — du beginnst frisch wie beim ersten Mal.</p>
       </div>
     </>
   )
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function sportLabel(sports: string[]): string {
-  const primary = pickPrimarySport(sports)
-  const labels: Record<string, string> = {
-    bjj: 'BJJ',
-    judo: 'Judo',
-    mma: 'MMA',
-    'muay-thai': 'Muay-Thai',
-    kickbox: 'Kickbox',
-    boxen: 'Box',
-    karate: 'Karate',
-    taekwondo: 'Taekwondo',
-    default: 'Kampfsport',
-  }
-  return labels[primary] ?? 'Kampfsport'
-}
 
 function pickPrimarySport(sports: string[]): string {
   if (!sports || sports.length === 0) return 'default'
