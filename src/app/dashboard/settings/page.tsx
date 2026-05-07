@@ -118,6 +118,11 @@ function SettingsPageInner() {
   const [isKleinunternehmer, setIsKleinunternehmer] = useState(true)
   const [invoicePrefix, setInvoicePrefix]           = useState('RE')
   const [bankIban, setBankIban]                     = useState('')
+  // Tracks whether the IBAN already lives in the encrypted column.
+  // We cannot decrypt client-side (key is server-only), so we only show
+  // a masked placeholder until the user types a new value.
+  const [bankIbanEncrypted, setBankIbanEncrypted]   = useState(false)
+  const [bankIbanDirty, setBankIbanDirty]           = useState(false)
   const [bankBic, setBankBic]                       = useState('')
   const [bankName, setBankName]                     = useState('')
   const [invoiceSaving, setInvoiceSaving]           = useState(false)
@@ -246,7 +251,17 @@ function SettingsPageInner() {
         setUstid(data.ustid ?? '')
         setIsKleinunternehmer(data.is_kleinunternehmer ?? true)
         setInvoicePrefix(data.invoice_prefix ?? 'RE')
-        setBankIban(data.bank_iban ?? '')
+        // IBAN: bevorzugt verschlüsselte Spalte (kann nur server-seitig
+        // entschlüsselt werden), Fallback Plaintext solange Backfill läuft.
+        const encrypted = (data as { bank_iban_enc?: string | null }).bank_iban_enc
+        if (encrypted) {
+          setBankIban('') // Input bleibt leer, wir zeigen Masked-Placeholder
+          setBankIbanEncrypted(true)
+        } else {
+          setBankIban(data.bank_iban ?? '')
+          setBankIbanEncrypted(false)
+        }
+        setBankIbanDirty(false)
         setBankBic(data.bank_bic ?? '')
         setBankName(data.bank_name ?? '')
         setDatevBeraternummer(data.datev_beraternummer ?? '')
@@ -452,10 +467,43 @@ function SettingsPageInner() {
     setInvoiceSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    // Non-IBAN-Felder per Direkt-Update — die sind unkritisch.
     await supabase.from('gyms').update({
       tax_number: taxNumber||null, ustid: ustid||null, is_kleinunternehmer: isKleinunternehmer,
-      invoice_prefix: invoicePrefix||'RE', bank_iban: bankIban||null, bank_bic: bankBic||null, bank_name: bankName||null,
+      invoice_prefix: invoicePrefix||'RE', bank_bic: bankBic||null, bank_name: bankName||null,
     }).eq('owner_id', user?.id ?? '')
+
+    // IBAN nur dann ans /api/gym/iban schicken, wenn der User den Wert
+    // tatsächlich verändert hat — sonst würden wir bei jedem Save den
+    // Masked-Placeholder als leeren String interpretieren und die IBAN
+    // versehentlich löschen.
+    if (bankIbanDirty) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const res = await fetch('/api/gym/iban', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ iban: bankIban || null }),
+        })
+        if (res.ok) {
+          // Nach erfolgreichem Update: lokalen State neu setzen.
+          // Falls IBAN gesetzt → ist jetzt verschlüsselt; Input leeren.
+          if (bankIban) {
+            setBankIbanEncrypted(true)
+            setBankIban('')
+          } else {
+            setBankIbanEncrypted(false)
+          }
+          setBankIbanDirty(false)
+        } else {
+          const err = await res.json().catch(() => ({ error: 'Fehler' }))
+          alert(`IBAN-Speicher fehlgeschlagen: ${err.error ?? 'Unbekannt'}`)
+        }
+      }
+    }
     setInvoiceSaving(false); setInvoiceSaved(true); setTimeout(() => setInvoiceSaved(false), 2000)
   }
 
@@ -1279,7 +1327,17 @@ function SettingsPageInner() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-600 mb-1.5">IBAN</label>
-                    <input value={bankIban} onChange={e => setBankIban(e.target.value)} placeholder="DE89 3704 0044 0532 0130 00" className={`${inputCls} font-mono`} />
+                    <input
+                      value={bankIban}
+                      onChange={e => { setBankIban(e.target.value); setBankIbanDirty(true) }}
+                      placeholder={bankIbanEncrypted ? '•••• •••• •••• •••• (verschlüsselt gespeichert)' : 'DE89 3704 0044 0532 0130 00'}
+                      className={`${inputCls} font-mono`}
+                    />
+                    {bankIbanEncrypted && !bankIbanDirty && (
+                      <p className="text-xs text-zinc-500 mt-1">
+                        IBAN ist verschlüsselt gespeichert. Zum Ändern eine neue eingeben.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-zinc-600 mb-1.5">BIC</label>

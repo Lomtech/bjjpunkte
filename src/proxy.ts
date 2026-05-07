@@ -1,6 +1,109 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CSRF Protection
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Supabase-Auth nutzt HttpOnly-Cookies, daher sind Cookie-authentifizierte
+// state-mutating API-Routes prinzipiell CSRF-anfällig (externe Site könnte
+// Cross-Site `<form>` POST mit User-Cookie abschicken). Lösung:
+// Origin/Referer-Header-Check im Proxy. Bearer-Token-Routes sind nicht
+// CSRF-anfällig (Browser sendet keinen Authorization-Header automatisch
+// bei Cross-Site-Requests) und werden gebypasst.
+
+const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+
+// Pfade, bei denen CSRF-Check NICHT greift:
+// - /api/stripe/webhook: Stripe prüft eigene HMAC-Signatur
+// - /api/public/*:       Öffentliche Endpoints, oft Klicks von externen Sites
+// - /api/cron/*:         Cron-Jobs (Bearer-Auth via CRON_SECRET)
+const CSRF_WHITELIST_PREFIXES = [
+  '/api/stripe/webhook',
+  '/api/public/',
+  '/api/cron/',
+]
+
+function buildAllowedOrigins(): Set<string> {
+  const origins = new Set<string>([
+    'https://www.osss.pro',
+    'https://osss.pro',
+    'https://bjjpunkte.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+  ])
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    const o = safeOrigin(process.env.NEXT_PUBLIC_APP_URL)
+    if (o) origins.add(o)
+  }
+  if (process.env.CSRF_ALLOWED_ORIGINS) {
+    for (const raw of process.env.CSRF_ALLOWED_ORIGINS.split(',')) {
+      const o = safeOrigin(raw.trim())
+      if (o) origins.add(o)
+    }
+  }
+  return origins
+}
+
+const ALLOWED_ORIGINS = buildAllowedOrigins()
+
+/**
+ * Extrahiert den Origin (`scheme://host[:port]`) aus einer URL/Referer-Wert.
+ * Gibt `null` bei invaliden URLs zurück.
+ */
+export function safeOrigin(value: string | null | undefined): string | null {
+  if (!value) return null
+  try {
+    return new URL(value).origin
+  } catch {
+    return null
+  }
+}
+
+export interface CsrfRequest {
+  method: string
+  nextUrl: { pathname: string }
+  headers: { get(name: string): string | null }
+}
+
+/**
+ * Prüft ob ein Request CSRF-blockiert werden muss.
+ * Gibt `null` zurück wenn der Request durchgelassen werden soll,
+ * ansonsten eine `NextResponse` mit 403.
+ */
+export function checkCsrf(request: CsrfRequest): NextResponse | null {
+  const method = request.method.toUpperCase()
+  if (!CSRF_METHODS.has(method)) return null
+
+  const path = request.nextUrl.pathname
+  if (!path.startsWith('/api/')) return null
+
+  for (const prefix of CSRF_WHITELIST_PREFIXES) {
+    if (path === prefix || path.startsWith(prefix)) return null
+  }
+
+  // Bearer-Auth ist nicht CSRF-anfällig (Browser sendet keine
+  // Authorization-Header automatisch bei Cross-Site-Requests).
+  const auth = request.headers.get('Authorization') ?? request.headers.get('authorization')
+  if (auth && auth.startsWith('Bearer ')) return null
+
+  const origin  = request.headers.get('origin')
+  const referer = request.headers.get('referer')
+  const reqOrigin = origin ?? (referer ? safeOrigin(referer) : null)
+
+  if (!reqOrigin || !ALLOWED_ORIGINS.has(reqOrigin)) {
+    console.warn('[csrf] reject', { method, path, origin, referer })
+    return NextResponse.json({ error: 'Forbidden: origin mismatch' }, { status: 403 })
+  }
+
+  return null
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rate Limiting
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Redis-based rate limiting (Upstash) with in-memory fallback
 type Limiter = { limit: (key: string) => Promise<{ success: boolean }> }
 let ratelimiter: Limiter | null = null
@@ -70,6 +173,10 @@ function createInMemoryLimiter() {
 const RATE_LIMITED = /^\/(api\/portal|api\/public|api\/signup|api\/auth\/delete-account|api\/staff\/accept|api\/staff\/link|api\/avv|api\/newsletter)\//
 
 export async function proxy(request: NextRequest) {
+  // CSRF-Check VOR Rate-Limit (günstiger, blockt Bot-Attacks früher)
+  const csrfReject = checkCsrf(request)
+  if (csrfReject) return csrfReject
+
   if (RATE_LIMITED.test(request.nextUrl.pathname)) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
     const rl = await getRatelimiter()

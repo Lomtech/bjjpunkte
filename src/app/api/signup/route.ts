@@ -5,6 +5,7 @@ import Stripe from 'stripe'
 import { notifyGym } from '@/lib/notify'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { getAppUrl } from '@/lib/app-url'
+import { uploadSignature } from '@/lib/signature-storage'
 
 // Uses service role to bypass RLS — safe because we validate the signup_token
 function serviceClient() {
@@ -134,7 +135,10 @@ export async function POST(req: Request) {
       address:                 address?.trim() || null,
       emergency_contact_name:  emergencyContactName?.trim() || null,
       emergency_contact_phone: emergencyContactPhone?.trim() || null,
-      signature_data:          signatureData || null,
+      // Plaintext-base64 wird NIE in die DB geschrieben — Upload zu Storage erfolgt
+      // direkt nach dem Insert (siehe unten). DSGVO Art. 32: signature_data hält
+      // ab jetzt nur noch Storage-Paths.
+      signature_data:          null,
       consent_ip:              consentIp,
       consent_user_agent:      consentUserAgent,
       consent_text:            consentText,
@@ -160,6 +164,30 @@ export async function POST(req: Request) {
   if (error) {
     console.error('Signup insert error:', error)
     return NextResponse.json({ error: 'Registrierung fehlgeschlagen.' }, { status: 500 })
+  }
+
+  // ── Signatur ins private Storage hochladen ──────────────────────────────────
+  // Plaintext-base64-PNG (data:image/...) wird zum binären PNG im privaten
+  // Bucket `member-signatures`. Die Spalte `signature_data` hält danach nur
+  // noch den Storage-Path. Bei Upload-Fehler bleibt signature_data NULL —
+  // PDF rendert dann die leere Unterschriftslinie statt zu crashen.
+  if (signatureData && typeof signatureData === 'string' && signatureData.startsWith('data:image/')) {
+    try {
+      const sigPath = await uploadSignature(gymId, member.id, signatureData)
+      if (sigPath) {
+        const { error: updErr } = await supabase
+          .from('members')
+          .update({ signature_data: sigPath })
+          .eq('id', member.id)
+        if (updErr) {
+          console.warn('Signup: signature path update failed:', updErr.message)
+        }
+      } else {
+        console.warn('Signup: signature upload returned null — member', member.id, 'has no signature stored')
+      }
+    } catch (sigErr) {
+      console.warn('Signup: signature upload threw:', sigErr instanceof Error ? sigErr.message : sigErr)
+    }
   }
 
   // Auto-create lead so the gym owner sees new signups in Interessenten

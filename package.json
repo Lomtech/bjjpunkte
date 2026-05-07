@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx tests/osss-test.ts",
-    "test:prod": "tsx tests/osss-test.ts --url https://bjjpunkte.vercel.app"
+    "test:prod": "tsx tests/osss-test.ts --url https://bjjpunkte.vercel.app",
+    "test:smoke": "tsx tests/smoke/index.ts",
+    "test:smoke:prod": "TEST_API_BASE=https://www.osss.pro tsx tests/smoke/index.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",

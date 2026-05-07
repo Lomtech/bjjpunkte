@@ -4,6 +4,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolveTemplate, type ContractKind } from '@/lib/legal/default-contract'
 import { renderToStream, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
+import { loadSignatureForPdf } from '@/lib/signature-storage'
 import React from 'react'
 
 // Node-Runtime, weil @react-pdf/renderer auf Node-APIs angewiesen ist.
@@ -93,10 +94,13 @@ interface ContractPdfProps {
     consent_user_agent: string | null
     signature_data: string | null
   }
+  // Bereits aufgelöste data-URL (entweder Legacy-Plaintext aus DB oder aus
+  // Storage-Path heruntergeladen). null = keine Signatur → leere Linie.
+  signatureSrc: string | null
   gym: { name: string | null; address: string | null }
 }
 
-function ContractPdf({ body, title, member, gym }: ContractPdfProps) {
+function ContractPdf({ body, title, member, gym, signatureSrc }: ContractPdfProps) {
   const fullName = `${member.first_name} ${member.last_name}`.trim()
   const signedAt = member.contract_signed_at
     ? new Date(member.contract_signed_at).toLocaleString('de-DE')
@@ -128,9 +132,9 @@ function ContractPdf({ body, title, member, gym }: ContractPdfProps) {
         {/* Signatur-Block */}
         <View style={styles.signatureBox}>
           <Text style={styles.signatureLabel}>UNTERSCHRIFT MITGLIED</Text>
-          {member.signature_data?.startsWith('data:image/') ? (
+          {signatureSrc ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <Image style={styles.signatureImage} src={member.signature_data} />
+            <Image style={styles.signatureImage} src={signatureSrc} />
           ) : (
             <View style={styles.signatureLine} />
           )}
@@ -208,11 +212,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   })
   const { title, body } = splitTemplate(fullText)
 
+  // Signatur auflösen: Storage-Path → data-URL, oder Legacy-Plaintext direkt
+  // weiterreichen. Bei Fehler/null rendert das PDF die leere Unterschriftslinie.
+  const signatureSrc = await loadSignatureForPdf(member.signature_data ?? null)
+
   const stream = await renderToStream(
     <ContractPdf
       title={title}
       body={body}
       member={member}
+      signatureSrc={signatureSrc}
       gym={{ name: gym.name, address: gym.address }}
     />
   )

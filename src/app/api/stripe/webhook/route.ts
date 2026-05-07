@@ -81,13 +81,17 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  // Atomic dedup via stripe_events table — UNIQUE index on event_id rejects duplicates
+  // Atomic dedup via stripe_events table — UNIQUE index on event_id rejects duplicates.
+  // This MUST run before any state-changing side effects (members.update, payments.insert,
+  // sendMemberPaymentFailedEmail, …) so that Stripe's at-least-once retries cannot replay them.
   const { error: dedupErr } = await supabase
     .from('stripe_events')
-    .insert({ event_id: event.id } as never)
+    .insert({ event_id: event.id, type: event.type })
   // 23505 = unique_violation → duplicate event, already processed
   if (dedupErr) {
-    if ((dedupErr as { code?: string }).code === '23505') return NextResponse.json({ received: true })
+    if ((dedupErr as { code?: string }).code === '23505') {
+      return NextResponse.json({ received: true, duplicate: true })
+    }
     console.error('[webhook] stripe_events insert error:', dedupErr)
     return NextResponse.json({ error: 'Dedup insert failed' }, { status: 500 })
   }

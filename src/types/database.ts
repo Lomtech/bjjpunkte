@@ -96,6 +96,7 @@ export interface Database {
           ustid: string | null
           is_kleinunternehmer: boolean | null
           bank_iban: string | null
+          bank_iban_enc: string | null
           bank_bic: string | null
           bank_name: string | null
           legal_name: string | null
@@ -171,6 +172,7 @@ export interface Database {
           ustid?: string | null
           is_kleinunternehmer?: boolean | null
           bank_iban?: string | null
+          bank_iban_enc?: string | null
           bank_bic?: string | null
           bank_name?: string | null
           legal_name?: string | null
@@ -234,6 +236,7 @@ export interface Database {
           ustid?: string | null
           is_kleinunternehmer?: boolean | null
           bank_iban?: string | null
+          bank_iban_enc?: string | null
           bank_bic?: string | null
           bank_name?: string | null
           legal_name?: string | null
@@ -563,9 +566,9 @@ export interface Database {
         Relationships: [{ foreignKeyName: 'gym_staff_gym_id_fkey'; columns: ['gym_id']; isOneToOne: false; referencedRelation: 'gyms'; referencedColumns: ['id'] }]
       }
       stripe_events: {
-        Row: { id: string; event_id: string; created_at: string }
-        Insert: { event_id: string; id?: string; created_at?: string }
-        Update: { event_id?: string; id?: string; created_at?: string }
+        Row: { id: string; event_id: string; type: string | null; created_at: string }
+        Insert: { event_id: string; type?: string | null; id?: string; created_at?: string }
+        Update: { event_id?: string; type?: string | null; id?: string; created_at?: string }
         Relationships: Rel[]
       }
       training_logs: {
