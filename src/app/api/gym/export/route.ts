@@ -315,8 +315,10 @@ export async function GET(req: Request) {
       stripes_enabled:     gym.stripes_enabled ?? null,
       class_types:         gym.class_types,
       // Member portal
-      contract_template:   gym.contract_template,
-      signup_enabled:      gym.signup_enabled,
+      contract_template:           gym.contract_template,
+      wellpass_agreement_template: (gym as { wellpass_agreement_template?: string | null }).wellpass_agreement_template ?? null,
+      trial_rules_template:        (gym as { trial_rules_template?: string | null }).trial_rules_template ?? null,
+      signup_enabled:              gym.signup_enabled,
       // Contact / social
       whatsapp_number:     gym.whatsapp_number,
       instagram_url:       gym.instagram_url,

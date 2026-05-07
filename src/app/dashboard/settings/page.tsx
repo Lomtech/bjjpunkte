@@ -81,6 +81,9 @@ function SettingsPageInner() {
   const [signupEnabled, setSignupEnabled]       = useState(false)
   const [signupToken, setSignupToken]           = useState<string | null>(null)
   const [contractTemplate, setContractTemplate] = useState('')
+  const [wellpassTemplate, setWellpassTemplate] = useState('')
+  const [trialTemplate, setTrialTemplate] = useState('')
+  const [contractTab, setContractTab] = useState<'membership' | 'wellpass' | 'trial'>('membership')
   const [signupSaving, setSignupSaving]         = useState(false)
   const [signupSaved, setSignupSaved]           = useState(false)
   const [copiedSignup, setCopiedSignup]         = useState(false)
@@ -222,6 +225,8 @@ function SettingsPageInner() {
         setSignupEnabled(data.signup_enabled ?? true)
         setSignupToken(data.signup_token ?? null)
         setContractTemplate(data.contract_template ?? '')
+        setWellpassTemplate((data as { wellpass_agreement_template?: string | null }).wellpass_agreement_template ?? '')
+        setTrialTemplate((data as { trial_rules_template?: string | null }).trial_rules_template ?? '')
 
         setLegalName(data.legal_name ?? '')
         setLegalAddress(data.legal_address ?? '')
@@ -413,7 +418,13 @@ function SettingsPageInner() {
     setSignupSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({ signup_enabled: signupEnabled, contract_template: contractTemplate }).eq('owner_id', user?.id ?? '')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('gyms') as any).update({
+      signup_enabled:              signupEnabled,
+      contract_template:           contractTemplate || null,
+      wellpass_agreement_template: wellpassTemplate || null,
+      trial_rules_template:        trialTemplate || null,
+    }).eq('owner_id', user?.id ?? '')
     setSignupSaving(false); setSignupSaved(true); setTimeout(() => setSignupSaved(false), 2000)
   }
 
@@ -1548,15 +1559,83 @@ function SettingsPageInner() {
                 </div>
               )}
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'contractTemplate')}</label>
-                <textarea
-                  value={contractTemplate}
-                  onChange={e => setContractTemplate(e.target.value)}
-                  rows={8}
-                  placeholder={lang === 'en' ? 'Membership agreement…' : 'Mitgliedschaftsvertrag…'}
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm font-mono placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
-                />
-                <p className="text-xs text-zinc-400 mt-1">{t('settings', 'contractTemplateHint')}</p>
+                <label className="block text-xs font-medium text-zinc-600 mb-2">Vertrags-Vorlagen</label>
+
+                {/* Tab-Buttons: Mitglied / Wellpass / Probetraining */}
+                <div className="flex items-center gap-1 mb-2 border-b border-zinc-200">
+                  {([
+                    { key: 'membership', label: 'Mitgliedschaft',  hint: 'Voll-Vertrag mit Tarif + SEPA' },
+                    { key: 'wellpass',   label: 'Wellpass / Anbieter', hint: 'Kurz-Vereinbarung · kein SEPA' },
+                    { key: 'trial',      label: 'Probetraining',  hint: 'Schnupperstunde · Haftung + Verhalten' },
+                  ] as const).map(tab => {
+                    const isActive = contractTab === tab.key
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setContractTab(tab.key)}
+                        className={`px-3 py-1.5 text-xs font-semibold border-b-2 -mb-px transition-colors ${
+                          isActive
+                            ? 'border-amber-400 text-zinc-900'
+                            : 'border-transparent text-zinc-500 hover:text-zinc-700'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {contractTab === 'membership' && (
+                  <>
+                    <textarea
+                      value={contractTemplate}
+                      onChange={e => setContractTemplate(e.target.value)}
+                      rows={10}
+                      placeholder="Mitgliedschaftsvertrag (volle Bedingungen, SEPA, Tarife) — leer lassen für System-Default"
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm font-mono placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
+                    />
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Voller Mitgliedsvertrag für Direkt-Mitglieder. Leer = System-Default mit Hausordnung,
+                      Haftungsausschluss, Kündigung, Datenschutz. Platzhalter:
+                      <code className="bg-zinc-100 px-1 rounded mx-1">{'{{gym_name}}'}</code>
+                      <code className="bg-zinc-100 px-1 rounded mx-1">{'{{gym_address}}'}</code>
+                      <code className="bg-zinc-100 px-1 rounded mx-1">{'{{gym_url}}'}</code>
+                    </p>
+                  </>
+                )}
+
+                {contractTab === 'wellpass' && (
+                  <>
+                    <textarea
+                      value={wellpassTemplate}
+                      onChange={e => setWellpassTemplate(e.target.value)}
+                      rows={10}
+                      placeholder="Vereinbarung für Anbieter-Mitglieder (Wellpass / Hansefit / EGYM / Urban Sports) — leer lassen für System-Default"
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm font-mono placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
+                    />
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Kurze 4-Punkte-Vereinbarung für Anbieter-Mitglieder (kein SEPA — der Anbieter zahlt).
+                      Leer = System-Default mit Verhalten, §823 BGB, Haftungsausschluss, Hausordnung.
+                    </p>
+                  </>
+                )}
+
+                {contractTab === 'trial' && (
+                  <>
+                    <textarea
+                      value={trialTemplate}
+                      onChange={e => setTrialTemplate(e.target.value)}
+                      rows={10}
+                      placeholder="Regelungen für Probestunden — leer lassen für System-Default"
+                      className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm font-mono placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
+                    />
+                    <p className="text-xs text-zinc-400 mt-1">
+                      Kurz-Regelungen für Probetraining / Schnupperstunde. Leer = System-Default mit
+                      Verhalten, Haftung, Hausordnung — angepasst an „Interessent&ldquo; statt „Mitglied&ldquo;.
+                    </p>
+                  </>
+                )}
               </div>
               <button type="button" onClick={handleSignupSave} disabled={signupSaving} className={saveBtnCls}>
                 <Save size={14} />

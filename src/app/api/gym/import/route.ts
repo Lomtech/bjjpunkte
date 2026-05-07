@@ -186,7 +186,7 @@ export async function POST(req: Request) {
   const gymAllowed = [
     'name', 'address', 'phone', 'email', 'slug', 'founded_year',
     'sport_type', 'belt_system', 'belt_system_enabled', 'stripes_enabled', 'class_types',
-    'contract_template', 'signup_enabled',
+    'contract_template', 'wellpass_agreement_template', 'trial_rules_template', 'signup_enabled',
     'whatsapp_number', 'instagram_url', 'facebook_url', 'website_url',
     'tagline', 'about', 'opening_hours', 'impressum_text',
     'hero_title', 'hero_subtitle', 'accent_color', 'hero_image_position',

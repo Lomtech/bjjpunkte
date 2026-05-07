@@ -26,7 +26,7 @@ export async function GET(req: Request) {
   }
   const { data: gym, error } = await supabase
     .from('gyms')
-    .select('id, name, contract_template, signup_enabled')
+    .select('id, name, address, contract_template, signup_enabled, website_url')
     .eq('signup_token', token)
     .single()
 
@@ -40,13 +40,18 @@ export async function GET(req: Request) {
     .eq('is_active', true)
     .order('sort_order')
 
-  // Wenn kein eigenes Template → Default mit Hausordnung+Haftungsausschluss verwenden
+  // Wenn kein eigenes Template → Default mit Hausordnung+Haftungsausschluss verwenden.
+  // Platzhalter ({{gym_name}} usw.) werden hier serverseitig durch Studio-Daten ersetzt.
   const { resolveContractTemplate } = await import('@/lib/legal/default-contract')
 
   return NextResponse.json({
     gymId:            gym.id,
     gymName:          gym.name,
-    contractTemplate: resolveContractTemplate(gym.contract_template),
+    contractTemplate: resolveContractTemplate(gym.contract_template, {
+      name:    gym.name,
+      address: gym.address ?? null,
+      url:     gym.website_url ?? null,
+    }),
     plans:            plans ?? [],
   })
 }

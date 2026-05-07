@@ -129,6 +129,8 @@ export interface Database {
           signup_token: string | null
           signup_enabled: boolean | null
           contract_template: string | null
+          wellpass_agreement_template: string | null
+          trial_rules_template: string | null
           // Belt (extended)
           stripes_enabled: boolean | null
           // Public page (extended)
@@ -197,6 +199,8 @@ export interface Database {
           signup_token?: string | null
           signup_enabled?: boolean | null
           contract_template?: string | null
+          wellpass_agreement_template?: string | null
+          trial_rules_template?: string | null
           stripes_enabled?: boolean | null
           hero_title?: string | null
           hero_subtitle?: string | null
@@ -258,6 +262,8 @@ export interface Database {
           signup_token?: string | null
           signup_enabled?: boolean | null
           contract_template?: string | null
+          wellpass_agreement_template?: string | null
+          trial_rules_template?: string | null
           stripes_enabled?: boolean | null
           hero_title?: string | null
           hero_subtitle?: string | null
