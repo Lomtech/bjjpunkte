@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { OsssLogo } from '@/components/Logo'
 import { getArticleBySlug, getRelatedArticles, ARTICLES_SORTED } from '@/lib/blog'
-import { ArrowLeft, ArrowRight, Clock, Calendar } from 'lucide-react'
+import { ArrowRight, Clock, Calendar } from 'lucide-react'
+import { TopNav } from '@/components/TopNav'
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -71,14 +71,7 @@ export default async function BlogArticlePage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
       />
 
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100">
-        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/blog" className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium">
-            <ArrowLeft size={15} /> Blog
-          </Link>
-          <OsssLogo variant="dark" />
-        </div>
-      </nav>
+      <TopNav back={{ href: '/blog', label: 'Blog' }} />
 
       <article className="flex-1 max-w-3xl mx-auto px-5 py-12 sm:py-16 w-full">
 

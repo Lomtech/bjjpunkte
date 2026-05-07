@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { OsssLogo } from '@/components/Logo'
 import { ARTICLES_SORTED } from '@/lib/blog'
 import { ArrowRight, Clock } from 'lucide-react'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
+import { TopNav } from '@/components/TopNav'
 
 export const metadata: Metadata = {
   title: 'Blog – Praxis-Wissen für Kampfsport-Vereine',
@@ -25,17 +25,7 @@ export default function BlogIndexPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
 
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100">
-        <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
-          <OsssLogo variant="dark" />
-          <div className="flex items-center gap-6">
-            <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">Preise</Link>
-            <Link href="/register" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
-              Kostenlos starten
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <TopNav />
 
       {/* Header */}
       <header className="border-b border-zinc-100 bg-white">

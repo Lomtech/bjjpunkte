@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { OsssLogo } from '@/components/Logo'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
-import { ArrowLeft, Calculator, ArrowRight, Clock, Euro, TrendingDown, Zap } from 'lucide-react'
+import { Calculator, ArrowRight, Clock, Euro, TrendingDown, Zap } from 'lucide-react'
+import { TopNav } from '@/components/TopNav'
 
 /**
  * Gym-Software-Kosten-Rechner
@@ -69,17 +69,7 @@ export default function RechnerPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
 
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100">
-        <div className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/ressourcen" className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium">
-            <ArrowLeft size={15} /> Ressourcen
-          </Link>
-          <OsssLogo variant="dark" />
-          <Link href="/register" className="hidden sm:inline-block bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
-            Kostenlos starten
-          </Link>
-        </div>
-      </nav>
+      <TopNav back={{ href: '/ressourcen', label: 'Ressourcen' }} />
 
       <main className="flex-1 max-w-4xl mx-auto px-5 py-12 sm:py-16 w-full">
 

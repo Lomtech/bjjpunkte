@@ -4,10 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { OsssLogo } from '@/components/Logo'
-import { ArrowLeft, Check, Zap, Shield, CreditCard, Clock } from 'lucide-react'
+import { Check, Zap, Shield, CreditCard, Clock } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { TopNav } from '@/components/TopNav'
 
 export default function PricingPage() {
   const router = useRouter()
@@ -248,32 +247,7 @@ export default function PricingPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(offerSchema) }}
       />
 
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100">
-        <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-900 transition-colors font-medium"
-            >
-              <ArrowLeft size={15} />
-              <span className="hidden sm:inline">{en ? 'Back' : 'Zurück'}</span>
-            </button>
-            <span className="text-zinc-200 hidden sm:block">|</span>
-            <OsssLogo variant="dark" />
-          </div>
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher variant="minimal" />
-            <Link
-              href="/register"
-              className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5"
-            >
-              <Zap size={13} />
-              {en ? 'Start for free' : 'Kostenlos starten'}
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <TopNav />
 
       {/* Header */}
       <div className="bg-zinc-950 text-white px-5 pt-16 pb-20 text-center relative overflow-hidden">

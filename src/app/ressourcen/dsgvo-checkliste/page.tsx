@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
-import { ArrowLeft, Check, AlertCircle, X } from 'lucide-react'
+import { Check, AlertCircle, X } from 'lucide-react'
 import { PrintButton } from './PrintButton'
+import { TopNav } from '@/components/TopNav'
 
 export const metadata: Metadata = {
   title: 'DSGVO-Checkliste für Kampfsport-Vereine 2026',
@@ -81,22 +82,22 @@ export default function DSGVOChecklistePage() {
     <div className="min-h-screen bg-white flex flex-col">
 
       {/* Nav (hidden on print) */}
-      <nav className="print:hidden sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100">
-        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link href="/ressourcen" className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium">
-            <ArrowLeft size={15} /> Ressourcen
-          </Link>
-          <PrintButton />
-        </div>
-      </nav>
+      <div className="print:hidden">
+        <TopNav back={{ href: '/ressourcen', label: 'Ressourcen' }} />
+      </div>
 
       <article className="flex-1 max-w-3xl mx-auto px-5 py-10 sm:py-14 w-full">
 
         {/* Header */}
         <header className="mb-8 pb-6 border-b border-zinc-100">
-          <p className="text-amber-500 font-bold text-[10px] uppercase tracking-[0.3em] mb-3 print:text-amber-700">
-            Checkliste · Stand 2026
-          </p>
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <p className="text-amber-500 font-bold text-[10px] uppercase tracking-[0.3em] print:text-amber-700">
+              Checkliste · Stand 2026
+            </p>
+            <div className="print:hidden flex-shrink-0">
+              <PrintButton />
+            </div>
+          </div>
           <h1 className="text-3xl sm:text-5xl font-black text-zinc-950 tracking-tighter leading-[1.1] mb-4">
             DSGVO im Kampfsport-Verein.<br className="hidden sm:block" /><span className="text-zinc-500">Die ehrliche Pflicht-Liste.</span>
           </h1>
