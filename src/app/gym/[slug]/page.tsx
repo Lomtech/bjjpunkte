@@ -756,6 +756,33 @@ export default function PublicGymPage() {
               })}
             </div>
           </div>
+
+          {/* Wellpass-Hinweis — alternative Onboarding-Variante neben Tarifen */}
+          <div data-reveal className="mt-12 max-w-3xl mx-auto" style={{ transitionDelay: '120ms' }}>
+            <a
+              href={`/wellpass/${encodeURIComponent(slug ?? '')}`}
+              className="block bg-emerald-50 border border-emerald-200 rounded-2xl p-5 hover:bg-emerald-100 transition-colors"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-emerald-900 text-base">
+                    {lang === 'en' ? 'Wellpass / Hansefit / EGYM customer?' : 'Wellpass / Hansefit / EGYM-Kunde?'}
+                  </p>
+                  <p className="text-sm text-emerald-700 leading-relaxed mt-1">
+                    {lang === 'en'
+                      ? <>No need to pick a tariff above — your provider covers the cost. Sign up directly via the short Wellpass agreement (adults only, 18+).</>
+                      : <>Keiner der Tarife oben nötig — dein Anbieter zahlt. Direkt anmelden über die kurze Wellpass-Vereinbarung (nur für Erwachsene, ab 18 Jahren).</>}
+                  </p>
+                  <span className="inline-flex items-center gap-1.5 mt-3 text-emerald-800 text-sm font-bold">
+                    {lang === 'en' ? 'Sign up via Wellpass' : 'Über Wellpass anmelden'} <ChevronRight size={14} />
+                  </span>
+                </div>
+              </div>
+            </a>
+          </div>
         </section>
         <SectionWave fromBg="bg-white" toBg="bg-zinc-50" />
       </>)}

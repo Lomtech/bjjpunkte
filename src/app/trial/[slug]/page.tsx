@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'next/navigation'
-import { CheckCircle2, ChevronRight, ChevronLeft, AlertCircle, Calendar, Clock, User } from 'lucide-react'
+import Link from 'next/link'
+import { CheckCircle2, ChevronRight, ChevronLeft, AlertCircle, Calendar, Clock, User, Sparkles } from 'lucide-react'
 import { LogoMark } from '@/components/Logo'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { startOfWeek, addDays, CLASS_LABELS } from '@/lib/constants'
 
 interface GymInfo {
   id: string
@@ -26,21 +28,37 @@ interface ClassSlot {
 
 const INPUT = 'w-full px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-colors'
 
-const TYPE_LABELS: Record<string, string> = {
-  gi: 'Gi', 'no-gi': 'No-Gi', 'open mat': 'Open Mat', kids: 'Kids', competition: 'Competition',
+// Konsistent mit Lead-Portal + Member-Portal
+const TYPE_COLORS: Record<string, string> = {
+  gi:          'bg-blue-50 text-blue-700',
+  'no-gi':     'bg-zinc-100 text-zinc-700',
+  'open mat':  'bg-amber-50 text-amber-700',
+  kids:        'bg-green-50 text-green-700',
+  competition: 'bg-red-50 text-red-700',
+}
+const TYPE_DOT: Record<string, string> = {
+  gi:          'bg-blue-400',
+  'no-gi':     'bg-zinc-400',
+  'open mat':  'bg-amber-400',
+  kids:        'bg-green-400',
+  competition: 'bg-red-400',
+}
+
+const WEEKDAYS_DE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+const WEEKDAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
 function formatTime(iso: string, locale = 'de-DE') {
   return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
-function formatDay(iso: string, locale = 'de-DE') {
-  return new Date(iso).toLocaleDateString(locale, { weekday: 'long', day: '2-digit', month: 'long' })
-}
-
 export default function TrialPage() {
   const { slug } = useParams() as { slug: string }
   const { lang } = useLanguage()
+  const locale = lang === 'en' ? 'en-GB' : 'de-DE'
 
   const [step, setStep]           = useState<1 | 2 | 3>(1)
   const [gymInfo, setGymInfo]     = useState<GymInfo | null>(null)
@@ -60,6 +78,11 @@ export default function TrialPage() {
   const [trialContract, setTrialContract] = useState<string>('')
   const [rulesAccepted, setRulesAccepted] = useState(false)
 
+  // Schedule-Navigation (analog Member/Lead-Portal)
+  const todayDate  = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d }, [])
+  const [weekStart, setWeekStart]     = useState<Date>(() => startOfWeek(new Date()))
+  const [selectedDay, setSelectedDay] = useState<Date>(todayDate)
+
   useEffect(() => {
     fetch(`/api/public/gym/${encodeURIComponent(slug)}`)
       .then(async r => {
@@ -71,7 +94,7 @@ export default function TrialPage() {
       })
       .catch(() => setLoadErr(lang === 'en' ? 'Connection error – please check your internet connection.' : 'Verbindungsfehler – bitte Internetverbindung prüfen.'))
       .finally(() => setLoading(false))
-  }, [slug])
+  }, [slug, lang])
 
   const step1Valid = firstName.trim() && lastName.trim() && email.trim().includes('@')
 
@@ -95,7 +118,6 @@ export default function TrialPage() {
           phone:      phone.trim() || null,
           message:    message.trim() || null,
           class_id:   classId,
-          // eIDAS Art. 25(1) Acknowledgment — Server speichert IP + UA
           trial_consent_accepted: true,
           trial_consent_text:     trialContract,
         }),
@@ -109,13 +131,12 @@ export default function TrialPage() {
     setSubmitting(false)
   }
 
-  // Group classes by day
-  const byDay = classes.reduce<Record<string, ClassSlot[]>>((acc, cls) => {
-    const day = new Date(cls.starts_at).toDateString()
-    if (!acc[day]) acc[day] = []
-    acc[day].push(cls)
-    return acc
-  }, {})
+  // Klassen für gewählten Tag
+  const dayClasses = useMemo(
+    () => classes.filter(c => isSameDay(new Date(c.starts_at), selectedDay))
+                 .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()),
+    [classes, selectedDay],
+  )
 
   const steps = [
     { n: 1 as const, label: lang === 'en' ? 'Details' : 'Daten' },
@@ -195,6 +216,34 @@ export default function TrialPage() {
         </div>
       </div>
 
+      {/* Wellpass-Hinweis-Banner — nur Step 1 (oberste Stufe), damit Wellpass-
+          Kunden nicht den Probetraining-Pfad gehen, sondern direkt anmelden. */}
+      {step === 1 && (
+        <div className="max-w-lg mx-auto px-4 pt-5">
+          <Link
+            href={`/wellpass/${encodeURIComponent(slug)}`}
+            className="block bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 hover:bg-emerald-100 transition-colors"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                <Sparkles size={16} className="text-emerald-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-emerald-900 text-sm">
+                  {lang === 'en' ? 'Wellpass / Hansefit / EGYM customer?' : 'Wellpass / Hansefit / EGYM-Kunde?'}
+                </p>
+                <p className="text-xs text-emerald-700 leading-snug mt-0.5">
+                  {lang === 'en'
+                    ? <>Skip the trial — sign up directly. Adults only (18+).</>
+                    : <>Direkt anmelden statt Probetraining — über die Anbieter-Vereinbarung. Nur für Erwachsene (ab 18 Jahren).</>}
+                </p>
+              </div>
+              <ChevronRight size={16} className="text-emerald-500 flex-shrink-0 mt-1" />
+            </div>
+          </Link>
+        </div>
+      )}
+
       {/* Content */}
       <div className="max-w-lg mx-auto px-4 py-8">
 
@@ -242,51 +291,156 @@ export default function TrialPage() {
           </div>
         )}
 
-        {/* Step 2: Class selection */}
+        {/* Step 2: Class selection — Schedule-Style wie Member/Lead-Portal */}
         {step === 2 && (
           <div>
             <h2 className="text-2xl font-black text-zinc-900 mb-1">{lang === 'en' ? 'Choose a class' : 'Klasse wählen'}</h2>
-            <p className="text-zinc-400 text-sm mb-6">{lang === 'en' ? 'Optional — you can also enquire without a slot.' : 'Optional — du kannst auch ohne Slot anfragen.'}</p>
+            <p className="text-zinc-400 text-sm mb-4">{lang === 'en' ? 'Optional — you can also enquire without a slot.' : 'Optional — du kannst auch ohne Slot anfragen.'}</p>
 
-            {classes.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-zinc-200 p-8 text-center mb-6">
-                <Calendar size={28} className="text-zinc-200 mx-auto mb-2" />
-                <p className="text-zinc-400 text-sm">{lang === 'en' ? 'No upcoming classes listed.' : 'Keine bevorstehenden Klassen eingetragen.'}</p>
+            {/* Stundenplan-Card (analog Lead-/Member-Portal) */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4">
+
+              {/* Stundenplan-Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                <h3 className="font-semibold text-slate-900 flex items-center gap-2 text-sm">
+                  <Calendar size={14} className="text-amber-500" />
+                  {lang === 'en' ? 'Schedule' : 'Stundenplan'}
+                </h3>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      const prev = addDays(weekStart, -7)
+                      setWeekStart(prev)
+                      setSelectedDay(addDays(selectedDay, -7))
+                    }}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setWeekStart(startOfWeek(new Date()))
+                      setSelectedDay(todayDate)
+                    }}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 text-slate-600 text-xs font-medium hover:bg-slate-50 transition-colors"
+                  >
+                    {lang === 'en' ? 'Today' : 'Heute'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const next = addDays(weekStart, 7)
+                      setWeekStart(next)
+                      setSelectedDay(addDays(selectedDay, 7))
+                    }}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-4 mb-6">
-                {Object.entries(byDay).map(([day, dayClasses]) => (
-                  <div key={day}>
-                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">{formatDay(dayClasses[0].starts_at, lang === 'en' ? 'en-GB' : 'de-DE')}</p>
-                    <div className="space-y-2">
-                      {dayClasses.map(cls => {
-                        const full = cls.spots_left !== null && cls.spots_left <= 0
-                        const selected = classId === cls.id
-                        return (
-                          <button
-                            key={cls.id}
-                            type="button"
-                            disabled={full}
-                            onClick={() => setClassId(selected ? null : cls.id)}
-                            className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                              full ? 'opacity-40 cursor-not-allowed border-zinc-100 bg-white' :
-                              selected ? 'border-amber-400 bg-amber-50' :
-                              'border-zinc-100 bg-white hover:border-zinc-200'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="text-xs font-semibold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-md">
-                                    {TYPE_LABELS[cls.class_type] ?? cls.class_type}
+
+              {/* Day-Strip */}
+              <div className="border-b border-slate-100 bg-white overflow-x-auto">
+                <div className="flex min-w-max px-2 gap-1 py-2">
+                  {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, idx) => {
+                    const isToday = isSameDay(day, todayDate)
+                    const isSel   = isSameDay(day, selectedDay)
+                    const hasCls  = classes.some(c => isSameDay(new Date(c.starts_at), day))
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedDay(day)}
+                        className={`flex flex-col items-center px-4 py-2 rounded-xl transition-colors min-w-[52px] ${
+                          isSel ? 'bg-amber-500 text-white' : isToday ? 'bg-amber-50 text-amber-700' : 'text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="text-[10px] font-semibold uppercase tracking-wide">
+                          {(lang === 'en' ? WEEKDAYS_EN : WEEKDAYS_DE)[idx]}
+                        </span>
+                        <span className="text-sm font-bold mt-0.5">{day.getDate()}</span>
+                        {hasCls && !isSel && <span className="w-1 h-1 rounded-full bg-amber-400 mt-1" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Klassen für gewählten Tag */}
+              <div className="p-4">
+                {classes.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar size={28} className="text-zinc-200 mx-auto mb-2" />
+                    <p className="text-zinc-400 text-sm">
+                      {lang === 'en' ? 'No upcoming classes listed.' : 'Keine bevorstehenden Klassen eingetragen.'}
+                    </p>
+                  </div>
+                ) : dayClasses.length === 0 ? (
+                  <p className="text-slate-400 text-sm text-center py-8">
+                    {lang === 'en' ? 'No training on this day.' : 'Kein Training an diesem Tag.'}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {dayClasses.map(cls => {
+                      const full       = cls.spots_left !== null && cls.spots_left <= 0
+                      const selected   = classId === cls.id
+                      const typeColor  = TYPE_COLORS[cls.class_type] ?? 'bg-zinc-100 text-zinc-700'
+                      const typeDot    = TYPE_DOT[cls.class_type] ?? 'bg-zinc-300'
+                      const typeLabel  = CLASS_LABELS[cls.class_type] ?? cls.class_type
+                      const isLive     = new Date(cls.starts_at) <= new Date() && new Date(cls.ends_at) >= new Date()
+
+                      return (
+                        <button
+                          key={cls.id}
+                          type="button"
+                          disabled={full}
+                          onClick={() => setClassId(selected ? null : cls.id)}
+                          className={`w-full text-left rounded-xl border-2 transition-all overflow-hidden ${
+                            full      ? 'opacity-40 cursor-not-allowed border-zinc-100 bg-white' :
+                            selected  ? 'border-amber-400 bg-amber-50 shadow-sm' :
+                                        'border-slate-100 bg-white hover:border-zinc-200'
+                          }`}
+                        >
+                          <div className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${typeDot}`} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${typeColor}`}>
+                                    {typeLabel}
                                   </span>
-                                  {full && <span className="text-xs text-red-400 font-medium">{lang === 'en' ? 'Full' : 'Ausgebucht'}</span>}
+                                  {isLive && (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                      Live
+                                    </span>
+                                  )}
+                                  {full && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-red-50 text-red-700 border border-red-200">
+                                      {lang === 'en' ? 'Full' : 'Ausgebucht'}
+                                    </span>
+                                  )}
+                                  {selected && !full && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                                      ✓ {lang === 'en' ? 'Selected' : 'Ausgewählt'}
+                                    </span>
+                                  )}
                                 </div>
-                                <p className="font-semibold text-zinc-900 text-sm truncate">{cls.title}</p>
-                                <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400">
-                                  <span className="flex items-center gap-1"><Clock size={10} /> {formatTime(cls.starts_at, lang === 'en' ? 'en-GB' : 'de-DE')} – {formatTime(cls.ends_at, lang === 'en' ? 'en-GB' : 'de-DE')}</span>
-                                  {cls.instructor && <span className="flex items-center gap-1"><User size={10} /> {cls.instructor}</span>}
+                                <p className="text-slate-900 text-sm font-bold leading-tight">{cls.title}</p>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                  <span className="flex items-center gap-1 tabular-nums">
+                                    <Clock size={10} /> {formatTime(cls.starts_at, locale)} – {formatTime(cls.ends_at, locale)}
+                                  </span>
+                                  {cls.instructor && (
+                                    <span className="flex items-center gap-1 truncate">
+                                      <User size={10} /> {cls.instructor}
+                                    </span>
+                                  )}
                                 </div>
+                                {cls.max_capacity != null && cls.spots_left != null && !full && (
+                                  <p className="text-[11px] text-slate-400 mt-1 tabular-nums">
+                                    {cls.spots_left} {lang === 'en' ? 'of' : 'von'} {cls.max_capacity} {lang === 'en' ? 'spots free' : 'Plätzen frei'}
+                                  </p>
+                                )}
                               </div>
                               {selected && (
                                 <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
@@ -294,14 +448,14 @@ export default function TrialPage() {
                                 </div>
                               )}
                             </div>
-                          </button>
-                        )
-                      })}
-                    </div>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
-                ))}
+                )}
               </div>
-            )}
+            </div>
 
             {/* Probetraining-Regelungen — Pflicht-Acknowledgment vor Submit */}
             {trialContract && (
