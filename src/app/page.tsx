@@ -217,6 +217,7 @@ export default function Home() {
           <div className="flex items-center gap-6">
             <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
             <Link href="/blog" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Blog</Link>
+            <Link href="/ressourcen" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
             <a href="mailto:oss@osss.pro" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</a>
             <LanguageSwitcher variant="minimal" />
             {checked && (loggedIn
@@ -248,6 +249,9 @@ export default function Home() {
               className="sm:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1"
             >
               <Link href="/pricing" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
+              <Link href="/blog" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Blog</Link>
+              <Link href="/ressourcen" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
+              <Link href="/rechner" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Cost calculator' : 'Kostenrechner'}</Link>
               <a href="mailto:oss@osss.pro" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Contact' : 'Kontakt'}</a>
               {checked && !loggedIn && (
                 <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Log in' : 'Anmelden'}</Link>
@@ -355,12 +359,12 @@ export default function Home() {
 
               <motion.div variants={fadeUp} className="flex flex-wrap gap-x-7 gap-y-3">
                 {(lang === 'en' ? [
-                  { val: '30 days', label: 'free trial' },
+                  { val: '30',      label: 'free members forever' },
                   { val: '0%',      label: 'platform fee' },
                   { val: 'DATEV',   label: 'export' },
                   { val: 'GDPR',    label: 'compliant' },
                 ] : [
-                  { val: '30 Tage', label: 'gratis testen' },
+                  { val: '30',      label: 'Mitglieder dauerhaft gratis' },
                   { val: '0%',      label: 'Plattformgebühr' },
                   { val: 'DATEV',   label: 'Export' },
                   { val: 'DSGVO',   label: 'konform' },
@@ -1014,14 +1018,14 @@ export default function Home() {
         <div className="max-w-xl mx-auto relative">
           <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-950 mb-5">{lang === 'en' ? 'Your gym in 10 minutes.' : 'Dein Gym in 10 Minuten.'}</h2>
           <p className="text-zinc-800 text-lg mb-10 leading-relaxed">
-            {lang === 'en' ? <>30 days free, then €0–99 / month.<br />No credit card. No minimum term.</> : <>30 Tage gratis testen, dann €0–99 / Monat.<br />Keine Kreditkarte. Keine Mindestlaufzeit.</>}
+            {lang === 'en' ? <>Free forever up to 30 members.<br />Above that: €29-99/month, no minimum term.</> : <>Bis 30 Mitglieder dauerhaft gratis.<br />Danach: €29-99/Monat, keine Mindestlaufzeit.</>}
           </p>
           <Link href="/register"
             className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-zinc-900/25">
             <Zap size={18} className="text-amber-400" />
             {lang === 'en' ? 'Start free now' : 'Jetzt kostenlos starten'}
           </Link>
-          <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? '30 days free · No credit card · Cancel anytime' : '30 Tage gratis · Keine Kreditkarte · Jederzeit kündbar'}</p>
+          <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? 'Free up to 30 members · No credit card · Cancel anytime' : 'Bis 30 Mitglieder gratis · Keine Kreditkarte · Jederzeit kündbar'}</p>
         </div>
       </section>
 
@@ -1052,7 +1056,24 @@ export default function Home() {
             <div>
               <p className="font-bold text-zinc-900 text-sm mb-4 tracking-wide">{lang === 'en' ? 'Product' : 'Produkt'}</p>
               <ul className="space-y-3">
-                {(lang === 'en' ? [{ label: 'Pricing', href: '/pricing' }, { label: 'Blog', href: '/blog' }, { label: 'Log in', href: '/login' }, { label: 'Register', href: '/register' }] : [{ label: 'Preise', href: '/pricing' }, { label: 'Blog', href: '/blog' }, { label: 'Anmelden', href: '/login' }, { label: 'Registrieren', href: '/register' }]).map(l => (
+                {(lang === 'en'
+                  ? [
+                      { label: 'Pricing',     href: '/pricing' },
+                      { label: 'Resources',   href: '/ressourcen' },
+                      { label: 'Cost calc.',  href: '/rechner' },
+                      { label: 'Blog',        href: '/blog' },
+                      { label: 'Log in',      href: '/login' },
+                      { label: 'Register',    href: '/register' },
+                    ]
+                  : [
+                      { label: 'Preise',         href: '/pricing' },
+                      { label: 'Ressourcen',     href: '/ressourcen' },
+                      { label: 'Kostenrechner',  href: '/rechner' },
+                      { label: 'Blog',           href: '/blog' },
+                      { label: 'Anmelden',       href: '/login' },
+                      { label: 'Registrieren',   href: '/register' },
+                    ]
+                ).map(l => (
                   <li key={l.label}><Link href={l.href} className="text-zinc-500 hover:text-zinc-900 text-sm transition-colors">{l.label}</Link></li>
                 ))}
               </ul>

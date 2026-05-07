@@ -130,6 +130,12 @@ export default function PricingPage() {
 
   const FAQS = [
     {
+      q: en ? 'Is there a free trial?' : 'Gibt es eine Testphase?',
+      a: en
+        ? 'No fixed trial — but better: the Free plan is free forever for up to 30 members. No credit card required. As long as you stay below 30 members, you never pay anything. Above that, paid plans start at €29/month.'
+        : 'Keine zeitlich begrenzte Testphase — aber besser: der Free-Plan ist dauerhaft kostenlos bis 30 Mitglieder. Keine Kreditkarte nötig. Solange du unter 30 Mitgliedern bleibst, zahlst du nie etwas. Darüber kostet es ab 29 €/Monat.',
+    },
+    {
       q: en ? 'Can I cancel at any time?' : 'Kann ich jederzeit kündigen?',
       a: en
         ? 'Yes. Monthly subscriptions run until the end of the paid month. After that you automatically switch to the Free plan — your data stays intact.'
@@ -464,8 +470,8 @@ export default function PricingPage() {
           </h2>
           <p className="text-zinc-400 mb-8 text-sm leading-relaxed">
             {en
-              ? '30 days free. No credit card. Cancel with one click — your data stays.'
-              : '30 Tage gratis. Keine Kreditkarte. Kündigung in einem Klick — deine Daten bleiben.'}
+              ? 'Free forever up to 30 members. No credit card. Cancel any paid plan with one click — your data stays.'
+              : 'Bis 30 Mitglieder dauerhaft kostenlos. Keine Kreditkarte. Jeden Bezahl-Plan in einem Klick kündigen — deine Daten bleiben.'}
           </p>
           <Link
             href="/register"
