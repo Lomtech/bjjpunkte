@@ -44,6 +44,7 @@ export async function POST(req: Request) {
   const {
     first_name, last_name, email, phone, date_of_birth, join_date,
     belt, stripes, notes, contract_end_date, parent_member_id,
+    membership_source,
   } = body
 
   if (!first_name?.trim()) return NextResponse.json({ error: 'Vorname fehlt' }, { status: 400 })
@@ -56,6 +57,27 @@ export async function POST(req: Request) {
   if (!join_date) return NextResponse.json({ error: 'Eintrittsdatum fehlt' }, { status: 400 })
   const VALID_BELTS = ['white', 'blue', 'purple', 'brown', 'black']
   if (belt && !VALID_BELTS.includes(belt)) return NextResponse.json({ error: 'Ungültiger Gürtel' }, { status: 400 })
+
+  // Mitgliedschaftsart-Validierung + Volljährigkeits-Hard-Check
+  const VALID_SOURCES = ['direct', 'wellpass', 'hansefit', 'egym', 'urban_sports']
+  const ADULT_ONLY_SOURCES = new Set(['wellpass', 'hansefit', 'egym'])
+  const sourceVal: string = (typeof membership_source === 'string' && VALID_SOURCES.includes(membership_source))
+    ? membership_source
+    : 'direct'
+  if (ADULT_ONLY_SOURCES.has(sourceVal) && date_of_birth) {
+    const dob = new Date(date_of_birth)
+    if (!Number.isNaN(dob.getTime())) {
+      const today = new Date()
+      let age = today.getFullYear() - dob.getFullYear()
+      const md = today.getMonth() - dob.getMonth()
+      if (md < 0 || (md === 0 && today.getDate() < dob.getDate())) age--
+      if (age < 18) {
+        return NextResponse.json({
+          error: `${sourceVal} ist nur für Erwachsene zulässig (Anbieter-Vertrag).`,
+        }, { status: 400 })
+      }
+    }
+  }
 
   // Insert — get portal_token in same call (no extra SELECT)
   const { data: member, error } = await (supabase.from('members') as any).insert({
@@ -72,6 +94,7 @@ export async function POST(req: Request) {
     contract_end_date: contract_end_date || null,
     is_active:         true,
     parent_member_id:  parent_member_id || null,
+    membership_source: sourceVal,
   }).select('id, portal_token').single()
 
   if (error) {

@@ -5,8 +5,17 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Save } from 'lucide-react'
-import type { Belt } from '@/types/database'
+import type { Belt, MembershipSource } from '@/types/database'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { calculateAge, isMinor } from '@/lib/age'
+
+const SOURCE_OPTIONS: { value: MembershipSource; label: string; hint?: string; adultOnly?: boolean }[] = [
+  { value: 'direct',        label: 'Direktes Mitglied' },
+  { value: 'wellpass',      label: 'Wellpass',       hint: 'Arbeitgeber zahlt · nur Erwachsene · kein SEPA',  adultOnly: true },
+  { value: 'hansefit',      label: 'Hansefit',       hint: 'Arbeitgeber zahlt · nur Erwachsene · kein SEPA',  adultOnly: true },
+  { value: 'egym',          label: 'EGYM Wellpass',  hint: 'Arbeitgeber zahlt · nur Erwachsene · kein SEPA',  adultOnly: true },
+  { value: 'urban_sports',  label: 'Urban Sports Club', hint: 'Anbieter zahlt · kein SEPA' },
+]
 
 const BELTS: Belt[] = ['white', 'blue', 'purple', 'brown', 'black']
 const BELT_CLASSES: Record<Belt, string> = {
@@ -42,6 +51,7 @@ export default function EditMemberPage() {
     notes: '', contract_end_date: '',
     address: '', emergency_contact_name: '', emergency_contact_phone: '',
     monthly_fee_override_cents: '',
+    membership_source: 'direct' as MembershipSource,
   })
 
   useEffect(() => {
@@ -67,6 +77,7 @@ export default function EditMemberPage() {
           monthly_fee_override_cents: d.monthly_fee_override_cents
             ? String(Number(d.monthly_fee_override_cents) / 100)
             : '',
+          membership_source: ((d.membership_source as MembershipSource) ?? 'direct') as MembershipSource,
         })
         setParentMemberId(String(d.parent_member_id ?? ''))
       }
@@ -94,8 +105,17 @@ export default function EditMemberPage() {
     setForm(f => ({ ...f, [field]: value }))
   }
 
+  // Wellpass/Hansefit/EGYM = nur Erwachsene
+  const sourceCfg = SOURCE_OPTIONS.find(o => o.value === form.membership_source)
+  const ageBlocked = !!(sourceCfg?.adultOnly && form.date_of_birth && isMinor(form.date_of_birth))
+  const memberAge = form.date_of_birth ? calculateAge(form.date_of_birth) : null
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (ageBlocked) {
+      setError(`${sourceCfg?.label} ist nur für Erwachsene zulässig — Anbieter-Vertrag verbietet Minderjährige.`)
+      return
+    }
     setSaving(true); setError('')
     const supabase = createClient()
 
@@ -119,6 +139,7 @@ export default function EditMemberPage() {
       emergency_contact_phone:   form.emergency_contact_phone.trim() || null,
       monthly_fee_override_cents: overrideCents,
       parent_member_id: parentMemberId || null,
+      membership_source:         form.membership_source,
     }).eq('id', id)
 
     if (err) { setError(err.message); setSaving(false); return }
@@ -226,6 +247,34 @@ export default function EditMemberPage() {
           </div>
         </div>
 
+        {/* Mitgliedschaftsart */}
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mitgliedschaftsart</p>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Quelle</label>
+            <select
+              value={form.membership_source}
+              onChange={e => set('membership_source', e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+            >
+              {SOURCE_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            {sourceCfg?.hint && (
+              <p className="text-xs text-slate-500 mt-1.5">{sourceCfg.hint}</p>
+            )}
+          </div>
+          {ageBlocked && (
+            <div className="rounded-lg bg-rose-50 border border-rose-200 px-3 py-2.5 text-sm text-rose-800">
+              <p className="font-bold">{sourceCfg?.label} blockiert: Mitglied ist {memberAge} Jahre.</p>
+              <p className="text-xs mt-0.5 opacity-80">
+                Anbieter-Verträge erlauben nur Erwachsene (Arbeitgeber-Tarif).
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Notes */}
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
           <label className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'notes')}</label>
@@ -243,8 +292,8 @@ export default function EditMemberPage() {
         )}
 
         <div className="flex gap-3">
-          <button type="submit" disabled={saving}
-            className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold transition-colors flex items-center justify-center gap-2 text-sm">
+          <button type="submit" disabled={saving || ageBlocked}
+            className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-colors flex items-center justify-center gap-2 text-sm">
             <Save size={15} />
             {saving ? t('memberForm', 'saving') : t('memberForm', 'saveChanges')}
           </button>

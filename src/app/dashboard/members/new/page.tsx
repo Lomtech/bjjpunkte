@@ -4,8 +4,17 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import type { Belt } from '@/types/database'
+import type { Belt, MembershipSource } from '@/types/database'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { calculateAge, isMinor } from '@/lib/age'
+
+const SOURCE_OPTIONS: { value: MembershipSource; label: string; hint?: string; adultOnly?: boolean }[] = [
+  { value: 'direct',        label: 'Direktes Mitglied' },
+  { value: 'wellpass',      label: 'Wellpass',       hint: 'Arbeitgeber zahlt · nur Erwachsene · kein SEPA',  adultOnly: true },
+  { value: 'hansefit',      label: 'Hansefit',       hint: 'Arbeitgeber zahlt · nur Erwachsene · kein SEPA',  adultOnly: true },
+  { value: 'egym',          label: 'EGYM Wellpass',  hint: 'Arbeitgeber zahlt · nur Erwachsene · kein SEPA',  adultOnly: true },
+  { value: 'urban_sports',  label: 'Urban Sports Club', hint: 'Anbieter zahlt · kein SEPA' },
+]
 
 const BELTS: Belt[] = ['white', 'blue', 'purple', 'brown', 'black']
 const BELT_CLASSES: Record<Belt, string> = {
@@ -42,6 +51,7 @@ function NewMemberForm() {
     date_of_birth: '', join_date: new Date().toISOString().split('T')[0],
     belt: 'white' as Belt, stripes: 0, notes: '',
     contract_end_date: '',
+    membership_source: 'direct' as MembershipSource,
   })
 
   function set(field: string, value: string | number) {
@@ -74,8 +84,18 @@ function NewMemberForm() {
     loadMembers()
   }, [])
 
+  // Hard-Check: Wellpass/Hansefit/EGYM = nur Erwachsene (Arbeitgeber-Tarif).
+  // Eingaben fühlen sich falsch an, Konsequenzen sind real (Vertragsbruch).
+  const sourceCfg = SOURCE_OPTIONS.find(o => o.value === form.membership_source)
+  const ageBlocked = !!(sourceCfg?.adultOnly && form.date_of_birth && isMinor(form.date_of_birth))
+  const memberAge = form.date_of_birth ? calculateAge(form.date_of_birth) : null
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (ageBlocked) {
+      setError(`${sourceCfg?.label} ist nur für Erwachsene zulässig — der Anbieter-Vertrag verbietet Minderjährige (Arbeitgeber-Tarif).`)
+      return
+    }
     setLoading(true)
     setError('')
     const supabase = createClient()
@@ -132,6 +152,35 @@ function NewMemberForm() {
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('memberForm', 'contractEnd')} value={form.contract_end_date} onChange={v => set('contract_end_date', v)} type="date" />
           </div>
+        </div>
+
+        {/* Mitgliedschaftsart: direct / wellpass / hansefit / egym / urban_sports */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mitgliedschaftsart</p>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Quelle</label>
+            <select
+              value={form.membership_source}
+              onChange={e => set('membership_source', e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+            >
+              {SOURCE_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            {sourceCfg?.hint && (
+              <p className="text-xs text-slate-500 mt-1.5">{sourceCfg.hint}</p>
+            )}
+          </div>
+          {ageBlocked && (
+            <div className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-sm text-rose-800">
+              <p className="font-bold">{sourceCfg?.label} blockiert: Mitglied ist {memberAge} Jahre.</p>
+              <p className="text-xs mt-0.5 opacity-80">
+                Anbieter-Verträge erlauben nur Erwachsene (Arbeitgeber-Tarif). Wähle „Direktes Mitglied&ldquo;
+                oder lass den Erziehungsberechtigten den Vertrag direkt mit dem Studio abschließen.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
@@ -195,8 +244,8 @@ function NewMemberForm() {
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={loading}
-            className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold transition-colors shadow-sm"
+            disabled={loading || ageBlocked}
+            className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-colors shadow-sm"
           >
             {loading ? t('memberForm', 'saving') : t('memberForm', 'saveMember')}
           </button>

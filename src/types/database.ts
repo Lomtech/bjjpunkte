@@ -9,6 +9,7 @@ export type LeadBookingStatus = 'booked' | 'checked_in' | 'cancelled'
 export type SalesLeadStatus = 'new' | 'researching' | 'contacted' | 'qualified' | 'demo_scheduled' | 'demo_done' | 'negotiating' | 'won' | 'lost' | 'not_a_fit' | 'do_not_contact'
 export type SalesActivityKind = 'call' | 'email' | 'sms' | 'whatsapp' | 'meeting' | 'demo' | 'note' | 'status_change' | 'followup_scheduled' | 'place_imported'
 export type SalesActivityOutcome = 'answered' | 'no_answer' | 'voicemail' | 'interested' | 'not_interested' | 'call_back' | 'wrong_number' | 'sent' | 'replied' | 'bounced' | 'positive' | 'neutral' | 'negative'
+export type MembershipSource = 'direct' | 'wellpass' | 'hansefit' | 'egym' | 'urban_sports'
 
 export interface SalesLead {
   id: string

@@ -30,6 +30,14 @@ interface Member {
   requested_plan_id: string | null
   plan_id: string | null
   created_at: string
+  membership_source: string | null
+}
+
+const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
+  wellpass:     { label: 'Wellpass',     cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  hansefit:     { label: 'Hansefit',     cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  egym:         { label: 'EGYM',         cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  urban_sports: { label: 'Urban Sports', cls: 'bg-violet-50 text-violet-700 border-violet-200' },
 }
 
 function contractStatus(endDate: string | null): 'ok' | 'expiring' | 'expired' {
@@ -70,12 +78,15 @@ export default function MembersPage() {
   const [bulkMembers, setBulkMembers]       = useState<{ memberId: string; memberName: string; memberEmail: string; checkoutUrl: string | null; amountCents: number }[]>([])
   const [showBulkResults, setShowBulkResults] = useState(false)
   const [search, setSearch]                 = useState('')
+  const [sourceFilter, setSourceFilter]     = useState<'all' | 'direct' | 'partners' | 'wellpass' | 'hansefit' | 'egym' | 'urban_sports'>('all')
 
   useEffect(() => {
     setPage(0)
     const t = setTimeout(() => setDebouncedSearch(search), 400)
     return () => clearTimeout(t)
   }, [search])
+
+  useEffect(() => { setPage(0) }, [sourceFilter])
   const [activatingId, setActivatingId]     = useState<string | null>(null)
   const [activatedMember, setActivatedMember] = useState<Member | null>(null)
   const [showWaModal, setShowWaModal]       = useState(false)
@@ -230,19 +241,26 @@ export default function MembersPage() {
       const supabase = createClient()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let query = (supabase.from('members') as any)
-        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id, plan_id, created_at', { count: 'exact' })
+        .select('id, first_name, last_name, email, phone, belt, stripes, join_date, is_active, subscription_status, contract_end_date, monthly_fee_override_cents, onboarding_status, portal_token, cancellation_requested_at, requested_plan_id, plan_id, created_at, membership_source', { count: 'exact' })
         .eq('gym_id', gymId)
         .order('last_name')
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
       if (debouncedSearch.trim()) {
         query = query.or(`last_name.ilike.%${debouncedSearch.trim()}%,first_name.ilike.%${debouncedSearch.trim()}%,email.ilike.%${debouncedSearch.trim()}%`)
       }
+      if (sourceFilter !== 'all') {
+        if (sourceFilter === 'partners') {
+          query = query.in('membership_source', ['wellpass', 'hansefit', 'egym', 'urban_sports'])
+        } else {
+          query = query.eq('membership_source', sourceFilter)
+        }
+      }
       const { data, count } = await query
       setMembers((data as unknown as Member[]) ?? [])
       setTotalCount(count ?? 0)
     }
     loadMembers()
-  }, [gymId, page, debouncedSearch])
+  }, [gymId, page, debouncedSearch, sourceFilter])
 
   const pending  = members.filter(m => m.onboarding_status === 'pending')
   const nonPending = members.filter(m => m.onboarding_status !== 'pending')
@@ -449,8 +467,32 @@ export default function MembersPage() {
       <input
         type="search" placeholder={lang === 'en' ? 'Search by name or email…' : 'Name oder E-Mail suchen…'}
         value={search} onChange={e => setSearch(e.target.value)}
-        className="w-full mb-4 px-4 py-2.5 rounded-xl bg-white border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 shadow-sm"
+        className="w-full mb-3 px-4 py-2.5 rounded-xl bg-white border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 shadow-sm"
       />
+
+      {/* Source filter chips — Direkt vs. Wellpass/Hansefit/EGYM/Urban Sports */}
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+        {(['all', 'direct', 'partners', 'wellpass', 'hansefit', 'egym', 'urban_sports'] as const).map(key => {
+          const active = sourceFilter === key
+          const label = key === 'all' ? 'Alle'
+            : key === 'direct' ? 'Direkt'
+            : key === 'partners' ? 'Anbieter'
+            : (SOURCE_BADGE[key]?.label ?? key)
+          return (
+            <button
+              key={key}
+              onClick={() => setSourceFilter(key)}
+              className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                active
+                  ? 'bg-zinc-900 text-white border-zinc-900'
+                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
 
       {/* GPS error toast */}
       {gpsError && (
@@ -596,6 +638,14 @@ export default function MembersPage() {
                           <span className="font-medium text-zinc-900 text-sm truncate">{m.first_name} {m.last_name}</span>
                           {cs === 'expired' && <span title={t('members', 'contractExpired')} className="flex-shrink-0"><AlertTriangle size={12} className="text-red-500" /></span>}
                           {cs === 'expiring' && <span title={t('members', 'contractExpiring')} className="flex-shrink-0"><AlertTriangle size={12} className="text-amber-500" /></span>}
+                          {m.membership_source && SOURCE_BADGE[m.membership_source] && (
+                            <span
+                              title={`Anbieter: ${SOURCE_BADGE[m.membership_source].label} — Beitrag wird vom Anbieter beglichen, kein SEPA-Einzug.`}
+                              className={`flex-shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${SOURCE_BADGE[m.membership_source].cls}`}
+                            >
+                              {SOURCE_BADGE[m.membership_source].label}
+                            </span>
+                          )}
                         </div>
                         {m.email && <div className="text-xs text-zinc-400 truncate max-w-full">{m.email}</div>}
                       </td>
@@ -692,6 +742,11 @@ export default function MembersPage() {
                         {feeCents > 0 && subStatus !== 'none' && (
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SUB_COLORS[subStatus]}`}>
                             {SUB_LABELS[subStatus]}
+                          </span>
+                        )}
+                        {m.membership_source && SOURCE_BADGE[m.membership_source] && (
+                          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${SOURCE_BADGE[m.membership_source].cls}`}>
+                            {SOURCE_BADGE[m.membership_source].label}
                           </span>
                         )}
                       </div>
