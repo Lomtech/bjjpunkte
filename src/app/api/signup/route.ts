@@ -40,10 +40,13 @@ export async function GET(req: Request) {
     .eq('is_active', true)
     .order('sort_order')
 
+  // Wenn kein eigenes Template → Default mit Hausordnung+Haftungsausschluss verwenden
+  const { resolveContractTemplate } = await import('@/lib/legal/default-contract')
+
   return NextResponse.json({
     gymId:            gym.id,
     gymName:          gym.name,
-    contractTemplate: gym.contract_template,
+    contractTemplate: resolveContractTemplate(gym.contract_template),
     plans:            plans ?? [],
   })
 }

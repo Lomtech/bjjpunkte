@@ -1745,6 +1745,28 @@ function SettingsPageInner() {
             </div>
           </div>
 
+          {/* IBAN-Check Tool */}
+          <div className={sectionCls}>
+            <div className={sectionHeaderCls}>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                <CreditCard size={12} /> IBAN-Check (CSV-Upload)
+              </p>
+            </div>
+            <div className="p-5">
+              <p className="text-xs text-zinc-500 leading-relaxed mb-4">
+                Lade eine CSV mit Mitglieder-IBANs hoch — wir pr&uuml;fen offline jede Bankverbindung
+                auf Format und Pr&uuml;fziffer. Nutze das vor SEPA-Migration, um Tippfehler zu finden.
+                Daten verlassen deinen Browser nicht.
+              </p>
+              <a
+                href="/dashboard/iban-check"
+                className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-semibold px-4 py-2 transition-colors"
+              >
+                <CreditCard size={14} /> IBAN-Check &ouml;ffnen
+              </a>
+            </div>
+          </div>
+
           {/* Membership plans */}
           <div className={sectionCls}>
             <div className={`${sectionHeaderCls} flex items-center justify-between`}>
