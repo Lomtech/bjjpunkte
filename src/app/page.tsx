@@ -1011,6 +1011,80 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* ── COST PROOF + Calculator-Teaser ── */}
+      <Section className="py-20 px-5 bg-zinc-50 border-y border-zinc-100">
+        <div className="max-w-4xl mx-auto">
+          <motion.div variants={fadeUp} className="text-center mb-10">
+            <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">
+              {lang === 'en' ? 'Real numbers' : 'Echte Zahlen'}
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">
+              {lang === 'en' ? 'What does Excel really cost you?' : 'Was kostet dich Excel wirklich?'}
+            </h2>
+            <p className="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed">
+              {lang === 'en'
+                ? 'Example: 50 members, 3h/week admin, €40/h. The numbers below are not estimates — they\'re math.'
+                : 'Beispiel: 50 Mitglieder, 3 h/Woche Verwaltung, 40 €/h Stundensatz. Die Zahlen unten sind keine Schätzung — das ist Mathematik.'}
+            </p>
+          </motion.div>
+
+          <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+            {/* Excel/Manuell */}
+            <motion.div variants={fadeUp} className="bg-white rounded-2xl p-6 border-2 border-rose-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-2">
+                {lang === 'en' ? 'Excel / manual' : 'Excel / manuell'}
+              </p>
+              <p className="text-3xl font-black text-zinc-900 tabular-nums tracking-tight">6.000 €</p>
+              <p className="text-xs text-zinc-400 mt-1">
+                {lang === 'en' ? '150 h/year × €40' : '150 h/Jahr × 40 €'}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-2 italic">
+                {lang === 'en' ? 'Your time, calculated.' : 'Deine Lebenszeit, hochgerechnet.'}
+              </p>
+            </motion.div>
+
+            {/* Eversports */}
+            <motion.div variants={fadeUp} className="bg-white rounded-2xl p-6 border-2 border-amber-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-2">Eversports &amp; Co.</p>
+              <p className="text-3xl font-black text-zinc-900 tabular-nums tracking-tight">1.128 €</p>
+              <p className="text-xs text-zinc-400 mt-1">
+                {lang === 'en' ? '€49/mo + 1.5% platform fee' : '49 €/Mo + 1,5 % Plattformgebühr'}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-2 italic">
+                {lang === 'en' ? 'Platform fee alone: €540/year.' : 'Plattformgebühr allein: 540 €/Jahr.'}
+              </p>
+            </motion.div>
+
+            {/* Osss */}
+            <motion.div variants={fadeUp} className="bg-emerald-50 rounded-2xl p-6 border-2 border-emerald-300 relative">
+              <div className="absolute -top-2.5 left-6 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                {lang === 'en' ? 'Osss' : 'Osss'}
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-2">Osss</p>
+              <p className="text-3xl font-black text-emerald-700 tabular-nums tracking-tight">348 €</p>
+              <p className="text-xs text-emerald-700 mt-1">
+                {lang === 'en' ? '€29/month · 0% platform fee' : '29 €/Monat · 0 % Plattformgebühr'}
+              </p>
+              <p className="text-[11px] text-emerald-700 mt-2 italic">
+                {lang === 'en' ? 'Up to 30 members forever free.' : 'Bis 30 Mitglieder dauerhaft gratis.'}
+              </p>
+            </motion.div>
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="text-center">
+            <Link href="/rechner"
+              className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
+              {lang === 'en' ? 'Calculate with your numbers' : 'Mit deinen Zahlen rechnen'} <ArrowRight size={14} />
+            </Link>
+            <p className="text-xs text-zinc-400 mt-3">
+              {lang === 'en'
+                ? 'Slider-based — interactive, takes 30 seconds.'
+                : 'Mit Slidern — interaktiv, dauert 30 Sekunden.'}
+            </p>
+          </motion.div>
+        </div>
+      </Section>
+
       {/* ── FINAL CTA — full amber ── */}
       <section className="py-28 px-5 bg-amber-400 text-center relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
