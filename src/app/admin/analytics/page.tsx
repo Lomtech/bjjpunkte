@@ -409,25 +409,49 @@ function Timeline({ data }: { data: { date: string; count: number }[] }) {
           strokeLinecap="round" strokeLinejoin="round" />
 
         {/* Datenpunkte */}
-        {points.map((p, i) => (
-          <g key={i} className="group">
-            {/* Größerer Hover-Bereich (transparent) */}
-            <circle cx={p.x} cy={p.y} r={10} fill="transparent" />
-            {/* Sichtbarer Punkt */}
-            <circle cx={p.x} cy={p.y} r={p.isToday ? 5 : 3}
-              fill={p.isToday ? '#f59e0b' : '#fbbf24'}
-              stroke="#fff" strokeWidth="2" />
-            {/* Tooltip on hover */}
-            <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <rect x={p.x - 38} y={p.y - 30} width={76} height={20} rx={4}
-                fill="#18181b" />
-              <text x={p.x} y={p.y - 16} textAnchor="middle"
-                fontSize="9" fill="#fafafa" fontFamily="monospace">
-                {p.date.slice(5)} · {p.count}
-              </text>
+        {points.map((p, i) => {
+          // Tooltip-Position: 76px breit. Damit es nicht aus dem SVG ragt,
+          // shiften wir je nach Punkt-Position links/rechts/zentriert.
+          const TOOLTIP_W = 76
+          const HALF = TOOLTIP_W / 2
+          let tooltipX: number
+          let textX: number
+          let textAnchor: 'start' | 'middle' | 'end'
+          if (p.x - HALF < PAD_L) {
+            // Nah linker Rand → Tooltip rechts neben Punkt
+            tooltipX = p.x
+            textX = p.x + 6
+            textAnchor = 'start'
+          } else if (p.x + HALF > W - 5) {
+            // Nah rechter Rand → Tooltip links vom Punkt
+            tooltipX = p.x - TOOLTIP_W
+            textX = p.x - 6
+            textAnchor = 'end'
+          } else {
+            tooltipX = p.x - HALF
+            textX = p.x
+            textAnchor = 'middle'
+          }
+          return (
+            <g key={i} className="group">
+              {/* Größerer Hover-Bereich (transparent) */}
+              <circle cx={p.x} cy={p.y} r={10} fill="transparent" />
+              {/* Sichtbarer Punkt */}
+              <circle cx={p.x} cy={p.y} r={p.isToday ? 5 : 3}
+                fill={p.isToday ? '#f59e0b' : '#fbbf24'}
+                stroke="#fff" strokeWidth="2" />
+              {/* Tooltip on hover */}
+              <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <rect x={tooltipX} y={p.y - 30} width={TOOLTIP_W} height={20} rx={4}
+                  fill="#18181b" />
+                <text x={textX} y={p.y - 16} textAnchor={textAnchor}
+                  fontSize="9" fill="#fafafa" fontFamily="monospace">
+                  {p.date.slice(5)} · {p.count}
+                </text>
+              </g>
             </g>
-          </g>
-        ))}
+          )
+        })}
 
         {/* X-Achse Labels — Anchor abhängig von Position (verhindert Clipping am Rand) */}
         {points.map((p, i) => {
