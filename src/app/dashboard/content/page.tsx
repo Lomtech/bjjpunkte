@@ -10,7 +10,67 @@ import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
 import { readCachedGymId } from '../_components/RoleShell'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
-import { CommunicationTabs } from '../_components/CommunicationTabs'
+import { MailRecipientsBox, type MailDispatch } from '../_components/MailRecipientsBox'
+
+// ─── Mail-Dispatch Helpers ───────────────────────────────────────────────────
+
+const DEFAULT_MAIL: MailDispatch = { enabled: false, audience: 'members', filter: 'active' }
+
+/**
+ * Konvertiert Block[]-Editor-Inhalt zu Mail-HTML.
+ * Heading → <h2>, Paragraph → <p>, Image → <img>.
+ * `{{first_name}}` wird vom Server beim Versand pro Empfänger ersetzt.
+ */
+function blocksToHtml(blocks: Block[]): string {
+  return blocks.map(b => {
+    if (b.type === 'heading')   return `<h2 style="margin:18px 0 6px;font-size:18px;font-weight:700">${escapeMailHtml(b.text ?? '')}</h2>`
+    if (b.type === 'paragraph') return `<p style="margin:0 0 12px;line-height:1.55">${escapeMailHtml(b.text ?? '').replace(/\n/g, '<br/>')}</p>`
+    if (b.type === 'image' && b.url) {
+      const cap = b.caption ? `<p style="margin:6px 0 12px;font-size:12px;color:#71717a;text-align:center">${escapeMailHtml(b.caption)}</p>` : ''
+      return `<img src="${escapeMailAttr(b.url)}" alt="" style="display:block;max-width:100%;height:auto;margin:12px 0;border-radius:8px"/>${cap}`
+    }
+    return ''
+  }).filter(Boolean).join('\n')
+}
+
+function escapeMailHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+function escapeMailAttr(s: string): string {
+  if (/^javascript:/i.test(s) || /^data:/i.test(s)) return '#'
+  return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+/** Sendet Bulk-Mail im Hintergrund. Fehler werden als Promise rejected, Caller entscheidet. */
+async function sendBulkMail(args: {
+  kind: 'announcement' | 'post'
+  subject: string
+  html: string
+  coverUrl?: string | null
+  mail: MailDispatch
+}): Promise<{ ok: boolean; sent?: number; failed?: number; recipients?: number; error?: string }> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return { ok: false, error: 'Nicht eingeloggt' }
+  const res = await fetch('/api/gym-mail/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      audience:  args.mail.audience,
+      filter:    args.mail.filter,
+      subject:   args.subject,
+      html:      args.html,
+      kind:      args.kind,
+      cover_url: args.coverUrl ?? null,
+    }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}` }
+  return { ok: true, sent: data.sent, failed: data.failed, recipients: data.recipients }
+}
 
 interface Announcement {
   id:         string
@@ -61,12 +121,20 @@ function PostEditor({
 }) {
   const { t } = useLanguage()
   const [title,    setTitle]    = useState(initial.title ?? '')
-  const [blocks,   setBlocks]   = useState<Block[]>(initial.blocks ?? [])
+  // Default-Greeting „Hallo {{first_name}}," steht beim NEUEN Beitrag schon im
+  // ersten Paragraph-Block — pro Empfänger wird der Platzhalter beim Versand ersetzt.
+  const [blocks,   setBlocks]   = useState<Block[]>(
+    initial.id || (initial.blocks && initial.blocks.length > 0)
+      ? (initial.blocks ?? [])
+      : [{ id: uid(), type: 'paragraph', text: 'Hallo {{first_name}},\n\n' }]
+  )
   const [coverUrl, setCoverUrl] = useState<string | null>(initial.cover_url ?? null)
   const [saving,   setSaving]   = useState(false)
   const [published, setPublished] = useState<boolean>(!!initial.published_at)
   const coverRef = useRef<HTMLInputElement>(null)
   const [coverUploading, setCoverUploading] = useState(false)
+  const [mail, setMail]   = useState<MailDispatch>({ ...DEFAULT_MAIL })
+  const [mailResult, setMailResult] = useState<string | null>(null)
 
   async function handleCoverFile(file: File) {
     setCoverUploading(true)
@@ -77,6 +145,7 @@ function PostEditor({
 
   async function handleSave() {
     setSaving(true)
+    setMailResult(null)
     const headers = await getAuthHeaders()
     const payload = {
       title,
@@ -99,10 +168,31 @@ function PostEditor({
         body: JSON.stringify(payload),
       })
     }
-    if (res.ok) {
-      const data = await res.json()
-      onSave(data)
+    if (!res.ok) {
+      setSaving(false)
+      setMailResult('Speichern fehlgeschlagen')
+      return
     }
+    const data = await res.json()
+
+    // Optional: Beitrag als E-Mail versenden (DSGVO-konform via /gym-mail/send)
+    if (mail.enabled && title.trim() && blocks.length > 0) {
+      const html = blocksToHtml(blocks)
+      const result = await sendBulkMail({
+        kind:     'post',
+        subject:  title,
+        html,
+        coverUrl: coverUrl,
+        mail,
+      })
+      if (result.ok) {
+        setMailResult(`📨 Mail an ${result.sent} von ${result.recipients} Empfängern verschickt${result.failed ? ` (${result.failed} fehlgeschlagen)` : ''}`)
+      } else {
+        setMailResult(`Mail-Fehler: ${result.error}`)
+      }
+    }
+
+    onSave(data)
     setSaving(false)
   }
 
@@ -163,6 +253,9 @@ function PostEditor({
             <BlockEditor blocks={blocks} onChange={setBlocks} />
           </div>
 
+          {/* Mail-Versand-Optional — DSGVO-konform */}
+          <MailRecipientsBox value={mail} onChange={setMail} />
+
           {/* Publish toggle */}
           <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
             <div>
@@ -174,6 +267,12 @@ function PostEditor({
               <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${published ? 'translate-x-4' : ''}`} />
             </button>
           </div>
+
+          {mailResult && (
+            <div className={`text-xs p-3 rounded-lg ${mailResult.startsWith('📨') ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+              {mailResult}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -181,7 +280,11 @@ function PostEditor({
           <button type="button" onClick={handleSave} disabled={saving || !title.trim()}
             className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
             <Save size={15} />
-            {saving ? t('content', 'saving') : t('content', 'save')}
+            {saving
+              ? t('content', 'saving')
+              : mail.enabled
+                ? t('content', 'save') + ' + Mail versenden'
+                : t('content', 'save')}
           </button>
         </div>
       </div>
@@ -260,6 +363,8 @@ export default function ContentPage() {
   const [annoFormOpen,  setAnnoFormOpen]  = useState(false)
   const [annoSaving,    setAnnoSaving]    = useState(false)
   const [annoForm, setAnnoForm] = useState({ title: '', body: '', isPinned: false, expiresAt: '' })
+  const [annoMail, setAnnoMail] = useState<MailDispatch>({ ...DEFAULT_MAIL })
+  const [annoMailResult, setAnnoMailResult] = useState<string | null>(null)
   const [confirmState, setConfirmState] = useState<{
     open: boolean; title: string; danger?: boolean; icon?: React.ReactNode; onConfirm: () => void
   }>({ open: false, title: '', onConfirm: () => {} })
@@ -321,6 +426,7 @@ export default function ContentPage() {
   async function handleAnnoSave() {
     if (!annoForm.title.trim() || !gymId) return
     setAnnoSaving(true)
+    setAnnoMailResult(null)
     const supabase = createClient()
     const payload = {
       gym_id: gymId, title: annoForm.title.trim(), body: annoForm.body || null,
@@ -330,7 +436,26 @@ export default function ContentPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase.from('gym_announcements') as any).insert(payload).select().single()
     if (data) setAnnouncements(prev => [data, ...prev])
+
+    // Optional: Ankündigung als E-Mail (kurze Variante, kein Cover)
+    if (annoMail.enabled && annoForm.title.trim() && annoForm.body.trim()) {
+      const greeting = '<p style="margin:0 0 12px;line-height:1.55">Hallo {{first_name}},</p>'
+      const body = `<p style="margin:0 0 12px;line-height:1.55">${escapeMailHtml(annoForm.body).replace(/\n/g, '<br/>')}</p>`
+      const result = await sendBulkMail({
+        kind:    'announcement',
+        subject: annoForm.title.trim(),
+        html:    greeting + body,
+        mail:    annoMail,
+      })
+      if (result.ok) {
+        setAnnoMailResult(`📨 Mail an ${result.sent} von ${result.recipients} Empfängern verschickt${result.failed ? ` (${result.failed} fehlgeschlagen)` : ''}`)
+      } else {
+        setAnnoMailResult(`Mail-Fehler: ${result.error}`)
+      }
+    }
+
     setAnnoForm({ title: '', body: '', isPinned: false, expiresAt: '' })
+    setAnnoMail({ ...DEFAULT_MAIL })
     setAnnoFormOpen(false); setAnnoSaving(false)
   }
 
@@ -389,13 +514,11 @@ export default function ContentPage() {
         onConfirm={confirmState.onConfirm}
         onCancel={closeConfirm}
       />
-      {/* Geteilte Sub-Tabs „Mail | Inhalte" — siehe CommunicationTabs */}
-      <CommunicationTabs />
-
       {/* Page-spezifischer Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <p className="text-zinc-400 text-xs">{t('content', 'subtitle')}</p>
+          <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('nav', 'communication')}</h1>
+          <p className="text-zinc-400 text-xs mt-0.5">{t('content', 'subtitle')}</p>
         </div>
         {activeTab === 'posts' && (
           <button type="button" onClick={() => setEditorPost({})}
@@ -514,14 +637,27 @@ export default function ContentPage() {
                   </button>
                 </div>
               </div>
+              {/* Mail-Versand-Optional */}
+              <MailRecipientsBox value={annoMail} onChange={setAnnoMail} />
+
+              {annoMailResult && (
+                <div className={`text-xs p-3 rounded-lg ${annoMailResult.startsWith('📨') ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                  {annoMailResult}
+                </div>
+              )}
+
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => { setAnnoFormOpen(false); setAnnoForm({ title: '', body: '', isPinned: false, expiresAt: '' }) }}
+                <button type="button" onClick={() => { setAnnoFormOpen(false); setAnnoForm({ title: '', body: '', isPinned: false, expiresAt: '' }); setAnnoMail({ ...DEFAULT_MAIL }) }}
                   className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-zinc-50 transition-colors">
                   {t('content', 'cancel')}
                 </button>
                 <button type="button" onClick={handleAnnoSave} disabled={annoSaving || !annoForm.title.trim()}
                   className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-bold text-sm transition-colors">
-                  {annoSaving ? t('content', 'saving') : t('content', 'publish')}
+                  {annoSaving
+                    ? t('content', 'saving')
+                    : annoMail.enabled
+                      ? t('content', 'publish') + ' + Mail'
+                      : t('content', 'publish')}
                 </button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { AVV_VERSION } from '@/lib/legal/avv-content'
 
@@ -15,9 +16,32 @@ export const dynamic = 'force-dynamic'
  * Idempotent for same (gym_id, avv_version) — returns existing acceptance.
  */
 export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Dual-Auth: Bearer ODER Cookie
+  let user: { id: string; email?: string } | null = null
+  const authHeader = req.headers.get('Authorization')
+  const accessToken = authHeader?.replace('Bearer ', '')
+  if (accessToken) {
+    const sb = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+    )
+    const { data } = await sb.auth.getUser(accessToken)
+    if (data.user) user = { id: data.user.id, email: data.user.email ?? undefined }
+  } else {
+    const sb = await createServerClient()
+    const { data } = await sb.auth.getUser()
+    if (data.user) user = { id: data.user.id, email: data.user.email ?? undefined }
+  }
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const supabase = accessToken
+    ? createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+      )
+    : await createServerClient()
 
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
   const gymId = typeof body.gym_id === 'string' ? body.gym_id : null

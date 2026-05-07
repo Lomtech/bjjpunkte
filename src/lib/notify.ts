@@ -1,6 +1,28 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { toE164 } from '@/lib/whatsapp'
 
+/**
+ * HTML-Escape für User-Input in Mail-Templates.
+ * KRITISCH: ohne dieses wird ein Studio-Name wie `<img src=x onerror=...>`
+ * als HTML im Mail-Postfach des Empfängers ausgeführt → XSS via Mail.
+ */
+function escHtml(s: string | null | undefined): string {
+  if (s == null) return ''
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+/**
+ * Attribut-Escape für href/src — verhindert Attribute-Injection.
+ * Zusätzlich javascript:-URLs blockieren, damit ein gespoofter URL-Wert
+ * nicht in einen <a href="javascript:..."> umgewandelt wird.
+ */
+function escAttr(s: string | null | undefined): string {
+  if (s == null) return ''
+  const v = String(s).trim()
+  if (/^javascript:/i.test(v) || /^data:/i.test(v)) return '#'
+  return v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
   let lastError: unknown
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -109,18 +131,18 @@ export async function sendMemberPaymentFailedEmail(
     body: JSON.stringify({
       from: process.env.RESEND_FROM_EMAIL ?? 'noreply@osss.pro',
       to: ownerEmail,
-      subject: `Zahlung fehlgeschlagen – ${memberName}`,
+      subject: `Zahlung fehlgeschlagen – ${escHtml(memberName)}`,
       headers: { 'List-Unsubscribe': `<mailto:unsubscribe@osss.pro?subject=unsubscribe>` },
       html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
       <h2 style="color:#18181b;margin-bottom:8px">Zahlung fehlgeschlagen</h2>
-      <p style="color:#52525b">Die automatische Zahlung für <strong>${memberName}</strong> in <strong>${gymName}</strong> konnte nicht eingezogen werden.</p>
+      <p style="color:#52525b">Die automatische Zahlung für <strong>${escHtml(memberName)}</strong> in <strong>${escHtml(gymName)}</strong> konnte nicht eingezogen werden.</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0">
-        <tr><td style="padding:6px 0;color:#71717a;font-size:14px">Mitglied</td><td style="padding:6px 0;font-weight:600">${memberName}</td></tr>
+        <tr><td style="padding:6px 0;color:#71717a;font-size:14px">Mitglied</td><td style="padding:6px 0;font-weight:600">${escHtml(memberName)}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a;font-size:14px">Betrag</td><td style="padding:6px 0;font-weight:600">€${amountFormatted}</td></tr>
         <tr><td style="padding:6px 0;color:#71717a;font-size:14px">Status</td><td style="padding:6px 0;color:#dc2626;font-weight:600">Fehlgeschlagen</td></tr>
       </table>
       <p style="color:#52525b;font-size:14px">Stripe wird die Zahlung automatisch erneut versuchen.</p>
-      <a href="${memberDashboardUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#fbbf24;color:#18181b;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">Mitglied anzeigen →</a>
+      <a href="${escAttr(memberDashboardUrl)}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#fbbf24;color:#18181b;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">Mitglied anzeigen →</a>
       <p style="color:#a1a1aa;font-size:11px;margin-top:24px">Osss – automatische Benachrichtigung</p>
     </div>`,
     }),
