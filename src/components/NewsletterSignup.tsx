@@ -81,10 +81,13 @@ export function NewsletterSignup({ source, variant = 'compact', title, descripti
     )
   }
 
-  // Compact variant
+  // Compact variant — same brand as hero, but lighter
   return (
-    <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-5 sm:p-6">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-2">Newsletter</p>
+    <div className="bg-white border-2 border-amber-200 rounded-2xl p-5 sm:p-6">
+      <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 mb-3">
+        <Mail size={11} className="text-amber-600" />
+        <span className="text-amber-700 text-[10px] font-bold uppercase tracking-wider">Newsletter</span>
+      </div>
       <h3 className="font-black text-zinc-950 text-lg mb-1.5 tracking-tight">
         {title ?? 'Bleib auf dem Laufenden'}
       </h3>
@@ -155,11 +158,7 @@ function SignupForm({
         <button
           type="submit"
           disabled={status === 'submitting'}
-          className={`flex items-center justify-center gap-2 font-bold px-5 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 ${
-            theme === 'dark'
-              ? 'bg-amber-400 hover:bg-amber-300 text-zinc-950'
-              : 'bg-zinc-950 hover:bg-zinc-800 text-white'
-          }`}
+          className="flex items-center justify-center gap-2 font-bold px-5 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 bg-amber-400 hover:bg-amber-300 text-zinc-950"
         >
           {status === 'submitting' ? 'Wird gesendet…' : <>Abonnieren <ArrowRight size={14} /></>}
         </button>
