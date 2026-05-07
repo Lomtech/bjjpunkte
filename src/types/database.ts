@@ -311,6 +311,12 @@ export interface Database {
           marketing_email_consent: boolean
           marketing_consent_at: string | null
           marketing_unsubscribe_token: string | null
+          dunning_level: number
+          dunning_amount_cents: number | null
+          dunning_started_at: string | null
+          dunning_last_action_at: string | null
+          dunning_notes: string | null
+          membership_source: string | null
         }
         Insert: {
           gym_id: string
@@ -347,6 +353,9 @@ export interface Database {
           gdpr_consent_at?: string | null
           marketing_email_consent?: boolean
           marketing_consent_at?: string | null
+          dunning_level?: number
+          dunning_amount_cents?: number | null
+          membership_source?: string | null
         }
         Update: {
           first_name?: string
@@ -382,7 +391,19 @@ export interface Database {
           gdpr_consent_at?: string | null
           marketing_email_consent?: boolean
           marketing_consent_at?: string | null
+          dunning_level?: number
+          dunning_amount_cents?: number | null
+          dunning_started_at?: string | null
+          dunning_last_action_at?: string | null
+          dunning_notes?: string | null
+          membership_source?: string | null
         }
+        Relationships: Rel[]
+      }
+      dunning_actions: {
+        Row: { id: string; member_id: string; gym_id: string; action_type: string; amount_cents: number | null; notes: string | null; performed_by: string | null; performed_at: string }
+        Insert: { member_id: string; gym_id: string; action_type: string; amount_cents?: number | null; notes?: string | null; performed_by?: string | null }
+        Update: never
         Relationships: Rel[]
       }
       payments: {

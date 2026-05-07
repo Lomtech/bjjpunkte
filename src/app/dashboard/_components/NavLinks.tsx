@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, Calendar,
-  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2, Globe, FileText, Rocket, Briefcase, Mail,
+  TrendingUp, Settings, LogOut, UserPlus, UserCheck, Link2, Globe, FileText, Rocket, Briefcase, Mail, FileWarning,
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { createClient } from '@/lib/supabase/client'
@@ -63,6 +63,7 @@ export function SidebarNav({ isTrainer = false, onboardingDone = true }: { isTra
     { href: '/dashboard/members',     label: t('nav', 'members'),     icon: Users,           ownerOnly: false },
     { href: '/dashboard/leads',       label: t('nav', 'leads'),       icon: UserPlus,        ownerOnly: true  },
     { href: '/dashboard/revenue',     label: t('nav', 'revenue'),     icon: TrendingUp,      ownerOnly: true  },
+    { href: '/dashboard/inkasso',     label: 'Inkasso',                icon: FileWarning,     ownerOnly: true  },
     { href: '/dashboard/communication', label: 'Mails',                icon: Mail,            ownerOnly: true  },
     { href: '/dashboard/website',     label: t('nav', 'website'),     icon: Globe,           ownerOnly: true  },
     { href: '/dashboard/content',     label: t('nav', 'content'),     icon: FileText,        ownerOnly: true  },
