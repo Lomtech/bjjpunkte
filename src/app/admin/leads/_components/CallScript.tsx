@@ -166,16 +166,22 @@ function Opener({ lead, cityPart, primarySport, returning }: { lead: Lead; cityP
         </p>
       ) : (
         <>
-          {/* PRIMARY OPENER — 3-Fragen-Sequenz in Sie-Form */}
+          {/* PRIMARY OPENER — Positions-Satz + 3-Fragen-Sequenz in Sie-Form */}
           <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-300">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-2">
-              🎯 PRIMÄR · 3-Fragen-Diagnose-Sequenz (Sie-Form, je 1 Frage pro Atemzug)
+              🎯 PRIMÄR · Position + 3-Fragen-Diagnose (Sie-Form, je 1 Frage pro Atemzug)
             </p>
 
             <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „Hallo, ich bin Lom-Ali Imadaev. Kurze Frage."
+              „Hallo, ich bin Lom-Ali Imadaev. Ich helfe Kampfsportgyms dabei, <strong>Zeit bei der
+              Verwaltung zu sparen</strong>."
             </p>
-            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[2 Sek Pause — er weiß, jetzt kommt was Konkretes.]</p>
+            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[1 Sek Pause — er weiß: was Konkretes für SEINE Branche.]</p>
+
+            <p className="italic text-base leading-relaxed font-medium text-zinc-900">
+              „Kurze Frage."
+            </p>
+            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[2 Sek Pause — er weiß: jetzt kommt der Hook.]</p>
 
             <div className="space-y-3 mt-3 border-t border-emerald-200 pt-3">
               {/* Frage 1 */}
