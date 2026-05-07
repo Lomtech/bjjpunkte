@@ -19,13 +19,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Statische Pages — manuell gepflegt, hohe Priorität
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${BASE_URL}/`,            lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
-    { url: `${BASE_URL}/pricing`,     lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
-    { url: `${BASE_URL}/blog`,        lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
-    { url: `${BASE_URL}/register`,    lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE_URL}/datenschutz`, lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
-    { url: `${BASE_URL}/impressum`,   lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
-    { url: `${BASE_URL}/agb`,         lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
+    { url: `${BASE_URL}/`,                          lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
+    { url: `${BASE_URL}/pricing`,                   lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${BASE_URL}/blog`,                      lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
+    { url: `${BASE_URL}/register`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${BASE_URL}/ressourcen`,                lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${BASE_URL}/ressourcen/dsgvo-checkliste`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/rechner`,                   lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/datenschutz`,               lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
+    { url: `${BASE_URL}/impressum`,                 lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
+    { url: `${BASE_URL}/agb`,                       lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
   ]
 
   // Blog-Artikel — jeder Artikel ist eine SEO-Chance

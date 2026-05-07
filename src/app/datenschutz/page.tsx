@@ -126,7 +126,34 @@ export default function DatenschutzPage() {
           </section>
 
           <section>
-            <h2 className="font-bold text-zinc-900 text-base mb-3">8. Cookies und Tracking</h2>
+            <h2 className="font-bold text-zinc-900 text-base mb-3">8. Newsletter</h2>
+            <p className="text-zinc-600 mb-3">
+              Wenn du dich für unseren Newsletter anmeldest, verwenden wir das <strong className="text-zinc-800">Double-Opt-In-Verfahren</strong>:
+              Nach Eintrag deiner E-Mail-Adresse erhältst du eine Bestätigungs-Mail mit einem Link.
+              Erst nach Klick auf diesen Link wird deine Adresse dauerhaft gespeichert.
+            </p>
+            <p className="text-zinc-600 mb-3">
+              <strong className="text-zinc-800">Erfasste Daten:</strong> E-Mail-Adresse, IP-Adresse,
+              User-Agent und Zeitstempel der Anmeldung (zur Beweissicherung nach § 7 UWG / Art. 7 DSGVO).
+              Quelle der Anmeldung (z.B. „Blog-Footer", „Ressourcen-Hub") wird zur internen
+              Funnel-Analyse gespeichert.
+            </p>
+            <p className="text-zinc-600 mb-3">
+              <strong className="text-zinc-800">Versand-Dienst:</strong> Resend Inc. (siehe §5).
+              <strong className="text-zinc-800"> Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO
+              (Einwilligung, jederzeit widerrufbar). Die Einwilligung gilt nicht erteilt, wenn die
+              DOI-Bestätigung ausbleibt.
+            </p>
+            <p className="text-zinc-600 mb-3">
+              <strong className="text-zinc-800">Abmeldung:</strong> 1-Klick-Link in jeder Newsletter-Mail
+              (RFC 8058 List-Unsubscribe). Nach Abmeldung wird der Eintrag auf <em>unsubscribed</em> gesetzt
+              — die E-Mail-Adresse selbst bleibt für 30 Tage als Sperre gespeichert (Art. 21 DSGVO),
+              danach werden alle Daten gelöscht.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-bold text-zinc-900 text-base mb-3">9. Cookies und Tracking</h2>
             <p className="text-zinc-600 mb-3">
               Diese Anwendung verwendet ausschließlich technisch notwendige Session-Cookies zur Authentifizierung.
               Es werden keine Marketing-, Werbe- oder Analyse-Cookies eingesetzt.

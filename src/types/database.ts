@@ -455,6 +455,12 @@ export interface Database {
         Update: never
         Relationships: Rel[]
       }
+      newsletter_subscribers: {
+        Row: { id: string; email: string; status: string; confirm_token: string; unsubscribe_token: string; source: string | null; ip_address: string | null; user_agent: string | null; subscribed_at: string; confirmed_at: string | null; unsubscribed_at: string | null; unsubscribe_reason: string | null; created_at: string }
+        Insert: { email: string; confirm_token: string; status?: string; unsubscribe_token?: string; source?: string | null; ip_address?: string | null; user_agent?: string | null }
+        Update: { email?: string; status?: string; confirm_token?: string; source?: string | null; ip_address?: string | null; user_agent?: string | null; subscribed_at?: string; confirmed_at?: string | null; unsubscribed_at?: string | null; unsubscribe_reason?: string | null }
+        Relationships: Rel[]
+      }
       belt_promotions: {
         Row: { id: string; member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; promoted_at: string; notes: string | null }
         Insert: { member_id: string; gym_id: string; previous_belt: Belt; previous_stripes: number; new_belt: Belt; new_stripes: number; notes?: string | null }

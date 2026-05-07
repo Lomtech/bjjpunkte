@@ -127,6 +127,122 @@ export async function sendMemberPaymentFailedEmail(
   }))
 }
 
+// ─── Newsletter (Double-Opt-In) ─────────────────────────────────────────────
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.osss.pro'
+
+/**
+ * Sendet die Bestätigungs-Mail für Newsletter-Anmeldung (DOI Pflicht nach § 7 UWG).
+ */
+export async function sendNewsletterConfirmEmail(email: string, confirmToken: string) {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return
+
+  const confirmUrl = `${APP_URL}/api/newsletter/confirm/${confirmToken}`
+
+  return withRetry(() => fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL,
+      to: email,
+      subject: 'Bitte bestätige deine Anmeldung beim Osss-Newsletter',
+      html: wrapNewsletter(`
+        <h1 style="margin:0 0 16px;color:#18181b;font-size:24px;font-weight:800;letter-spacing:-0.02em">Fast geschafft.</h1>
+        <p style="margin:0 0 16px;color:#3f3f46;font-size:15px;line-height:1.6">
+          Klick einfach auf den Button, um deine E-Mail-Adresse zu bestätigen — danach bekommst du Praxis-Tipps für Kampfsport-Vereine: DSGVO, DATEV, SEPA, Mitgliederverwaltung. Höchstens 1× pro Woche, sofort abbestellbar.
+        </p>
+        <p style="margin:24px 0;text-align:center">
+          <a href="${confirmUrl}" style="display:inline-block;padding:14px 28px;background:#fbbf24;color:#18181b;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px">Anmeldung bestätigen</a>
+        </p>
+        <p style="margin:0 0 8px;color:#71717a;font-size:13px;line-height:1.5">
+          Funktioniert der Button nicht? Kopiere diesen Link in deinen Browser:
+        </p>
+        <p style="margin:0 0 24px;word-break:break-all">
+          <a href="${confirmUrl}" style="color:#d97706;font-size:12px">${confirmUrl}</a>
+        </p>
+        <p style="margin:24px 0 0;color:#a1a1aa;font-size:12px;border-top:1px solid #e4e4e7;padding-top:16px">
+          Wenn du dich nicht angemeldet hast, kannst du diese Mail einfach löschen — wir speichern deine Adresse erst nach Bestätigung dauerhaft.
+        </p>
+      `),
+    }),
+  }))
+}
+
+/**
+ * Welcome-Mail nach erfolgreicher DOI-Bestätigung.
+ */
+export async function sendNewsletterWelcomeEmail(email: string, unsubscribeToken: string) {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return
+
+  const unsubscribeUrl = `${APP_URL}/api/newsletter/unsubscribe/${unsubscribeToken}`
+
+  return withRetry(() => fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      // List-Unsubscribe Header für 1-Klick-Abmeldung (RFC 8058)
+      'List-Unsubscribe': `<${unsubscribeUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL,
+      to: email,
+      subject: 'Willkommen bei Osss — los geht\'s',
+      html: wrapNewsletter(`
+        <h1 style="margin:0 0 16px;color:#18181b;font-size:24px;font-weight:800;letter-spacing:-0.02em">Willkommen!</h1>
+        <p style="margin:0 0 16px;color:#3f3f46;font-size:15px;line-height:1.6">
+          Du bist drin. Hier kommen Praxis-Tipps für Kampfsport-Gym-Inhaber — direkt von einem Solo-Entwickler, der selbst trainiert.
+        </p>
+        <p style="margin:0 0 16px;color:#3f3f46;font-size:15px;line-height:1.6">
+          <strong>Die nächsten Themen:</strong>
+        </p>
+        <ul style="margin:0 0 16px;padding-left:20px;color:#3f3f46;font-size:15px;line-height:1.7">
+          <li>DSGVO-Pflichtcheck für Vereine (was brauchst du wirklich?)</li>
+          <li>Stripe-SEPA-Lastschrift in 4 Schritten einrichten</li>
+          <li>DATEV-Export für Steuerberater — ohne Excel-Hölle</li>
+          <li>Belt-Tracking digitalisieren (BJJ, Karate, Judo)</li>
+        </ul>
+        <p style="margin:24px 0;text-align:center">
+          <a href="${APP_URL}/blog" style="display:inline-block;padding:12px 24px;background:#fbbf24;color:#18181b;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px">Zum Blog →</a>
+        </p>
+        <p style="margin:24px 0 0;color:#a1a1aa;font-size:12px;border-top:1px solid #e4e4e7;padding-top:16px">
+          Du willst keine Mails mehr? <a href="${unsubscribeUrl}" style="color:#71717a">Hier abmelden</a> — 1 Klick reicht.
+        </p>
+      `),
+    }),
+  }))
+}
+
+function wrapNewsletter(body: string) {
+  return `<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;padding:32px 16px">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px">
+        <tr><td style="padding:8px 0 24px">
+          <p style="margin:0;color:#fbbf24;font-size:14px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase">Osss</p>
+        </td></tr>
+        <tr><td style="background:#fff;padding:36px;border:1px solid #e4e4e7;border-radius:14px">
+          ${body}
+        </td></tr>
+        <tr><td style="padding:16px 0;text-align:center">
+          <p style="margin:0;color:#a1a1aa;font-size:11px">Osss · Lom-Ali Imadaev · Adelshofen, Deutschland</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 function wrapEmail(gymName: string, body: string) {
   return `<!DOCTYPE html>
 <html lang="de">

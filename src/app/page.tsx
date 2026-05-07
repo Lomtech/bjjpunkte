@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { NewsletterSignup } from '@/components/NewsletterSignup'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -1023,6 +1024,20 @@ export default function Home() {
           <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? '30 days free · No credit card · Cancel anytime' : '30 Tage gratis · Keine Kreditkarte · Jederzeit kündbar'}</p>
         </div>
       </section>
+
+      {/* ── NEWSLETTER ── */}
+      <Section className="py-20 px-5 bg-white border-b border-zinc-100">
+        <div className="max-w-3xl mx-auto">
+          <NewsletterSignup
+            source="landing-footer"
+            variant="hero"
+            title={lang === 'en' ? 'Practical tips for martial arts gyms.' : 'Praxis-Tipps für Kampfsport-Vereine.'}
+            description={lang === 'en'
+              ? 'GDPR, DATEV, SEPA, member management — at most 1× per week, unsubscribe instantly.'
+              : 'DSGVO, DATEV, SEPA, Mitgliederverwaltung — höchstens 1× pro Woche, sofort abbestellbar.'}
+          />
+        </div>
+      </Section>
 
       {/* ── FOOTER ── */}
       <footer className="bg-white border-t border-zinc-100">

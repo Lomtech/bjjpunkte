@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { OsssLogo } from '@/components/Logo'
 import { ARTICLES_SORTED } from '@/lib/blog'
 import { ArrowRight, Clock } from 'lucide-react'
+import { NewsletterSignup } from '@/components/NewsletterSignup'
 
 export const metadata: Metadata = {
   title: 'Blog – Praxis-Wissen für Kampfsport-Vereine',
@@ -89,8 +90,20 @@ export default function BlogIndexPage() {
         )}
       </main>
 
-      {/* Footer CTA */}
+      {/* Newsletter */}
       <section className="bg-zinc-50 border-t border-zinc-100 py-16 px-5">
+        <div className="max-w-3xl mx-auto">
+          <NewsletterSignup
+            source="blog-index"
+            variant="hero"
+            title="Keinen Artikel mehr verpassen."
+            description="Alle 1-2 Wochen ein neuer Praxis-Artikel — DSGVO, DATEV, SEPA, Belt-Tracking, Mitglieder-Pipeline. Direkt im Postfach."
+          />
+        </div>
+      </section>
+
+      {/* Footer CTA */}
+      <section className="bg-white border-t border-zinc-100 py-16 px-5">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-2xl font-black text-zinc-950 tracking-tight mb-3">
             Du willst Praxis statt Theorie?
