@@ -286,7 +286,7 @@ function Timeline({ data }: { data: { date: string; count: number }[] }) {
   const W = 800   // ViewBox-Breite (skaliert per CSS)
   const H = 160   // ViewBox-Höhe
   const PAD_L = 40
-  const PAD_R = 10
+  const PAD_R = 30  // Platz für letztes Datum-Label (z.B. "07.05")
   const PAD_T = 10
   const PAD_B = 28
   const innerW = W - PAD_L - PAD_R
@@ -370,11 +370,14 @@ function Timeline({ data }: { data: { date: string; count: number }[] }) {
           </g>
         ))}
 
-        {/* X-Achse Labels */}
+        {/* X-Achse Labels — Anchor abhängig von Position (verhindert Clipping am Rand) */}
         {points.map((p, i) => {
           if (i % xLabelStep !== 0 && i !== points.length - 1) return null
+          const isFirst = i === 0
+          const isLast = i === points.length - 1
+          const anchor: 'start' | 'middle' | 'end' = isFirst ? 'start' : isLast ? 'end' : 'middle'
           return (
-            <text key={i} x={p.x} y={H - 10} textAnchor="middle"
+            <text key={i} x={p.x} y={H - 10} textAnchor={anchor}
               fontSize="9" fill={p.isToday ? '#d97706' : '#a1a1aa'}
               fontWeight={p.isToday ? '700' : '400'}>
               {p.date.slice(8, 10)}.{p.date.slice(5, 7)}
