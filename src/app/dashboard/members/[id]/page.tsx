@@ -500,6 +500,7 @@ export default function MemberDetailPage() {
       {/* Contact action bar */}
       {(member.phone || member.email) && (
         <ContactBar
+          memberId={member.id}
           firstName={member.first_name}
           phone={member.phone}
           email={member.email}
@@ -779,9 +780,10 @@ function ContractDownloadButton({ memberId, kind }: { memberId: string; kind: 'm
   )
 }
 
-function ContactBar({ firstName, phone, email }: { firstName: string; phone: string | null; email: string | null }) {
+function ContactBar({ memberId, firstName, phone, email }: { memberId: string; firstName: string; phone: string | null; email: string | null }) {
   const { t } = useLanguage()
   const [showWa, setShowWa] = useState(false)
+  const [showMail, setShowMail] = useState(false)
   return (
     <>
       <div className="flex gap-2 mb-5 flex-wrap">
@@ -798,16 +800,128 @@ function ContactBar({ firstName, phone, email }: { firstName: string; phone: str
           </>
         )}
         {email && (
-          <a href={`mailto:${email}`}
+          <button onClick={() => setShowMail(true)}
             className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors shadow-sm">
             <Mail size={14} /> {t('memberDetailExtra', 'email')}
-          </a>
+          </button>
         )}
       </div>
       {showWa && phone && (
         <WhatsAppCompose firstName={firstName} phone={phone} onClose={() => setShowWa(false)} />
       )}
+      {showMail && email && (
+        <MemberMailCompose memberId={memberId} firstName={firstName} email={email} onClose={() => setShowMail(false)} />
+      )}
     </>
+  )
+}
+
+/**
+ * In-App Mail-Composer für eine 1-zu-1-Mitteilung an ein einzelnes Mitglied.
+ * Smartphone-optimiert (Modal mit safe-area-padding). Kein mailto:-Sprung
+ * mehr — Owner bleibt im Dashboard.
+ */
+function MemberMailCompose({ memberId, firstName, email, onClose }: { memberId: string; firstName: string; email: string; onClose: () => void }) {
+  const [subject, setSubject] = useState('')
+  const [body, setBody]       = useState(`Hallo ${firstName},\n\n`)
+  const [busy, setBusy]       = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+  const [done, setDone]       = useState(false)
+
+  async function send() {
+    if (!subject.trim() || body.trim().length < 5) {
+      setError('Betreff und Nachricht (min. 5 Zeichen) sind erforderlich.')
+      return
+    }
+    setBusy(true); setError(null)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Nicht eingeloggt')
+      const res = await fetch(`/api/members/${memberId}/mail`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ subject: subject.trim(), body: body.trim() }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      setDone(true)
+      setTimeout(() => onClose(), 1500)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Versand fehlgeschlagen')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+         onClick={() => !busy && onClose()}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl"
+           onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+          <div className="min-w-0">
+            <p className="font-bold text-zinc-900 text-sm">E-Mail an {firstName}</p>
+            <p className="text-xs text-zinc-400 truncate">{email}</p>
+          </div>
+          <button type="button" onClick={onClose} disabled={busy}
+            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 disabled:opacity-50">✕</button>
+        </div>
+
+        {done ? (
+          <div className="p-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+              <Check size={26} className="text-emerald-600" />
+            </div>
+            <p className="font-bold text-zinc-900">Mail verschickt</p>
+            <p className="text-xs text-zinc-500 mt-1">Empfänger: {email}</p>
+          </div>
+        ) : (
+          <div className="p-5 space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1">Betreff *</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={e => setSubject(e.target.value.slice(0, 200))}
+                placeholder="z.B. Wichtige Info zum Training"
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1">Nachricht *</label>
+              <textarea
+                value={body}
+                onChange={e => setBody(e.target.value.slice(0, 20000))}
+                rows={8}
+                placeholder="Deine Nachricht…"
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
+              />
+              <p className="text-[10px] text-zinc-400 mt-1">{body.length}/20.000 Zeichen</p>
+            </div>
+            {error && (
+              <div className="text-xs p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">{error}</div>
+            )}
+            <div className="flex gap-2 pt-2">
+              <button onClick={onClose} disabled={busy}
+                className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50">
+                Abbrechen
+              </button>
+              <button onClick={send} disabled={busy || !subject.trim() || body.trim().length < 5}
+                className="flex-1 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white font-bold text-sm flex items-center justify-center gap-2">
+                {busy ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Mail size={14} />}
+                {busy ? 'Versende…' : 'Senden'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
