@@ -79,9 +79,13 @@ export default function AnalyticsPage() {
   const [range, setRange] = useState<Range>('30d')
 
   // Owner-Opt-Out für Tracking: wer auf dieser Seite war, ist Admin/Owner und
-  // soll seine eigenen Visits nicht in der Statistik haben.
+  // soll seine eigenen Visits nicht in der Statistik haben. Cookie zusätzlich
+  // zu localStorage — Track-Endpoint prüft den Cookie server-side.
   useEffect(() => {
-    try { localStorage.setItem('osss-no-track', '1') } catch { /* ignore */ }
+    try {
+      document.cookie = 'osss-internal=1; max-age=31536000; path=/; samesite=lax'
+      localStorage.setItem('osss-no-track', '1')
+    } catch { /* manche Browser blocken cookies/localStorage */ }
   }, [])
 
   useEffect(() => {
@@ -399,7 +403,9 @@ function OwnerFilterBanner() {
 
   useEffect(() => {
     try {
-      setExcluded(localStorage.getItem('osss-no-track') === '1')
+      const ls = localStorage.getItem('osss-no-track') === '1'
+      const ck = /(?:^|;\s*)osss-internal=1/.test(document.cookie ?? '')
+      setExcluded(ls || ck)
     } catch { /* ignore */ }
   }, [])
 
@@ -407,9 +413,12 @@ function OwnerFilterBanner() {
     try {
       if (excluded) {
         localStorage.removeItem('osss-no-track')
+        // Cookie wieder entfernen: max-age=0 löscht den Cookie
+        document.cookie = 'osss-internal=; max-age=0; path=/; samesite=lax'
         setExcluded(false)
       } else {
         localStorage.setItem('osss-no-track', '1')
+        document.cookie = 'osss-internal=1; max-age=31536000; path=/; samesite=lax'
         setExcluded(true)
       }
     } catch { /* ignore */ }
@@ -425,8 +434,11 @@ function OwnerFilterBanner() {
           </p>
           <p className="text-amber-800">
             {excluded
-              ? 'Deine eigenen Page-Views werden NICHT in die Statistik gezählt. Beim ersten Besuch dieser Seite automatisch gesetzt — pro Browser einmal nötig.'
+              ? 'Deine eigenen Page-Views werden NICHT in die Statistik gezählt. Cookie + LocalStorage gesetzt für 1 Jahr. Wirkt auf diesem Browser auf diesem Gerät — beim ersten Dashboard-Besuch automatisch gesetzt.'
               : '⚠️ Deine Visits werden gerade in der Statistik gezählt. Klicke unten, um dich auszuschließen.'}
+          </p>
+          <p className="text-[10px] text-amber-700 mt-2 leading-relaxed">
+            <strong>Smartphone, anderer Browser oder Inkognito?</strong> Einfach <a href="/no-track" className="underline font-semibold">/no-track</a> einmal öffnen — setzt Opt-Out auf jedem Gerät.
           </p>
           <button
             onClick={toggle}

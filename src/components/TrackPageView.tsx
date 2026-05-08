@@ -39,7 +39,8 @@ export function TrackPageView() {
       trackedPath.startsWith('/portal/') ||
       trackedPath.startsWith('/signup/') ||
       trackedPath.startsWith('/staff/') ||
-      trackedPath === '/dashboard'
+      trackedPath === '/dashboard' ||
+      trackedPath === '/no-track'
     ) {
       return
     }

@@ -59,9 +59,19 @@ export async function POST(req: Request) {
     path.startsWith('/portal/') ||
     path.startsWith('/signup/') ||
     path.startsWith('/staff/') ||
-    path === '/dashboard'
+    path === '/dashboard' ||
+    path === '/no-track'  // Owner-Opt-Out-Page selbst nicht tracken
   ) {
     return NextResponse.json({ ok: true, skipped: true })
+  }
+
+  // Owner/Admin-Opt-Out via Cookie — wird gesetzt sobald jemand das Dashboard
+  // oder /admin/analytics auf einem Gerät öffnet. Funktioniert geräte-übergreifend
+  // (jeder Browser bekommt seinen eigenen Cookie nach dem ersten Login).
+  // Cookie-Header ist `osss-internal=1`.
+  const cookieHeader = req.headers.get('cookie') ?? ''
+  if (/(?:^|;\s*)osss-internal=1/.test(cookieHeader)) {
+    return NextResponse.json({ ok: true, skipped: 'internal' })
   }
 
   // IP-Quellen: Vercel/Cloudflare-Header. Falls keine: 'unknown' (Localhost-Dev).

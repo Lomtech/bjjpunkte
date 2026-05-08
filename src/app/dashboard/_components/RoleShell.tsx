@@ -54,6 +54,23 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
     if (c) setState({ role: c.role, gymName: c.gymName, logoUrl: c.logoUrl ?? null, onboardingDone: c.onboardingDone, ready: true })
   }, [])
 
+  /**
+   * Owner/Admin-Opt-Out für Tracking: jeder Besuch des Dashboards setzt einen
+   * langlebigen Cookie `osss-internal=1`. Track-Endpoint prüft diesen und
+   * skipt Page-Views/Clicks.
+   *
+   * Funktioniert geräte-übergreifend: einmal Dashboard auf Smartphone öffnen
+   * → Cookie ist 365 Tage gesetzt. Auch localStorage als Fallback (für
+   * Cookie-blocking-Cases).
+   */
+  useEffect(() => {
+    try {
+      // Cookie: domain-bezogen, 1 Jahr, SameSite=Lax (Standard für own-origin)
+      document.cookie = 'osss-internal=1; max-age=31536000; path=/; samesite=lax'
+      localStorage.setItem('osss-no-track', '1')
+    } catch { /* manche Browser blocken cookies/localStorage */ }
+  }, [])
+
   useEffect(() => {
     const supabase = createClient()
     const c = readCache()
