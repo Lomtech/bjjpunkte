@@ -1,0 +1,4 @@
+vorname,nachname,email,telefon,geburtsdatum,strasse,plz,ort,gurt,streifen,beitrittsdatum,monatsbeitrag,notizen
+Max,Müller,max.mueller@example.com,+49 170 1234567,1990-04-15,Hauptstraße 12,10115,Berlin,blue,2,2023-09-01,89.00,Stammkunde seit 2023
+Lena,Schäfer,lena.schaefer@example.com,+49 151 2233445,1995-11-23,Lindenweg 7,80331,München,white,3,2024-02-14,79.50,Probetraining bestanden
+Tom,Bauer,tom.bauer@example.com,+49 176 9988776,1988-07-02,Am Park 5,20095,Hamburg,purple,1,2022-05-20,99.00,

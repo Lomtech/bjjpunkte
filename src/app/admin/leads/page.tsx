@@ -8,6 +8,37 @@ import { CallScript } from './_components/CallScript'
 import { StatsModal } from './_components/StatsModal'
 
 const FILTERS_LS_KEY = 'osss-crm-leads-filters-v1'
+const VIEW_LS_KEY = 'osss-crm-leads-view-v1'
+
+type LeadsView = 'list' | 'pipeline'
+
+// Pipeline action labels — used in the kanban cards + tagesbericht.
+function pipelineActionLabel(a: string | null): string {
+  if (!a) return 'Aktion offen'
+  switch (a) {
+    case 'send_mail_1':      return 'Erstkontakt-Mail senden'
+    case 'followup_mail_2':  return 'Follow-up-Mail #2'
+    case 'linkedin_dm':      return 'LinkedIn-DM'
+    case 'call_followup':    return 'Anruf-Follow-up'
+    case 'demo_call':        return 'Demo-Termin'
+    case 'demo_followup':    return 'Demo-Nachfass'
+    case 'onboarding_check': return 'Onboarding-Check'
+    default:                 return a
+  }
+}
+function pipelineActionIcon(a: string | null): string {
+  if (!a) return '•'
+  switch (a) {
+    case 'send_mail_1':
+    case 'followup_mail_2':  return '✉'
+    case 'linkedin_dm':      return '💼'
+    case 'call_followup':    return '📞'
+    case 'demo_call':
+    case 'demo_followup':    return '🎯'
+    case 'onboarding_check': return '🚀'
+    default:                 return '•'
+  }
+}
 
 // Mirror of the API filter logic — used after PATCH to decide whether a lead
 // should still appear in the current view, so the UI feels live.
@@ -143,6 +174,28 @@ export default function AdminLeadsPage() {
       }))
     } catch { /* quota / private mode → ignore */ }
   }, [filtersHydrated, statusFilter, martialOnly, dueOnly, city, sort, sortDir])
+
+  // List vs Pipeline tab. Persisted in LS and synced to URL ?view=...
+  // so a deep-link from the daily reminder mail can land directly in
+  // the pipeline view.
+  const [view, setView] = useState<LeadsView>('list')
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href)
+      const v = url.searchParams.get('view')
+      if (v === 'pipeline' || v === 'list') { setView(v); return }
+      const stored = localStorage.getItem(VIEW_LS_KEY)
+      if (stored === 'pipeline' || stored === 'list') setView(stored)
+    } catch { /* ignore */ }
+  }, [])
+  useEffect(() => {
+    try { localStorage.setItem(VIEW_LS_KEY, view) } catch { /* ignore */ }
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (view === 'pipeline') url.searchParams.set('view', 'pipeline')
+    else url.searchParams.delete('view')
+    window.history.replaceState({}, '', url.toString())
+  }, [view])
 
   // panels
   const [selected, setSelected] = useState<SalesLead | null>(null)
@@ -458,11 +511,43 @@ export default function AdminLeadsPage() {
           </div>
           {/* Mobile-only quota badge below header */}
           {quota && <div className="sm:hidden mt-2"><QuotaBadge quota={quota} /></div>}
+
+          {/* View tabs: Liste / Pipeline.
+              Pipeline = "wer ist heute dran"; Liste = klassische CRM-Tabelle. */}
+          <div className="mt-3 flex gap-1 bg-zinc-100 rounded-xl p-1 w-full sm:w-fit">
+            <button
+              onClick={() => setView('list')}
+              className={`flex-1 sm:flex-none px-4 py-1.5 text-sm rounded-lg font-semibold transition ${
+                view === 'list' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'
+              }`}
+              aria-pressed={view === 'list'}>
+              📋 Liste
+            </button>
+            <button
+              onClick={() => setView('pipeline')}
+              className={`flex-1 sm:flex-none px-4 py-1.5 text-sm rounded-lg font-semibold transition ${
+                view === 'pipeline' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'
+              }`}
+              aria-pressed={view === 'pipeline'}>
+              🎯 Pipeline
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Follow-up alert banner */}
-      {(overdueCount > 0 || todayCount > 0) && !dueOnly && (
+      {/* Pipeline view — kanban + tagesbericht */}
+      {view === 'pipeline' && token && (
+        <PipelineView
+          token={token}
+          martialOnly={martialOnly}
+          city={city.trim()}
+          onSelect={l => setSelected(l)}
+          onChanged={() => loadLeads()}
+        />
+      )}
+
+      {/* Follow-up alert banner — only shown in list view */}
+      {view === 'list' && (overdueCount > 0 || todayCount > 0) && !dueOnly && (
         <div className="max-w-[1600px] mx-auto px-6 pt-4">
           <button onClick={() => { setDueOnly(true); setPage(0) }}
             className={`w-full text-left rounded-xl border p-4 transition hover:scale-[1.005] ${
@@ -485,6 +570,7 @@ export default function AdminLeadsPage() {
         </div>
       )}
 
+      {view === 'list' && (
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:grid lg:grid-cols-12 lg:gap-6">
         {/* Filter sidebar — drawer on mobile, sticky on desktop */}
         {showMobileFilters && (
@@ -725,6 +811,7 @@ export default function AdminLeadsPage() {
           )}
         </main>
       </div>
+      )}
 
       {/* Detail panel */}
       {selected && (
@@ -1370,6 +1457,346 @@ function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
         <p className="text-xs text-zinc-400 mt-0.5">{new Date(activity.occurred_at).toLocaleString('de-DE')}</p>
       </div>
     </li>
+  )
+}
+
+// ─── Pipeline View ─────────────────────────────────────────────────────
+//
+// Vier Spalten:
+//   1. Heute fällig   (next_action_at <= heute, rot wenn überfällig)
+//   2. Diese Woche    (next_action_at heute+1 .. heute+7)
+//   3. Demo-Phase     (status ∈ demo_scheduled / demo_done / negotiating)
+//   4. Geschlossen    (won / lost / not_a_fit / do_not_contact, letzte 30d)
+//
+// Die Daten kommen vom /api/admin/sales/leads-Endpoint, der serverseitig
+// sortiert und buckets baut. Nach jeder Quick-Action wird neu geladen.
+type PipelineData = {
+  buckets: {
+    today: SalesLead[]
+    this_week: SalesLead[]
+    demo: SalesLead[]
+    closed: SalesLead[]
+  }
+  daily: { total_due_today: number; counts: Record<string, number> }
+  weekly: { new_leads: number; demos_scheduled: number; won: number; lost: number }
+  generated_at: string
+}
+
+function PipelineView({ token, martialOnly, city, onSelect, onChanged }: {
+  token: string
+  martialOnly: boolean
+  city: string
+  onSelect: (l: SalesLead) => void
+  onChanged: () => void
+}) {
+  const [data, setData] = useState<PipelineData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const params = new URLSearchParams()
+    params.set('martial', martialOnly ? 'true' : 'false')
+    if (city) params.set('city', city)
+    try {
+      const res = await fetch(`/api/admin/sales/leads?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) setData(await res.json())
+    } finally {
+      setLoading(false)
+    }
+  }, [token, martialOnly, city])
+
+  useEffect(() => { load() }, [load])
+
+  async function quickAction(leadId: string, action_type: string, extra?: Record<string, unknown>) {
+    setBusyId(leadId)
+    try {
+      const res = await fetch(`/api/admin/sales/leads/${leadId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action_type, ...extra }),
+      })
+      if (res.ok) {
+        await load()
+        onChanged()
+      }
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  if (loading && !data) {
+    return <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 text-zinc-500 text-center">Lade Pipeline…</div>
+  }
+  if (!data) {
+    return <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 text-zinc-500 text-center">Pipeline konnte nicht geladen werden.</div>
+  }
+
+  const { buckets, daily, weekly } = data
+  const todaySummaryItems: string[] = []
+  for (const [k, n] of Object.entries(daily.counts)) {
+    if (n > 0) todaySummaryItems.push(`${n}× ${pipelineActionLabel(k)}`)
+  }
+
+  return (
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4">
+      {/* Tagesbericht-Banner */}
+      <div className="bg-gradient-to-r from-amber-50 to-amber-100/40 border border-amber-200 rounded-2xl p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-bold text-amber-900">
+              📋 Heute: {daily.total_due_today === 0
+                ? 'Alles abgearbeitet — gut gemacht!'
+                : `${daily.total_due_today} Aktion${daily.total_due_today === 1 ? '' : 'en'} fällig`}
+            </div>
+            {todaySummaryItems.length > 0 && (
+              <div className="text-xs text-amber-800 mt-1">
+                {todaySummaryItems.join(' · ')}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3 text-xs">
+            <span className="px-2.5 py-1 bg-white/70 rounded-full text-zinc-700">
+              📥 <strong>{weekly.new_leads}</strong> neue Leads
+            </span>
+            <span className="px-2.5 py-1 bg-white/70 rounded-full text-zinc-700">
+              🎯 <strong>{weekly.demos_scheduled}</strong> Demos
+            </span>
+            <span className="px-2.5 py-1 bg-emerald-50 rounded-full text-emerald-800">
+              ✓ <strong>{weekly.won}</strong> gewonnen
+            </span>
+            <span className="px-2.5 py-1 bg-rose-50 rounded-full text-rose-800">
+              × <strong>{weekly.lost}</strong> verloren
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 4-column kanban — scroll horizontally on small screens */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <PipelineColumn
+          title="Heute fällig"
+          tone="rose"
+          count={buckets.today.length}
+          subtitle={buckets.today.length === 0 ? 'Nichts mehr offen' : `${buckets.today.length} dran`}
+          leads={buckets.today}
+          showOverdue
+          onSelect={onSelect}
+          onAction={quickAction}
+          busyId={busyId}
+        />
+        <PipelineColumn
+          title="Diese Woche"
+          tone="amber"
+          count={buckets.this_week.length}
+          subtitle="In den nächsten 7 Tagen"
+          leads={buckets.this_week}
+          onSelect={onSelect}
+          onAction={quickAction}
+          busyId={busyId}
+        />
+        <PipelineColumn
+          title="Demo-Phase"
+          tone="indigo"
+          count={buckets.demo.length}
+          subtitle="Demo geplant / gehabt / Verhandlung"
+          leads={buckets.demo}
+          onSelect={onSelect}
+          onAction={quickAction}
+          busyId={busyId}
+        />
+        <PipelineColumn
+          title="Geschlossen (30d)"
+          tone="zinc"
+          count={buckets.closed.length}
+          subtitle="Won / Lost — letzte 30 Tage"
+          leads={buckets.closed}
+          onSelect={onSelect}
+          onAction={quickAction}
+          busyId={busyId}
+          isClosed
+        />
+      </div>
+    </div>
+  )
+}
+
+function PipelineColumn({
+  title, tone, count, subtitle, leads, showOverdue, isClosed, onSelect, onAction, busyId,
+}: {
+  title: string
+  tone: 'rose' | 'amber' | 'indigo' | 'zinc'
+  count: number
+  subtitle: string
+  leads: SalesLead[]
+  showOverdue?: boolean
+  isClosed?: boolean
+  onSelect: (l: SalesLead) => void
+  onAction: (id: string, action: string, extra?: Record<string, unknown>) => void
+  busyId: string | null
+}) {
+  const toneClasses = {
+    rose:   'border-rose-200 bg-rose-50/50',
+    amber:  'border-amber-200 bg-amber-50/50',
+    indigo: 'border-indigo-200 bg-indigo-50/50',
+    zinc:   'border-zinc-200 bg-zinc-50/50',
+  }[tone]
+  const headerClasses = {
+    rose:   'text-rose-900',
+    amber:  'text-amber-900',
+    indigo: 'text-indigo-900',
+    zinc:   'text-zinc-900',
+  }[tone]
+
+  return (
+    <div className={`rounded-2xl border ${toneClasses} flex flex-col min-h-[300px] max-h-[calc(100vh-200px)]`}>
+      <div className="px-4 py-3 border-b border-current/10 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <h3 className={`font-bold text-sm ${headerClasses}`}>{title}</h3>
+          <span className={`text-xs px-2 py-0.5 rounded-full bg-white/60 font-mono ${headerClasses}`}>{count}</span>
+        </div>
+        <p className="text-[11px] text-zinc-500 mt-0.5">{subtitle}</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+        {leads.length === 0 ? (
+          <div className="text-center text-xs text-zinc-400 py-8">— leer —</div>
+        ) : leads.map(l => (
+          <PipelineCard
+            key={l.id}
+            lead={l}
+            showOverdue={showOverdue}
+            isClosed={isClosed}
+            onSelect={onSelect}
+            onAction={onAction}
+            busy={busyId === l.id}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }: {
+  lead: SalesLead
+  showOverdue?: boolean
+  isClosed?: boolean
+  onSelect: (l: SalesLead) => void
+  onAction: (id: string, action: string, extra?: Record<string, unknown>) => void
+  busy: boolean
+}) {
+  const status = STATUSES.find(s => s.v === lead.status)
+  const dueDate = lead.next_action_at ? new Date(lead.next_action_at) : null
+  const isOverdue = showOverdue && dueDate ? dueDate < new Date() : false
+
+  // Owner-Vorname versuchen aus Notes/Name zu extrahieren — aktuell kein eigenes
+  // Feld, also nehmen wir den ersten Satz aus den Notes oder fallback "Owner".
+  const ownerHint = lead.notes ? lead.notes.split(/[.\n]/)[0].slice(0, 30) : null
+
+  function fmtDue(d: Date): string {
+    const now = new Date()
+    const sameDay = d.toDateString() === now.toDateString()
+    if (sameDay) return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+  }
+
+  return (
+    <div
+      onClick={() => onSelect(lead)}
+      className={`relative bg-white rounded-xl border p-3 cursor-pointer hover:shadow-md transition group ${
+        isOverdue ? 'border-rose-300 ring-1 ring-rose-200' : 'border-zinc-200'
+      } ${busy ? 'opacity-60 pointer-events-none' : ''}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-zinc-900 text-sm leading-tight truncate">{lead.name}</div>
+          {ownerHint && <div className="text-[11px] text-zinc-500 mt-0.5 truncate">{ownerHint}</div>}
+        </div>
+        <span className="text-amber-500 text-xs flex-shrink-0">{'★'.repeat(lead.priority)}</span>
+      </div>
+
+      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+        {status && <span className={`text-[10px] px-2 py-0.5 rounded-full ${status.color}`}>{status.label}</span>}
+        {lead.city && <span className="text-[10px] text-zinc-500">{lead.city}</span>}
+      </div>
+
+      {/* Nächste Aktion */}
+      {lead.next_action && (
+        <div className={`mt-2 text-xs flex items-center gap-1.5 ${isOverdue ? 'text-rose-700 font-semibold' : 'text-zinc-700'}`}>
+          <span>{pipelineActionIcon(lead.next_action)}</span>
+          <span className="truncate">{pipelineActionLabel(lead.next_action)}</span>
+          {dueDate && (
+            <span className={`ml-auto text-[10px] flex-shrink-0 ${isOverdue ? 'text-rose-700' : 'text-zinc-400'}`}>
+              {isOverdue ? '⚠ ' : ''}{fmtDue(dueDate)}
+            </span>
+          )}
+        </div>
+      )}
+      {!lead.next_action && lead.status === 'demo_scheduled' && lead.next_followup_at && (
+        <div className="mt-2 text-xs text-indigo-700 flex items-center gap-1.5">
+          🎯 Demo am {fmtDue(new Date(lead.next_followup_at))}
+        </div>
+      )}
+
+      {/* Quick-Actions — only on active cards (not closed) */}
+      {!isClosed && (
+        <div className="mt-3 flex gap-1 -mx-1" onClick={e => e.stopPropagation()}>
+          <PipelineQuickButton
+            title="Aktion erledigt"
+            label="✓"
+            onClick={() => onAction(lead.id, 'mark_done')} />
+          <PipelineQuickButton
+            title="Kontaktiert"
+            label="📞"
+            onClick={() => onAction(lead.id, 'contacted')} />
+          <PipelineQuickButton
+            title="Demo vereinbart"
+            label="📅"
+            onClick={() => {
+              const at = window.prompt('Demo-Datum + Uhrzeit (YYYY-MM-DD HH:MM):', '')
+              const parsed = at ? new Date(at.replace(' ', 'T')) : null
+              const iso = parsed && !isNaN(parsed.getTime()) ? parsed.toISOString() : null
+              onAction(lead.id, 'demo_scheduled', iso ? { demo_at: iso } : undefined)
+            }} />
+          <PipelineQuickButton
+            title="Verloren"
+            label="✕"
+            danger
+            onClick={() => {
+              const reason = window.prompt('Grund (optional):', '')
+              onAction(lead.id, 'lost', reason ? { reason } : undefined)
+            }} />
+        </div>
+      )}
+      {isClosed && lead.status === 'won' && (
+        <div className="mt-2 text-xs text-emerald-700 font-semibold">✓ Gewonnen{lead.converted_at ? ` · ${new Date(lead.converted_at).toLocaleDateString('de-DE')}` : ''}</div>
+      )}
+      {isClosed && lead.status === 'lost' && (
+        <div className="mt-2 text-xs text-rose-700">✕ Verloren{lead.lost_reason ? ` · ${lead.lost_reason}` : ''}</div>
+      )}
+    </div>
+  )
+}
+
+function PipelineQuickButton({ label, title, onClick, danger }: {
+  label: string
+  title: string
+  onClick: () => void
+  danger?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`flex-1 px-2 py-1.5 text-xs rounded-lg font-semibold transition ${
+        danger
+          ? 'bg-zinc-100 hover:bg-rose-50 text-zinc-600 hover:text-rose-700'
+          : 'bg-zinc-100 hover:bg-amber-100 text-zinc-700 hover:text-amber-900'
+      }`}
+    >
+      {label}
+    </button>
   )
 }
 

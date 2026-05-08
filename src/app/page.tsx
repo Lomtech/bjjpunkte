@@ -989,10 +989,10 @@ export default function Home() {
           <motion.p variants={fadeUp} className="text-zinc-500 mb-10 text-sm leading-relaxed">{lang === 'en' ? 'Free up to 30 members. Pay only as your gym grows.' : 'Bis 30 Mitglieder kostenlos. Du zahlst erst, wenn dein Gym wächst.'}</motion.p>
           <motion.div variants={stagger} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             {[
-              { name: 'Free',    price: '€0',  members: lang === 'en' ? '30 mbrs.'   : '30 Mitgl.',  highlight: false },
-              { name: 'Starter', price: '€29', members: lang === 'en' ? '50 mbrs.'   : '50 Mitgl.',  highlight: false },
-              { name: 'Grow',    price: '€59', members: lang === 'en' ? '150 mbrs.'  : '150 Mitgl.', highlight: true  },
-              { name: 'Pro',     price: '€99', members: lang === 'en' ? 'Unlimited'  : 'Unbegrenzt', highlight: false },
+              { name: 'Free',    price: '€0',   members: lang === 'en' ? '30 mbrs.'  : '30 Mitgl.',   highlight: false },
+              { name: 'Starter', price: '€49',  members: lang === 'en' ? '99 mbrs.'  : '99 Mitgl.',   highlight: false },
+              { name: 'Grow',    price: '€89',  members: lang === 'en' ? '249 mbrs.' : '249 Mitgl.',  highlight: true  },
+              { name: 'Pro',     price: '€149', members: lang === 'en' ? 'Unlimited' : 'Unbegrenzt', highlight: false },
             ].map(p => (
               <motion.div key={p.name} variants={fadeUp}
                 className={`rounded-2xl p-5 border-2 text-center transition-all ${
@@ -1062,9 +1062,9 @@ export default function Home() {
                 {lang === 'en' ? 'Osss' : 'Osss'}
               </div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-2">Osss</p>
-              <p className="text-3xl font-black text-emerald-700 tabular-nums tracking-tight">348 €</p>
+              <p className="text-3xl font-black text-emerald-700 tabular-nums tracking-tight">588 €</p>
               <p className="text-xs text-emerald-700 mt-1">
-                {lang === 'en' ? '€29/month · 0% platform fee' : '29 €/Monat · 0 % Plattformgebühr'}
+                {lang === 'en' ? '€49/month · 0% platform fee' : '49 €/Monat · 0 % Plattformgebühr'}
               </p>
               <p className="text-[11px] text-emerald-700 mt-2 italic">
                 {lang === 'en' ? 'Up to 30 members forever free.' : 'Bis 30 Mitglieder dauerhaft gratis.'}
@@ -1093,7 +1093,7 @@ export default function Home() {
         <div className="max-w-xl mx-auto relative">
           <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-950 mb-5">{lang === 'en' ? 'Your gym in 10 minutes.' : 'Dein Gym in 10 Minuten.'}</h2>
           <p className="text-zinc-800 text-lg mb-10 leading-relaxed">
-            {lang === 'en' ? <>Free forever up to 30 members.<br />Above that: €29-99/month, no minimum term.</> : <>Bis 30 Mitglieder dauerhaft gratis.<br />Danach: €29-99/Monat, keine Mindestlaufzeit.</>}
+            {lang === 'en' ? <>Free forever up to 30 members.<br />Above that: €49-149/month, no minimum term.</> : <>Bis 30 Mitglieder dauerhaft gratis.<br />Danach: 49 €-149 €/Monat, keine Mindestlaufzeit.</>}
           </p>
           <Link href="/register" data-track="cta_signup_bottom"
             className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-zinc-900/25">

@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import type { Database } from '@/types/database'
+import { PRICING_TIERS, annualPriceCents, type PlanKey } from '@/lib/pricing'
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -12,9 +13,14 @@ function authClient(accessToken: string) {
   )
 }
 
-const PLAN_PRICES:        Record<string, number> = { starter: 2900,  grow: 5900,  pro: 9900  }
-const PLAN_PRICES_ANNUAL: Record<string, number> = { starter: 29000, grow: 59000, pro: 99000 }
-const PLAN_NAMES:         Record<string, string>  = { starter: 'Starter Plan', grow: 'Grow Plan', pro: 'Pro Plan' }
+// Single-source-of-truth: pricing comes from src/lib/pricing.ts.
+// Pricing realignment 2026-05: 29/49/99 → 49/89/149 EUR. The Stripe
+// Checkout used to hardcode the old numbers — keeping a derived map
+// here ensures the pricing page and the checkout can never drift again.
+const PAID_TIERS = PRICING_TIERS.filter(t => t.planKey !== 'free')
+const PLAN_PRICES        = Object.fromEntries(PAID_TIERS.map(t => [t.planKey, t.monthlyCents]))            as Record<PlanKey, number>
+const PLAN_PRICES_ANNUAL = Object.fromEntries(PAID_TIERS.map(t => [t.planKey, annualPriceCents(t.monthlyCents)])) as Record<PlanKey, number>
+const PLAN_NAMES         = Object.fromEntries(PAID_TIERS.map(t => [t.planKey, `${t.name} Plan`]))           as Record<PlanKey, string>
 
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
@@ -24,7 +30,10 @@ export async function POST(req: Request) {
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { plan, annual = false } = await req.json()
-  if (!plan || !PLAN_PRICES[plan]) return NextResponse.json({ error: 'Ungültiger Plan' }, { status: 400 })
+  // Reject unknown plans AND the free tier — Free does not go through Stripe Checkout.
+  const isPaidPlan = (p: unknown): p is Exclude<PlanKey, 'free'> =>
+    typeof p === 'string' && p in PLAN_PRICES
+  if (!isPaidPlan(plan)) return NextResponse.json({ error: 'Ungültiger Plan' }, { status: 400 })
 
   const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
