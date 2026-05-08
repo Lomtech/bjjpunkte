@@ -211,6 +211,14 @@ export async function POST(req: Request) {
   const portalUrl   = portalToken ? `${appUrl}/portal/${portalToken}` : null
   const gymName     = gymWithName?.name ?? 'deinem Gym'
 
+  // WhatsApp-Gruppen-Link laden (falls Owner einen hinterlegt hat)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: gymWa } = await (supabase.from('gyms') as any)
+    .select('whatsapp_group_url')
+    .eq('id', gymId)
+    .maybeSingle()
+  const whatsappGroupUrl: string | null = (gymWa as { whatsapp_group_url?: string | null } | null)?.whatsapp_group_url ?? null
+
   // ── Stripe subscription checkout (if plan has stripe_price_id) ────────────
   let checkoutUrl: string | null = null
   if (plan_id && process.env.STRIPE_SECRET_KEY) {
@@ -334,6 +342,19 @@ export async function POST(req: Request) {
               Zum Mitgliederportal →
             </a>
             ` : ''}
+            ${whatsappGroupUrl ? `
+            <div style="margin-top:24px;padding:16px;background:#dcfce7;border:1px solid #86efac;border-radius:12px">
+              <p style="margin:0 0 8px;font-size:14px;font-weight:700;color:#166534">
+                💬 WhatsApp-Gruppe
+              </p>
+              <p style="margin:0 0 12px;font-size:13px;color:#166534;line-height:1.5">
+                Tritt unserer WhatsApp-Gruppe bei, um über Termine, Events und News informiert zu bleiben:
+              </p>
+              <a href="${whatsappGroupUrl}" style="display:inline-block;padding:10px 20px;background:#25D366;color:#fff;font-weight:700;font-size:13px;border-radius:10px;text-decoration:none">
+                Gruppe beitreten →
+              </a>
+            </div>
+            ` : ''}
             <p style="margin:24px 0 0;font-size:12px;color:#94a3b8">Oss!</p>
           </div>
         `,
@@ -343,9 +364,10 @@ export async function POST(req: Request) {
 
   // ── 2. Bestätigungs-WhatsApp → Mitglied (Twilio) ─────────────────────────
   if (phone?.trim()) {
+    const groupSuffix = whatsappGroupUrl ? `\n\n💬 WhatsApp-Gruppe beitreten:\n${whatsappGroupUrl}` : ''
     const waBody = checkoutUrl
-      ? `Hallo ${firstName.trim()}! 🥋 Willkommen bei ${gymName}!\n\nDeine Mitgliedschaft wurde bestätigt. Bitte schließe jetzt dein Abonnement ab:\n${checkoutUrl}${portalUrl ? `\n\nMitgliederportal: ${portalUrl}` : ''}\n\nOss!`
-      : `Hallo ${firstName.trim()}! 🥋 Willkommen bei ${gymName}!\n\nDeine Mitgliedschaft wurde bestätigt.${portalUrl ? `\n\nZum Mitgliederportal: ${portalUrl}` : ''}\n\nOss!`
+      ? `Hallo ${firstName.trim()}! 🥋 Willkommen bei ${gymName}!\n\nDeine Mitgliedschaft wurde bestätigt. Bitte schließe jetzt dein Abonnement ab:\n${checkoutUrl}${portalUrl ? `\n\nMitgliederportal: ${portalUrl}` : ''}${groupSuffix}\n\nOss!`
+      : `Hallo ${firstName.trim()}! 🥋 Willkommen bei ${gymName}!\n\nDeine Mitgliedschaft wurde bestätigt.${portalUrl ? `\n\nZum Mitgliederportal: ${portalUrl}` : ''}${groupSuffix}\n\nOss!`
     await sendWhatsApp({
       to:   phone.trim(),
       body: waBody,

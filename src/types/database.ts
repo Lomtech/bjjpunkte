@@ -121,6 +121,7 @@ export interface Database {
           impressum_text: string | null
           // Social
           whatsapp_number: string | null
+          whatsapp_group_url: string | null
           instagram_url: string | null
           facebook_url: string | null
           website_url: string | null
@@ -198,6 +199,7 @@ export interface Database {
           opening_hours?: Record<string, unknown> | null
           impressum_text?: string | null
           whatsapp_number?: string | null
+          whatsapp_group_url?: string | null
           instagram_url?: string | null
           facebook_url?: string | null
           website_url?: string | null
@@ -265,6 +267,7 @@ export interface Database {
           opening_hours?: Record<string, unknown> | null
           impressum_text?: string | null
           whatsapp_number?: string | null
+          whatsapp_group_url?: string | null
           instagram_url?: string | null
           facebook_url?: string | null
           website_url?: string | null

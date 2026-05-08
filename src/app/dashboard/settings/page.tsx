@@ -80,6 +80,10 @@ function SettingsPageInner() {
   // Signup
   const [signupEnabled, setSignupEnabled]       = useState(false)
   const [signupToken, setSignupToken]           = useState<string | null>(null)
+  const [whatsappGroupUrl, setWhatsappGroupUrl] = useState('')
+  const [whatsappGroupSaving, setWhatsappGroupSaving] = useState(false)
+  const [whatsappGroupSaved, setWhatsappGroupSaved]   = useState(false)
+  const [whatsappGroupError, setWhatsappGroupError]   = useState<string | null>(null)
   const [contractTemplate, setContractTemplate] = useState('')
   const [wellpassTemplate, setWellpassTemplate] = useState('')
   const [trialTemplate, setTrialTemplate] = useState('')
@@ -248,6 +252,7 @@ function SettingsPageInner() {
         }
         setSignupEnabled(data.signup_enabled ?? true)
         setSignupToken(data.signup_token ?? null)
+        setWhatsappGroupUrl(((data as { whatsapp_group_url?: string | null }).whatsapp_group_url) ?? '')
         setContractTemplate(data.contract_template ?? '')
         setWellpassTemplate((data as { wellpass_agreement_template?: string | null }).wellpass_agreement_template ?? '')
         setTrialTemplate((data as { trial_rules_template?: string | null }).trial_rules_template ?? '')
@@ -472,6 +477,31 @@ function SettingsPageInner() {
     setSignupSaving(false); setSignupSaved(true); setTimeout(() => setSignupSaved(false), 2000)
   }
 
+
+  async function handleWhatsappGroupSave() {
+    setWhatsappGroupError(null)
+    const trimmed = whatsappGroupUrl.trim()
+    if (trimmed && !/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]+$/.test(trimmed)) {
+      setWhatsappGroupError(lang === 'en'
+        ? 'Invalid format. Must look like https://chat.whatsapp.com/XXX'
+        : 'Ungültiges Format. Muss wie https://chat.whatsapp.com/XXX aussehen.')
+      return
+    }
+    setWhatsappGroupSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('gyms') as any)
+      .update({ whatsapp_group_url: trimmed || null })
+      .eq('owner_id', user?.id ?? '')
+    setWhatsappGroupSaving(false)
+    if (error) {
+      setWhatsappGroupError(error.message)
+      return
+    }
+    setWhatsappGroupSaved(true)
+    setTimeout(() => setWhatsappGroupSaved(false), 2000)
+  }
 
   async function handleLegalSave() {
     setLegalSaving(true)
@@ -1904,6 +1934,55 @@ function SettingsPageInner() {
                   : <>SMS-Benachrichtigungen nutzen deine Telefonnummer unter <strong>Allgemein → Telefon</strong>. Stelle sicher, dass sie eingetragen ist.</>
                 }
               </div>
+            </div>
+          </div>
+
+          {/* WhatsApp-Gruppe */}
+          <div className={sectionCls}>
+            <SectionHeader
+              icon={<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>}
+              title={lang === 'en' ? 'WhatsApp Group' : 'WhatsApp-Gruppe'}
+            />
+            <div className="p-5 space-y-4">
+              <p className="text-zinc-500 text-sm leading-relaxed">
+                {lang === 'en'
+                  ? <>If you run a WhatsApp group for your members, paste the invite link here. New members will see it in their welcome email and in their portal — they can voluntarily join.</>
+                  : <>Wenn du eine WhatsApp-Gruppe für deine Mitglieder hast, hinterlege hier den Einladungslink. Neue Mitglieder sehen ihn in der Willkommens-Mail und im Portal — sie können freiwillig beitreten.</>
+                }
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">
+                  {lang === 'en' ? 'WhatsApp invite link' : 'WhatsApp-Einladungslink'}
+                </label>
+                <input
+                  type="url"
+                  value={whatsappGroupUrl}
+                  onChange={e => { setWhatsappGroupUrl(e.target.value); setWhatsappGroupSaved(false); setWhatsappGroupError(null) }}
+                  placeholder="https://chat.whatsapp.com/XXX..."
+                  className={inputCls}
+                />
+                <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
+                  {lang === 'en'
+                    ? <>Get this from WhatsApp: open your group → tap group name → <strong>Invite via link</strong> → Copy.</>
+                    : <>Findest du in WhatsApp: Gruppe öffnen → auf Gruppen-Name tippen → <strong>Einladungslink</strong> → Kopieren.</>}
+                </p>
+              </div>
+              {whatsappGroupError && (
+                <div className="text-xs p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">{whatsappGroupError}</div>
+              )}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[11px] text-amber-900 leading-relaxed">
+                {lang === 'en'
+                  ? <>DSGVO-Note: WhatsApp = Meta (USA). Mention this in your privacy policy. Members join voluntarily — no PII is shared from our system; only the link is forwarded.</>
+                  : <>DSGVO-Hinweis: WhatsApp = Meta (USA). Bitte in deiner Datenschutzerklärung erwähnen. Mitglieder treten freiwillig bei — wir teilen keine personenbezogenen Daten, nur der Link wird weitergegeben.</>}
+              </div>
+              <button type="button" onClick={handleWhatsappGroupSave} disabled={whatsappGroupSaving} className={saveBtnCls}>
+                <Save size={14} />
+                {whatsappGroupSaved
+                  ? t('settings', 'saved')
+                  : whatsappGroupSaving
+                    ? t('settings', 'saving')
+                    : (lang === 'en' ? 'Save invite link' : 'Einladungslink speichern')}
+              </button>
             </div>
           </div>
 

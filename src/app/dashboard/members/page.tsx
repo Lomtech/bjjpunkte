@@ -69,6 +69,7 @@ export default function MembersPage() {
   const [members, setMembers]               = useState<Member[]>([])
   const [gymId, setGymId]                   = useState('')
   const [monthlyFeeCents, setMonthlyFeeCents] = useState(0)
+  const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string | null>(null)
   const [planPriceMap, setPlanPriceMap]     = useState<Record<string, number>>({})
   const [beltSystem, setBeltSystem]         = useState<BeltSystem | undefined>(undefined)
   const [beltEnabled, setBeltEnabled]       = useState(true)
@@ -190,7 +191,7 @@ export default function MembersPage() {
       if (!user) { setLoading(false); return }
       const { data: gym } = await supabase
         .from('gyms')
-        .select('id, monthly_fee_cents, belt_system, belt_system_enabled')
+        .select('id, monthly_fee_cents, belt_system, belt_system_enabled, whatsapp_group_url')
         .eq('owner_id', user.id)
         .maybeSingle()
       if (!gym) { setLoading(false); return }
@@ -198,6 +199,7 @@ export default function MembersPage() {
       setMonthlyFeeCents(gym.monthly_fee_cents ?? 0)
       setBeltSystem(resolveBeltSystem((gym as any)?.belt_system))
       setBeltEnabled((gym as any)?.belt_system_enabled ?? true)
+      setWhatsappGroupUrl((gym as any)?.whatsapp_group_url ?? null)
       // Load members + classes in parallel (look back 3 h for retroactive check-in)
       const now = new Date()
       const [classesRes, plansRes] = await Promise.all([
@@ -889,6 +891,7 @@ export default function MembersPage() {
       {showWaModal && (
         <WhatsAppBulkModal
           members={active.filter(m => m.phone)}
+          whatsappGroupUrl={whatsappGroupUrl}
           onClose={() => setShowWaModal(false)}
         />
       )}
@@ -1044,17 +1047,28 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
   )
 }
 
-function WhatsAppBulkModal({ members, onClose }: {
+function WhatsAppBulkModal({ members, whatsappGroupUrl, onClose }: {
   members: { id: string; first_name: string; last_name: string; phone: string | null }[]
+  whatsappGroupUrl?: string | null
   onClose: () => void
 }) {
   const { lang } = useLanguage()
 
   const BULK_TEMPLATES = [
-    { id: 'info',    label: `📢 ${lang === 'en' ? 'General Info' : 'Allgemeine Info'}`,        text: () => lang === 'en' ? `Hello! Quick message from your gym. 👋` : `Hallo! Kurze Nachricht von eurem Gym. 👋` },
-    { id: 'payment', label: `💰 ${lang === 'en' ? 'Payment reminder' : 'Beitragserinnerung'}`, text: () => lang === 'en' ? `Hello! Your monthly membership fee is due. Please transfer it this week. Thanks! 🙏` : `Hallo! Euer monatlicher Mitgliedsbeitrag ist fällig. Bitte überweist ihn diese Woche. Danke! 🙏` },
-    { id: 'event',   label: `🥋 ${lang === 'en' ? 'Training reminder' : 'Trainings-Erinnerung'}`,  text: () => lang === 'en' ? `Hey! Training tonight – see you on the mat! Oss! 💪` : `Hey! Heute Abend Training – wir sehen uns auf der Matte! Oss! 💪` },
-    { id: 'comp',    label: `🏆 ${lang === 'en' ? 'Competition announcement' : 'Wettkampf-Ankündigung'}`, text: () => lang === 'en' ? `Hey guys! We're entering the next competition. Interested? Let us know! Details to follow. Oss! 🏆` : `Hey Leute! Wir nehmen am nächsten Wettkampf teil. Wer Interesse hat – meldet euch! Details folgen. Oss! 🏆` },
+    { id: 'info',    label: `📢 ${lang === 'en' ? 'General Info' : 'Allgemeine Info'}`,        text: () => lang === 'en' ? `Hello {{first_name}}! Quick message from your gym. 👋` : `Hallo {{first_name}}! Kurze Nachricht von eurem Gym. 👋` },
+    { id: 'payment', label: `💰 ${lang === 'en' ? 'Payment reminder' : 'Beitragserinnerung'}`, text: () => lang === 'en' ? `Hello {{first_name}}! Your monthly membership fee is due. Please transfer it this week. Thanks! 🙏` : `Hallo {{first_name}}! Dein monatlicher Mitgliedsbeitrag ist fällig. Bitte überweise ihn diese Woche. Danke! 🙏` },
+    { id: 'event',   label: `🥋 ${lang === 'en' ? 'Training reminder' : 'Trainings-Erinnerung'}`,  text: () => lang === 'en' ? `Hey {{first_name}}! Training tonight – see you on the mat! Oss! 💪` : `Hey {{first_name}}! Heute Abend Training – wir sehen uns auf der Matte! Oss! 💪` },
+    { id: 'comp',    label: `🏆 ${lang === 'en' ? 'Competition announcement' : 'Wettkampf-Ankündigung'}`, text: () => lang === 'en' ? `Hey {{first_name}}! We're entering the next competition. Interested? Let us know! Details to follow. Oss! 🏆` : `Hey {{first_name}}! Wir nehmen am nächsten Wettkampf teil. Wer Interesse hat – meld dich! Details folgen. Oss! 🏆` },
+    // Gruppen-Einladung — nur sichtbar wenn Owner einen Group-Invite-Link hinterlegt hat
+    ...(whatsappGroupUrl
+      ? [{
+          id: 'group',
+          label: `🟢 ${lang === 'en' ? 'WhatsApp group invite' : 'WhatsApp-Gruppen-Einladung'}`,
+          text: () => lang === 'en'
+            ? `Hey {{first_name}}! Join our WhatsApp group for news, events and training info: ${whatsappGroupUrl} 💬`
+            : `Hey {{first_name}}! Tritt unserer WhatsApp-Gruppe bei für News, Events und Trainings-Infos: ${whatsappGroupUrl} 💬`,
+        }]
+      : []),
     { id: 'custom',  label: `✏️ ${lang === 'en' ? 'Custom message' : 'Eigene Nachricht'}`,       text: () => `` },
   ]
 
