@@ -722,7 +722,11 @@ export default function MembersPage() {
           <div className="md:hidden space-y-2">
             {filtered.map(m => {
               const cs = contractStatus(m.contract_end_date)
-              const feeCents = m.monthly_fee_override_cents ?? monthlyFeeCents
+              // Konsistent mit Desktop-Tabelle: override > plan_price > 0
+              // (NICHT auf gym.monthly_fee_cents fallback — das ist Legacy-Default
+              // aus Pre-Plan-Zeiten und ignoriert den tatsächlichen Tarif des Mitglieds)
+              const feeCents = m.monthly_fee_override_cents
+                ?? (m.plan_id ? (planPriceMap[m.plan_id] ?? 0) : 0)
               const subStatus = m.subscription_status ?? 'none'
               return (
                 <div key={m.id} className="flex items-center gap-3 bg-white rounded-xl border border-zinc-200 p-3.5 shadow-sm">

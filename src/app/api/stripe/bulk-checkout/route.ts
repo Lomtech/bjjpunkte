@@ -37,16 +37,40 @@ export async function POST(req: Request) {
   const connectedAccountId = gymData?.stripe_account_id
   const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
 
-  // Active members with email, no active subscription
+  // Active members with email, no active subscription — plan_id auch laden,
+  // damit wir die korrekte Tarif-Hierarchie auflösen können (override > plan > 0).
   const { data: members } = await supabase
     .from('members')
-    .select('id, first_name, last_name, email, stripe_customer_id, stripe_subscription_id, monthly_fee_override_cents')
+    .select('id, first_name, last_name, email, stripe_customer_id, stripe_subscription_id, monthly_fee_override_cents, plan_id')
     .eq('gym_id', gymId)
     .eq('is_active', true)
     .not('email', 'is', null)
 
   if (!members || members.length === 0) {
     return NextResponse.json({ count: 0, message: 'Keine aktiven Mitglieder mit E-Mail gefunden.' })
+  }
+
+  // Plan-Preise als Map laden — vermeidet N+1 Queries beim fee-Resolve
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: plans } = await (supabase.from('membership_plans') as any)
+    .select('id, price_cents')
+    .eq('gym_id', gymId)
+    .eq('is_active', true)
+  const planPriceMap = new Map<string, number>(
+    (plans ?? []).map((p: { id: string; price_cents: number }) => [p.id, p.price_cents])
+  )
+
+  /**
+   * Tarif-Hierarchie: Mitglieds-Override > zugewiesener Plan > expliziter
+   * `amountCents`-Fallback aus dem Owner-Aufruf > 0.
+   * KEIN automatischer Fallback auf `gyms.monthly_fee_cents` — das ist
+   * Legacy-Default aus Pre-Plan-Zeiten und ignoriert den Tarif komplett.
+   */
+  const resolveFee = (m: { monthly_fee_override_cents: number | null; plan_id: string | null }): number => {
+    if (m.monthly_fee_override_cents != null) return m.monthly_fee_override_cents
+    if (m.plan_id && planPriceMap.has(m.plan_id)) return planPriceMap.get(m.plan_id)!
+    if (typeof amountCents === 'number' && amountCents > 0) return amountCents
+    return 0
   }
 
   // Members who already paid or have pending link this month
@@ -75,7 +99,7 @@ export async function POST(req: Request) {
   const eligibleMembers = members.filter(member => {
     if (paidMemberIds.has(member.id)) return false
     if (member.stripe_subscription_id) return false
-    const fee = (member.monthly_fee_override_cents ?? amountCents ?? 0) as number
+    const fee = resolveFee(member)
     if (fee < 50) return false
     return true
   })
@@ -97,7 +121,7 @@ export async function POST(req: Request) {
     const batch = needsCheckout.slice(i, i + BATCH_SIZE)
     await Promise.all(batch.map(async (member) => {
       try {
-        const fee = (member.monthly_fee_override_cents ?? amountCents ?? 0) as number
+        const fee = resolveFee(member)
 
         let customerId = member.stripe_customer_id
         const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
