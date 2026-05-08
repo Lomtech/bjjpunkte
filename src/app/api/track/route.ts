@@ -5,6 +5,9 @@ import {
   sessionHash,
   classifyDevice,
   extractReferrerDomain,
+  isBot,
+  categorizeReferrer,
+  sanitizeUtm,
 } from '@/lib/analytics-hash'
 
 export const runtime = 'nodejs'
@@ -19,10 +22,25 @@ export const dynamic = 'force-dynamic'
  * visitor_hash + session_hash sind täglich/30min-rotierend gesalzen
  * → kein Personenbezug rekonstruierbar.
  *
- * Body: { path: string, referrer?: string }
+ * Body:
+ *   { path: string,
+ *     referrer?: string,
+ *     event_type?: 'page_view' | 'click',
+ *     event_target?: string,         // z.B. 'cta_signup' (nur bei click)
+ *     utm_source?: string,
+ *     utm_medium?: string,
+ *     utm_campaign?: string }
  */
 export async function POST(req: Request) {
-  let body: { path?: string; referrer?: string } = {}
+  let body: {
+    path?: string
+    referrer?: string
+    event_type?: string
+    event_target?: string
+    utm_source?: string
+    utm_medium?: string
+    utm_campaign?: string
+  } = {}
   try {
     body = await req.json()
   } catch {
@@ -63,6 +81,28 @@ export async function POST(req: Request) {
   const { device_type, browser } = classifyDevice(ua)
   const referrerDomain = extractReferrerDomain(body.referrer ?? req.headers.get('referer'))
 
+  // Event-Type validieren — nur Whitelist
+  const validEventTypes = new Set(['page_view', 'click', 'conversion'])
+  const eventType = (typeof body.event_type === 'string' && validEventTypes.has(body.event_type))
+    ? body.event_type
+    : 'page_view'
+
+  // Event-Target sanitizen (nur a-z, 0-9, _, -, max 100 Zeichen)
+  const eventTarget = (eventType !== 'page_view' && typeof body.event_target === 'string')
+    ? body.event_target.toLowerCase().replace(/[^a-z0-9_\-.]/g, '').slice(0, 100) || null
+    : null
+
+  // UTM-Params sanitizen
+  const utmSource   = sanitizeUtm(body.utm_source)
+  const utmMedium   = sanitizeUtm(body.utm_medium)
+  const utmCampaign = sanitizeUtm(body.utm_campaign)
+
+  // Bot-Detection
+  const bot = isBot(ua)
+
+  // Referrer-Quelle aggregieren (für UI-Auswertung)
+  const referrerSource = categorizeReferrer(referrerDomain)
+
   const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('page_views') as any).insert({
@@ -73,6 +113,13 @@ export async function POST(req: Request) {
     browser,
     visitor_hash: visitorHash(ip, ua),
     session_hash: sessionHash(ip, ua),
+    is_bot:          bot,
+    event_type:      eventType,
+    event_target:    eventTarget,
+    utm_source:      utmSource,
+    utm_medium:      utmMedium,
+    utm_campaign:    utmCampaign,
+    referrer_source: referrerSource,
   })
 
   if (error) {

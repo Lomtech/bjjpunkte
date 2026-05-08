@@ -14,6 +14,13 @@ interface PageViewRow {
   visitor_hash: string | null
   session_hash: string | null
   created_at: string
+  is_bot: boolean | null
+  event_type: string | null
+  event_target: string | null
+  utm_source: string | null
+  utm_medium: string | null
+  utm_campaign: string | null
+  referrer_source: string | null
 }
 
 /**
@@ -34,15 +41,25 @@ export async function GET(req: Request) {
   const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from('page_views') as any)
-    .select('path, referrer_domain, country, device_type, browser, visitor_hash, session_hash, created_at')
+    .select('path, referrer_domain, country, device_type, browser, visitor_hash, session_hash, created_at, is_bot, event_type, event_target, utm_source, utm_medium, utm_campaign, referrer_source')
     .gte('created_at', since)
     .order('created_at', { ascending: false })
     .limit(50000)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const rows = (data ?? []) as PageViewRow[]
-  const total = rows.length
+  const allRows = (data ?? []) as PageViewRow[]
+
+  // Bot-Filter: alles trennen — Hauptstats nur Menschen, Bot-Zahlen separat
+  const botCount   = allRows.filter(r => r.is_bot === true).length
+  const humanRows  = allRows.filter(r => r.is_bot !== true)
+
+  // Page-Views vs. Click-Events trennen
+  const pageViewRows = humanRows.filter(r => (r.event_type ?? 'page_view') === 'page_view')
+  const clickRows    = humanRows.filter(r => r.event_type === 'click')
+
+  const rows = pageViewRows  // existing variable name compatibility
+  const total = pageViewRows.length
 
   // Unique visitors (über die ganze Range — visitor_hash rotiert täglich,
   // also ist das eher "unique visit-days")
@@ -126,6 +143,43 @@ export async function GET(req: Request) {
       return acc
     }, new Set<string>()).size
 
+  // Referrer-Source-Aggregation (vor-kategorisierte Quellen wie 'google',
+  // 'linkedin', 'direct'). Schöner als rohe Domains für Übersicht.
+  const sourceCount = new Map<string, number>()
+  for (const r of rows) {
+    const s = r.referrer_source ?? 'direct'
+    sourceCount.set(s, (sourceCount.get(s) ?? 0) + 1)
+  }
+  const sources = [...sourceCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([source, count]) => ({ source, count }))
+
+  // Click-Events nach Target (z.B. cta_signup_hero: 5)
+  const clickByTarget = new Map<string, number>()
+  for (const r of clickRows) {
+    if (!r.event_target) continue
+    clickByTarget.set(r.event_target, (clickByTarget.get(r.event_target) ?? 0) + 1)
+  }
+  const clicks = [...clickByTarget.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([target, count]) => ({ target, count }))
+
+  // UTM-Kampagnen aggregieren — Sessions pro Kampagne
+  const campaignSessions = new Map<string, Set<string>>()
+  for (const r of rows) {
+    if (!r.utm_source && !r.utm_campaign) continue
+    const key = `${r.utm_source ?? '?'} / ${r.utm_medium ?? '?'} / ${r.utm_campaign ?? '?'}`
+    if (!campaignSessions.has(key)) campaignSessions.set(key, new Set())
+    if (r.session_hash) campaignSessions.get(key)!.add(r.session_hash)
+  }
+  const campaigns = [...campaignSessions.entries()]
+    .map(([key, sessions]) => {
+      const [source, medium, campaign] = key.split(' / ')
+      return { source, medium, campaign, sessions: sessions.size }
+    })
+    .sort((a, b) => b.sessions - a.sessions)
+    .slice(0, 25)
+
   return NextResponse.json({
     range: { days, since },
     summary: {
@@ -133,10 +187,15 @@ export async function GET(req: Request) {
       unique_visitors: uniqueVisitors,
       unique_sessions: uniqueSessions,
       avg_views_per_session: uniqueSessions > 0 ? Math.round((total / uniqueSessions) * 10) / 10 : 0,
+      bots_filtered: botCount,
+      total_clicks: clickRows.length,
     },
     timeline,
     top_pages: topPages,
     top_referrers: topReferrers,
+    sources,
+    clicks,
+    campaigns,
     countries,
     devices,
     browsers,

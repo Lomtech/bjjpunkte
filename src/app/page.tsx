@@ -219,13 +219,13 @@ export default function Home() {
             <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
             <Link href="/blog" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Blog</Link>
             <Link href="/ressourcen" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
-            <button onClick={() => setContactOpen(true)} className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</button>
+            <button onClick={() => setContactOpen(true)} data-track="cta_contact_header" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</button>
             <LanguageSwitcher variant="minimal" />
             {checked && (loggedIn
               ? <Link href="/dashboard" className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors">Dashboard</Link>
               : <>
                   <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Log in' : 'Anmelden'}</Link>
-                  <Link href="/register" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors hidden sm:block">{lang === 'en' ? 'Get started free' : 'Kostenlos starten'}</Link>
+                  <Link href="/register" data-track="cta_signup_header" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors hidden sm:block">{lang === 'en' ? 'Get started free' : 'Kostenlos starten'}</Link>
                 </>
             )}
             {/* Mobile hamburger */}
@@ -314,12 +314,12 @@ export default function Home() {
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-8">
-                <Link href="/register"
+                <Link href="/register" data-track="cta_signup_hero"
                   className="bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/20">
                   <Zap size={16} className="text-amber-400" />
                   {lang === 'en' ? 'Get started free' : 'Jetzt kostenlos starten'}
                 </Link>
-                <Link href="/pricing"
+                <Link href="/pricing" data-track="cta_pricing_hero"
                   className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
                   {lang === 'en' ? 'View pricing' : 'Preise ansehen'} <ArrowRight size={15} />
                 </Link>
@@ -1095,7 +1095,7 @@ export default function Home() {
           <p className="text-zinc-800 text-lg mb-10 leading-relaxed">
             {lang === 'en' ? <>Free forever up to 30 members.<br />Above that: €29-99/month, no minimum term.</> : <>Bis 30 Mitglieder dauerhaft gratis.<br />Danach: €29-99/Monat, keine Mindestlaufzeit.</>}
           </p>
-          <Link href="/register"
+          <Link href="/register" data-track="cta_signup_bottom"
             className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-zinc-900/25">
             <Zap size={18} className="text-amber-400" />
             {lang === 'en' ? 'Start free now' : 'Jetzt kostenlos starten'}

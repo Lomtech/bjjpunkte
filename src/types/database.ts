@@ -504,8 +504,8 @@ export interface Database {
         Relationships: Rel[]
       }
       page_views: {
-        Row: { id: string; path: string; referrer_domain: string | null; country: string | null; device_type: string | null; browser: string | null; visitor_hash: string | null; session_hash: string | null; created_at: string }
-        Insert: { path: string; referrer_domain?: string | null; country?: string | null; device_type?: string | null; browser?: string | null; visitor_hash?: string | null; session_hash?: string | null }
+        Row: { id: string; path: string; referrer_domain: string | null; country: string | null; device_type: string | null; browser: string | null; visitor_hash: string | null; session_hash: string | null; created_at: string; is_bot: boolean; event_type: string; event_target: string | null; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; referrer_source: string | null }
+        Insert: { path: string; referrer_domain?: string | null; country?: string | null; device_type?: string | null; browser?: string | null; visitor_hash?: string | null; session_hash?: string | null; is_bot?: boolean; event_type?: string; event_target?: string | null; utm_source?: string | null; utm_medium?: string | null; utm_campaign?: string | null; referrer_source?: string | null }
         Update: never
         Relationships: Rel[]
       }

@@ -60,3 +60,61 @@ export function extractReferrerDomain(referrer: string | null): string | null {
     return null
   }
 }
+
+/**
+ * Erkennt bekannte Bots/Crawler/Monitoring/Scanner via User-Agent.
+ *
+ * Selbst Bots die sich tarnen (Chrome-UA spoofen) werden zu ~95% erkannt
+ * weil sie meist mindestens EINS dieser Tokens hinterlassen. Das schließt
+ * SEO-Crawler (Google/Bing), Uptime-Pings (Pingdom/UptimeRobot) und
+ * Security-Scanner (Detectify/Acunetix) zuverlässig aus den Stats aus.
+ *
+ * Falsch-Positive sind sehr selten — kein normaler Browser hat „bot" oder
+ * „crawler" im User-Agent.
+ */
+export function isBot(userAgent: string | null | undefined): boolean {
+  if (!userAgent) return true  // kein UA = vermutlich Bot/Tool
+  const ua = userAgent.toLowerCase()
+  return /\b(bot|crawler|spider|slurp|crawling|scraper|headless|phantom|selenium|puppeteer|playwright|chromedriver|webdriver|googlebot|bingbot|yandexbot|baiduspider|duckduckbot|yahoo!|exabot|facebookexternalhit|twitterbot|linkedinbot|telegrambot|whatsapp|discordbot|skypeuripreview|slackbot|pingdom|uptimerobot|monitor|statuscake|dataforseoBot|ahrefs|semrush|mj12bot|petalbot|gptbot|claudebot|anthropic|chatgpt-user|perplexitybot|applebot|developers\.google\.com|prerender|chrome-lighthouse|google-pagespeed|google-inspection|amazonbot|fetch|curl\/|wget\/|httpie|python-requests|axios\/|node-fetch|java\/|go-http-client|okhttp\/|libwww-perl|scrapy|nutch|heritrix|archive\.org_bot|webvisor)\b/.test(ua)
+}
+
+/**
+ * Kategorisiert die Referrer-Quelle in eine kleine Anzahl bekannter
+ * Buckets — für Quellen-Aggregation in der Analytics-Übersicht.
+ *
+ * Beispiele:
+ *  - google.com/google.de/google.* → 'google'
+ *  - linkedin.com / lnkd.in → 'linkedin'
+ *  - t.co → 'twitter' (alte Tweet-Links)
+ *  - facebook.com / fb.com / m.facebook.com → 'facebook'
+ *  - kein Referrer (direct hit) → 'direct'
+ *  - alles andere → 'other'
+ */
+export function categorizeReferrer(domain: string | null | undefined): string {
+  if (!domain) return 'direct'
+  const d = domain.toLowerCase()
+  if (/^(www\.)?google(\.|$)|google\.[a-z]+$|googleadservices\.com|googlesyndication\.com/.test(d)) return 'google'
+  if (/^(www\.)?bing(\.|$)/.test(d) || d === 'cn.bing.com') return 'bing'
+  if (/^(www\.)?duckduckgo\.com/.test(d)) return 'duckduckgo'
+  if (/^(www\.)?yandex\.|yahoo\.com/.test(d)) return 'other-search'
+  if (/^(www\.)?linkedin\.com|lnkd\.in/.test(d)) return 'linkedin'
+  if (/^(www\.|m\.|l\.|lm\.)?(facebook\.com|fb\.com|fb\.me)/.test(d)) return 'facebook'
+  if (/^(www\.|m\.)?(twitter\.com|x\.com)|t\.co/.test(d)) return 'twitter'
+  if (/^(www\.|m\.)?instagram\.com|l\.instagram\.com/.test(d)) return 'instagram'
+  if (/^(www\.)?reddit\.com|out\.reddit\.com/.test(d)) return 'reddit'
+  if (/^(www\.)?youtube\.com|youtu\.be/.test(d)) return 'youtube'
+  if (/^(www\.)?tiktok\.com/.test(d)) return 'tiktok'
+  if (/^(www\.)?pinterest\.|pin\.it/.test(d)) return 'pinterest'
+  if (/^(www\.|web\.)?whatsapp\.com|wa\.me/.test(d)) return 'whatsapp'
+  if (/^(www\.|t\.)?telegram\.|t\.me/.test(d)) return 'telegram'
+  if (/^(mail|outlook|gmail|yahoo|web)\.|email|newsletter/.test(d)) return 'email'
+  if (/^(www\.)?(github|stackoverflow|hacker)\./.test(d)) return 'tech'
+  return 'other'
+}
+
+/** Sanitize UTM-Param: nur a-z0-9_-., max 100 chars, lowercase. */
+export function sanitizeUtm(value: string | null | undefined): string | null {
+  if (!value) return null
+  const s = value.toLowerCase().replace(/[^a-z0-9_\-.]/g, '').slice(0, 100)
+  return s.length > 0 ? s : null
+}

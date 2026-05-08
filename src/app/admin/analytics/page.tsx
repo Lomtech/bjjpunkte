@@ -25,10 +25,15 @@ interface AnalyticsData {
     unique_visitors: number
     unique_sessions: number
     avg_views_per_session: number
+    bots_filtered: number
+    total_clicks: number
   }
   timeline: { date: string; count: number }[]
   top_pages: { path: string; count: number }[]
   top_referrers: { domain: string; count: number }[]
+  sources: { source: string; count: number }[]
+  clicks: { target: string; count: number }[]
+  campaigns: { source: string; medium: string; campaign: string; sessions: number }[]
   countries: { country: string; count: number }[]
   devices: { device: string; count: number }[]
   browsers: { browser: string; count: number }[]
@@ -43,6 +48,28 @@ interface AnalyticsData {
 }
 
 type Range = '7d' | '30d' | '90d'
+
+// Hübsche Labels für die kategorisierten Quellen aus categorizeReferrer()
+const SOURCE_LABEL: Record<string, string> = {
+  google:        '🔍 Google',
+  bing:          '🔍 Bing',
+  duckduckgo:    '🦆 DuckDuckGo',
+  'other-search': '🔍 Andere Suche',
+  linkedin:      '💼 LinkedIn',
+  facebook:      '📘 Facebook',
+  twitter:       '🐦 Twitter / X',
+  instagram:     '📷 Instagram',
+  reddit:        '🟠 Reddit',
+  youtube:       '▶️ YouTube',
+  tiktok:        '🎵 TikTok',
+  pinterest:     '📌 Pinterest',
+  whatsapp:      '💬 WhatsApp',
+  telegram:      '✈️ Telegram',
+  email:         '📧 E-Mail',
+  tech:          '💻 Tech-Communities',
+  direct:        '🔗 Direkt / kein Referrer',
+  other:         '🌐 Andere',
+}
 
 export default function AnalyticsPage() {
   const router = useRouter()
@@ -153,6 +180,22 @@ export default function AnalyticsPage() {
               <Timeline data={data.timeline} />
             </Section>
 
+            {/* Bot-Filter + Click-Events Banner */}
+            {(data.summary.bots_filtered > 0 || data.summary.total_clicks > 0) && (
+              <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {data.summary.bots_filtered > 0 && (
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-zinc-600">
+                    🤖 <strong>{data.summary.bots_filtered.toLocaleString('de-DE')}</strong> Bot-Visits aus Statistik gefiltert
+                  </div>
+                )}
+                {data.summary.total_clicks > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800">
+                    🖱 <strong>{data.summary.total_clicks.toLocaleString('de-DE')}</strong> CTA-Clicks im Zeitraum
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
               {/* Top Pages */}
               <Section title="Top Pages">
@@ -164,8 +207,21 @@ export default function AnalyticsPage() {
                 )}
               </Section>
 
-              {/* Top Referrers */}
-              <Section title="Woher kommen die Besucher?">
+              {/* Quellen (kategorisiert) — bevorzugt vor rohen Domains */}
+              <Section title="Quellen (kategorisiert)">
+                {data.sources.length === 0 ? <Empty /> : (
+                  <BarList
+                    items={data.sources.map(r => ({
+                      label: SOURCE_LABEL[r.source] ?? r.source,
+                      count: r.count,
+                    }))}
+                    formatLabel={l => l}
+                  />
+                )}
+              </Section>
+
+              {/* Top Referrers (Rohe Domains) */}
+              <Section title="Top Referrer-Domains">
                 {data.top_referrers.length === 0 ? <Empty /> : (
                   <BarList
                     items={data.top_referrers.map(r => ({
@@ -176,7 +232,57 @@ export default function AnalyticsPage() {
                   />
                 )}
               </Section>
+
+              {/* CTA-Clicks */}
+              <Section title="CTA-Clicks">
+                {data.clicks.length === 0 ? (
+                  <div className="text-xs text-zinc-400 py-4 text-center leading-relaxed">
+                    Noch keine Click-Events.<br />
+                    <span className="text-zinc-500">Buttons mit <code className="bg-zinc-100 px-1 rounded">data-track=&quot;…&quot;</code> tracken automatisch.</span>
+                  </div>
+                ) : (
+                  <BarList
+                    items={data.clicks.map(c => ({
+                      label: c.target,
+                      count: c.count,
+                    }))}
+                    formatLabel={l => l}
+                  />
+                )}
+              </Section>
             </div>
+
+            {/* UTM-Kampagnen — nur anzeigen wenn welche da sind */}
+            {data.campaigns.length > 0 && (
+              <Section title="UTM-Kampagnen (nach Sessions)">
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="text-zinc-400 uppercase tracking-wider text-[10px] font-bold">
+                        <th className="text-left py-2 px-3">Source</th>
+                        <th className="text-left py-2 px-3">Medium</th>
+                        <th className="text-left py-2 px-3">Campaign</th>
+                        <th className="text-right py-2 px-3">Sessions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.campaigns.map((c, i) => (
+                        <tr key={i} className="border-t border-zinc-100">
+                          <td className="py-2 px-3 font-mono text-zinc-700">{c.source !== '?' ? c.source : <span className="text-zinc-300">—</span>}</td>
+                          <td className="py-2 px-3 font-mono text-zinc-700">{c.medium !== '?' ? c.medium : <span className="text-zinc-300">—</span>}</td>
+                          <td className="py-2 px-3 font-mono text-zinc-700">{c.campaign !== '?' ? c.campaign : <span className="text-zinc-300">—</span>}</td>
+                          <td className="py-2 px-3 text-right font-bold tabular-nums">{c.sessions}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-3 text-[10px] text-zinc-400 leading-relaxed">
+                  Tipp: Hänge <code className="bg-zinc-100 px-1 rounded">?utm_source=linkedin&amp;utm_campaign=launch</code> an deine geteilten Links —
+                  dann zählen wir die Klicks separat pro Kampagne.
+                </p>
+              </Section>
+            )}
 
             {/* Conversion-Funnel */}
             <Section title="🎯 Conversion Funnel">
