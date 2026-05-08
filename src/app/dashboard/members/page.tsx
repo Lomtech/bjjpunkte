@@ -309,9 +309,11 @@ export default function MembersPage() {
     a.click(); URL.revokeObjectURL(url)
   }
 
+  // E-Mail-Button öffnet ein In-App-Modal statt mailto:-Sprung in die native Mail-App.
+  // Versand läuft über /api/gym-mail/send (DSGVO-konform, mit 1-Klick-Unsubscribe).
+  const [showMailModal, setShowMailModal] = useState(false)
   function handleEmailAll() {
-    const emails = activeWithEmail.map(m => m.email).join(',')
-    window.open(`mailto:${emails}?subject=Information%20von%20eurem%20Gym`, '_blank')
+    setShowMailModal(true)
   }
 
   async function handleBulkCheckout() {
@@ -891,6 +893,14 @@ export default function MembersPage() {
         />
       )}
 
+      {/* E-Mail Bulk Modal — In-App, statt mailto:-Sprung in native Mail-App */}
+      {showMailModal && (
+        <BulkEmailModal
+          memberCount={activeWithEmail.length}
+          onClose={() => setShowMailModal(false)}
+        />
+      )}
+
       {/* Bulk Checkout Results Modal */}
       {showBulkResults && bulkMembers.length > 0 && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
@@ -1215,6 +1225,159 @@ function WhatsAppBulkModal({ members, onClose }: {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * In-App Bulk-E-Mail-Modal — startet vom „E-Mail"-Button auf der
+ * Mitglieder-Liste. Statt mailto:-Sprung in die native Mail-App
+ * wird hier direkt über /api/gym-mail/send verschickt.
+ *
+ * Audience ist fest auf „active members" — DSGVO-konform via
+ * Art. 6 Abs. 1 lit. f (berechtigtes Interesse, Bestandskunden).
+ * Jede Mail bekommt 1-Klick-Unsubscribe-Header (RFC 8058).
+ *
+ * {{first_name}}-Variable im Body wird pro Empfänger ersetzt.
+ */
+function BulkEmailModal({ memberCount, onClose }: { memberCount: number; onClose: () => void }) {
+  const { lang } = useLanguage()
+  const [subject, setSubject] = useState('')
+  const [body, setBody]       = useState('Hallo {{first_name}},\n\n')
+  const [busy, setBusy]       = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+  const [done, setDone]       = useState<{ sent: number; failed: number } | null>(null)
+
+  async function send() {
+    if (!subject.trim() || body.trim().length < 10) {
+      setError(lang === 'en'
+        ? 'Subject and body (min. 10 chars) are required.'
+        : 'Betreff und Nachricht (min. 10 Zeichen) sind erforderlich.')
+      return
+    }
+    setBusy(true); setError(null)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Nicht eingeloggt')
+      const res = await fetch('/api/gym-mail/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          audience:  'members',
+          filter:    'active',
+          kind:      'announcement',
+          subject:   subject.trim(),
+          html:      body.trim().replace(/\n/g, '<br/>'),
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+      setDone({ sent: data.sent ?? 0, failed: data.failed ?? 0 })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Versand fehlgeschlagen')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm"
+         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+         onClick={() => !busy && onClose()}>
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+           onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+          <div className="min-w-0">
+            <p className="font-bold text-zinc-900 text-sm flex items-center gap-2">
+              <Mail size={14} className="text-amber-500" />
+              {lang === 'en' ? 'Bulk-Email to all members' : 'Massen-E-Mail an alle Mitglieder'}
+            </p>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              {lang === 'en'
+                ? <><strong>{memberCount}</strong> active members with email · DSGVO-compliant via Art. 6(1)(f)</>
+                : <><strong>{memberCount}</strong> aktive Mitglieder mit E-Mail · DSGVO-konform via Art. 6(1)(f)</>}
+            </p>
+          </div>
+          <button onClick={onClose} disabled={busy}
+            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 disabled:opacity-50">✕</button>
+        </div>
+
+        {done ? (
+          <div className="p-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+              <Check size={26} className="text-emerald-600" />
+            </div>
+            <p className="font-bold text-zinc-900">
+              {lang === 'en' ? 'Sent successfully' : 'Erfolgreich verschickt'}
+            </p>
+            <p className="text-xs text-zinc-500 mt-1">
+              {done.sent} {lang === 'en' ? 'of' : 'von'} {memberCount} {lang === 'en' ? 'recipients' : 'Empfängern'}
+              {done.failed > 0 && (lang === 'en' ? ` · ${done.failed} failed` : ` · ${done.failed} fehlgeschlagen`)}
+            </p>
+            <button onClick={onClose}
+              className="mt-5 px-5 py-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-sm font-semibold">
+              {lang === 'en' ? 'Close' : 'Schließen'}
+            </button>
+          </div>
+        ) : (
+          <div className="p-5 space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1">{lang === 'en' ? 'Subject *' : 'Betreff *'}</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={e => setSubject(e.target.value.slice(0, 200))}
+                placeholder={lang === 'en' ? 'e.g. Tournament invitation' : 'z.B. Turnier-Einladung'}
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-600 mb-1">{lang === 'en' ? 'Message *' : 'Nachricht *'}</label>
+              <textarea
+                value={body}
+                onChange={e => setBody(e.target.value.slice(0, 50000))}
+                rows={8}
+                placeholder={lang === 'en' ? 'Your message…' : 'Deine Nachricht…'}
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-y"
+              />
+              <p className="text-[10px] text-zinc-400 mt-1">
+                {body.length}/50.000 · {lang === 'en'
+                  ? <>Variable <code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> is replaced per recipient.</>
+                  : <><code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> wird pro Empfänger ersetzt.</>}
+              </p>
+            </div>
+            <p className="text-[10px] text-zinc-400 leading-relaxed bg-zinc-50 rounded-lg px-3 py-2">
+              {lang === 'en'
+                ? <>Each member gets a 1-click unsubscribe link (RFC 8058). For more options (audience picker, cover image, send to leads) use <a href="/dashboard/content" className="underline">Communication</a>.</>
+                : <>Jedes Mitglied bekommt einen 1-Klick-Unsubscribe-Link (RFC 8058). Für mehr Optionen (Empfängerwahl, Cover-Bild, an Leads senden) → <a href="/dashboard/content" className="underline">Kommunikation</a>.</>}
+            </p>
+            {error && (
+              <div className="text-xs p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">{error}</div>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button onClick={onClose} disabled={busy}
+                className="flex-1 py-2.5 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50">
+                {lang === 'en' ? 'Cancel' : 'Abbrechen'}
+              </button>
+              <button onClick={send} disabled={busy || !subject.trim() || body.trim().length < 10}
+                className="flex-1 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white font-bold text-sm flex items-center justify-center gap-2">
+                {busy
+                  ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Mail size={14} />}
+                {busy
+                  ? (lang === 'en' ? 'Sending…' : 'Versende…')
+                  : (lang === 'en' ? `Send to ${memberCount}` : `An ${memberCount} senden`)}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
