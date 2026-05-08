@@ -203,12 +203,10 @@ export function parseDate(raw: string): string | null {
     return formatDate(year, parseInt(m, 10), parseInt(d, 10))
   }
 
-  // Last-resort: let Date try
-  const fb = new Date(s)
-  if (!Number.isNaN(fb.getTime())) {
-    return fb.toISOString().split('T')[0]
-  }
-
+  // No fallback to `new Date(s)` — JS's Date constructor accepts garbage
+  // like "4" → year 4 or "12 2023" → unpredictable, which would silently
+  // ship malformed birth dates to the DB. Better to return null and let
+  // the importer flag it as an error row.
   return null
 }
 

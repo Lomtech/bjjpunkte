@@ -162,9 +162,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .update(update).eq('id', id).select().maybeSingle()
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 })
 
-  // Log activity (best-effort — never block the response)
+  // Log activity (best-effort — never block the response, but surface errors
+  // in server logs so audit-trail gaps are observable).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('sales_activities') as any).insert(activity)
+  const actRes = await (supabase.from('sales_activities') as any).insert(activity)
+  if (actRes.error) {
+    console.error(`[admin/sales/leads/${id}] activity insert failed (${action_type}):`, actRes.error.message)
+  }
 
   return NextResponse.json({ lead: updated })
 }

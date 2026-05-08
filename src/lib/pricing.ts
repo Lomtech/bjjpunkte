@@ -111,6 +111,19 @@ export const LIFETIME_PILOT_DISCOUNT = 0.6
 export const LIFETIME_PILOT_SLOTS = 10
 
 /**
+ * Promotion code displayed publicly on the pricing page. Studios enter this
+ * at Stripe Checkout to redeem the LIFETIME_PILOT_DISCOUNT.
+ *
+ * The code itself, the 10-redemption cap, and the "forever" duration are
+ * configured in the Stripe Dashboard — Stripe enforces all of those, the
+ * frontend only displays the string.
+ *
+ * Update both places when changing it (Stripe Dashboard → Promotion Code,
+ * AND this constant). Otherwise customers paste a code Stripe rejects.
+ */
+export const LIFETIME_PILOT_PROMO_CODE = 'PILOT10'
+
+/**
  * Format a Euro price stored in cents into a localised display string.
  *
  *   formatPriceEUR(4900, 'de')  → "49,00 €"

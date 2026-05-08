@@ -14,6 +14,7 @@ import {
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
+import { LIFETIME_PILOT_PROMO_CODE, LIFETIME_PILOT_SLOTS } from '@/lib/pricing'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -1003,6 +1004,21 @@ export default function Home() {
                 <p className={`text-xs mt-1 ${p.highlight ? 'text-zinc-950/60' : 'text-zinc-400'}`}>{p.members}</p>
               </motion.div>
             ))}
+          </motion.div>
+          {/* Lifetime-Pilot-Hinweis — dezent, 1-Zeilen-Banner. Voller Block lebt auf /pricing.
+              Stripe limitiert Code auf LIFETIME_PILOT_SLOTS Einlösungen. */}
+          <motion.div variants={fadeUp} className="mb-5">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-2 text-xs">
+              <span className="font-bold text-amber-700 uppercase tracking-wider text-[10px]">
+                {lang === 'en' ? `First ${LIFETIME_PILOT_SLOTS} studios` : `Erste ${LIFETIME_PILOT_SLOTS} Studios`}
+              </span>
+              <span className="text-zinc-700">
+                {lang === 'en' ? '40 % off forever with code' : '40 % lebenslang mit Code'}
+              </span>
+              <code className="bg-zinc-950 text-amber-300 font-mono font-black px-2 py-0.5 rounded select-all">
+                {LIFETIME_PILOT_PROMO_CODE}
+              </code>
+            </div>
           </motion.div>
           <motion.div variants={fadeUp}>
             <Link href="/pricing" className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-700 font-semibold text-sm transition-colors">

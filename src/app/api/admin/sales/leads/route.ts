@@ -24,6 +24,17 @@ const ACTIVE_STATUSES = ['new','researching','contacted','qualified']
 
 type Bucket = 'today' | 'this_week' | 'demo' | 'closed'
 
+/**
+ * Escape Postgres ILIKE wildcards in user input.
+ *
+ * Without this, an admin typing `_` matches any single character, `%` matches
+ * everything, and `\` confuses the pattern parser. Not a security hole (Supabase
+ * still parametrises the value), but search results become surprising.
+ */
+function escapeIlike(s: string): string {
+  return s.replace(/[\\%_]/g, '\\$&')
+}
+
 export async function GET(req: Request) {
   const auth = await requireAdmin(req)
   if ('error' in auth) return auth.error
@@ -49,7 +60,7 @@ export async function GET(req: Request) {
   let baseQ: any = supabase.from('sales_leads').select('*')
   if (martial === 'true' || martial === null)  baseQ = baseQ.eq('is_martial_arts', true)
   if (martial === 'false') baseQ = baseQ.eq('is_martial_arts', false)
-  if (city) baseQ = baseQ.ilike('city', `%${city}%`)
+  if (city) baseQ = baseQ.ilike('city', `%${escapeIlike(city)}%`)
 
   // Bucket 1+2: Active leads with next_action_at set (today / this week).
   // We grab anything due in the next 7 days at once and split client-side here.
@@ -65,7 +76,7 @@ export async function GET(req: Request) {
     .in('status', Array.from(DEMO_PHASE_STATUSES))
   if (martial === 'true' || martial === null) demoQ = demoQ.eq('is_martial_arts', true)
   if (martial === 'false') demoQ = demoQ.eq('is_martial_arts', false)
-  if (city) demoQ = demoQ.ilike('city', `%${city}%`)
+  if (city) demoQ = demoQ.ilike('city', `%${escapeIlike(city)}%`)
   demoQ = demoQ.order('updated_at', { ascending: false }).limit(limit)
 
   // Bucket 4: Closed in last 30 days.
@@ -75,7 +86,7 @@ export async function GET(req: Request) {
     .gte('updated_at', closedSince.toISOString())
   if (martial === 'true' || martial === null) closedQ = closedQ.eq('is_martial_arts', true)
   if (martial === 'false') closedQ = closedQ.eq('is_martial_arts', false)
-  if (city) closedQ = closedQ.ilike('city', `%${city}%`)
+  if (city) closedQ = closedQ.ilike('city', `%${escapeIlike(city)}%`)
   closedQ = closedQ.order('updated_at', { ascending: false }).limit(limit)
 
   const [dueRes, demoRes, closedRes] = await Promise.all([dueQ, demoQ, closedQ])

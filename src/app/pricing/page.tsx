@@ -10,6 +10,7 @@ import { TopNav } from '@/components/TopNav'
 import {
   PRICING_TIERS,
   LIFETIME_PILOT_SLOTS,
+  LIFETIME_PILOT_PROMO_CODE,
   formatPriceEURShort,
   savingsAnnualEUR,
   annualPriceCents,
@@ -528,19 +529,50 @@ export default function PricingPage() {
                 </>
               )}
             </p>
+            {/* Promo-Code-Box: Studios geben den Code beim Stripe-Checkout ein.
+                Stripe limitiert auf 10 Einlösungen → Code wird automatisch
+                ungültig sobald die ersten 10 Studios eingelöst haben. */}
+            <div className="bg-white border-2 border-amber-300 rounded-2xl p-4 sm:p-5 mb-5 max-w-xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-600 mb-2">
+                {en ? 'Your discount code' : 'Dein Rabatt-Code'}
+              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <code className="bg-zinc-950 text-amber-300 font-mono font-black text-xl sm:text-2xl px-4 py-2.5 rounded-lg tracking-wider select-all">
+                  {LIFETIME_PILOT_PROMO_CODE}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      navigator.clipboard.writeText(LIFETIME_PILOT_PROMO_CODE)
+                    } catch { /* clipboard might be blocked — select-all on the code still works */ }
+                  }}
+                  className="text-xs font-bold text-zinc-700 hover:text-zinc-950 bg-zinc-100 hover:bg-zinc-200 px-3 py-2 rounded-lg transition-colors"
+                >
+                  {en ? 'Copy' : 'Kopieren'}
+                </button>
+              </div>
+              <p className="text-xs text-zinc-600 mt-3 leading-relaxed">
+                {en
+                  ? <>Enter this code at the Stripe checkout — <strong>40 % off, forever</strong>. Limit: {LIFETIME_PILOT_SLOTS} studios, then automatically expires.</>
+                  : <>Beim Stripe-Checkout eingeben — <strong>40 % Rabatt, lebenslang</strong>. Limit: {LIFETIME_PILOT_SLOTS} Studios, danach automatisch ungültig.</>}
+              </p>
+            </div>
+
             <div className="flex flex-wrap gap-3 items-center">
               <Link
-                href="/register?plan=pilot"
+                href="/register"
                 className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Sparkles size={14} className="text-amber-400" />
-                {en ? 'Apply for the pilot' : 'Pilot-Platz beantragen'}
+                {en ? 'Start now with code' : 'Jetzt mit Code starten'}
               </Link>
-              <p className="text-xs text-zinc-500">
-                {en
-                  ? `Slots remaining will be confirmed by email. Cap: ${LIFETIME_PILOT_SLOTS} studios.`
-                  : `Verfügbare Plätze werden per Email bestätigt. Limit: ${LIFETIME_PILOT_SLOTS} Studios.`}
-              </p>
+              <Link
+                href="/register?plan=pilot"
+                className="inline-flex items-center gap-2 border-2 border-zinc-300 hover:border-zinc-950 hover:bg-zinc-50 text-zinc-700 font-semibold px-5 py-3 rounded-xl text-sm transition-colors"
+              >
+                {en ? 'Or talk first' : 'Lieber erst sprechen'}
+              </Link>
             </div>
           </div>
         </div>

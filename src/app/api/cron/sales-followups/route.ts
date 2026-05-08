@@ -65,15 +65,25 @@ export async function GET(req: Request) {
 
   const horizon = new Date(now.getTime() + LOOKAHEAD_HOURS * 60 * 60 * 1000)
 
+  // De-dupe-Schwelle: ein Lead wird höchstens einmal alle 20h in eine Reminder-Mail
+  // aufgenommen. Schützt vor Spam, falls der Cron mehrmals/Tag manuell getriggert
+  // wird (Vercel Hobby = 1×/Tag, aber das ist eine schwache Garantie).
+  const REMIND_COOLDOWN_HOURS = 20
+  const cooldownCutoff = new Date(now.getTime() - REMIND_COOLDOWN_HOURS * 60 * 60 * 1000).toISOString()
+
   // Wir sammeln Leads aus BEIDEN Feldern (next_action_at neu, next_followup_at legacy)
   // und deduplizieren über die ID. Ohne legacy-Pfad würden alte Leads ohne next_action
   // nie wieder erinnert werden.
+  //
+  // followup_reminded_at-Filter: Lead wird nur gemailt, wenn er noch nie erinnert
+  // wurde ODER die letzte Erinnerung > REMIND_COOLDOWN_HOURS her ist.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actionDueRes = await (supabase.from('sales_leads') as any)
     .select('id, name, city, phone, email, status, priority, notes, next_followup_at, next_action, next_action_at, last_contacted_at, contact_count')
     .lte('next_action_at', horizon.toISOString())
     .not('next_action_at', 'is', null)
     .not('status', 'in', '(won,lost,not_a_fit,do_not_contact)')
+    .or(`followup_reminded_at.is.null,followup_reminded_at.lt.${cooldownCutoff}`)
     .order('next_action_at', { ascending: true })
     .limit(200)
 
@@ -81,7 +91,7 @@ export async function GET(req: Request) {
   const followupDueRes = await (supabase.from('sales_leads') as any)
     .select('id, name, city, phone, email, status, priority, notes, next_followup_at, next_action, next_action_at, last_contacted_at, contact_count')
     .lte('next_followup_at', horizon.toISOString())
-    .is('followup_reminded_at', null)
+    .or(`followup_reminded_at.is.null,followup_reminded_at.lt.${cooldownCutoff}`)
     .order('next_followup_at', { ascending: true })
     .limit(100)
 
@@ -147,17 +157,18 @@ export async function GET(req: Request) {
     }
   }
 
-  // Mark legacy next_followup_at-Leads als reminded (verhindert Spam wenn
-  // dasselbe Lead noch kein next_action_at hat)
-  if (sent > 0) {
-    const legacyIds = (followupDueRes.data ?? [])
-      .map((l: { id: string }) => l.id)
-      .filter((id: string) => seen.has(id))
-    if (legacyIds.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('sales_leads') as any)
-        .update({ followup_reminded_at: now.toISOString() })
-        .in('id', legacyIds)
+  // Mark ALLE in dieser Mail enthaltenen Leads als gerade erinnert.
+  // Vorher wurde nur der legacy-Pfad markiert, was bedeutete dass action_at-Leads
+  // bei einem 2. Cron-Run innerhalb der Cooldown-Phase nochmal gemailt wurden.
+  // Jetzt: einheitlich für beide Pfade. Schützt vor Spam bei manuellen Triggers.
+  if (sent > 0 && due.length > 0) {
+    const allIds = due.map(l => l.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updRes = await (supabase.from('sales_leads') as any)
+      .update({ followup_reminded_at: now.toISOString() })
+      .in('id', allIds)
+    if (updRes.error) {
+      console.error('[cron/sales-followups] failed to mark leads as reminded:', updRes.error.message)
     }
   }
 
@@ -216,7 +227,9 @@ async function runAutoSequence(
 
   const nowIso = now.toISOString()
 
-  // Helper — patches a list of ids and logs a system activity per lead
+  // Helper — patches a list of ids and logs a system activity per lead.
+  // Errors are logged but don't abort the cron — partial progress is better
+  // than zero progress when one rule fails.
   async function patchAndLog(
     ids: string[],
     update: Record<string, unknown>,
@@ -224,14 +237,21 @@ async function runAutoSequence(
     activityKind: 'note' | 'status_change' | 'followup_scheduled',
   ) {
     if (ids.length === 0) return
-    await supabase.from('sales_leads').update(update).in('id', ids)
+    const updRes = await supabase.from('sales_leads').update(update).in('id', ids)
+    if (updRes.error) {
+      console.error(`[cron/sales-followups] sales_leads update failed (${activitySubject}):`, updRes.error.message)
+      return // skip activity-insert if the update itself failed — keeps audit-trail consistent
+    }
     const rows = ids.map(id => ({
       lead_id: id,
       kind: activityKind,
       subject: activitySubject,
       occurred_at: nowIso,
     }))
-    await supabase.from('sales_activities').insert(rows)
+    const actRes = await supabase.from('sales_activities').insert(rows)
+    if (actRes.error) {
+      console.error(`[cron/sales-followups] sales_activities insert failed (${activitySubject}):`, actRes.error.message)
+    }
   }
 
   // ── Rule 1: status='new' und created_at > 1 Tag → send_mail_1 sofort fällig

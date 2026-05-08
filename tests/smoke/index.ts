@@ -31,6 +31,7 @@ import { runBulkMailTests } from './bulk-mail.test'
 import { runCronTests } from './cron.test'
 import { runDunningTests } from './dunning.test'
 import { runPdfExportTests } from './pdf-export.test'
+import { runSalesPipelineTests } from './sales-pipeline.test'
 import { runTrialBookingTests } from './trial-booking.test'
 import { runWellpassOnboardingTests } from './wellpass-onboarding.test'
 
@@ -53,6 +54,7 @@ async function main() {
   await runBulkMailTests()
   await runDunningTests()
   await runCronTests()
+  await runSalesPipelineTests()
 
   // ── Final Summary ──────────────────────────────────────────────────────────
   const passed  = counter.entries.filter(e => e.status === 'pass').length
