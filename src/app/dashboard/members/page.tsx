@@ -1058,6 +1058,41 @@ function WhatsAppBulkModal({ members, onClose }: {
 
   function markSent(id: string) { setSentIdx(prev => new Set([...prev, id])) }
 
+  /**
+   * Personalisiert die Nachricht für ein einzelnes Mitglied.
+   * `{{first_name}}` → Vorname (oder „dir" als Fallback).
+   */
+  function personalize(msg: string, firstName: string | null): string {
+    return msg.replace(/\{\{first_name\}\}/g, (firstName?.trim() || 'dir'))
+  }
+
+  /**
+   * Öffnet alle WhatsApp-URLs der noch nicht gesendeten Mitglieder in
+   * neuen Tabs — innerhalb EINES Click-Events, damit der Browser keine
+   * Pop-ups blockt (Synchron im User-Gesture).
+   *
+   * Hinweis: Beim ersten Aufruf erscheint ggf. eine Browser-Warnung
+   * „Pop-ups blockiert". User muss sie für osss.pro erlauben.
+   */
+  function openAllRemaining() {
+    const remaining = members.filter(m => m.phone && !sentIdx.has(m.id))
+    if (remaining.length === 0) return
+    if (remaining.length > 10) {
+      const ok = confirm(
+        lang === 'en'
+          ? `Open ${remaining.length} WhatsApp tabs at once? Browser may ask to allow pop-ups.`
+          : `${remaining.length} WhatsApp-Tabs auf einmal öffnen? Browser fragt evtl. nach Pop-up-Erlaubnis.`
+      )
+      if (!ok) return
+    }
+    for (const m of remaining) {
+      const personalMsg = personalize(message, m.first_name)
+      const waUrl = `https://wa.me/${toWaPhone(m.phone!)}?text=${encodeURIComponent(personalMsg)}`
+      window.open(waUrl, '_blank', 'noopener,noreferrer')
+      markSent(m.id)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -1102,6 +1137,17 @@ function WhatsAppBulkModal({ members, onClose }: {
                   rows={4}
                   className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm focus:outline-none focus:border-[#25D366] resize-none"
                 />
+                <p className="text-[10px] text-zinc-400 mt-1.5">
+                  {lang === 'en'
+                    ? <>Tip: Use <code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> for personalized messages per member.</>
+                    : <>Tipp: <code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> wird pro Mitglied durch den Vornamen ersetzt.</>}
+                </p>
+              </div>
+              {/* DSGVO + Compliance-Hinweis */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[11px] text-amber-900 leading-relaxed">
+                {lang === 'en'
+                  ? <><strong>Note:</strong> Each member must have agreed to WhatsApp contact. WhatsApp = Meta (US) → mention in your privacy policy. For real bulk-send (1 click → all delivered), WhatsApp Business API is needed (template approval + per-message cost).</>
+                  : <><strong>Hinweis:</strong> Jedes Mitglied muss WhatsApp-Kontakt zugestimmt haben (in deiner Datenschutzerklärung erwähnen — WhatsApp = Meta/USA). Für echten 1-Klick-Massenversand bräuchte es WhatsApp Business API (Template-Approval + Kosten pro Nachricht).</>}
               </div>
               <button onClick={() => setStep('send')} disabled={!message.trim()}
                 className="w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe57] disabled:opacity-40 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
@@ -1112,13 +1158,32 @@ function WhatsAppBulkModal({ members, onClose }: {
             <div className="p-5">
               <div className="mb-4 p-3 rounded-lg bg-[#25D366]/10 border border-[#25D366]/20">
                 <p className="text-xs font-semibold text-[#128C7E] mb-1">{lang === 'en' ? 'Your message:' : 'Deine Nachricht:'}</p>
-                <p className="text-sm text-zinc-700">{message}</p>
+                <p className="text-sm text-zinc-700 whitespace-pre-wrap">{message}</p>
               </div>
-              <p className="text-xs text-zinc-500 mb-3">{lang === 'en' ? 'Click the button per member — WhatsApp opens with the message pre-filled.' : 'Klicke pro Mitglied auf den Button — WhatsApp öffnet sich mit der Nachricht vorausgefüllt.'}</p>
+
+              {/* Bulk-Open Action — öffnet alle in Tabs in einem User-Click */}
+              {members.filter(m => m.phone && !sentIdx.has(m.id)).length > 0 && (
+                <button
+                  onClick={openAllRemaining}
+                  className="w-full mb-3 py-2.5 rounded-xl bg-[#128C7E] hover:bg-[#0e7468] text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <MessageCircle size={14} />
+                  {lang === 'en'
+                    ? `Open all ${members.filter(m => m.phone && !sentIdx.has(m.id)).length} chats at once`
+                    : `Alle ${members.filter(m => m.phone && !sentIdx.has(m.id)).length} Chats auf einmal öffnen`}
+                </button>
+              )}
+
+              <p className="text-xs text-zinc-500 mb-3">
+                {lang === 'en'
+                  ? 'Or click per member — WhatsApp opens with the personalized message pre-filled.'
+                  : 'Oder pro Mitglied klicken — WhatsApp öffnet sich mit der personalisierten Nachricht.'}
+              </p>
               <div className="space-y-2">
                 {members.map(m => {
                   const done = sentIdx.has(m.id)
-                  const waUrl = `https://wa.me/${toWaPhone(m.phone!)}?text=${encodeURIComponent(message)}`
+                  const personalMsg = personalize(message, m.first_name)
+                  const waUrl = `https://wa.me/${toWaPhone(m.phone!)}?text=${encodeURIComponent(personalMsg)}`
                   return (
                     <div key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
                       done ? 'bg-zinc-50 border-zinc-200' : 'bg-white border-zinc-200'
