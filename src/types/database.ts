@@ -337,6 +337,7 @@ export interface Database {
           dunning_last_action_at: string | null
           dunning_notes: string | null
           membership_source: string | null
+          plan_reminder_sent_at: string | null
         }
         Insert: {
           gym_id: string
@@ -376,6 +377,7 @@ export interface Database {
           dunning_level?: number
           dunning_amount_cents?: number | null
           membership_source?: string | null
+          plan_reminder_sent_at?: string | null
         }
         Update: {
           first_name?: string
@@ -417,6 +419,7 @@ export interface Database {
           dunning_last_action_at?: string | null
           dunning_notes?: string | null
           membership_source?: string | null
+          plan_reminder_sent_at?: string | null
         }
         Relationships: Rel[]
       }

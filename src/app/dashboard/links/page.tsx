@@ -288,7 +288,7 @@ export default function LinksPage() {
     : 'Direkt über deinen Anbieter anmelden — kein SEPA. Nur für Erwachsene (ab 18).'
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl pb-24">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto min-h-full pb-32 bg-zinc-50">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-zinc-950 tracking-tight">{t('links', 'title')}</h1>
         <p className="text-zinc-400 text-xs mt-0.5 font-medium">{t('links', 'subtitle')}</p>

@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/dunning-escalation",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/missing-plan-reminder",
+      "schedule": "0 8 * * 1"
     }
   ],
   "functions": {
@@ -29,6 +33,9 @@
       "maxDuration": 60
     },
     "src/app/api/cron/dunning-escalation/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/missing-plan-reminder/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/gym/import/route.ts": {
