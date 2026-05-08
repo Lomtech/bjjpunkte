@@ -387,13 +387,6 @@ export default function PricingPage() {
                         <span className="text-4xl font-black text-zinc-900 tracking-tight">{monthlyShort}</span>
                         <span className="text-zinc-400 text-sm pb-1.5">{en ? '/month' : '/Monat'}</span>
                       </div>
-                      {tier.previousMonthlyEUR !== null && (
-                        <p className="text-zinc-400 text-[11px]">
-                          {en
-                            ? <>was <span className="line-through">€{tier.previousMonthlyEUR}</span> · now in line with the market</>
-                            : <>vorher <span className="line-through">{tier.previousMonthlyEUR} €</span> · jetzt marktgerecht</>}
-                        </p>
-                      )}
                     </div>
                   )}
                   <p className="text-zinc-400 text-xs">{memberRange(tier)}</p>

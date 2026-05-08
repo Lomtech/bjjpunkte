@@ -27,8 +27,6 @@ export type PricingTier = {
   name: string
   /** Monthly price in cents (EUR). 0 for the Free plan. */
   monthlyCents: number
-  /** Pre-pricing-change anchor (in EUR, displayed as strikethrough where helpful). */
-  previousMonthlyEUR: number | null
   /** Inclusive lower bound of the active-member window for this tier. */
   membersFrom: number
   /** Inclusive upper bound, or null for "unlimited". */
@@ -53,7 +51,6 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     planKey: 'free',
     name: 'Free',
     monthlyCents: 0,
-    previousMonthlyEUR: null,
     membersFrom: 0,
     membersTo: 30,
     highlight: false,
@@ -62,7 +59,6 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     planKey: 'starter',
     name: 'Starter',
     monthlyCents: 4900,
-    previousMonthlyEUR: 29,
     membersFrom: 31,
     membersTo: 99,
     highlight: false,
@@ -71,7 +67,6 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     planKey: 'grow',
     name: 'Grow',
     monthlyCents: 8900,
-    previousMonthlyEUR: 49,
     membersFrom: 100,
     membersTo: 249,
     highlight: true,
@@ -80,7 +75,6 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     planKey: 'pro',
     name: 'Pro',
     monthlyCents: 14900,
-    previousMonthlyEUR: 99,
     membersFrom: 250,
     membersTo: null,
     highlight: false,

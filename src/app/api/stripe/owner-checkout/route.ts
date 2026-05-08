@@ -79,6 +79,12 @@ export async function POST(req: Request) {
       subscription_data: {
         metadata: { type: 'owner_plan', gymId: gym.id, plan, billing: annual ? 'annual' : 'monthly' },
       },
+      // Lifetime-Pilot: studio enters a promo code (e.g. PILOT10) at checkout.
+      // The actual coupon ("Lifetime Pilot — first 10 studios", 40% off forever)
+      // is configured in the Stripe Dashboard. Switching to allow_promotion_codes
+      // means we don't need to attach the coupon ID server-side — Stripe validates
+      // and applies it automatically when a valid code is entered.
+      allow_promotion_codes: true,
       success_url: `${appUrl}/dashboard/settings?upgraded=1`,
       cancel_url:  `${appUrl}/dashboard/settings`,
     }, { idempotencyKey: `owner-checkout-${gym.id}-${Math.floor(Date.now()/60000)}` })
