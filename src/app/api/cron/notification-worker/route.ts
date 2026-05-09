@@ -8,9 +8,9 @@ import { cronGuard } from '@/lib/cron-guard'
  *
  * Pollt pending Tasks aus `notification_queue` und versendet sie. Läuft
  * aktuell EINMAL TÄGLICH (06:00 UTC, siehe vercel.json) — Vercel-Hobby
- * erlaubt nur 1 Cron pro Tag. Bei Pro-Upgrade ($20/Mo) auf "*/5 * * * *"
- * zurückstellen, sonst stauen sich pending Notifications bis zum nächsten
- * Tag (= payment-reminders gehen 24h später raus).
+ * erlaubt nur 1 Cron pro Tag. Bei Pro-Upgrade ($20/Mo) auf 5-Minuten-
+ * Schedule zurückstellen, sonst stauen sich pending Notifications bis
+ * zum nächsten Tag (= payment-reminders gehen 24h später raus).
  *
  * Pro Aufruf werden bis zu BATCH_SIZE Tasks abgearbeitet. Mehrere
  * parallele Worker-Instanzen sind sicher, weil das Claim-UPDATE atomar
