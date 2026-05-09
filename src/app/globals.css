@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* Tailwind 4 Source-Detection — exclude compliance/* from class scanning.
+ *
+ * compliance/avv-static/resend-dpa.html (heruntergeladen via curl) enthält
+ * Tailwind-Classes von Resend's Marketing-Webseite, z.B.
+ * `after:bg-[url("/static/texture-btn.png")]`. Tailwind 4 scannt per default
+ * das gesamte Repo und versucht dann beim Build die referenzierten PNG-Assets
+ * zu laden — die natürlich nicht existieren. Result: webpack/turbopack failt
+ * mit "Cannot find module '/static/texture-btn.png'".
+ *
+ * Mit `@source not` schließen wir den compliance/-Ordner aus dem Scan aus.
+ * Die DPA-Static-Texte sind Vertragstexte, kein UI-Code — sie werden eh
+ * niemals gerendert oder gestyled.
+ */
+@source not "../../compliance";
+
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
