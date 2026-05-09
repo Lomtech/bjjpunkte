@@ -228,30 +228,33 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">
+                <label htmlFor="register-gym-name" className="block text-sm font-semibold text-zinc-700 mb-1.5">
                   {en ? 'Gym name' : 'Gym-Name'}
                 </label>
                 <input
+                  id="register-gym-name"
                   type="text" value={gymName} onChange={e => setGymName(e.target.value)} required
                   className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all text-sm"
                   placeholder={en ? 'My BJJ Gym' : 'Mein BJJ Gym'}
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">
+                <label htmlFor="register-email" className="block text-sm font-semibold text-zinc-700 mb-1.5">
                   {en ? 'Email' : 'E-Mail'}
                 </label>
                 <input
+                  id="register-email"
                   type="email" value={email} onChange={e => setEmail(e.target.value)} required
                   className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all text-sm"
                   placeholder="coach@mygym.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">
+                <label htmlFor="register-password" className="block text-sm font-semibold text-zinc-700 mb-1.5">
                   {en ? 'Password' : 'Passwort'}
                 </label>
                 <input
+                  id="register-password"
                   type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
                   className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all text-sm"
                   placeholder={en ? 'At least 6 characters' : 'Mindestens 6 Zeichen'}

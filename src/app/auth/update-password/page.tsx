@@ -74,8 +74,9 @@ export default function UpdatePasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">{lang === 'en' ? 'New password' : 'Neues Passwort'}</label>
+                <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 mb-1">{lang === 'en' ? 'New password' : 'Neues Passwort'}</label>
                 <input
+                  id="new-password"
                   type="password"
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
@@ -86,8 +87,9 @@ export default function UpdatePasswordPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">{lang === 'en' ? 'Confirm password' : 'Passwort bestätigen'}</label>
+                <label htmlFor="confirm-password" className="block text-sm font-medium text-slate-700 mb-1">{lang === 'en' ? 'Confirm password' : 'Passwort bestätigen'}</label>
                 <input
+                  id="confirm-password"
                   type="password"
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}

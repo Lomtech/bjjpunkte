@@ -25,6 +25,14 @@ function serviceClient() {
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  // Token-Hardening (Audit 2026-05-09 / A2): >=32 + Char-Class.
+  // Service-Role-Bypass-Endpoint, daher Brute-Force-Schutz analog zu A1
+  // (portal/[token]/route.ts). Ohne diesen Check war ein 1-Zeichen-Token
+  // gültig — Worst-Case 0 Entropie.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
+  }
+
   const { note: rawNote } = await req.json().catch(() => ({ note: '' }))
   // Sanitize note: HTML-escape + cap length to prevent email injection / XSS
   const note = typeof rawNote === 'string' ? rawNote.slice(0, 500) : ''
@@ -32,10 +40,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   const supabase = serviceClient()
 
+  // is_active=true zusätzlich filter — Member, die schon abgemeldet sind,
+  // dürfen nicht erneut cancelen (Idempotenz + verhindert "ghost" Stripe-Calls).
   const { data: member, error } = await supabase
     .from('members')
     .select('id, gym_id, first_name, last_name, email, phone, stripe_subscription_id, stripe_customer_id, portal_token, contract_end_date')
     .eq('portal_token', token)
+    .eq('is_active', true)
     .single()
 
   if (error || !member) {
@@ -257,6 +268,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 // DELETE = withdraw cancellation (reactivate member)
 export async function DELETE(_req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  // Token-Hardening (Audit 2026-05-09 / A2)
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
+  }
   const supabase = serviceClient()
 
   const { data: member } = await supabase

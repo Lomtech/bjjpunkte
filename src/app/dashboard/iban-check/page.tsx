@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Upload, Check, X, Download, FileWarning } from 'lucide-react'
 import { validateIBANs, type BulkIbanRow } from '@/lib/iban'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 /**
  * IBAN-Check-Tool für Gym-Owner.
@@ -22,6 +23,7 @@ interface ParsedRow {
 }
 
 export default function IbanCheckPage() {
+  const { lang } = useLanguage()
   const [rows, setRows] = useState<BulkIbanRow[]>([])
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([])
   const [fileName, setFileName] = useState<string | null>(null)
@@ -39,7 +41,7 @@ export default function IbanCheckPage() {
         const lines = text.split(/\r?\n/).filter(l => l.trim())
 
         if (lines.length === 0) {
-          setError('CSV ist leer')
+          setError(lang === 'en' ? 'CSV is empty' : 'CSV ist leer')
           return
         }
 
@@ -50,14 +52,21 @@ export default function IbanCheckPage() {
         // IBAN-Spalte finden
         const ibanCol = header.findIndex(h => h.includes('iban'))
         if (ibanCol === -1) {
-          setError(`Keine "iban"-Spalte in der CSV gefunden. Spalten: ${header.join(', ')}`)
+          setError(
+            lang === 'en'
+              ? `No "iban" column found in the CSV. Columns: ${header.join(', ')}`
+              : `Keine "iban"-Spalte in der CSV gefunden. Spalten: ${header.join(', ')}`
+          )
           return
         }
 
         // Optional: Name-Spalte
         const nameCol = header.findIndex(h => h.includes('name') || h.includes('mitglied'))
 
-        setCsvHeader(`${header.length} Spalten · IBAN-Spalte: "${header[ibanCol]}"${nameCol !== -1 ? ` · Name-Spalte: "${header[nameCol]}"` : ''}`)
+        const colsLabel = lang === 'en' ? 'columns' : 'Spalten'
+        const ibanColLabel = lang === 'en' ? 'IBAN column' : 'IBAN-Spalte'
+        const nameColLabel = lang === 'en' ? 'Name column' : 'Name-Spalte'
+        setCsvHeader(`${header.length} ${colsLabel} · ${ibanColLabel}: "${header[ibanCol]}"${nameCol !== -1 ? ` · ${nameColLabel}: "${header[nameCol]}"` : ''}`)
 
         const parsed: ParsedRow[] = []
         for (let i = 1; i < lines.length; i++) {
@@ -75,7 +84,11 @@ export default function IbanCheckPage() {
         const validated = validateIBANs(parsed.map(r => ({ iban: r.raw, index: r.index })))
         setRows(validated)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Fehler beim Lesen der CSV')
+        setError(
+          err instanceof Error
+            ? err.message
+            : (lang === 'en' ? 'Error reading the CSV' : 'Fehler beim Lesen der CSV')
+        )
       }
     }
     reader.readAsText(file, 'utf-8')
@@ -85,12 +98,15 @@ export default function IbanCheckPage() {
     if (rows.length === 0) return
 
     const sep = ';'
-    const headerRow = ['Zeile', 'Mitglied', 'IBAN (original)', 'Status', 'Grund', 'IBAN (formatiert)']
+    const headerRow = lang === 'en'
+      ? ['Row', 'Member', 'IBAN (original)', 'Status', 'Reason', 'IBAN (formatted)']
+      : ['Zeile', 'Mitglied', 'IBAN (original)', 'Status', 'Grund', 'IBAN (formatiert)']
+    const errorLabel = lang === 'en' ? 'ERROR' : 'FEHLER'
     const csvRows = [
       headerRow.join(sep),
       ...rows.map(r => {
         const parsedMatch = parsedRows.find(p => p.index === r.index)
-        const status = r.result.valid ? 'OK' : 'FEHLER'
+        const status = r.result.valid ? 'OK' : errorLabel
         const reason = r.result.valid ? '' : r.result.reason
         const formatted = r.result.valid ? r.result.formatted : ''
         return [r.index, parsedMatch?.name ?? '', r.raw, status, reason, formatted]
@@ -118,25 +134,63 @@ export default function IbanCheckPage() {
   const validCount = rows.filter(r => r.result.valid).length
   const invalidCount = rows.length - validCount
 
+  const t = lang === 'en'
+    ? {
+        backToSettings: 'Settings',
+        title: 'IBAN Validation',
+        intro1: 'Upload a CSV with your member list. We validate every IBAN offline for format and check digit (DE/AT/CH and all EU countries).',
+        intro2: 'No data leaves your browser',
+        intro3: '— everything runs locally.',
+        dropTitle: 'Drop CSV here or click to upload',
+        dropHelp: 'UTF-8 · comma or semicolon separated · IBAN column must contain "iban"',
+        errorPrefix: 'Error',
+        newFile: 'New file',
+        statChecked: 'Checked',
+        statValid: 'Valid',
+        statInvalid: 'Invalid',
+        downloadCsv: 'Download result as CSV',
+        invalidHeading: 'Invalid IBANs',
+        rowLabel: 'Row',
+        validSummary: (n: number) => <><strong>{n} IBANs</strong> are formally valid (format + check digit OK).</>,
+        validNote: 'Important: Format-OK does not mean "account exists and has funds". Real validity only shows up at the first SEPA charge. Stripe will report back automatically if an account does not exist.',
+      }
+    : {
+        backToSettings: 'Einstellungen',
+        title: 'IBAN-Check',
+        intro1: 'Lade eine CSV mit deiner Mitgliederliste hoch. Wir prüfen offline jede IBAN auf Format und Prüfziffer (DE/AT/CH und alle EU-Länder).',
+        intro2: 'Keine Daten verlassen deinen Browser',
+        intro3: ' — alles läuft lokal.',
+        dropTitle: 'CSV hier ablegen oder klicken',
+        dropHelp: 'UTF-8 · Komma oder Semikolon getrennt · IBAN-Spalte muss „iban" enthalten',
+        errorPrefix: 'Fehler',
+        newFile: 'Neue Datei',
+        statChecked: 'Geprüft',
+        statValid: 'Gültig',
+        statInvalid: 'Fehlerhaft',
+        downloadCsv: 'Ergebnis als CSV runterladen',
+        invalidHeading: 'Fehlerhafte IBANs',
+        rowLabel: 'Zeile',
+        validSummary: (n: number) => <><strong>{n} IBANs</strong> sind formal gültig (Format + Prüfziffer OK).</>,
+        validNote: '⚠️ Wichtig: Format-OK heißt nicht „Konto existiert + ist gedeckt". Die echte Validität zeigt sich erst beim ersten SEPA-Einzug. Stripe meldet sich dann automatisch zurück, wenn ein Konto nicht existiert.',
+      }
+
   return (
     <div className="p-4 md:p-6 max-w-4xl">
       <Link href="/dashboard/settings" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mb-3">
-        <ArrowLeft size={14} /> Einstellungen
+        <ArrowLeft size={14} /> {t.backToSettings}
       </Link>
 
-      <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-1">IBAN-Check</h1>
+      <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-1">{t.title}</h1>
       <p className="text-sm text-zinc-500 leading-relaxed mb-6 max-w-xl">
-        Lade eine CSV mit deiner Mitgliederliste hoch. Wir prüfen offline jede IBAN auf
-        Format und Prüfziffer (DE/AT/CH und alle EU-Länder). <strong>Keine Daten verlassen
-        deinen Browser</strong> — alles läuft lokal.
+        {t.intro1} <strong>{t.intro2}</strong>{t.intro3}
       </p>
 
       {/* File Drop */}
       {rows.length === 0 && (
         <label className={`block bg-white border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer hover:border-amber-300 hover:bg-amber-50/30 transition-colors ${error ? 'border-rose-300' : 'border-zinc-200'}`}>
           <Upload className="mx-auto text-zinc-400 mb-3" size={28} />
-          <p className="font-semibold text-zinc-700">CSV hier ablegen oder klicken</p>
-          <p className="text-xs text-zinc-400 mt-1">UTF-8 · Komma oder Semikolon getrennt · IBAN-Spalte muss „iban" enthalten</p>
+          <p className="font-semibold text-zinc-700">{t.dropTitle}</p>
+          <p className="text-xs text-zinc-400 mt-1">{t.dropHelp}</p>
           <input
             type="file"
             accept=".csv,text/csv"
@@ -151,7 +205,7 @@ export default function IbanCheckPage() {
 
       {error && (
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 mt-4 text-sm text-rose-900">
-          <strong>Fehler:</strong> {error}
+          <strong>{t.errorPrefix}:</strong> {error}
         </div>
       )}
 
@@ -161,20 +215,20 @@ export default function IbanCheckPage() {
           <div className="bg-white border border-zinc-200 rounded-2xl p-5 mb-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-zinc-500"><strong>{fileName}</strong></p>
-              <button onClick={reset} className="text-xs text-zinc-400 hover:text-zinc-700">Neue Datei</button>
+              <button onClick={reset} className="text-xs text-zinc-400 hover:text-zinc-700">{t.newFile}</button>
             </div>
             {csvHeader && <p className="text-xs text-zinc-400 mb-3">{csvHeader}</p>}
 
             <div className="grid grid-cols-3 gap-3 text-center">
-              <Stat label="Geprüft" value={rows.length} tone="zinc" />
-              <Stat label="Gültig" value={validCount} tone="emerald" />
-              <Stat label="Fehlerhaft" value={invalidCount} tone="rose" highlight={invalidCount > 0} />
+              <Stat label={t.statChecked} value={rows.length} tone="zinc" />
+              <Stat label={t.statValid} value={validCount} tone="emerald" />
+              <Stat label={t.statInvalid} value={invalidCount} tone="rose" highlight={invalidCount > 0} />
             </div>
 
             {invalidCount > 0 && (
               <button onClick={downloadResult}
                 className="mt-4 inline-flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors">
-                <Download size={14} /> Ergebnis als CSV runterladen
+                <Download size={14} /> {t.downloadCsv}
               </button>
             )}
           </div>
@@ -183,7 +237,7 @@ export default function IbanCheckPage() {
           {invalidCount > 0 && (
             <div className="mb-4">
               <h2 className="font-bold text-rose-700 text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
-                <FileWarning size={14} /> Fehlerhafte IBANs ({invalidCount})
+                <FileWarning size={14} /> {t.invalidHeading} ({invalidCount})
               </h2>
               <ul className="space-y-2">
                 {rows.filter(r => !r.result.valid).map(r => {
@@ -194,7 +248,7 @@ export default function IbanCheckPage() {
                         <X size={16} className="text-rose-500 flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-rose-900">
-                            Zeile {r.index} {parsed?.name && <span className="text-rose-700 font-normal">· {parsed.name}</span>}
+                            {t.rowLabel} {r.index} {parsed?.name && <span className="text-rose-700 font-normal">· {parsed.name}</span>}
                           </p>
                           <p className="font-mono text-xs text-rose-700 mt-0.5 break-all">{r.raw}</p>
                           <p className="text-xs text-rose-600 mt-1">{!r.result.valid ? r.result.reason : ''}</p>
@@ -212,12 +266,10 @@ export default function IbanCheckPage() {
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-900">
               <div className="flex items-center gap-2">
                 <Check size={16} className="text-emerald-600" />
-                <p><strong>{validCount} IBANs</strong> sind formal gültig (Format + Prüfziffer OK).</p>
+                <p>{t.validSummary(validCount)}</p>
               </div>
               <p className="text-xs text-emerald-700 mt-2 leading-relaxed">
-                ⚠️ Wichtig: Format-OK heißt nicht „Konto existiert + ist gedeckt". Die echte
-                Validität zeigt sich erst beim ersten SEPA-Einzug. Stripe meldet sich dann
-                automatisch zurück, wenn ein Konto nicht existiert.
+                {t.validNote}
               </p>
             </div>
           )}

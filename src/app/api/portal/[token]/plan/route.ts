@@ -11,18 +11,26 @@ function serviceClient() {
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  // Token-Hardening (Audit 2026-05-09 / A2): mind. 32 Zeichen + Char-Class.
+  // Plan-Wechsel mailt den Owner — Brute-Force könnte massive Owner-Spam-
+  // Trigger erzeugen, daher gleicher Floor wie auf dem Master-Endpoint.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
+  }
   const { plan_id } = await req.json()
-
-  if (!token || !plan_id) {
+  if (!plan_id || typeof plan_id !== 'string' || plan_id.length > 64) {
     return NextResponse.json({ error: 'Ungültige Anfrage' }, { status: 400 })
   }
 
   const supabase = serviceClient()
 
+  // is_active=true: ein gekündigtes Mitglied darf keinen Plan-Wechsel mehr triggern
+  // (Owner-Spam + Inkonsistenz mit Stripe-Zustand).
   const { data: member, error } = await supabase
     .from('members')
     .select('id, gym_id, first_name, last_name')
     .eq('portal_token', token)
+    .eq('is_active', true)
     .single()
 
   if (error || !member) {
@@ -77,6 +85,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  // Token-Hardening (Audit 2026-05-09 / A2): mind. 32 Zeichen.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
+  }
   const supabase = serviceClient()
 
   const { data: member } = await supabase

@@ -237,10 +237,11 @@ function PWAInstallButton({ gymName, lang }: { gymName: string; lang: string }) 
       </button>
 
       {showIosHint && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowIosHint(false)}>
+        // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowIosHint(false)} role="dialog" aria-modal="true" aria-labelledby="ios-hint-title">
           <div className="bg-white rounded-t-3xl w-full max-w-sm px-6 pt-6 pb-10 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-6" />
-            <h3 className="text-lg font-bold text-slate-900 mb-1">{lang === 'en' ? 'Add App to Home Screen' : 'App zum Homescreen hinzufügen'}</h3>
+            <h3 id="ios-hint-title" className="text-lg font-bold text-slate-900 mb-1">{lang === 'en' ? 'Add App to Home Screen' : 'App zum Homescreen hinzufügen'}</h3>
             <p className="text-slate-500 text-sm mb-5">{lang === 'en' ? 'How it works on iPhone:' : 'So funktioniert es auf dem iPhone:'}</p>
             <ol className="space-y-3 text-sm text-slate-700">
               <li className="flex items-start gap-3">
@@ -690,7 +691,7 @@ export default function MemberPortalPage() {
                 {new Date(recentCheckin.checked_in_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}{lang === 'de' ? ' Uhr' : ''}
               </p>
             </div>
-            <button onClick={() => setCheckinBannerDismissed(true)} className="text-green-400 hover:text-green-600 transition-colors flex-shrink-0">
+            <button onClick={() => setCheckinBannerDismissed(true)} aria-label={lang === 'en' ? 'Dismiss check-in banner' : 'Banner schließen'} className="text-green-400 hover:text-green-600 transition-colors flex-shrink-0">
               <X size={16} />
             </button>
           </div>
@@ -1271,7 +1272,8 @@ export default function MemberPortalPage() {
                 </div>
               ) : showCancelForm ? (
                 <div className="space-y-3">
-                  <textarea value={cancelNote} onChange={e => setCancelNote(e.target.value)}
+                  <label htmlFor="portal-cancel-note" className="sr-only">{t('portal', 'reasonOptional')}</label>
+                  <textarea id="portal-cancel-note" value={cancelNote} onChange={e => setCancelNote(e.target.value)}
                     placeholder={t('portal', 'reasonOptional')} rows={3}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none" />
                   {cancelError && (
@@ -1334,11 +1336,13 @@ export default function MemberPortalPage() {
                 <BookOpen size={15} className="text-slate-400" /> {t('portal', 'techLogbook')}
               </h2>
               <div className="space-y-3 mb-5">
-                <textarea value={logNote} onChange={e => setLogNote(e.target.value)}
+                <label htmlFor="portal-log-note" className="sr-only">{t('portal', 'logPlaceholder')}</label>
+                <textarea id="portal-log-note" value={logNote} onChange={e => setLogNote(e.target.value)}
                   placeholder={t('portal', 'logPlaceholder')} rows={3}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
                 <div className="flex gap-2">
-                  <select value={logClassType} onChange={e => setLogClassType(e.target.value)}
+                  <label htmlFor="portal-log-class-type" className="sr-only">{t('portal', 'classOptional')}</label>
+                  <select id="portal-log-class-type" value={logClassType} onChange={e => setLogClassType(e.target.value)}
                     className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400">
                     <option value="">{t('portal', 'classOptional')}</option>
                     {CLASS_TYPE_OPTIONS.map(ct => <option key={ct} value={ct}>{CLASS_LABELS[ct] ?? ct}</option>)}

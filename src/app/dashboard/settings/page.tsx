@@ -6,14 +6,22 @@ import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 import {
   Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle,
-  Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, FileText, Trash2,
+  Unlink, Zap, Copy, Check, Shield, UserPlus, Link2, Trash2, FileText,
   Users, ReceiptEuro, Tag, Award, Globe, Plus, Minus, ImagePlus, X,
-  Package, Megaphone, Edit2, FileSpreadsheet, Download, Upload, MapPin, Navigation,
+  Package, Megaphone, Edit2,
 } from 'lucide-react'
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { useToast } from '@/components/Toast'
+import { UpgradeModal } from './_components/UpgradeModal'
+import { SectionHeader, CopyRow, inputCls, saveBtnCls, sectionCls, sectionHeaderCls } from './_components/SettingsUI'
+import { DunningSection } from './_components/DunningSection'
+import { DatevSection } from './_components/DatevSection'
+import { GpsSection } from './_components/GpsSection'
+import { AccountDeleteSection } from './_components/AccountDeleteSection'
+import { ImportExportSection } from './_components/ImportExportSection'
+import { LegalSection } from './_components/LegalSection'
 
 type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge' | 'vertraege'
 
@@ -52,12 +60,21 @@ function SettingsPageInner() {
   const [stripeChargesEnabled, setStripeChargesEnabled] = useState<boolean | null>(null)
   const [syncLoading, setSyncLoading]           = useState(false)
 
-  // Legal
-  const [legalName, setLegalName]       = useState('')
-  const [legalAddress, setLegalAddress] = useState('')
-  const [legalEmail, setLegalEmail]     = useState('')
-  const [legalSaving, setLegalSaving]   = useState(false)
-  const [legalSaved, setLegalSaved]     = useState(false)
+  // Initial values loaded from gym row — passed down to sub-sections
+  // which manage their own form state. Updated once on initial load.
+  const [initialLegalName, setInitialLegalName]       = useState<string | null | undefined>(undefined)
+  const [initialLegalAddress, setInitialLegalAddress] = useState<string | null | undefined>(undefined)
+  const [initialLegalEmail, setInitialLegalEmail]     = useState<string | null | undefined>(undefined)
+  const [initialDatevBerater, setInitialDatevBerater] = useState<string | null | undefined>(undefined)
+  const [initialDatevMandant, setInitialDatevMandant] = useState<string | null | undefined>(undefined)
+  const [initialDunningLateFeeCents, setInitialDunningLateFeeCents] = useState<number | null | undefined>(undefined)
+  const [initialDunningDaysL2, setInitialDunningDaysL2] = useState<number | null | undefined>(undefined)
+  const [initialDunningDaysL3, setInitialDunningDaysL3] = useState<number | null | undefined>(undefined)
+  const [initialGpsLat, setInitialGpsLat]   = useState<number | null>(null)
+  const [initialGpsLng, setInitialGpsLng]   = useState<number | null>(null)
+  const [initialGpsRadius, setInitialGpsRadius] = useState<number | null | undefined>(undefined)
+  // Mirror of LegalSection's legalName, just for Produktiv-Checkliste preview.
+  const [legalNameMirror, setLegalNameMirror] = useState('')
 
   // Staff
   type StaffMember = { id: string; name: string; email: string; role: string; accepted_at: string | null; invite_token: string }
@@ -134,33 +151,9 @@ function SettingsPageInner() {
   const [invoiceSaving, setInvoiceSaving]           = useState(false)
   const [invoiceSaved, setInvoiceSaved]             = useState(false)
 
-  // DATEV
-  const [datevBeraternummer, setDatevBeraternummer]     = useState('')
-  const [datevMandantennummer, setDatevMandantennummer] = useState('')
-  const [datevSaving, setDatevSaving]                   = useState(false)
-  const [datevSaved, setDatevSaved]                     = useState(false)
-
-  // Inkasso & Mahnungen (pro-Gym Konfiguration der Mahn-Pipeline)
-  const [dunningLateFee, setDunningLateFee]       = useState('10.00') // EUR (Display)
-  const [dunningDaysL2, setDunningDaysL2]         = useState(14)
-  const [dunningDaysL3, setDunningDaysL3]         = useState(28)
-  const [dunningSaving, setDunningSaving]         = useState(false)
-  const [dunningSaved, setDunningSaved]           = useState(false)
-  const [dunningError, setDunningError]           = useState<string | null>(null)
-
-  // Export / Import
-  const [importFile, setImportFile]         = useState<File | null>(null)
-  const [importing, setImporting]           = useState(false)
-  const [importProgress, setImportProgress] = useState(0)
-  const [importStage, setImportStage]       = useState('')
-  const [importResult, setImportResult]     = useState<string | null>(null)
-
-  // Account deletion
-  const [showDeleteAccount, setShowDeleteAccount]         = useState(false)
-  const [deleteConfirmEmail, setDeleteConfirmEmail]       = useState('')
-  const [deletingAccount, setDeletingAccount]             = useState(false)
-  const [deleteAccountError, setDeleteAccountError]       = useState<string | null>(null)
-  const [userAuthEmail, setUserAuthEmail]                 = useState('')
+  // (DATEV/Dunning/Import-Export/Account-Deletion live in their own sub-components.)
+  // userAuthEmail is shared (Account deletion needs it; sourced from session).
+  const [userAuthEmail, setUserAuthEmail] = useState('')
 
   // Confirm modal
   const [confirmState, setConfirmState] = useState<{
@@ -171,14 +164,7 @@ function SettingsPageInner() {
   }
   function closeConfirm() { setConfirmState(s => ({ ...s, open: false })) }
 
-  // GPS Check-in
-  const [gpsLat, setGpsLat]                     = useState<number | null>(null)
-  const [gpsLng, setGpsLng]                     = useState<number | null>(null)
-  const [gpsRadius, setGpsRadius]               = useState(300)
-  const [gpsSaving, setGpsSaving]               = useState(false)
-  const [gpsSaved, setGpsSaved]                 = useState(false)
-  const [gpsLocating, setGpsLocating]           = useState(false)
-  const [gpsError, setGpsError]                 = useState<string | null>(null)
+  // (GPS Check-in lives in its own sub-component.)
 
   // Plan
   const [gymPlan, setGymPlan]           = useState<string>('free')
@@ -259,9 +245,10 @@ function SettingsPageInner() {
         setWellpassTemplate((data as { wellpass_agreement_template?: string | null }).wellpass_agreement_template ?? '')
         setTrialTemplate((data as { trial_rules_template?: string | null }).trial_rules_template ?? '')
 
-        setLegalName(data.legal_name ?? '')
-        setLegalAddress(data.legal_address ?? '')
-        setLegalEmail(data.legal_email ?? '')
+        setInitialLegalName(data.legal_name ?? '')
+        setInitialLegalAddress(data.legal_address ?? '')
+        setInitialLegalEmail(data.legal_email ?? '')
+        setLegalNameMirror(data.legal_name ?? '')
         setTaxNumber(data.tax_number ?? '')
         setUstid(data.ustid ?? '')
         setIsKleinunternehmer(data.is_kleinunternehmer ?? true)
@@ -279,18 +266,15 @@ function SettingsPageInner() {
         setBankIbanDirty(false)
         setBankBic(data.bank_bic ?? '')
         setBankName(data.bank_name ?? '')
-        setDatevBeraternummer(data.datev_beraternummer ?? '')
-        setDatevMandantennummer(data.datev_mandantennummer ?? '')
-        // Inkasso-Defaults: 10 €, 14d, 28d. NULL sollte dank DB-DEFAULT
-        // nicht vorkommen, defensiv trotzdem fallbacken.
+        setInitialDatevBerater(data.datev_beraternummer ?? '')
+        setInitialDatevMandant(data.datev_mandantennummer ?? '')
+        // Inkasso-Defaults werden in DunningSection selbst auf 10 €/14d/28d gefallen.
         const lateFeeCents = (data as { dunning_late_fee_cents?: number | null }).dunning_late_fee_cents
-        setDunningLateFee(typeof lateFeeCents === 'number'
-          ? (lateFeeCents / 100).toFixed(2)
-          : '10.00')
+        setInitialDunningLateFeeCents(lateFeeCents ?? null)
         const daysL2 = (data as { dunning_days_to_level_2?: number | null }).dunning_days_to_level_2
-        setDunningDaysL2(typeof daysL2 === 'number' ? daysL2 : 14)
+        setInitialDunningDaysL2(daysL2 ?? null)
         const daysL3 = (data as { dunning_days_to_level_3?: number | null }).dunning_days_to_level_3
-        setDunningDaysL3(typeof daysL3 === 'number' ? daysL3 : 28)
+        setInitialDunningDaysL3(daysL3 ?? null)
         const rawClassTypes = data.class_types
         if (Array.isArray(rawClassTypes)) setClassTypesInput(rawClassTypes.join(', '))
         const savedSport = data.sport_type as SportType | undefined
@@ -298,9 +282,9 @@ function SettingsPageInner() {
         setBeltEnabled(data.belt_system_enabled ?? true)
         setStripesEnabled(data.stripes_enabled ?? true)
         setBeltSlots(resolveBeltSystem(data.belt_system))
-        if (data.latitude)  setGpsLat(data.latitude)
-        if (data.longitude) setGpsLng(data.longitude)
-        setGpsRadius(data.gps_radius_meters ?? 300)
+        setInitialGpsLat(data.latitude ?? null)
+        setInitialGpsLng(data.longitude ?? null)
+        setInitialGpsRadius(data.gps_radius_meters ?? 300)
         setGymPlan(data.plan ?? 'free')
         setPlanLimit(data.plan_member_limit ?? 30)
         const { count } = await supabase.from('members').select('*', { count: 'exact', head: true }).eq('gym_id', data.id).eq('is_active', true)
@@ -510,14 +494,6 @@ function SettingsPageInner() {
     setTimeout(() => setWhatsappGroupSaved(false), 2000)
   }
 
-  async function handleLegalSave() {
-    setLegalSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({ legal_name: legalName||null, legal_address: legalAddress||null, legal_email: legalEmail||null }).eq('owner_id', user?.id ?? '')
-    setLegalSaving(false); setLegalSaved(true); setTimeout(() => setLegalSaved(false), 2000)
-  }
-
   async function handleInvoiceSave() {
     setInvoiceSaving(true)
     const supabase = createClient()
@@ -560,199 +536,6 @@ function SettingsPageInner() {
       }
     }
     setInvoiceSaving(false); setInvoiceSaved(true); setTimeout(() => setInvoiceSaved(false), 2000)
-  }
-
-  async function handleExport() {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const res = await fetch('/api/gym/export', { headers: { Authorization: `Bearer ${session.access_token}` } })
-    const data = await res.json()
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `osss-gym-export-${new Date().toISOString().split('T')[0]}.json`
-    a.click()
-    URL.revokeObjectURL(a.href)
-  }
-
-  async function handleImport() {
-    if (!importFile) return
-    setImporting(true)
-    setImportResult(null)
-    setImportProgress(0)
-
-    // Animate progress through realistic stages while the server works
-    const STAGES = lang === 'en' ? [
-      { pct: 5,  label: 'Checking file…' },
-      { pct: 15, label: 'Gym settings…' },
-      { pct: 30, label: 'Importing members…' },
-      { pct: 50, label: 'Classes & bookings…' },
-      { pct: 65, label: 'Attendance & belt promotions…' },
-      { pct: 78, label: 'Uploading media & photos…' },
-      { pct: 88, label: 'Plans & content…' },
-      { pct: 93, label: 'Finishing up…' },
-    ] : [
-      { pct: 5,  label: 'Datei wird geprüft…' },
-      { pct: 15, label: 'Gym-Einstellungen…' },
-      { pct: 30, label: 'Mitglieder werden importiert…' },
-      { pct: 50, label: 'Klassen & Buchungen…' },
-      { pct: 65, label: 'Anwesenheit & Gürtelpromotionen…' },
-      { pct: 78, label: 'Medien & Fotos werden hochgeladen…' },
-      { pct: 88, label: 'Tarife & Inhalte…' },
-      { pct: 93, label: 'Abschluss…' },
-    ]
-    let stageIdx = 0
-    setImportStage(STAGES[0].label)
-    setImportProgress(STAGES[0].pct)
-    const ticker = setInterval(() => {
-      stageIdx = Math.min(stageIdx + 1, STAGES.length - 1)
-      setImportStage(STAGES[stageIdx].label)
-      setImportProgress(STAGES[stageIdx].pct)
-    }, 1800)
-
-    try {
-      const text = await importFile.text()
-      const data = JSON.parse(text)
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        clearInterval(ticker)
-        setImportResult(lang === 'en' ? 'Not authorized' : 'Nicht autorisiert')
-        setImporting(false)
-        return
-      }
-      const res = await fetch('/api/gym/import', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      clearInterval(ticker)
-      setImportProgress(100)
-      setImportStage(lang === 'en' ? 'Done!' : 'Fertig!')
-
-      const result = await res.json()
-      if (result.success) {
-        const imp = result.imported
-        const parts: string[] = []
-        if (imp.members)         parts.push(`${imp.members} ${lang === 'en' ? 'members' : 'Mitglieder'}`)
-        if (imp.classes)         parts.push(`${imp.classes} ${lang === 'en' ? 'classes' : 'Klassen'}`)
-        if (imp.plans)           parts.push(`${imp.plans} ${lang === 'en' ? 'plans' : 'Tarife'}`)
-        if (imp.attendance)      parts.push(`${imp.attendance} ${lang === 'en' ? 'check-ins' : 'Check-ins'}`)
-        if (imp.belt_promotions) parts.push(`${imp.belt_promotions} ${lang === 'en' ? 'belt promotions' : 'Gürtelpromotionen'}`)
-        if (imp.leads)           parts.push(`${imp.leads} ${lang === 'en' ? 'leads' : 'Interessenten'}`)
-        if (imp.posts)           parts.push(`${imp.posts} ${lang === 'en' ? 'posts' : 'Posts'}`)
-        const mediaCount = (imp.gallery_images ?? 0) + (imp.about_blocks ?? 0) +
-          (imp.logo_uploaded ? 1 : 0) + (imp.hero_uploaded ? 1 : 0)
-        if (mediaCount > 0)      parts.push(`${mediaCount} ${lang === 'en' ? 'media' : 'Medien'}`)
-        setImportResult(`✓ ${lang === 'en' ? 'Import successful' : 'Import erfolgreich'}: ${parts.join(', ')}`)
-        setImportFile(null)
-      } else {
-        setImportResult(`${lang === 'en' ? 'Error' : 'Fehler'}: ${result.error}`)
-      }
-    } catch {
-      clearInterval(ticker)
-      setImportResult(lang === 'en' ? 'Error: Invalid JSON file' : 'Fehler: Ungültige JSON-Datei')
-    }
-    setTimeout(() => { setImporting(false); setImportProgress(0); setImportStage('') }, 800)
-  }
-
-  async function handleDeleteAccount() {
-    setDeletingAccount(true)
-    setDeleteAccountError(null)
-    try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setDeleteAccountError(lang === 'en' ? 'Not logged in' : 'Nicht eingeloggt'); setDeletingAccount(false); return }
-      const res = await fetch('/api/auth/delete-account', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      const json = await res.json()
-      if (json.success) {
-        await supabase.auth.signOut()
-        window.location.href = '/'
-      } else {
-        setDeleteAccountError(json.error ?? (lang === 'en' ? 'Unknown error' : 'Unbekannter Fehler'))
-        setDeletingAccount(false)
-      }
-    } catch {
-      setDeleteAccountError(lang === 'en' ? 'Network error — please try again' : 'Netzwerkfehler — bitte erneut versuchen')
-      setDeletingAccount(false)
-    }
-  }
-
-  async function handleDatevSave() {
-    setDatevSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({
-      datev_beraternummer: datevBeraternummer || null,
-      datev_mandantennummer: datevMandantennummer || null,
-    }).eq('owner_id', user?.id ?? '')
-    setDatevSaving(false); setDatevSaved(true); setTimeout(() => setDatevSaved(false), 2000)
-  }
-
-  async function handleDunningSave() {
-    setDunningError(null)
-    // Client-Validierung — DB hat zusätzlich CHECK-Constraints, aber wir
-    // wollen UI-Feedback ohne Roundtrip.
-    const feeEur = parseFloat(dunningLateFee.replace(',', '.'))
-    if (!Number.isFinite(feeEur) || feeEur < 0 || feeEur > 50) {
-      setDunningError('Mahngebühr muss zwischen 0 und 50 € liegen.')
-      return
-    }
-    if (!Number.isInteger(dunningDaysL2) || dunningDaysL2 < 1 || dunningDaysL2 > 90) {
-      setDunningError('Tage bis 2. Mahnung müssen zwischen 1 und 90 liegen.')
-      return
-    }
-    if (!Number.isInteger(dunningDaysL3) || dunningDaysL3 < 7 || dunningDaysL3 > 180) {
-      setDunningError('Tage bis Inkasso-Drohung müssen zwischen 7 und 180 liegen.')
-      return
-    }
-    if (dunningDaysL3 <= dunningDaysL2) {
-      setDunningError('Inkasso-Drohung muss nach 2. Mahnung erfolgen.')
-      return
-    }
-    setDunningSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    const lateFeeCents = Math.round(feeEur * 100)
-    const { error } = await supabase.from('gyms').update({
-      dunning_late_fee_cents: lateFeeCents,
-      dunning_days_to_level_2: dunningDaysL2,
-      dunning_days_to_level_3: dunningDaysL3,
-    }).eq('owner_id', user?.id ?? '')
-    setDunningSaving(false)
-    if (error) {
-      setDunningError(error.message)
-      return
-    }
-    setDunningSaved(true); setTimeout(() => setDunningSaved(false), 2000)
-  }
-
-  async function handleGpsLocate() {
-    setGpsLocating(true); setGpsError(null)
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        setGpsLat(pos.coords.latitude)
-        setGpsLng(pos.coords.longitude)
-        setGpsLocating(false)
-      },
-      err => { setGpsError(err.message); setGpsLocating(false) },
-      { enableHighAccuracy: true, timeout: 10_000 }
-    )
-  }
-
-  async function handleGpsSave() {
-    if (gpsLat === null || gpsLng === null) return
-    setGpsSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({
-      latitude: gpsLat, longitude: gpsLng, gps_radius_meters: gpsRadius,
-    }).eq('owner_id', user?.id ?? '')
-    setGpsSaving(false); setGpsSaved(true); setTimeout(() => setGpsSaved(false), 2500)
   }
 
   async function handleClassTypesSave() {
@@ -863,37 +646,6 @@ function SettingsPageInner() {
     navigator.clipboard.writeText(text)
     setter(true)
     setTimeout(() => setter(false), 2000)
-  }
-
-  // ── helpers ──────────────────────────────────────────────────────────────
-
-  const inputCls = 'w-full px-3 py-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm placeholder-slate-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100'
-  const saveBtnCls = 'w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2'
-  const sectionCls = 'bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden'
-  const sectionHeaderCls = 'px-5 py-3 border-b border-zinc-100 bg-zinc-50'
-
-  function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
-    return (
-      <div className={sectionHeaderCls}>
-        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-          {icon} {title}
-        </p>
-      </div>
-    )
-  }
-
-  function CopyRow({ label, value, copied, onCopy }: { label: string; value: string; copied: boolean; onCopy: () => void }) {
-    return (
-      <div>
-        {label && <p className="text-xs font-medium text-zinc-500 mb-1.5">{label}</p>}
-        <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-          <code className="text-xs font-mono text-zinc-600 flex-1 truncate min-w-0">{value}</code>
-          <button type="button" onClick={onCopy} className="flex-shrink-0 flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors">
-            {copied ? <><Check size={13} className="text-green-500" /><span className="text-green-600 font-medium">{t('settings', 'copiedBtn')}</span></> : <><Copy size={13} /><span>{t('settings', 'copyBtn')}</span></>}
-          </button>
-        </div>
-      </div>
-    )
   }
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -1117,10 +869,10 @@ function SettingsPageInner() {
                     : <span className="text-amber-600">{t('settings', 'stripeConnectMissing')}</span>,
                 },
                 {
-                  ok: !!legalName,
+                  ok: !!legalNameMirror,
                   title: t('settings', 'privacyCheck'),
-                  desc: legalName
-                    ? <span className="text-zinc-400">{t('settings', 'privacyResponsible')}<strong className="text-zinc-600">{legalName}</strong> · <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">{t('settings', 'preview')} <ExternalLink size={10} /></a></span>
+                  desc: legalNameMirror
+                    ? <span className="text-zinc-400">{t('settings', 'privacyResponsible')}<strong className="text-zinc-600">{legalNameMirror}</strong> · <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline inline-flex items-center gap-1">{t('settings', 'preview')} <ExternalLink size={10} /></a></span>
                     : <span className="text-amber-600">{t('settings', 'privacyMissing')}</span>,
                 },
               ].map(item => (
@@ -1136,157 +888,13 @@ function SettingsPageInner() {
               ))}
             </div>
           </div>
-          {/* Export / Import */}
-          {/* ── GPS Check-in ─────────────────────────────────────────────── */}
-          <div className={sectionCls}>
-            <div className={sectionHeaderCls}>
-              <SectionHeader icon={<MapPin size={12} />} title={t('settings', 'gpsSection')} />
-            </div>
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-zinc-500">
-                {t('settings', 'gpsDesc')}
-              </p>
-              {gpsLat !== null && gpsLng !== null && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-800 text-xs font-mono">
-                  <MapPin size={12} className="shrink-0" />
-                  {gpsLat.toFixed(6)}, {gpsLng.toFixed(6)}
-                </div>
-              )}
-              {gpsError && (
-                <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{gpsError}</p>
-              )}
-              <div className="flex items-center gap-3 flex-wrap">
-                <button type="button" onClick={handleGpsLocate} disabled={gpsLocating}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-60 transition-colors">
-                  <Navigation size={14} />
-                  {gpsLocating ? t('settings', 'detecting') : t('settings', 'detectLocationNow')}
-                </button>
-                {gpsLat !== null && (
-                  <button type="button" onClick={handleGpsSave} disabled={gpsSaving}
-                    className={saveBtnCls}>
-                    {gpsSaved ? <><Check size={14} /> {t('settings', 'locationSavedShort')}</> : <><Save size={14} /> {t('settings', 'saveLocation')}</>}
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-zinc-600 whitespace-nowrap">{t('settings', 'radiusMeters')}</label>
-                <input type="number" min={50} max={2000} step={50} value={gpsRadius}
-                  onChange={e => setGpsRadius(Number(e.target.value))}
-                  className="w-28 px-3 py-1.5 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className={sectionCls}>
-            <div className={sectionHeaderCls}>
-              <SectionHeader icon={<Download size={12} />} title={t('settings', 'exportImport')} />
-            </div>
-            <div className="p-5 space-y-5">
-              <p className="text-xs text-zinc-500">
-                {t('settings', 'exportImportDesc')}
-              </p>
-              <div>
-                <p className="text-sm font-medium text-zinc-800 mb-2">{t('settings', 'exportSection')}</p>
-                <button type="button" onClick={handleExport} className={saveBtnCls}>
-                  <Download size={14} /> {t('settings', 'exportBtn')}
-                </button>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-zinc-800 mb-2">{t('settings', 'importSection')}</p>
-                <p className="text-xs text-zinc-400 mb-3">{t('settings', 'importDesc')}</p>
-                <label className={`flex items-center gap-2 cursor-pointer ${importing ? 'pointer-events-none opacity-50' : ''}`}>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-sm font-medium transition-colors">
-                    <Upload size={14} />
-                    {importFile ? importFile.name : t('settings', 'selectJsonFile')}
-                  </div>
-                  <input type="file" accept=".json" className="hidden"
-                    onChange={e => { setImportFile(e.target.files?.[0] ?? null); setImportResult(null); setImportProgress(0) }} />
-                </label>
-                {importFile && !importing && (
-                  <button type="button" onClick={handleImport} className={`mt-2 ${saveBtnCls}`}>
-                    <Upload size={14} /> {t('settings', 'startImport')}
-                  </button>
-                )}
-                {/* Progress bar */}
-                {importing && (
-                  <div className="mt-3 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-zinc-500">
-                      <span>{importStage}</span>
-                      <span className="tabular-nums font-semibold text-amber-600">{importProgress}%</span>
-                    </div>
-                    <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-400 rounded-full transition-all duration-700 ease-out"
-                        style={{ width: `${importProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {importResult && !importing && (
-                  <p className={`mt-2 text-xs rounded-lg px-3 py-2 ${importResult.startsWith('✓') ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-                    {importResult}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Account deletion ─────────────────────────────────────────── */}
-          <div className="rounded-2xl border border-red-100 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
-              <Trash2 size={12} className="text-red-500" />
-              <span className="text-xs font-bold text-red-700 uppercase tracking-wider">{t('settings', 'deleteAccount')}</span>
-            </div>
-            <div className="p-5">
-              <p className="text-sm text-zinc-600 mb-4">
-                {t('settings', 'deleteAccountDesc')}
-              </p>
-              {!showDeleteAccount ? (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteAccount(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 size={14} /> {t('settings', 'deleteAccount')}…
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium">
-                    {t('settings', 'deleteAccountConfirm')}<span className="font-mono">{userAuthEmail}</span>
-                  </div>
-                  <input
-                    type="email"
-                    value={deleteConfirmEmail}
-                    onChange={e => setDeleteConfirmEmail(e.target.value)}
-                    placeholder={userAuthEmail || 'deine@email.de'}
-                    className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-red-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all text-sm"
-                  />
-                  {deleteAccountError && (
-                    <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{deleteAccountError}</p>
-                  )}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => { setShowDeleteAccount(false); setDeleteConfirmEmail(''); setDeleteAccountError(null) }}
-                      className="px-4 py-2 rounded-xl border border-zinc-200 text-zinc-600 text-sm font-semibold hover:bg-zinc-50 transition-colors"
-                    >
-                      {t('settings', 'cancelBtn')}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={deleteConfirmEmail !== userAuthEmail || deletingAccount}
-                      onClick={handleDeleteAccount}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-bold transition-colors"
-                    >
-                      <Trash2 size={14} />
-                      {deletingAccount ? t('settings', 'deleting') : t('settings', 'deleteForever')}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
+          <GpsSection
+            initialLat={initialGpsLat}
+            initialLng={initialGpsLng}
+            initialRadius={initialGpsRadius}
+          />
+          <ImportExportSection />
+          <AccountDeleteSection userAuthEmail={userAuthEmail} />
         </div>
       )}
 
@@ -1445,149 +1053,23 @@ function SettingsPageInner() {
             </div>
           </div>
 
-          {/* DATEV */}
-          <div className={sectionCls}>
-            <div className={sectionHeaderCls}>
-              <SectionHeader icon={<FileSpreadsheet size={12} />} title={t('settings', 'datevExport')} />
-            </div>
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-zinc-500">
-                {t('settings', 'datevDesc')}
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'advisorNumber')}</label>
-                  <input value={datevBeraternummer} onChange={e => setDatevBeraternummer(e.target.value)}
-                    placeholder="z. B. 12345" className={inputCls} maxLength={7} />
-                  <p className="text-xs text-zinc-400 mt-1">{t('settings', 'advisorNumberDesc')}</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'clientNumber')}</label>
-                  <input value={datevMandantennummer} onChange={e => setDatevMandantennummer(e.target.value)}
-                    placeholder="z. B. 1001" className={inputCls} maxLength={5} />
-                  <p className="text-xs text-zinc-400 mt-1">{t('settings', 'clientNumberDesc')}</p>
-                </div>
-              </div>
-              <button type="button" onClick={handleDatevSave} disabled={datevSaving} className={saveBtnCls}>
-                <Save size={14} />
-                {datevSaved ? t('settings', 'saved') : datevSaving ? t('settings', 'saving') : t('settings', 'saveDatev')}
-              </button>
-            </div>
-          </div>
+          <DatevSection
+            initialBeraternummer={initialDatevBerater}
+            initialMandantennummer={initialDatevMandant}
+          />
 
-          {/* Inkasso & Mahnungen — pro-Gym Konfiguration der Mahn-Pipeline */}
-          <div className={sectionCls}>
-            <SectionHeader icon={<AlertCircle size={12} />} title="Inkasso & Mahnungen" />
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-zinc-500">
-                Diese Werte werden auf Mahn-PDFs und im Auto-Eskalations-Cron verwendet.
-              </p>
-              <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">
-                  Mahngebühr (in €)
-                </label>
-                <input
-                  type="number"
-                  step={0.5}
-                  min={0}
-                  max={50}
-                  value={dunningLateFee}
-                  onChange={e => setDunningLateFee(e.target.value)}
-                  placeholder="10.00"
-                  className={inputCls}
-                />
-                <p className="text-xs text-zinc-400 mt-1">
-                  Pauschal ab 2. Mahnung (1×) und letzter Mahnung (2× kumuliert).
-                  § 288 Abs. 4 BGB-konform, üblich 5–10 €.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">
-                    Tage bis 2. Mahnung
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={90}
-                    value={dunningDaysL2}
-                    onChange={e => setDunningDaysL2(parseInt(e.target.value, 10) || 0)}
-                    className={inputCls}
-                  />
-                  <p className="text-xs text-zinc-400 mt-1">
-                    Frist nach 1. Mahnung (Default 14).
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-600 mb-1.5">
-                    Tage bis Inkasso-Drohung
-                  </label>
-                  <input
-                    type="number"
-                    min={7}
-                    max={180}
-                    value={dunningDaysL3}
-                    onChange={e => setDunningDaysL3(parseInt(e.target.value, 10) || 0)}
-                    className={inputCls}
-                  />
-                  <p className="text-xs text-zinc-400 mt-1">
-                    Frist seit Mahn-Beginn (Default 28).
-                  </p>
-                </div>
-              </div>
-              {dunningError && (
-                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {dunningError}
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={handleDunningSave}
-                disabled={dunningSaving}
-                className={saveBtnCls}
-              >
-                <Save size={14} />
-                {dunningSaved
-                  ? t('settings', 'saved')
-                  : dunningSaving
-                    ? t('settings', 'saving')
-                    : 'Inkasso-Einstellungen speichern'}
-              </button>
-            </div>
-          </div>
+          <DunningSection
+            initialLateFeeCents={initialDunningLateFeeCents}
+            initialDaysL2={initialDunningDaysL2}
+            initialDaysL3={initialDunningDaysL3}
+          />
 
-
-          {/* Datenschutz / Impressum */}
-          <div className={sectionCls}>
-            <div className={`${sectionHeaderCls} flex items-center justify-between`}>
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                <FileText size={12} /> {t('settings', 'privacyImprint')}
-              </p>
-              <a href="/datenschutz" target="_blank" rel="noopener noreferrer"
-                className="text-xs text-amber-600 hover:text-amber-500 flex items-center gap-1">
-                {t('settings', 'preview')} <ExternalLink size={11} />
-              </a>
-            </div>
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-zinc-500">{t('settings', 'privacyDesc')}</p>
-              <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'nameFirm')}</label>
-                <input value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="Max Mustermann / BJJ Gym GmbH" className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'address')}</label>
-                <input value={legalAddress} onChange={e => setLegalAddress(e.target.value)} placeholder="Musterstraße 1, 80331 München" className={inputCls} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">{t('settings', 'emailPrivacy')}</label>
-                <input type="email" value={legalEmail} onChange={e => setLegalEmail(e.target.value)} placeholder="datenschutz@gym.de" className={inputCls} />
-              </div>
-              <button type="button" onClick={handleLegalSave} disabled={legalSaving} className={saveBtnCls}>
-                <Save size={14} />
-                {legalSaved ? t('settings', 'saved') : legalSaving ? t('settings', 'saving') : t('settings', 'savePrivacy')}
-              </button>
-            </div>
-          </div>
+          <LegalSection
+            initialLegalName={initialLegalName}
+            initialLegalAddress={initialLegalAddress}
+            initialLegalEmail={initialLegalEmail}
+            onLegalNameChange={setLegalNameMirror}
+          />
         </div>
       )}
 
@@ -2317,177 +1799,5 @@ export default function SettingsPage() {
     <Suspense>
       <SettingsPageInner />
     </Suspense>
-  )
-}
-
-/* ─── UpgradeModal ───────────────────────────────────────────────────────── */
-const PLAN_ORDER: Record<string, number> = { free: 0, starter: 1, grow: 2, pro: 3 }
-
-function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
-  currentPlan: string
-  loadingPlan: string | null
-  onUpgrade: (plan: string) => void
-  onClose: () => void
-}) {
-  const { lang, t } = useLanguage()
-  const currentRank = PLAN_ORDER[currentPlan] ?? 0
-
-  const UPGRADE_PLANS = [
-    {
-      name: 'Free',
-      planKey: 'free',
-      price: '0',
-      period: '',
-      members: lang === 'en' ? 'Up to 30 members' : 'Bis zu 30 Mitglieder',
-      highlight: false,
-      features: lang === 'en'
-        ? ['Member management', 'Belt tracking & promotions', 'Attendance & GPS check-in', 'Schedule & iCal export', 'Public gym page + embedding', 'Member portal: booking & check-in', 'Lead management & pipeline']
-        : ['Mitgliederverwaltung', 'Belt-Tracking & Promotions', 'Anwesenheit & GPS Check-in', 'Stundenplan & iCal-Export', 'Öffentliche Gym-Seite + Einbettung', 'Member-Portal: Buchung & Check-in', 'Lead-Management & Pipeline'],
-    },
-    {
-      name: 'Starter',
-      planKey: 'starter',
-      price: '29',
-      period: lang === 'en' ? '/month' : '/Monat',
-      members: lang === 'en' ? 'Up to 50 members' : 'Bis zu 50 Mitglieder',
-      highlight: false,
-      features: lang === 'en'
-        ? ['Everything in Free', 'Automatic payment reminders', 'Birthday emails', '1 trainer account']
-        : ['Alles aus Free', 'Automatische Zahlungserinnerungen', 'Geburtstags-E-Mails', '1 Trainer-Account'],
-    },
-    {
-      name: 'Grow',
-      planKey: 'grow',
-      price: '59',
-      period: lang === 'en' ? '/month' : '/Monat',
-      members: lang === 'en' ? 'Up to 150 members' : 'Bis zu 150 Mitglieder',
-      highlight: true,
-      features: lang === 'en'
-        ? ['Everything in Starter', 'Unlimited trainer accounts', 'Advanced reports']
-        : ['Alles aus Starter', 'Unbegrenzte Trainer-Accounts', 'Erweiterte Berichte'],
-    },
-    {
-      name: 'Pro',
-      planKey: 'pro',
-      price: '99',
-      period: lang === 'en' ? '/month' : '/Monat',
-      members: lang === 'en' ? 'Unlimited members' : 'Unbegrenzte Mitglieder',
-      highlight: false,
-      features: lang === 'en'
-        ? ['Everything in Grow', 'Unlimited members', 'Priority support', 'Early access to new features']
-        : ['Alles aus Grow', 'Unbegrenzte Mitglieder', 'Prioritäts-Support', 'Frühzeitiger Zugang zu neuen Features'],
-    },
-  ]
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-zinc-100">
-          <div>
-            <h2 className="text-lg font-black text-zinc-900 tracking-tight">{t('settings', 'selectPlan')}</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">{t('settings', 'selectPlanDesc')}</p>
-          </div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 transition-colors p-1">
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Plans grid */}
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {UPGRADE_PLANS.map(plan => {
-            const rank = PLAN_ORDER[plan.planKey] ?? 0
-            const isCurrent = plan.planKey === currentPlan
-            const isLower = rank < currentRank
-            const isUpgrade = rank > currentRank
-            return (
-              <div key={plan.planKey} className={`rounded-2xl border-2 p-5 flex flex-col relative transition-all ${
-                plan.highlight && isUpgrade ? 'border-amber-400 shadow-amber-100/80 shadow-lg' :
-                isCurrent ? 'border-amber-300 bg-amber-50/50' :
-                isLower ? 'border-zinc-100 opacity-50' : 'border-zinc-100'
-              }`}>
-                {plan.highlight && isUpgrade && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-zinc-950 text-[10px] font-black px-3 py-1 rounded-full tracking-wide whitespace-nowrap">
-                    {t('settings', 'popular')}
-                  </div>
-                )}
-                {isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-700 text-white text-[10px] font-black px-3 py-1 rounded-full tracking-wide whitespace-nowrap">
-                    {t('settings', 'current')}
-                  </div>
-                )}
-                <div className="mb-4">
-                  <p className="font-bold text-zinc-400 text-[10px] uppercase tracking-widest mb-1">{plan.name}</p>
-                  <div className="flex items-end gap-0.5 mb-0.5">
-                    <span className="text-3xl font-black text-zinc-900 tracking-tight">€{plan.price}</span>
-                    <span className="text-zinc-400 text-xs pb-1.5">{plan.period}</span>
-                  </div>
-                  <p className="text-zinc-400 text-[11px]">{plan.members}</p>
-                </div>
-                <ul className="space-y-2 flex-1 mb-5">
-                  {plan.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-zinc-600">
-                      <Check size={11} className="text-emerald-500 mt-0.5 flex-shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                {isCurrent ? (
-                  <div className="w-full text-center py-2 rounded-xl text-xs font-bold text-zinc-400 bg-zinc-100">
-                    {t('settings', 'currentPlanLabel')}
-                  </div>
-                ) : isLower ? (
-                  <div className="w-full text-center py-2 rounded-xl text-xs font-bold text-zinc-300 bg-zinc-50">
-                    {t('settings', 'downgrade')}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => onUpgrade(plan.planKey)}
-                    disabled={loadingPlan === plan.planKey}
-                    className={`w-full py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-60 ${
-                      plan.highlight
-                        ? 'bg-amber-400 hover:bg-amber-300 text-zinc-950'
-                        : 'bg-zinc-900 hover:bg-zinc-700 text-white'
-                    }`}
-                  >
-                    {loadingPlan === plan.planKey ? t('settings', 'loading') : t('settings', 'choosePlan').replace('{name}', plan.name)}
-                  </button>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        <p className="text-center text-xs text-zinc-400 pb-6">{t('settings', 'upgradeModalFooter')}</p>
-      </div>
-    </div>
-  )
-}
-
-/* ─── UpgradeGate ────────────────────────────────────────────────────────── */
-function UpgradeGate({ plan, feature, onUpgrade }: {
-  plan: string
-  feature: string
-  onUpgrade: (plan: string) => void
-}) {
-  const { lang, t } = useLanguage()
-  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
-  return (
-    <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50/60 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-      <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-        <Zap size={16} className="text-amber-600" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-zinc-900">{feature} — {planLabel} {lang === 'en' ? 'or higher' : 'oder höher'}</p>
-        <p className="text-xs text-zinc-500 mt-0.5">{t('settings', 'upgradeToUnlock')}</p>
-      </div>
-      <button
-        type="button"
-        onClick={() => onUpgrade(plan)}
-        className="flex-shrink-0 flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
-      >
-        <Zap size={12} /> {t('settings', 'upgradeToLabel')} {planLabel}
-      </button>
-    </div>
   )
 }

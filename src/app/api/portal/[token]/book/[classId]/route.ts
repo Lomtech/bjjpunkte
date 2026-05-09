@@ -13,7 +13,8 @@ export async function POST(
   { params }: { params: Promise<{ token: string; classId: string }> }
 ) {
   const { token, classId } = await params
-  if (!token || token.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+  // Token-Hardening (Audit 2026-05-09 / A2): 20 → 32 Zeichen. Brute-Force-Schutz.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
   }
 
@@ -32,7 +33,8 @@ export async function DELETE(
   { params }: { params: Promise<{ token: string; classId: string }> }
 ) {
   const { token, classId } = await params
-  if (!token || token.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+  // Token-Hardening (Audit 2026-05-09 / A2): 20 → 32 Zeichen. Brute-Force-Schutz.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
   }
 

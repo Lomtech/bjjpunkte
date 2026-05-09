@@ -165,8 +165,9 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-zinc-700 mb-1.5">E-Mail</label>
+                <label htmlFor="login-email" className="block text-sm font-semibold text-zinc-700 mb-1.5">E-Mail</label>
                 <input
+                  id="login-email"
                   type="email" value={email} onChange={e => setEmail(e.target.value)} required
                   className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all text-sm"
                   placeholder="coach@mygym.de"
@@ -174,10 +175,11 @@ export default function LoginPage() {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-semibold text-zinc-700">{lang === 'en' ? 'Password' : 'Passwort'}</label>
+                  <label htmlFor="login-password" className="block text-sm font-semibold text-zinc-700">{lang === 'en' ? 'Password' : 'Passwort'}</label>
                   <Link href="/auth/reset" className="text-xs text-zinc-400 hover:text-amber-600 transition-colors">{lang === 'en' ? 'Forgot password?' : 'Passwort vergessen?'}</Link>
                 </div>
                 <input
+                  id="login-password"
                   type="password" value={password} onChange={e => setPassword(e.target.value)} required
                   className="w-full px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-200 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all text-sm"
                   placeholder="••••••••"

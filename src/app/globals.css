@@ -29,6 +29,30 @@ body {
 }
 .animate-marquee:hover { animation-play-state: paused; }
 
+/* ─── Landing reveal-on-scroll ──────────────────────────────────────────────
+   Used by src/app/_landing/Reveal.tsx — IntersectionObserver toggles
+   data-reveal="on". Matches the original framer-motion `fadeUp` variant
+   (opacity + translateY + subtle blur, ~480 ms ease-out) without shipping
+   framer-motion to the client for simple reveal sections. */
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(16px) scale(0.985);
+  filter: blur(3px);
+  transition:
+    opacity 480ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 480ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 480ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform, filter;
+}
+.landing-reveal[data-reveal="on"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal { transition: opacity 200ms ease; transform: none; filter: none; }
+}
+
 /* PWA safe-area insets */
 .safe-area-top {
   padding-top: env(safe-area-inset-top);

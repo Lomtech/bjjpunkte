@@ -13,6 +13,20 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params
+  // Token-Hardening (Audit 2026-05-09 / A2): mind. 32 Zeichen + Char-Class.
+  // Manifest war bisher ohne Length-/Char-Check — jeder Probing-Request triggerte
+  // einen DB-Hit. Frühe Rückgabe eines generischen Manifests verhindert das.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return new NextResponse(JSON.stringify({
+      name: 'Probetraining',
+      short_name: 'Probetraining',
+      start_url: '/',
+      scope: '/',
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#FBBF24',
+    }), { headers: { 'Content-Type': 'application/manifest+json' } })
+  }
 
   let gymName = 'Probetraining'
   let themeColor = '#FBBF24'

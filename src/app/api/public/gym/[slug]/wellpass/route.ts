@@ -24,6 +24,10 @@ function serviceClient() {
  */
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+  // Slug-Hardening (Audit 2026-05-09 / B-input-cap): Format + Length-Cap.
+  if (!slug || typeof slug !== 'string' || slug.length > 100 || !/^[a-z0-9-]+$/.test(slug)) {
+    return NextResponse.json({ error: 'Ungültiger Slug' }, { status: 400 })
+  }
   const supabase = serviceClient()
 
   const { data: gym } = await supabase
@@ -42,6 +46,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     contract_text,
     contract_accepted,
   } = body as Record<string, unknown>
+
+  // Input-Length-Caps gegen Body-Bloat. contract_text ist im Original schon
+  // auf 5000 begrenzt (siehe Insert unten); first/last/email kapseln wir hier.
+  if (
+    (typeof first_name === 'string' && first_name.length > 200) ||
+    (typeof last_name  === 'string' && last_name.length  > 200) ||
+    (typeof email      === 'string' && email.length      > 320) ||
+    (typeof phone      === 'string' && phone.length      > 50)
+  ) {
+    return NextResponse.json({ error: 'Eingabe zu lang' }, { status: 400 })
+  }
 
   // ── Validation ────────────────────────────────────────────────────────────
   const VALID_SOURCES = new Set(['wellpass', 'hansefit', 'egym', 'urban_sports'])

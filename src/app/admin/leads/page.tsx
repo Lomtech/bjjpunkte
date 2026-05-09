@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import type { SalesLead, SalesActivity, SalesLeadStatus } from '@/types/database'
 import { CallScript } from './_components/CallScript'
 import { StatsModal } from './_components/StatsModal'
+import { useConfirm } from '@/components/ConfirmModal'
+import { usePrompt } from '@/components/PromptModal'
 
 const FILTERS_LS_KEY = 'osss-crm-leads-filters-v1'
 const VIEW_LS_KEY = 'osss-crm-leads-view-v1'
@@ -585,6 +587,7 @@ export default function AdminLeadsPage() {
           <div className="lg:hidden flex items-center justify-between mb-3 sticky top-0 bg-zinc-50 -mx-4 px-4 py-2 border-b border-zinc-200 z-10">
             <h2 className="font-bold text-zinc-900">Filter</h2>
             <button onClick={() => setShowMobileFilters(false)}
+              aria-label="Filter schließen"
               className="text-zinc-500 hover:text-zinc-900 text-2xl leading-none p-2">×</button>
           </div>
           <div className="space-y-4">
@@ -680,10 +683,12 @@ export default function AdminLeadsPage() {
               <input type="checkbox" checked={martialOnly} onChange={e => { setMartialOnly(e.target.checked); setPage(0) }} />
               <span>Nur Kampfsport-Studios</span>
             </label>
-            <input type="text" placeholder="Stadt …" value={city}
+            <label htmlFor="admin-leads-city-input" className="sr-only">Stadt</label>
+            <input id="admin-leads-city-input" type="text" placeholder="Stadt …" value={city}
               onChange={e => { setCity(e.target.value); setPage(0) }}
               className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg" />
-            <input type="text" placeholder="Suche Name/Adresse/Tel/Mail" value={search}
+            <label htmlFor="admin-leads-search-input" className="sr-only">Suche</label>
+            <input id="admin-leads-search-input" type="text" placeholder="Suche Name/Adresse/Tel/Mail" value={search}
               onChange={e => { setSearch(e.target.value); setPage(0) }}
               className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg" />
             <select value={sort} onChange={e => setSort(e.target.value)}
@@ -831,15 +836,17 @@ export default function AdminLeadsPage() {
       {showStats && token && <StatsModal token={token} onClose={() => setShowStats(false)} />}
 
       {showSearchModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="places-search-title">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold mb-2">Google Places durchsuchen</h3>
+            <h3 id="places-search-title" className="text-lg font-bold mb-2">Google Places durchsuchen</h3>
             <p className="text-sm text-zinc-500 mb-4">
               Importiert Studios in dein CRM. Bestehende Leads werden nie überschrieben (Status/Notes/Priorität bleiben).
               <br />
               <span className="text-xs">Cache: 7 Tage — selbe Query wird bis dahin nicht erneut Google API kosten.</span>
             </p>
-            <input type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchResult(null) }}
+            <label htmlFor="places-search-query" className="sr-only">Suchanfrage</label>
+            <input id="places-search-query" type="text" value={searchQuery} onChange={e => { setSearchQuery(e.target.value); setSearchResult(null) }}
               placeholder="z.B. BJJ München"
               className="w-full px-3 py-3 text-base border border-zinc-200 rounded-lg mb-3" />
             <div className="flex items-center gap-4 mb-2 text-sm text-zinc-600">
@@ -979,7 +986,8 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity, setA
   const [showQR, setShowQR] = useState(false)
 
   return (
-    <div className="fixed inset-0 sm:inset-y-0 sm:left-auto sm:right-0 sm:w-full sm:max-w-xl bg-white shadow-2xl sm:border-l border-zinc-200 z-40 overflow-y-auto overscroll-contain">
+    // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
+    <div className="fixed inset-0 sm:inset-y-0 sm:left-auto sm:right-0 sm:w-full sm:max-w-xl bg-white shadow-2xl sm:border-l border-zinc-200 z-40 overflow-y-auto overscroll-contain" role="dialog" aria-modal="true" aria-labelledby="lead-detail-title">
       <div className="sticky top-0 bg-white border-b border-zinc-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
         <button onClick={onClose}
@@ -988,16 +996,18 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity, setA
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-base sm:text-lg font-bold text-zinc-900 truncate">{lead.name}</h2>
+          <h2 id="lead-detail-title" className="text-base sm:text-lg font-bold text-zinc-900 truncate">{lead.name}</h2>
           {lead.formatted_address && <p className="text-xs sm:text-sm text-zinc-500 truncate">{lead.formatted_address}</p>}
         </div>
         <div className="flex items-center gap-2 ml-2">
           <button onClick={() => setShowQR(true)}
             title="QR-Code zum Öffnen auf iPhone"
+            aria-label="QR-Code zum Öffnen auf iPhone"
             className="flex items-center gap-1 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-xs font-semibold">
             📱 <span className="hidden sm:inline">iPhone</span>
           </button>
           <button onClick={onClose}
+            aria-label="Schließen"
             className="hidden sm:block text-zinc-400 hover:text-zinc-700 text-2xl leading-none">×</button>
         </div>
       </div>
@@ -1166,9 +1176,10 @@ function QRModal({ lead, onClose }: { lead: SalesLead; onClose: () => void }) {
   const value = mode === 'call' ? telUrl : crmUrl
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+    // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
       <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-zinc-900 mb-2 text-center">{lead.name}</h3>
+        <h3 id="qr-modal-title" className="text-lg font-bold text-zinc-900 mb-2 text-center">{lead.name}</h3>
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 bg-zinc-100 rounded-xl p-1">
@@ -1335,6 +1346,7 @@ function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
   const [body, setBody] = useState(activity.body ?? '')
   const [outcome, setOutcome] = useState(activity.outcome ?? '')
   const [busy, setBusy] = useState(false)
+  const confirm = useConfirm()
 
   // Place_imported + status_change are system-logs — view-only by default
   // (user can still expand "Mehr"-menu to delete if they really want)
@@ -1366,9 +1378,13 @@ function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
 
   async function remove() {
     if (!token) return
-    // TODO(modal): durch <ConfirmModal> ersetzen — synchron-Confirm braucht
-    // State-Lift in den Activity-Item-Wrapper.
-    if (!confirm('Aktivität wirklich löschen?')) return
+    const ok = await confirm({
+      title: 'Aktivität wirklich löschen?',
+      description: 'Dieser Vorgang kann nicht rückgängig gemacht werden.',
+      variant: 'danger',
+      confirmLabel: 'Löschen',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       const res = await fetch(`/api/admin/leads/${leadId}/activity/${activity.id}`, {
@@ -1691,6 +1707,7 @@ function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }:
   const status = STATUSES.find(s => s.v === lead.status)
   const dueDate = lead.next_action_at ? new Date(lead.next_action_at) : null
   const isOverdue = showOverdue && dueDate ? dueDate < new Date() : false
+  const prompt = usePrompt()
 
   // Owner-Vorname versuchen aus Notes/Name zu extrahieren — aktuell kein eigenes
   // Feld, also nehmen wir den ersten Satz aus den Notes oder fallback "Owner".
@@ -1755,11 +1772,17 @@ function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }:
           <PipelineQuickButton
             title="Demo vereinbart"
             label="📅"
-            onClick={() => {
-              // TODO(modal): durch Datum/Zeit-Modal ersetzen (z.B. <DateTimeInputModal>),
-              // window.prompt() ist 1998-Niveau und akzeptiert auch keine Mobile-Tastatur-Picker.
-              const at = window.prompt('Demo-Datum + Uhrzeit (YYYY-MM-DD HH:MM):', '')
-              const parsed = at ? new Date(at.replace(' ', 'T')) : null
+            onClick={async () => {
+              // Mobile-friendly Datum-Picker via PromptModal (type='datetime-local').
+              // Liefert ISO-String 'YYYY-MM-DDTHH:mm' direkt vom <input type=...>.
+              const at = await prompt({
+                title: 'Demo vereinbart',
+                label: 'Datum + Uhrzeit',
+                type: 'datetime-local',
+                description: 'Wann findet die Demo statt?',
+                confirmLabel: 'Speichern',
+              })
+              const parsed = at ? new Date(at) : null
               const iso = parsed && !isNaN(parsed.getTime()) ? parsed.toISOString() : null
               onAction(lead.id, 'demo_scheduled', iso ? { demo_at: iso } : undefined)
             }} />
@@ -1767,10 +1790,18 @@ function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }:
             title="Verloren"
             label="✕"
             danger
-            onClick={() => {
-              // TODO(modal): durch Text-Input-Modal ersetzen (Grund optional, Textarea).
-              const reason = window.prompt('Grund (optional):', '')
-              onAction(lead.id, 'lost', reason ? { reason } : undefined)
+            onClick={async () => {
+              const reason = await prompt({
+                title: 'Lead als verloren markieren',
+                label: 'Grund (optional)',
+                type: 'textarea',
+                placeholder: 'z.B. Kein Budget, schon mit Konkurrent vertragen, …',
+                confirmLabel: 'Als verloren markieren',
+              })
+              // null = Abbruch → keine Aktion. Leerer String = ohne Grund.
+              if (reason === null) return
+              const trimmed = reason.trim()
+              onAction(lead.id, 'lost', trimmed ? { reason: trimmed } : undefined)
             }} />
         </div>
       )}

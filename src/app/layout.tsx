@@ -3,6 +3,8 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { ToastProvider } from "@/components/Toast";
+import { ConfirmProvider } from "@/components/ConfirmModal";
+import { PromptProvider } from "@/components/PromptModal";
 import { TrackPageView, TrackClicks } from "@/components/TrackPageView";
 
 const geistSans = Geist({
@@ -193,7 +195,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
         <ToastProvider>
-          <LanguageProvider>{children}</LanguageProvider>
+          <ConfirmProvider>
+            <PromptProvider>
+              <LanguageProvider>{children}</LanguageProvider>
+            </PromptProvider>
+          </ConfirmProvider>
         </ToastProvider>
         {/* Cookielose, DSGVO-anonyme Reichweiten-Messung — siehe /api/track */}
         <TrackPageView />

@@ -34,17 +34,35 @@ function buildT(lang: Lang) {
   }
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('de')
+export function LanguageProvider({
+  children,
+  initialLang,
+}: {
+  children: React.ReactNode
+  /** When set (e.g. from RSC server-side detection), seed the state instead of defaulting to 'de'. */
+  initialLang?: Lang
+}) {
+  const [lang, setLangState] = useState<Lang>(initialLang ?? 'de')
 
   useEffect(() => {
+    // Sync to localStorage on first mount, but only if no SSR-provided initialLang
+    // already matches (avoids hydration flicker).
     const saved = (typeof window !== 'undefined' ? localStorage.getItem('lang') : null) as Lang | null
-    if (saved === 'en' || saved === 'de') setLangState(saved)
+    if ((saved === 'en' || saved === 'de') && saved !== lang) setLangState(saved)
+    // Mirror state to cookie so future RSC renders see the same lang.
+    if (typeof document !== 'undefined') {
+      document.cookie = `lang=${lang}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
+    }
+    // Intentionally only on mount — setLang handles updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function setLang(l: Lang) {
     setLangState(l)
-    if (typeof window !== 'undefined') localStorage.setItem('lang', l)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lang', l)
+      document.cookie = `lang=${l}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
+    }
   }
 
   return (

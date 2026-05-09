@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, Send, Users, UserPlus, AlertCircle, Check, Loader2, Clock, Megaphone, FileText, Image as ImageIcon } from 'lucide-react'
 import { CommunicationTabs } from '@/app/dashboard/_components/CommunicationTabs'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 /**
  * Communication-Dashboard für Owner.
@@ -30,6 +31,7 @@ interface RecipientPreview {
 }
 
 export default function CommunicationPage() {
+  const { lang } = useLanguage()
   const [audience, setAudience] = useState<Audience>('members')
   const [filter, setFilter] = useState<Filter>('active')
   const [kind, setKind] = useState<MailKind>('announcement')
@@ -68,7 +70,7 @@ export default function CommunicationPage() {
     try {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Nicht eingeloggt')
+      if (!session) throw new Error(lang === 'en' ? 'Not signed in' : 'Nicht eingeloggt')
       const res = await fetch('/api/gym-mail/send', {
         method: 'POST',
         headers: {
@@ -78,13 +80,17 @@ export default function CommunicationPage() {
         body: JSON.stringify({ audience, filter, subject, html, kind, cover_url: coverUrl.trim() || null }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Versand fehlgeschlagen')
+      if (!res.ok) throw new Error(data.error || (lang === 'en' ? 'Send failed' : 'Versand fehlgeschlagen'))
       setResult({ sent: data.sent, failed: data.failed, recipients: data.recipients })
       setSubject('')
       setHtml('')
       setCoverUrl('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unbekannter Fehler')
+      setError(
+        e instanceof Error
+          ? e.message
+          : (lang === 'en' ? 'Unknown error' : 'Unbekannter Fehler')
+      )
     } finally {
       setSending(false)
       setShowConfirm(false)
@@ -94,16 +100,139 @@ export default function CommunicationPage() {
   const minBody = kind === 'post' ? 50 : 10
   const canSend = subject.trim().length > 0 && html.trim().length >= minBody && (preview?.total ?? 0) > 0
 
+  const t = lang === 'en'
+    ? {
+        intro1Pre: 'Send ',
+        intro1Bold1: 'Announcements',
+        intro1Mid: ' (short — training info, notice) and ',
+        intro1Bold2: 'Posts',
+        intro1Post: ' (longer — tournament report, newsletter with cover image) to members, trial-training leads, or both. GDPR-compliant: members (Art. 6(1)(f)), leads only with marketing consent. Every email has a 1-click unsubscribe.',
+        resultTitle: 'Email sent',
+        resultLine: (sent: number, recipients: number) => `${sent} of ${recipients} recipients delivered successfully.`,
+        resultFailed: (failed: number) => ` ${failed} failed (invalid email or blocked).`,
+        errorPrefix: 'Error',
+        kindHeading: 'Message type',
+        kindAnnouncementTitle: 'Announcement',
+        kindAnnouncementSub: 'Short notice — schedule change, reminder, info. Lean email layout.',
+        kindPostTitle: 'Post',
+        kindPostSub: 'Longer content — tournament report, newsletter, story. With optional cover image.',
+        recipientsHeading: 'Recipients',
+        audienceMembers: 'Members',
+        audienceLeads: 'Trial-training leads',
+        audienceBoth: 'Both',
+        filterHeading: 'Filter',
+        filterActive: 'Active members only',
+        filterAll: 'All (incl. inactive)',
+        filterRecent: 'Last 6 months',
+        gdprLine1: 'Members: Art. 6(1)(f) GDPR (legitimate interest).',
+        gdprLine2: 'Leads: only with marketing consent on the trial-training form.',
+        gdprLine3: 'All recipients receive a 1-click unsubscribe link.',
+        editorPostTitle: 'Compose post',
+        editorAnnouncementTitle: 'Compose announcement',
+        labelTitle: 'Title *',
+        labelSubject: 'Subject *',
+        placeholderPostSubject: 'e.g. Bayern Cup wins — 3 gold, 2 silver',
+        placeholderAnnouncementSubject: 'e.g. Friday training cancelled (public holiday)',
+        charCount: (n: number) => `${n}/200 characters`,
+        labelCover: 'Cover image URL',
+        labelCoverOptional: '(optional)',
+        placeholderCover: 'https://… e.g. a photo from the tournament or event',
+        coverHelp: 'Shown as a banner at the top of the post. https:// required. Leave empty for no banner.',
+        labelContent: 'Content',
+        labelMessage: 'Message',
+        htmlAllowed: '(HTML allowed — <b>, <a href="…">, <br>)',
+        placeholderPostBody: `Hi {{first_name}},\n\nLast weekend our team competed at the Bayern Cup in Augsburg.\nFighters: Anna, Max, Tom and Lisa — all of them put on a great show.\n\nResults:\n• Anna: gold (women –63 kg)\n• Max: silver (men –83 kg)\n• …\n\nNext up: club championship on May 15. Registration open.\n\nOss,\nYour coaching team`,
+        placeholderAnnouncementBody: `Hi {{first_name}},\n\nFriday's evening training is cancelled due to the public holiday. Saturday class runs as usual at 10:00.\n\nBest,\nYour coaching team`,
+        bodyHelp: (count: number, min: number) => <>{count}/50,000 characters · min {min} · variable <code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> is replaced per recipient</>,
+        sendsTo: (n: number) => <>Will be sent to <strong>{n} recipients</strong></>,
+        membersOnly: ' (members only)',
+        leadsOnly: ' (leads with consent only)',
+        loadingRecipients: 'Loading recipients…',
+        sending: 'Sending…',
+        send: 'Send',
+        confirmKicker: 'Confirmation',
+        confirmHeadingPost: 'post',
+        confirmHeadingAnnouncement: 'announcement',
+        confirmSendQuestion: (kindWord: string, n: React.ReactNode) => <>Send {kindWord} to <span className="text-amber-600 tabular-nums">{n}</span> recipients?</>,
+        confirmTitleLabel: 'Title',
+        confirmSubjectLabel: 'Subject',
+        confirmRecipients: (m: number, l: number) => <><strong>Recipients:</strong> {m} members + {l} leads</>,
+        confirmCoverLabel: 'Cover',
+        confirmDuration: (sec: number) => `Sending takes ~${sec} seconds. You can leave the page — sending continues in the background.`,
+        cancel: 'Cancel',
+        confirmSend: 'Confirm & send',
+        backToDashboard: '← Back to dashboard',
+      }
+    : {
+        intro1Pre: 'Verschicke ',
+        intro1Bold1: 'Ankündigungen',
+        intro1Mid: ' (kurz, Trainings­info, Hinweis) und ',
+        intro1Bold2: 'Beiträge',
+        intro1Post: ' (länger, Turnier-Bericht, Newsletter mit Cover-Bild) an Mitglieder, Probetraining-Leads oder beide. DSGVO-konform: Mitglieder (Art. 6(1)(f)), Leads nur mit Marketing-Consent. Jede Mail hat 1-Klick-Unsubscribe.',
+        resultTitle: 'Mail verschickt',
+        resultLine: (sent: number, recipients: number) => `${sent} von ${recipients} Empfängern erfolgreich.`,
+        resultFailed: (failed: number) => ` ${failed} fehlgeschlagen (Email ungültig oder geblockt).`,
+        errorPrefix: 'Fehler',
+        kindHeading: 'Art der Nachricht',
+        kindAnnouncementTitle: 'Ankündigung',
+        kindAnnouncementSub: 'Kurze Info — Trainings­änderung, Hinweis, Erinnerung. Schlanker Mail-Look.',
+        kindPostTitle: 'Beitrag',
+        kindPostSub: 'Längerer Inhalt — Turnier-Bericht, Newsletter, Story. Mit optionalem Cover-Bild.',
+        recipientsHeading: 'Empfänger',
+        audienceMembers: 'Mitglieder',
+        audienceLeads: 'Probetraining-Leads',
+        audienceBoth: 'Beide',
+        filterHeading: 'Filter',
+        filterActive: 'Nur aktive Mitglieder',
+        filterAll: 'Alle (auch inaktive)',
+        filterRecent: 'Letzte 6 Monate',
+        gdprLine1: 'Mitglieder: Art. 6(1)(f) DSGVO (berechtigtes Interesse).',
+        gdprLine2: 'Leads: nur mit Marketing-Consent beim Probetraining-Formular.',
+        gdprLine3: 'Alle Empfänger bekommen 1-Klick-Unsubscribe-Link.',
+        editorPostTitle: 'Beitrag verfassen',
+        editorAnnouncementTitle: 'Ankündigung verfassen',
+        labelTitle: 'Titel *',
+        labelSubject: 'Betreff *',
+        placeholderPostSubject: 'z.B. Erfolg beim Bayern-Cup — 3 Gold, 2 Silber',
+        placeholderAnnouncementSubject: 'z.B. Trainingsausfall am Freitag wegen Feiertag',
+        charCount: (n: number) => `${n}/200 Zeichen`,
+        labelCover: 'Cover-Bild URL',
+        labelCoverOptional: '(optional)',
+        placeholderCover: 'https://… z.B. ein Foto vom Turnier oder Event',
+        coverHelp: 'Wird oben im Beitrag als Banner angezeigt. https:// erforderlich. Leer lassen = kein Banner.',
+        labelContent: 'Inhalt',
+        labelMessage: 'Nachricht',
+        htmlAllowed: '(HTML erlaubt — <b>, <a href="…">, <br>)',
+        placeholderPostBody: `Hallo {{first_name}},\n\nam Wochenende war unser Team beim Bayern-Cup in Augsburg.\nMit dabei waren: Anna, Max, Tom und Lisa — alle haben großartig gekämpft.\n\nErgebnisse:\n• Anna: Gold (Damen –63 kg)\n• Max: Silber (Herren –83 kg)\n• …\n\nNächstes Highlight: Vereinsmeisterschaft am 15. Mai. Anmeldung läuft.\n\nOss,\nDein Coach-Team`,
+        placeholderAnnouncementBody: `Hallo {{first_name}},\n\nam Freitag fällt das Abendtraining wegen Feiertag aus. Samstag normal um 10:00 Uhr.\n\nViele Grüße,\nDein Coach-Team`,
+        bodyHelp: (count: number, min: number) => <>{count}/50.000 Zeichen · min {min} · Variable <code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> wird pro Empfänger ersetzt</>,
+        sendsTo: (n: number) => <>Wird an <strong>{n} Empfänger</strong> verschickt</>,
+        membersOnly: ' (nur Mitglieder)',
+        leadsOnly: ' (nur Leads mit Consent)',
+        loadingRecipients: 'Empfänger wird geladen...',
+        sending: 'Versende…',
+        send: 'Senden',
+        confirmKicker: 'Bestätigung',
+        confirmHeadingPost: 'Beitrag',
+        confirmHeadingAnnouncement: 'Ankündigung',
+        confirmSendQuestion: (kindWord: string, n: React.ReactNode) => <>{kindWord} an <span className="text-amber-600 tabular-nums">{n}</span> Empfänger senden?</>,
+        confirmTitleLabel: 'Titel',
+        confirmSubjectLabel: 'Betreff',
+        confirmRecipients: (m: number, l: number) => <><strong>Empfänger:</strong> {m} Mitglieder + {l} Leads</>,
+        confirmCoverLabel: 'Cover',
+        confirmDuration: (sec: number) => `Versand dauert ~${sec} Sekunden. Du kannst die Seite verlassen — Versand läuft im Hintergrund.`,
+        cancel: 'Abbrechen',
+        confirmSend: 'Bestätigen & Senden',
+        backToDashboard: '← Zurück zum Dashboard',
+      }
+
   return (
     <div className="p-4 md:p-6 max-w-4xl">
       {/* Geteilte Sub-Tabs „Mail | Inhalte" — siehe CommunicationTabs */}
       <CommunicationTabs />
       <div className="mb-6">
         <p className="text-sm text-zinc-500 leading-relaxed max-w-2xl">
-          Verschicke <strong>Ank&uuml;ndigungen</strong> (kurz, Trainings­info, Hinweis) und{' '}
-          <strong>Beiträge</strong> (länger, Turnier-Bericht, Newsletter mit Cover-Bild) an
-          Mitglieder, Probetraining-Leads oder beide. DSGVO-konform: Mitglieder ({'§'}§6(1)(f)),
-          Leads nur mit Marketing-Consent. Jede Mail hat 1-Klick-Unsubscribe.
+          {t.intro1Pre}<strong>{t.intro1Bold1}</strong>{t.intro1Mid}<strong>{t.intro1Bold2}</strong>{t.intro1Post}
         </p>
       </div>
 
@@ -113,10 +242,10 @@ export default function CommunicationPage() {
           <div className="flex items-start gap-3">
             <Check className="text-emerald-600 flex-shrink-0 mt-0.5" size={20} />
             <div>
-              <p className="font-bold text-emerald-900">Mail verschickt</p>
+              <p className="font-bold text-emerald-900">{t.resultTitle}</p>
               <p className="text-sm text-emerald-700 mt-0.5">
-                {result.sent} von {result.recipients} Empfängern erfolgreich.
-                {result.failed > 0 && <> {result.failed} fehlgeschlagen (Email ungültig oder geblockt).</>}
+                {t.resultLine(result.sent, result.recipients)}
+                {result.failed > 0 && <>{t.resultFailed(result.failed)}</>}
               </p>
             </div>
           </div>
@@ -125,13 +254,13 @@ export default function CommunicationPage() {
 
       {error && (
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 mb-4 text-sm text-rose-900">
-          <strong>Fehler:</strong> {error}
+          <strong>{t.errorPrefix}:</strong> {error}
         </div>
       )}
 
       {/* Type-Picker — Ankündigung vs. Beitrag */}
       <div className="bg-white rounded-2xl border border-zinc-200 p-3 mb-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2 px-1">Art der Nachricht</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2 px-1">{t.kindHeading}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -144,8 +273,8 @@ export default function CommunicationPage() {
               <Megaphone size={16} />
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-zinc-900 text-sm">📢 Ankündigung</p>
-              <p className="text-xs text-zinc-500 leading-snug mt-0.5">Kurze Info — Trainings­änderung, Hinweis, Erinnerung. Schlanker Mail-Look.</p>
+              <p className="font-bold text-zinc-900 text-sm">📢 {t.kindAnnouncementTitle}</p>
+              <p className="text-xs text-zinc-500 leading-snug mt-0.5">{t.kindAnnouncementSub}</p>
             </div>
           </button>
           <button
@@ -159,8 +288,8 @@ export default function CommunicationPage() {
               <FileText size={16} />
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-zinc-900 text-sm">📝 Beitrag</p>
-              <p className="text-xs text-zinc-500 leading-snug mt-0.5">Längerer Inhalt — Turnier-Bericht, Newsletter, Story. Mit optionalem Cover-Bild.</p>
+              <p className="font-bold text-zinc-900 text-sm">📝 {t.kindPostTitle}</p>
+              <p className="text-xs text-zinc-500 leading-snug mt-0.5">{t.kindPostSub}</p>
             </div>
           </button>
         </div>
@@ -171,48 +300,48 @@ export default function CommunicationPage() {
         {/* Recipient-Picker */}
         <div className="bg-white rounded-2xl border border-zinc-200 p-5">
           <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4 flex items-center gap-2">
-            <Users size={14} /> Empfänger
+            <Users size={14} /> {t.recipientsHeading}
           </h2>
 
           <div className="space-y-3">
             <button onClick={() => setAudience('members')}
               className={`w-full flex items-center justify-between p-3 rounded-xl border-2 text-left transition-colors ${audience === 'members' ? 'bg-amber-50 border-amber-300' : 'border-zinc-200 hover:border-zinc-300'}`}>
-              <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900"><Users size={14} /> Mitglieder</span>
+              <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900"><Users size={14} /> {t.audienceMembers}</span>
               {preview && audience === 'members' && <span className="text-xs font-mono text-amber-700">{preview.member_count}</span>}
             </button>
 
             <button onClick={() => setAudience('leads')}
               className={`w-full flex items-center justify-between p-3 rounded-xl border-2 text-left transition-colors ${audience === 'leads' ? 'bg-amber-50 border-amber-300' : 'border-zinc-200 hover:border-zinc-300'}`}>
-              <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900"><UserPlus size={14} /> Probetraining-Leads</span>
+              <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900"><UserPlus size={14} /> {t.audienceLeads}</span>
               {preview && audience === 'leads' && <span className="text-xs font-mono text-amber-700">{preview.lead_count}</span>}
             </button>
 
             <button onClick={() => setAudience('both')}
               className={`w-full flex items-center justify-between p-3 rounded-xl border-2 text-left transition-colors ${audience === 'both' ? 'bg-amber-50 border-amber-300' : 'border-zinc-200 hover:border-zinc-300'}`}>
-              <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900">Beide</span>
+              <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900">{t.audienceBoth}</span>
               {preview && audience === 'both' && <span className="text-xs font-mono text-amber-700">{preview.total}</span>}
             </button>
           </div>
 
           {/* Filter */}
           <div className="mt-5 pt-5 border-t border-zinc-100">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">Filter</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">{t.filterHeading}</p>
             {audience !== 'leads' && (
               <label className="flex items-center gap-2 mb-2 text-sm cursor-pointer">
                 <input type="radio" name="filter" checked={filter === 'active'} onChange={() => setFilter('active')} className="accent-amber-500" />
-                <span className="text-zinc-700">Nur aktive Mitglieder</span>
+                <span className="text-zinc-700">{t.filterActive}</span>
               </label>
             )}
             {audience !== 'leads' && (
               <label className="flex items-center gap-2 mb-2 text-sm cursor-pointer">
                 <input type="radio" name="filter" checked={filter === 'all'} onChange={() => setFilter('all')} className="accent-amber-500" />
-                <span className="text-zinc-700">Alle (auch inaktive)</span>
+                <span className="text-zinc-700">{t.filterAll}</span>
               </label>
             )}
             {audience !== 'members' && (
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="radio" name="filter" checked={filter === 'recent'} onChange={() => setFilter('recent')} className="accent-amber-500" />
-                <span className="text-zinc-700">Letzte 6 Monate</span>
+                <span className="text-zinc-700">{t.filterRecent}</span>
               </label>
             )}
           </div>
@@ -222,9 +351,9 @@ export default function CommunicationPage() {
             <p className="text-[10px] text-zinc-400 leading-relaxed flex items-start gap-2">
               <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />
               <span>
-                Mitglieder: Art. 6(1)(f) DSGVO (berechtigtes Interesse).<br/>
-                Leads: nur mit Marketing-Consent beim Probetraining-Formular.<br/>
-                Alle Empfänger bekommen 1-Klick-Unsubscribe-Link.
+                {t.gdprLine1}<br/>
+                {t.gdprLine2}<br/>
+                {t.gdprLine3}
               </span>
             </p>
           </div>
@@ -233,41 +362,39 @@ export default function CommunicationPage() {
         {/* Editor */}
         <div className="bg-white rounded-2xl border border-zinc-200 p-5 lg:col-span-2">
           <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4 flex items-center gap-2">
-            {kind === 'post' ? <><FileText size={14} /> Beitrag verfassen</> : <><Megaphone size={14} /> Ankündigung verfassen</>}
+            {kind === 'post' ? <><FileText size={14} /> {t.editorPostTitle}</> : <><Megaphone size={14} /> {t.editorAnnouncementTitle}</>}
           </h2>
 
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-                {kind === 'post' ? 'Titel *' : 'Betreff *'}
+                {kind === 'post' ? t.labelTitle : t.labelSubject}
               </label>
               <input
                 type="text"
                 value={subject}
                 onChange={e => setSubject(e.target.value.slice(0, 200))}
-                placeholder={kind === 'post'
-                  ? 'z.B. Erfolg beim Bayern-Cup — 3 Gold, 2 Silber'
-                  : 'z.B. Trainingsausfall am Freitag wegen Feiertag'}
+                placeholder={kind === 'post' ? t.placeholderPostSubject : t.placeholderAnnouncementSubject}
                 className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none"
               />
-              <p className="text-[10px] text-zinc-400 mt-1">{subject.length}/200 Zeichen</p>
+              <p className="text-[10px] text-zinc-400 mt-1">{t.charCount(subject.length)}</p>
             </div>
 
             {/* Cover-Bild — nur bei Beitrag */}
             {kind === 'post' && (
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 mb-1.5 flex items-center gap-1.5">
-                  <ImageIcon size={11} /> Cover-Bild URL <span className="text-zinc-400 font-normal">(optional)</span>
+                  <ImageIcon size={11} /> {t.labelCover} <span className="text-zinc-400 font-normal">{t.labelCoverOptional}</span>
                 </label>
                 <input
                   type="url"
                   value={coverUrl}
                   onChange={e => setCoverUrl(e.target.value.slice(0, 1024))}
-                  placeholder="https://… z.B. ein Foto vom Turnier oder Event"
+                  placeholder={t.placeholderCover}
                   className="w-full rounded-xl border border-zinc-200 px-4 py-2.5 text-sm focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none"
                 />
                 <p className="text-[10px] text-zinc-400 mt-1">
-                  Wird oben im Beitrag als Banner angezeigt. https:// erforderlich. Leer lassen = kein Banner.
+                  {t.coverHelp}
                 </p>
                 {coverUrl && /^https?:\/\//i.test(coverUrl) && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -279,19 +406,17 @@ export default function CommunicationPage() {
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-                {kind === 'post' ? 'Inhalt' : 'Nachricht'} * <span className="text-zinc-400 font-normal">(HTML erlaubt — &lt;b&gt;, &lt;a href=&quot;…&quot;&gt;, &lt;br&gt;)</span>
+                {kind === 'post' ? t.labelContent : t.labelMessage} * <span className="text-zinc-400 font-normal">{t.htmlAllowed}</span>
               </label>
               <textarea
                 value={html}
                 onChange={e => setHtml(e.target.value.slice(0, 50000))}
-                placeholder={kind === 'post'
-                  ? `Hallo {{first_name}},\n\nam Wochenende war unser Team beim Bayern-Cup in Augsburg.\nMit dabei waren: Anna, Max, Tom und Lisa — alle haben großartig gekämpft.\n\nErgebnisse:\n• Anna: Gold (Damen –63 kg)\n• Max: Silber (Herren –83 kg)\n• …\n\nNächstes Highlight: Vereinsmeisterschaft am 15. Mai. Anmeldung läuft.\n\nOss,\nDein Coach-Team`
-                  : `Hallo {{first_name}},\n\nam Freitag fällt das Abendtraining wegen Feiertag aus. Samstag normal um 10:00 Uhr.\n\nViele Grüße,\nDein Coach-Team`}
+                placeholder={kind === 'post' ? t.placeholderPostBody : t.placeholderAnnouncementBody}
                 rows={kind === 'post' ? 18 : 8}
                 className="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm font-mono focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none resize-y"
               />
               <p className="text-[10px] text-zinc-400 mt-1">
-                {html.length}/50.000 Zeichen · min {minBody} · Variable <code className="bg-zinc-100 px-1 rounded">{'{{first_name}}'}</code> wird pro Empfänger ersetzt
+                {t.bodyHelp(html.length, minBody)}
               </p>
             </div>
 
@@ -299,11 +424,11 @@ export default function CommunicationPage() {
               <div className="text-sm text-zinc-600">
                 {preview ? (
                   <span>
-                    Wird an <strong>{preview.total} Empfänger</strong> verschickt
-                    {audience === 'members' && <> (nur Mitglieder)</>}
-                    {audience === 'leads' && <> (nur Leads mit Consent)</>}
+                    {t.sendsTo(preview.total)}
+                    {audience === 'members' && <>{t.membersOnly}</>}
+                    {audience === 'leads' && <>{t.leadsOnly}</>}
                   </span>
-                ) : <span className="text-zinc-400">Empfänger wird geladen...</span>}
+                ) : <span className="text-zinc-400">{t.loadingRecipients}</span>}
               </div>
               <button
                 onClick={() => setShowConfirm(true)}
@@ -311,7 +436,7 @@ export default function CommunicationPage() {
                 className="inline-flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
               >
                 {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                {sending ? 'Versende…' : 'Senden'}
+                {sending ? t.sending : t.send}
               </button>
             </div>
           </div>
@@ -324,30 +449,30 @@ export default function CommunicationPage() {
           onClick={() => !sending && setShowConfirm(false)}>
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl"
             onClick={e => e.stopPropagation()}>
-            <p className="text-xs font-bold uppercase tracking-wider text-amber-700 mb-2">⚠️ Bestätigung</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-700 mb-2">⚠️ {t.confirmKicker}</p>
             <h3 className="text-xl font-black text-zinc-900 mb-3">
-              {kind === 'post' ? 'Beitrag' : 'Ankündigung'} an <span className="text-amber-600 tabular-nums">{preview.total}</span> Empfänger senden?
+              {t.confirmSendQuestion(kind === 'post' ? t.confirmHeadingPost : t.confirmHeadingAnnouncement, preview.total)}
             </h3>
             <div className="bg-zinc-50 rounded-lg p-3 mb-4 text-xs text-zinc-600 leading-relaxed">
-              <p><strong>{kind === 'post' ? 'Titel' : 'Betreff'}:</strong> {subject}</p>
-              <p className="mt-1"><strong>Empfänger:</strong> {preview.member_count} Mitglieder + {preview.lead_count} Leads</p>
+              <p><strong>{kind === 'post' ? t.confirmTitleLabel : t.confirmSubjectLabel}:</strong> {subject}</p>
+              <p className="mt-1">{t.confirmRecipients(preview.member_count, preview.lead_count)}</p>
               {kind === 'post' && coverUrl && /^https?:\/\//i.test(coverUrl) && (
-                <p className="mt-1"><strong>Cover:</strong> <span className="break-all">{coverUrl.length > 60 ? coverUrl.slice(0, 60) + '…' : coverUrl}</span></p>
+                <p className="mt-1"><strong>{t.confirmCoverLabel}:</strong> <span className="break-all">{coverUrl.length > 60 ? coverUrl.slice(0, 60) + '…' : coverUrl}</span></p>
               )}
             </div>
             <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
               <Clock size={11} className="inline mr-1" />
-              Versand dauert ~{Math.ceil(preview.total / 5)} Sekunden. Du kannst die Seite verlassen — Versand läuft im Hintergrund.
+              {t.confirmDuration(Math.ceil(preview.total / 5))}
             </p>
             <div className="flex gap-2">
               <button onClick={() => setShowConfirm(false)} disabled={sending}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-700 hover:bg-zinc-50">
-                Abbrechen
+                {t.cancel}
               </button>
               <button onClick={handleSend} disabled={sending}
                 className="flex-1 inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-400 text-white text-sm font-bold px-4 py-2.5 rounded-xl">
                 {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                {sending ? 'Versende…' : 'Bestätigen & Senden'}
+                {sending ? t.sending : t.confirmSend}
               </button>
             </div>
           </div>
@@ -356,7 +481,7 @@ export default function CommunicationPage() {
 
       {/* Footer-Link */}
       <div className="mt-8 text-xs text-zinc-400">
-        <Link href="/dashboard" className="hover:text-zinc-700">← Zurück zum Dashboard</Link>
+        <Link href="/dashboard" className="hover:text-zinc-700">{t.backToDashboard}</Link>
       </div>
     </div>
   )

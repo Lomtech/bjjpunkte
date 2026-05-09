@@ -20,6 +20,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if ('error' in auth) return auth.error
 
   const { id } = await params
+  // ID-Hardening (Audit 2026-05-09): UUID-Format-Check vor DB-Hit.
+  // Service-Client + nur ID-Filter; ohne Format-Check könnte ein 100KB-String
+  // direkt ans DB-Index geschickt werden (wirft DB-Error, aber unnötiger Cost).
+  if (!id || typeof id !== 'string' || id.length > 64) {
+    return NextResponse.json({ error: 'Ungültige ID' }, { status: 400 })
+  }
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
 
   const update: Record<string, unknown> = {}
@@ -70,6 +76,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if ('error' in auth) return auth.error
 
   const { id } = await params
+  // ID-Hardening (Audit 2026-05-09): UUID-Format-Check vor DB-Hit.
+  if (!id || typeof id !== 'string' || id.length > 64) {
+    return NextResponse.json({ error: 'Ungültige ID' }, { status: 400 })
+  }
   const supabase = createServiceClient()
   const { error } = await supabase.from('sales_leads').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

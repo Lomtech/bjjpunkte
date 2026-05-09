@@ -282,13 +282,16 @@ export default function ScheduleImportPage() {
           <Upload size={20} className="text-zinc-400 mx-auto mb-2" />
           <p className="text-sm text-zinc-500 font-medium">{lang === 'en' ? 'Drop CSV file here or click' : 'CSV-Datei hier ablegen oder klicken'}</p>
           <p className="text-xs text-zinc-400 mt-1">{lang === 'en' ? 'UTF-8, comma-separated' : 'UTF-8, Komma-getrennt'}</p>
-          <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
+          <label htmlFor="schedule-import-file" className="sr-only">{lang === 'en' ? 'CSV file' : 'CSV-Datei'}</label>
+          <input id="schedule-import-file" ref={fileRef} type="file" accept=".csv,text/csv" className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
         </div>
 
         {/* Or paste */}
         <p className="text-xs text-zinc-400 text-center mb-3">{lang === 'en' ? '— or paste directly —' : '— oder direkt einfügen —'}</p>
+        <label htmlFor="schedule-import-paste" className="sr-only">{lang === 'en' ? 'Paste CSV content' : 'CSV-Inhalt einfügen'}</label>
         <textarea
+          id="schedule-import-paste"
           value={csvText}
           onChange={e => handlePaste(e.target.value)}
           placeholder={'tag,start,end,titel,typ,trainer,kapazitaet\nMontag,18:00,19:30,Muay Thai,no-gi,,\n…'}
@@ -312,14 +315,14 @@ export default function ScheduleImportPage() {
           <p className="text-sm font-semibold text-zinc-800 mb-4">{lang === 'en' ? '2. Recurrence date range' : '2. Zeitraum für die Wiederholung'}</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-zinc-500 block mb-1.5">{lang === 'en' ? 'First week from' : 'Erste Woche ab'}</label>
-              <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+              <label htmlFor="schedule-import-from" className="text-xs font-medium text-zinc-500 block mb-1.5">{lang === 'en' ? 'First week from' : 'Erste Woche ab'}</label>
+              <input id="schedule-import-from" type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
                 className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
               <p className="text-[11px] text-zinc-400 mt-1">{lang === 'en' ? 'First class = next matching weekday from this date' : 'Erste Stunde = nächster passender Wochentag ab diesem Datum'}</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-zinc-500 block mb-1.5">{lang === 'en' ? 'Repeat until' : 'Wiederholen bis'}</label>
-              <input type="date" value={untilDate} onChange={e => setUntilDate(e.target.value)}
+              <label htmlFor="schedule-import-until" className="text-xs font-medium text-zinc-500 block mb-1.5">{lang === 'en' ? 'Repeat until' : 'Wiederholen bis'}</label>
+              <input id="schedule-import-until" type="date" value={untilDate} onChange={e => setUntilDate(e.target.value)}
                 className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
               <p className="text-[11px] text-zinc-400 mt-1">{lang === 'en' ? 'Each class is created as a weekly recurring series' : 'Jede Stunde wird als wöchentliche Serie angelegt'}</p>
             </div>

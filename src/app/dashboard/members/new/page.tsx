@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -133,8 +133,9 @@ function NewMemberForm() {
             <Field label={t('memberForm', 'phone')} value={form.phone} onChange={v => set('phone', v)} placeholder="+49 170 1234567" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">{t('memberForm', 'parent')}</label>
+            <label htmlFor="member-parent-select" className="block text-sm font-medium text-slate-700 mb-1">{t('memberForm', 'parent')}</label>
             <select
+              id="member-parent-select"
               value={parentMemberId}
               onChange={e => setParentMemberId(e.target.value)}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
@@ -158,8 +159,9 @@ function NewMemberForm() {
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mitgliedschaftsart</p>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Quelle</label>
+            <label htmlFor="member-source-select" className="block text-sm font-medium text-slate-700 mb-1.5">Quelle</label>
             <select
+              id="member-source-select"
               value={form.membership_source}
               onChange={e => set('membership_source', e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
@@ -204,8 +206,9 @@ function NewMemberForm() {
           </div>
           {stripesEnabled && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'stripes')}: <span className="text-amber-600 font-bold">{form.stripes}</span></label>
+              <label htmlFor="member-stripes-range" className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'stripes')}: <span className="text-amber-600 font-bold">{form.stripes}</span></label>
               <input
+                id="member-stripes-range"
                 type="range" min={0} max={4} value={form.stripes}
                 onChange={e => set('stripes', Number(e.target.value))}
                 className="w-full accent-amber-500"
@@ -218,8 +221,9 @@ function NewMemberForm() {
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'notes')}</label>
+          <label htmlFor="member-notes-textarea" className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'notes')}</label>
           <textarea
+            id="member-notes-textarea"
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
             rows={3}
@@ -273,10 +277,12 @@ function Field({ label, value, onChange, type = 'text', required, placeholder }:
   label: string; value: string; onChange: (v: string) => void
   type?: string; required?: boolean; placeholder?: string
 }) {
+  const fieldId = useId()
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+      <label htmlFor={fieldId} className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
       <input
+        id={fieldId}
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}

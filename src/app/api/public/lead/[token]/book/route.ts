@@ -13,13 +13,15 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params
-  if (!token || token.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+  // Token-Hardening (Audit 2026-05-09 / A2): 20 → 32 Zeichen. Brute-Force-Schutz.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
   }
 
   const body = await req.json().catch(() => ({}))
   const { class_id } = body as { class_id?: string }
-  if (!class_id) {
+  // class_id-Cap: UUIDs sind 36 Zeichen — 64 als Buffer reicht, schützt vor Bloat.
+  if (!class_id || typeof class_id !== 'string' || class_id.length > 64) {
     return NextResponse.json({ error: 'class_id fehlt' }, { status: 400 })
   }
 

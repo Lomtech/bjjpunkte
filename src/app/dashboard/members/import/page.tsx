@@ -324,10 +324,11 @@ export default function ImportPage() {
         </button>
 
         <div className="bg-white rounded-xl border border-amber-200 p-4">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
+          <label htmlFor="smart-import-file" className="block text-sm font-medium text-slate-700 mb-2">
             {lang === 'en' ? 'Choose file (.csv)' : 'Datei wählen (.csv)'}
           </label>
           <input
+            id="smart-import-file"
             ref={smartFileRef}
             type="file"
             accept=".csv,.xlsx,.xls,text/csv"
@@ -438,7 +439,7 @@ export default function ImportPage() {
 
       {/* File upload */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
-        <label className="block text-sm font-medium text-slate-700 mb-3">{t('memberImport', 'selectFile')}</label>
+        <label htmlFor="legacy-import-file" className="block text-sm font-medium text-slate-700 mb-3">{t('memberImport', 'selectFile')}</label>
         <div
           className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-amber-300 transition-colors"
           onClick={() => fileRef.current?.click()}
@@ -447,7 +448,7 @@ export default function ImportPage() {
           <p className="text-slate-600 text-sm font-medium">{t('memberImport', 'clickToSelect')}</p>
           <p className="text-slate-400 text-xs mt-1">{t('memberImport', 'dragHere')}</p>
         </div>
-        <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={handleFile} className="hidden" />
+        <input id="legacy-import-file" ref={fileRef} type="file" accept=".csv,text/csv" onChange={handleFile} className="hidden" />
       </div>
 
       {/* Import result */}

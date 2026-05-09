@@ -13,6 +13,21 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params
+  // Token-Hardening (Audit 2026-05-09 / A2): mind. 32 Zeichen + Char-Class.
+  // Manifest ist read-only, Risk niedriger als bei Schreib-Endpoints — aber
+  // ein DB-Hit pro ungültigem Probing-Request kostet Cold-Start-Latenz.
+  // Frühe Rückgabe eines generischen Manifests verhindert Brute-Force-Probing.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return new NextResponse(JSON.stringify({
+      name: 'Portal',
+      short_name: 'Portal',
+      start_url: '/',
+      scope: '/',
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#FBBF24',
+    }), { headers: { 'Content-Type': 'application/manifest+json' } })
+  }
 
   // Try to personalise with gym name
   let gymName = 'Mein Portal'

@@ -11,6 +11,13 @@ function serviceClient() {
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+  // Slug-Hardening (Audit 2026-05-09 / B-input-cap): Format + Length-Cap.
+  // Slugs sind URL-Parts wie "fight-club-berlin" — alphanumerisch + bindestriche.
+  // Ohne Cap könnte ein Angreifer 100KB-Strings in DB-Lookups stopfen.
+  if (!slug || typeof slug !== 'string' || slug.length > 100 || !/^[a-z0-9-]+$/.test(slug)) {
+    return NextResponse.json({ error: 'Ungültiger Slug' }, { status: 400 })
+  }
+
   const supabase = serviceClient()
 
   const { data: gym } = await supabase
@@ -26,6 +33,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
   if (!first_name || !last_name || !email) {
     return NextResponse.json({ error: 'Name und E-Mail sind erforderlich' }, { status: 400 })
+  }
+  // Input-Length-Caps gegen Body-Bloat (Service-Client-INSERT, RLS-bypass).
+  if (
+    typeof first_name !== 'string' || first_name.length > 200 ||
+    typeof last_name  !== 'string' || last_name.length  > 200 ||
+    typeof email      !== 'string' || email.length      > 320 ||
+    (phone    != null && typeof phone    === 'string' && phone.length    > 50) ||
+    (message  != null && typeof message  === 'string' && message.length  > 2000) ||
+    (class_id != null && typeof class_id === 'string' && class_id.length > 64)
+  ) {
+    return NextResponse.json({ error: 'Eingabe zu lang' }, { status: 400 })
   }
 
   // Trial-Vertrag-Acknowledgment ist Pflicht für Probetraining-Buchung.

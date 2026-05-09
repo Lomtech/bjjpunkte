@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { FileWarning, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { DunningPanel } from '@/components/DunningPanel'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface DunningMember {
   id: string
@@ -18,7 +19,8 @@ interface DunningMember {
   dunning_last_action_at: string | null
 }
 
-const LEVEL_LABEL = ['OK', '1. Mahnung', '2. Mahnung', 'Inkasso']
+const LEVEL_LABEL_DE = ['OK', '1. Mahnung', '2. Mahnung', 'Inkasso']
+const LEVEL_LABEL_EN = ['OK', 'Reminder 1', 'Reminder 2', 'Collections']
 const LEVEL_TONE = ['emerald', 'amber', 'amber', 'rose'] as const
 
 /**
@@ -27,6 +29,7 @@ const LEVEL_TONE = ['emerald', 'amber', 'amber', 'rose'] as const
  * Bei Klick → Detail-Panel rechts.
  */
 export default function InkassoPage() {
+  const { lang } = useLanguage()
   const [members, setMembers] = useState<DunningMember[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<DunningMember | null>(null)
@@ -61,24 +64,56 @@ export default function InkassoPage() {
   const totalOpen = members.reduce((s, m) => s + (m.dunning_amount_cents ?? 0), 0)
   const escalatedCount = members.filter(m => m.dunning_level >= 3).length
 
+  const t = lang === 'en'
+    ? {
+        title: 'Collections',
+        intro: 'Members with outstanding balances. Record reminders, document actions, and hand over to a collections agency when needed.',
+        kpiOpenCases: 'Open Cases',
+        kpiEscalated: 'Handed to Collections',
+        kpiTotalOpen: 'Total Outstanding',
+        listHeading: 'List',
+        emptyTitle: 'No open cases.',
+        emptySub: 'All members are paying on time.',
+        sinceLabel: 'since',
+        memberLabel: 'Member',
+        openProfile: 'Open full profile',
+        emptyDetail: 'Select a member from the list to record collections actions.',
+      }
+    : {
+        title: 'Inkasso',
+        intro: 'Mitglieder mit offenen Forderungen. Erfasse Mahnungen, dokumentiere Aktionen, übergib bei Bedarf an Inkasso-Dienstleister.',
+        kpiOpenCases: 'Offene Fälle',
+        kpiEscalated: 'Inkasso-Eskalation',
+        kpiTotalOpen: 'Offen gesamt',
+        listHeading: 'Liste',
+        emptyTitle: 'Keine offenen Fälle.',
+        emptySub: 'Alle Mitglieder zahlen pünktlich.',
+        sinceLabel: 'seit',
+        memberLabel: 'Mitglied',
+        openProfile: 'Voll-Profil öffnen',
+        emptyDetail: 'Wähle ein Mitglied in der Liste, um Inkasso-Aktionen zu erfassen.',
+      }
+
+  const levelLabels = lang === 'en' ? LEVEL_LABEL_EN : LEVEL_LABEL_DE
+  const locale = lang === 'en' ? 'en-US' : 'de-DE'
+
   return (
     <div className="p-4 md:p-6 max-w-6xl">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-zinc-950 tracking-tight mb-1 flex items-center gap-2">
           <FileWarning className="text-amber-500" size={22} />
-          Inkasso
+          {t.title}
         </h1>
         <p className="text-sm text-zinc-500 leading-relaxed">
-          Mitglieder mit offenen Forderungen. Erfasse Mahnungen, dokumentiere Aktionen,
-          übergib bei Bedarf an Inkasso-Dienstleister.
+          {t.intro}
         </p>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <KPI label="Offene Fälle" value={String(members.length)} tone="amber" />
-        <KPI label="Inkasso-Eskalation" value={String(escalatedCount)} tone={escalatedCount > 0 ? 'rose' : 'zinc'} />
-        <KPI label="Offen gesamt" value={(totalOpen / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} tone="zinc" />
+        <KPI label={t.kpiOpenCases} value={String(members.length)} tone="amber" />
+        <KPI label={t.kpiEscalated} value={String(escalatedCount)} tone={escalatedCount > 0 ? 'rose' : 'zinc'} />
+        <KPI label={t.kpiTotalOpen} value={(totalOpen / 100).toLocaleString(locale, { style: 'currency', currency: 'EUR' })} tone="zinc" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -86,7 +121,7 @@ export default function InkassoPage() {
         {/* Liste */}
         <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
           <div className="px-5 py-4 border-b border-zinc-100">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500">Liste ({members.length})</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500">{t.listHeading} ({members.length})</h2>
           </div>
 
           {loading && <div className="p-8 text-center"><Loader2 className="animate-spin text-zinc-400 mx-auto" size={20} /></div>}
@@ -94,8 +129,8 @@ export default function InkassoPage() {
           {!loading && members.length === 0 && (
             <div className="p-8 text-center">
               <div className="w-12 h-12 rounded-full bg-emerald-100 mx-auto flex items-center justify-center mb-3">✅</div>
-              <p className="font-bold text-emerald-700">Keine offenen Fälle.</p>
-              <p className="text-xs text-zinc-500 mt-1">Alle Mitglieder zahlen pünktlich.</p>
+              <p className="font-bold text-emerald-700">{t.emptyTitle}</p>
+              <p className="text-xs text-zinc-500 mt-1">{t.emptySub}</p>
             </div>
           )}
 
@@ -118,11 +153,11 @@ export default function InkassoPage() {
                             tone === 'amber' ? 'bg-amber-100 text-amber-700' :
                             'bg-emerald-100 text-emerald-700'
                           }`}>
-                            {LEVEL_LABEL[m.dunning_level]}
+                            {levelLabels[m.dunning_level]}
                           </span>
                           {m.dunning_started_at && (
                             <span className="text-[10px] text-zinc-400">
-                              seit {new Date(m.dunning_started_at).toLocaleDateString('de-DE')}
+                              {t.sinceLabel} {new Date(m.dunning_started_at).toLocaleDateString(locale)}
                             </span>
                           )}
                         </div>
@@ -130,7 +165,7 @@ export default function InkassoPage() {
                       <div className="text-right flex-shrink-0">
                         {m.dunning_amount_cents != null && (
                           <p className="text-sm font-black tabular-nums text-zinc-900">
-                            {(m.dunning_amount_cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                            {(m.dunning_amount_cents / 100).toLocaleString(locale, { style: 'currency', currency: 'EUR' })}
                           </p>
                         )}
                         <ArrowRight size={12} className="inline-block text-zinc-300 mt-1" />
@@ -148,13 +183,13 @@ export default function InkassoPage() {
           {selected ? (
             <div className="space-y-4">
               <div className="bg-white border border-zinc-200 rounded-2xl p-5">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Mitglied</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">{t.memberLabel}</p>
                 <p className="text-xl font-black text-zinc-900">{selected.first_name} {selected.last_name}</p>
                 <div className="flex flex-col text-xs text-zinc-500 mt-2 space-y-1">
                   {selected.email && <a href={`mailto:${selected.email}`} className="hover:text-amber-600">📧 {selected.email}</a>}
                   {selected.phone && <a href={`tel:${selected.phone}`} className="hover:text-amber-600">📞 {selected.phone}</a>}
                   <Link href={`/dashboard/members/${selected.id}`} className="text-amber-600 hover:text-amber-700 mt-2">
-                    → Voll-Profil öffnen
+                    → {t.openProfile}
                   </Link>
                 </div>
               </div>
@@ -163,7 +198,7 @@ export default function InkassoPage() {
           ) : (
             <div className="bg-zinc-50 rounded-2xl border border-zinc-200 p-12 text-center text-sm text-zinc-400">
               <AlertTriangle size={28} className="mx-auto mb-3 text-zinc-300" />
-              <p>Wähle ein Mitglied in der Liste, um Inkasso-Aktionen zu erfassen.</p>
+              <p>{t.emptyDetail}</p>
             </div>
           )}
         </div>

@@ -17,7 +17,9 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.osss.pro'
 async function handle(_req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
 
-  if (!token || token.length < 20) {
+  // Token-Hardening (Audit 2026-05-09 / A2): 20 → 32 Zeichen + Char-Class.
+  // Unsubscribe-Tokens sind DB-generiert mit ≥32 Zeichen.
+  if (!token || token.length < 32 || token.length > 256 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
     return NextResponse.redirect(`${APP_URL}/newsletter/unsubscribed?status=error`)
   }
 

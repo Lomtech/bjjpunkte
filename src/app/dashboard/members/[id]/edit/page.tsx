@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -175,8 +175,9 @@ export default function EditMemberPage() {
             <Field label={t('memberForm', 'joinDateReq')} type="date" value={form.join_date} onChange={v => set('join_date', v)} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">{t('memberForm', 'parent')}</label>
+            <label htmlFor="edit-member-parent" className="block text-sm font-medium text-slate-700 mb-1">{t('memberForm', 'parent')}</label>
             <select
+              id="edit-member-parent"
               value={parentMemberId}
               onChange={e => setParentMemberId(e.target.value)}
               className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
@@ -213,10 +214,10 @@ export default function EditMemberPage() {
             ))}
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="edit-member-stripes" className="block text-sm font-medium text-slate-700 mb-2">
               {t('memberForm', 'stripes')}: <span className="text-amber-600 font-bold">{form.stripes}</span>
             </label>
-            <input type="range" min={0} max={4} value={form.stripes}
+            <input id="edit-member-stripes" type="range" min={0} max={4} value={form.stripes}
               onChange={e => set('stripes', Number(e.target.value))}
               className="w-full accent-amber-500" />
             <div className="flex justify-between text-xs text-slate-400 mt-1">
@@ -231,10 +232,11 @@ export default function EditMemberPage() {
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('memberForm', 'contractEnd')} type="date" value={form.contract_end_date} onChange={v => set('contract_end_date', v)} />
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('memberForm', 'individualFee')}</label>
+              <label htmlFor="edit-member-fee-override" className="block text-sm font-medium text-slate-700 mb-1.5">{t('memberForm', 'individualFee')}</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
                 <input
+                  id="edit-member-fee-override"
                   type="text"
                   value={form.monthly_fee_override_cents}
                   onChange={e => set('monthly_fee_override_cents', e.target.value)}
@@ -251,8 +253,9 @@ export default function EditMemberPage() {
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mitgliedschaftsart</p>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Quelle</label>
+            <label htmlFor="edit-member-source" className="block text-sm font-medium text-slate-700 mb-1.5">Quelle</label>
             <select
+              id="edit-member-source"
               value={form.membership_source}
               onChange={e => set('membership_source', e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
@@ -277,8 +280,9 @@ export default function EditMemberPage() {
 
         {/* Notes */}
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-          <label className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'notes')}</label>
+          <label htmlFor="edit-member-notes" className="block text-sm font-medium text-slate-700 mb-2">{t('memberForm', 'notes')}</label>
           <textarea
+            id="edit-member-notes"
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
             rows={3}
@@ -311,10 +315,12 @@ function Field({ label, value, onChange, type = 'text', required, placeholder }:
   label: string; value: string; onChange: (v: string) => void
   type?: string; required?: boolean; placeholder?: string
 }) {
+  const fieldId = useId()
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
+      <label htmlFor={fieldId} className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
       <input
+        id={fieldId}
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}

@@ -17,7 +17,8 @@ async function handle(req: Request, { params }: { params: Promise<{ token: strin
   const url = new URL(req.url)
   const audience = url.searchParams.get('audience') === 'lead' ? 'leads' : 'members'
 
-  if (!token || token.length < 20) {
+  // Token-Hardening (Audit 2026-05-09 / A2): 20 → 32 Zeichen + Char-Class.
+  if (!token || token.length < 32 || token.length > 256 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
     return NextResponse.redirect(`${APP_URL}/newsletter/unsubscribed?status=error`)
   }
 

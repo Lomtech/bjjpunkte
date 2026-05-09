@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import { X } from 'lucide-react'
 import type { ClassType } from '@/types/database'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
@@ -49,6 +49,14 @@ function toTimeString(iso: string) {
 
 export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
   const { lang } = useLanguage()
+  const titleId = useId()
+  const idTitle = useId()
+  const idDate = useId()
+  const idStart = useId()
+  const idEnd = useId()
+  const idInstructor = useId()
+  const idCapacity = useId()
+  const idDescription = useId()
   const isRecurring = !!cls.recurrence_parent_id
   const [reactivating, setReactivating] = useState(false)
 
@@ -124,11 +132,12 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-200 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">{lang === 'en' ? 'Edit class' : 'Klasse bearbeiten'}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors">
+          <h2 id={titleId} className="font-semibold text-slate-900">{lang === 'en' ? 'Edit class' : 'Klasse bearbeiten'}</h2>
+          <button onClick={onClose} aria-label={lang === 'en' ? 'Close dialog' : 'Dialog schließen'} className="text-slate-400 hover:text-slate-700 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -175,16 +184,16 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Title' : 'Titel'}</label>
-            <input type="text" required value={title} onChange={e => setTitle(e.target.value)}
+            <label htmlFor={idTitle} className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Title' : 'Titel'}</label>
+            <input id={idTitle} type="text" required value={title} onChange={e => setTitle(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
 
           {/* Date — only for single edit */}
           {(!isRecurring || scope === 'single') && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Date' : 'Datum'}</label>
-              <input type="date" required value={date} onChange={e => setDate(e.target.value)}
+              <label htmlFor={idDate} className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Date' : 'Datum'}</label>
+              <input id={idDate} type="date" required value={date} onChange={e => setDate(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
             </div>
           )}
@@ -192,37 +201,37 @@ export function EditClassModal({ cls, accessToken, onClose, onSaved }: Props) {
           {/* Times */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Start time' : 'Startzeit'}</label>
-              <input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)}
+              <label htmlFor={idStart} className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Start time' : 'Startzeit'}</label>
+              <input id={idStart} type="time" required value={startTime} onChange={e => setStartTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'End time' : 'Endzeit'}</label>
-              <input type="time" required value={endTime} onChange={e => setEndTime(e.target.value)}
+              <label htmlFor={idEnd} className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'End time' : 'Endzeit'}</label>
+              <input id={idEnd} type="time" required value={endTime} onChange={e => setEndTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
             </div>
           </div>
 
           {/* Instructor */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Instructor (optional)' : 'Trainer (optional)'}</label>
-            <input type="text" value={instructor} onChange={e => setInstructor(e.target.value)}
+            <label htmlFor={idInstructor} className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Instructor (optional)' : 'Trainer (optional)'}</label>
+            <input id={idInstructor} type="text" value={instructor} onChange={e => setInstructor(e.target.value)}
               placeholder={lang === 'en' ? 'e.g. John Smith' : 'z. B. Max Mustermann'}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
 
           {/* Max capacity */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Max. participants (optional)' : 'Max. Teilnehmer (optional)'}</label>
-            <input type="number" min="1" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)}
+            <label htmlFor={idCapacity} className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Max. participants (optional)' : 'Max. Teilnehmer (optional)'}</label>
+            <input id={idCapacity} type="number" min="1" value={maxCapacity} onChange={e => setMaxCapacity(e.target.value)}
               placeholder={lang === 'en' ? 'Unlimited' : 'Unbegrenzt'}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent" />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Description (optional)' : 'Beschreibung (optional)'}</label>
-            <textarea rows={2} value={description} onChange={e => setDescription(e.target.value)}
+            <label htmlFor={idDescription} className="block text-sm font-medium text-slate-700 mb-1.5">{lang === 'en' ? 'Description (optional)' : 'Beschreibung (optional)'}</label>
+            <textarea id={idDescription} rows={2} value={description} onChange={e => setDescription(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none" />
           </div>
 

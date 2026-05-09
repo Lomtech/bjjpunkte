@@ -18,7 +18,12 @@ function serviceClient() {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const token = searchParams.get('token')
-  if (!token) return NextResponse.json({ error: 'Token fehlt' }, { status: 400 })
+  // Token-Hardening (Audit 2026-05-09 / A2): mind. 32 Zeichen + Char-Class.
+  // Service-Role-Bypass-Endpoint, Brute-Force ohne Rate-Limit-bezogenen Token-
+  // Hash würde sonst Member-Insert + Stripe-Customer-Erzeugung triggern können.
+  if (!token || token.length < 32 || token.length > 256 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return NextResponse.json({ error: 'Token fehlt' }, { status: 400 })
+  }
 
   let supabase
   try { supabase = serviceClient() }
@@ -69,6 +74,25 @@ export async function POST(req: Request) {
 
   if (!token || !gymId || !firstName || !lastName || !email) {
     return NextResponse.json({ error: 'Pflichtfelder fehlen' }, { status: 400 })
+  }
+  // Token-Hardening (Audit 2026-05-09 / A2): Format-Check vor DB-Hit.
+  if (typeof token !== 'string' || token.length < 32 || token.length > 256 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+    return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
+  }
+  // Input-Length-Caps gegen Body-Bloat (Service-Client-INSERT, RLS-bypass).
+  // 200 ist Komfortabel: Vornamen können hyphenated sein; lange Adressen
+  // erlauben wir bis 500.
+  if (
+    typeof firstName !== 'string' || firstName.length > 200 ||
+    typeof lastName  !== 'string' || lastName.length  > 200 ||
+    typeof email     !== 'string' || email.length     > 320 ||
+    (phone     != null && typeof phone     === 'string' && phone.length     > 50) ||
+    (address   != null && typeof address   === 'string' && address.length   > 500) ||
+    (emergencyContactName  != null && typeof emergencyContactName  === 'string' && emergencyContactName.length  > 200) ||
+    (emergencyContactPhone != null && typeof emergencyContactPhone === 'string' && emergencyContactPhone.length > 50) ||
+    (typeof gymId !== 'string' || gymId.length > 64)
+  ) {
+    return NextResponse.json({ error: 'Eingabe zu lang' }, { status: 400 })
   }
 
   let supabase

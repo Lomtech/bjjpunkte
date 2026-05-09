@@ -19,7 +19,12 @@ function serviceClient() {
 
 export async function POST(req: Request) {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+  // Bearer-Token Format-Check (Audit 2026-05-09): JWTs sind ≥100 Zeichen.
+  // Ohne diesen Check würde ein leerer / triviale Token einen Auth-Roundtrip
+  // erzwingen — der Cost ist niedriger, aber konsistent zum Rest der Härtungen.
+  if (!accessToken || accessToken.length < 32 || accessToken.length > 4096) {
+    return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+  }
 
   const auth = authClient(accessToken)
   const { data: { user } } = await auth.auth.getUser(accessToken)

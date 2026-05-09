@@ -1,6 +1,6 @@
 # Security-Audit: Service-Client-Routen
 
-Stand: 2026-05-09 (Commit-Range vor "audit-hardening").
+Stand: 2026-05-09 (Pass 8 — Folge-Härtungen nach Top-3 in Pass 7).
 
 ## Hintergrund
 
@@ -22,37 +22,42 @@ Dieses Audit listet alle Routen, die `createServiceClient` oder `SUPABASE_SERVIC
 
 Authentifizierung allein über `portal_token` / Lead-Token / Newsletter-Token im URL-Pfad. RLS gibt es nicht — nur die App-Layer prüft den Token gegen `members.portal_token` o. ä. Wenn der `gym_id`-Filter in der Folge­abfrage fehlt, leakt's.
 
-| Route | Tabelle / Filter | Token-Mindestlänge | Risk | Begründung |
-|---|---|---|---|---|
-| `src/app/api/portal/[token]/route.ts` | `members.portal_token` → `gym_id` propagiert | `>= 20` (zu schwach) | **HIGH** | Master-Endpoint des Mitglieder-Portals. Liefert Zahlungs­historie, Beitritts­datum, Adresse-äquivalente Daten. Token-Brute-Force möglich. **Härtung A1.** |
-| `src/app/api/portal/[token]/manifest/route.ts` | dito | dito | HIGH | Liefert Gym-Name und accent_color — geringe Hebel, aber Token-Validation lax. |
-| `src/app/api/portal/[token]/classes/route.ts` | `members.portal_token` → `classes.gym_id` | `>= 20` | HIGH | Liest fremde Mitgliedernamen über `class_bookings.members(...)`. Filter `eq('gym_id', member.gym_id)` korrekt. |
-| `src/app/api/portal/[token]/checkin/route.ts` | dito | `>= 20` | HIGH | Schreibt `attendance`. |
-| `src/app/api/portal/[token]/checkout/route.ts` | dito | `>= 20` | HIGH | Schreibt `attendance`. |
-| `src/app/api/portal/[token]/gps-checkin/route.ts` | dito | `>= 20` | HIGH | GPS-Location wird gespeichert. |
-| `src/app/api/portal/[token]/cancel/route.ts` | dito | (keine Length-Validation!) | HIGH | Setzt `cancellation_requested_at`. **Token-Length-Check fehlt komplett.** |
-| `src/app/api/portal/[token]/subscribe/route.ts` | dito | `>= 20` | HIGH | Erstellt Stripe-Subscription. |
-| `src/app/api/portal/[token]/training-log/route.ts` | dito | `>= 20` | HIGH | Trainings-Log GET/POST. |
-| `src/app/api/portal/[token]/plan/route.ts` | dito | (in Portal-Context) | HIGH | Plan-Wechsel. |
-| `src/app/api/portal/[token]/book/[classId]/route.ts` | `members.portal_token` + `classes.id` | (zu prüfen) | HIGH | Klassen-Buchung. Cross-Gym-Risk wenn classId/gym_id nicht abgeglichen werden. |
-| `src/app/api/public/lead/[token]/route.ts` | `leads.portal_token` (Trial/Probe) | (zu prüfen) | HIGH | Lead-Self-Service. |
-| `src/app/api/public/lead/[token]/{book,cancel,checkin,gps-checkin,manifest}/route.ts` | dito | (zu prüfen) | HIGH | Lead-Token-Operationen. |
-| `src/app/api/newsletter/{confirm,unsubscribe}/[token]/route.ts` | `newsletter_subscribers.token` | (zu prüfen) | MEDIUM | Liest/aktualisiert nur eigenen Datensatz. |
-| `src/app/api/gym-mail/unsubscribe/[token]/route.ts` | `gym_mail_unsub_tokens.token` | (zu prüfen) | MEDIUM | Unsubscribe-Token. |
+| Route | Tabelle / Filter | Token-Mindestlänge | Risk | Status | Begründung |
+|---|---|---|---|---|---|
+| `src/app/api/portal/[token]/route.ts` | `members.portal_token` → `gym_id` propagiert | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 7 / A1) | Master-Endpoint. is_active-Filter + 32-Zeichen-Floor. |
+| `src/app/api/portal/[token]/manifest/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Frühe 200-Antwort mit generischem Manifest bei Probing. |
+| `src/app/api/portal/[token]/classes/route.ts` | `members.portal_token` → `classes.gym_id` | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Liest fremde Mitgliedernamen — `gym_id`-Filter korrekt. |
+| `src/app/api/portal/[token]/checkin/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Schreibt `attendance` via RPC. |
+| `src/app/api/portal/[token]/checkout/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Schreibt `attendance` (DELETE eigene Reihe). |
+| `src/app/api/portal/[token]/gps-checkin/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | GPS-Location stored. |
+| `src/app/api/portal/[token]/cancel/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Token-Length + is_active-Filter ergänzt. |
+| `src/app/api/portal/[token]/subscribe/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Stripe-Subscription-Erstellung. |
+| `src/app/api/portal/[token]/training-log/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Trainings-Log GET/POST. |
+| `src/app/api/portal/[token]/plan/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Token-Check + is_active + plan_id-Cap. |
+| `src/app/api/portal/[token]/book/[classId]/route.ts` | `members.portal_token` + `classes.id` | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | RPC `book_class_by_token` enforced gym_id (DB-Layer). |
+| `src/app/api/public/lead/[token]/route.ts` | `leads.lead_token` (Trial/Probe) | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Lead-Self-Service. |
+| `src/app/api/public/lead/[token]/book/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | class_id-Cross-Gym-Check vorhanden. |
+| `src/app/api/public/lead/[token]/cancel/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | dito. |
+| `src/app/api/public/lead/[token]/checkin/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | dito. |
+| `src/app/api/public/lead/[token]/gps-checkin/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | GPS-Distanz-Check; `gym_id` aus Lead. |
+| `src/app/api/public/lead/[token]/manifest/route.ts` | dito | **`>= 32`** | HIGH | 🟡 GEHÄRTET (Pass 8) | Frühe Generic-Manifest-Antwort bei Probing. |
+| `src/app/api/newsletter/confirm/[token]/route.ts` | `newsletter_subscribers.confirm_token` | **`>= 32`** | MEDIUM | 🟡 GEHÄRTET (Pass 8) | Liest/aktualisiert nur eigenen Datensatz. |
+| `src/app/api/newsletter/unsubscribe/[token]/route.ts` | `newsletter_subscribers.unsubscribe_token` | **`>= 32`** | MEDIUM | 🟡 GEHÄRTET (Pass 8) | RFC 8058 1-Klick-Unsubscribe. |
+| `src/app/api/gym-mail/unsubscribe/[token]/route.ts` | `members/leads.marketing_unsubscribe_token` | **`>= 32`** | MEDIUM | 🟡 GEHÄRTET (Pass 8) | Audience-Whitelist (members|leads) korrekt. |
 
 **Härtung A1** (Top-Priorität dieses Audits): Token-Length-Check auf `>= 32` anheben (Brute-Force-Schutz, doppelte Entropie zu `>= 20`), `is_active=true`-Filter ergänzen, Rate-Limit pro Token (zusätzlich zum existierenden 30-req/min/IP über `src/proxy.ts`).
 
 ### B) Public Lead-Capture / Schedule — HIGH
 
-| Route | Tabelle / Filter | Risk | Begründung |
-|---|---|---|---|
-| `src/app/api/public/gym/[slug]/lead/route.ts` | `gyms.slug` → `leads.gym_id` | HIGH | Anonymes Lead-Insert. Slug ist leakable (= URL), aber `gym_id` wird aus `gyms`-Lookup gezogen. |
-| `src/app/api/public/gym/[slug]/wellpass/route.ts` | dito | HIGH | Wellpass-Anmeldung. Schreibt `members` mit Vorname/Nachname/Email. |
-| `src/app/api/public/gym/[slug]/route.ts` | dito (READ-ONLY, nutzt anon-key fallback) | LOW | Public-Gym-Profil-Lookup. |
-| `src/app/api/public/schedule/[gymId]/route.ts` | `classes.gym_id` (READ-ONLY) | LOW | Public Schedule, gymId direkt aus URL, ist selbst der Filter. |
-| `src/app/api/schedule/ical/route.ts` | `classes.gym_id` | LOW | iCal-Feed (READ-ONLY). |
-| `src/app/api/track/route.ts` | `page_views` (INSERT-ONLY, nur Hashes) | **HIGH** | DSGVO-anonym (Hashes), aber **bot-INSERTs werden gespeichert statt rejected**. Hard-Cap pro IP/min fehlt. **Härtung B1.** |
-| `src/app/api/signup/route.ts` | `gyms.slug` → `members` | HIGH | Owner-Signup, schreibt `gyms` + `gym_owners`. CSRF-/Origin-geprüft. |
+| Route | Tabelle / Filter | Risk | Status | Begründung |
+|---|---|---|---|---|
+| `src/app/api/public/gym/[slug]/lead/route.ts` | `gyms.slug` → `leads.gym_id` | HIGH | 🟡 GEHÄRTET (Pass 8) | Slug-Format-Check + Input-Length-Caps. |
+| `src/app/api/public/gym/[slug]/wellpass/route.ts` | dito | HIGH | 🟡 GEHÄRTET (Pass 8) | Slug-Format-Check + Input-Length-Caps. |
+| `src/app/api/public/gym/[slug]/route.ts` | dito (READ-ONLY, anon-key fallback) | LOW | 🟡 GEHÄRTET (Pass 8) | Slug-Format-Check vor DB-Hit, Cache-Header bleiben. |
+| `src/app/api/public/schedule/[gymId]/route.ts` | `classes.gym_id` (READ-ONLY) | LOW | 🔴 OFFEN | gymId direkt aus URL, Filter selbst. UUID-Cap noch ausstehend. |
+| `src/app/api/schedule/ical/route.ts` | `classes.gym_id` | LOW | 🔴 OFFEN | iCal-Feed (READ-ONLY). |
+| `src/app/api/track/route.ts` | `page_views` (INSERT-ONLY, nur Hashes) | HIGH | 🟡 GEHÄRTET (Pass 7 / B1) | Bot-silent-reject + Proxy-Limit. |
+| `src/app/api/signup/route.ts` | `gyms.signup_token` → `members` | HIGH | 🟡 GEHÄRTET (Pass 8) | Token-Floor 32 + Input-Length-Caps. CSRF-/Origin-geprüft. |
 
 **Härtung B1**: Bot-Filter umstellen auf "silent reject" (200 OK ohne Insert), Hard-Cap pro IP via Upstash.
 
@@ -60,34 +65,34 @@ Authentifizierung allein über `portal_token` / Lead-Token / Newsletter-Token im
 
 Auth via Supabase-Bearer-Token (eingeloggter Owner/Coach/Admin). Filter `gym_id` aus User-Profile auf jede Query. RLS würde es härter machen, ist aber konsistent in der App-Layer enforced.
 
-| Route | Auth | Filter-Strategie | Risk |
-|---|---|---|---|
-| `src/app/api/auth/delete-account/route.ts` | Bearer + DSGVO-Delete-RPC | gym_id aus user.id → gyms-Lookup | MEDIUM |
-| `src/app/api/auth/register/route.ts` | None (signup) | — | MEDIUM (Owner-Signup) |
-| `src/app/api/avv/{accept,status}/route.ts` | Bearer | gym_id aus URL-Param + Owner-Verify | MEDIUM |
-| `src/app/api/classes/bulk/route.ts` | Bearer | gym_id aus User → classes.gym_id | MEDIUM |
-| `src/app/api/datev/export/route.ts` | Bearer (Owner) | gym_id aus User | MEDIUM |
-| `src/app/api/gym-mail/send/route.ts` | Bearer | gym_id aus User | MEDIUM |
-| `src/app/api/gym/{excel-import,export,iban,import,media}/route.ts` | Bearer (Owner) | gym_id aus User | MEDIUM |
-| `src/app/api/invoices/[paymentId]/route.ts` | Bearer | gym_id aus payments.member.gym → User-Match | MEDIUM |
-| `src/app/api/members/[id]/{contract,dunning,mail,...}/route.ts` (5x) | Bearer | members.gym_id == user.gym_id | MEDIUM |
-| `src/app/api/staff/{accept,link,route}.ts` | Bearer/Token | gym_id aus URL | MEDIUM |
-| `src/app/api/attendance/{route,gps,[id]}/route.ts` | Bearer | gym_id aus User | MEDIUM |
+| Route | Auth | Filter-Strategie | Risk | Status |
+|---|---|---|---|---|
+| `src/app/api/auth/delete-account/route.ts` | Bearer + DSGVO-Delete-RPC | `owner_id == user.id` + RPC double-check | MEDIUM | 🟡 GEHÄRTET (Pass 8) — Bearer-Format-Check ergänzt |
+| `src/app/api/auth/register/route.ts` | None (signup) | — | MEDIUM (Owner-Signup) | 🔴 OFFEN |
+| `src/app/api/avv/{accept,status}/route.ts` | Bearer | gym_id aus URL-Param + Owner-Verify | MEDIUM | 🔴 OFFEN |
+| `src/app/api/classes/bulk/route.ts` | Bearer | gym_id aus User → classes.gym_id | MEDIUM | 🔴 OFFEN |
+| `src/app/api/datev/export/route.ts` | Bearer (Owner) | gym_id aus User | MEDIUM | 🔴 OFFEN |
+| `src/app/api/gym-mail/send/route.ts` | Bearer | gym_id aus User | MEDIUM | 🔴 OFFEN |
+| `src/app/api/gym/{excel-import,export,iban,import,media}/route.ts` | Bearer (Owner) | gym_id aus User | MEDIUM | 🔴 OFFEN |
+| `src/app/api/invoices/[paymentId]/route.ts` | Bearer | gym_id aus payments.member.gym → User-Match | MEDIUM | 🔴 OFFEN |
+| `src/app/api/members/[id]/{contract,dunning,mail,...}/route.ts` (5x) | Bearer | members.gym_id == user.gym_id | MEDIUM | 🔴 OFFEN |
+| `src/app/api/staff/{accept,link,route}.ts` | Bearer/Token | gym_id aus URL | MEDIUM | 🔴 OFFEN |
+| `src/app/api/attendance/{route,gps,[id]}/route.ts` | Bearer | gym_id aus User | MEDIUM | 🔴 OFFEN |
 
 ### D) Admin-Only — MEDIUM
 
 `requireAdmin()` whitelistet via `ADMIN_EMAILS` Env-Var. Service-Client wird genutzt für CRM-Reads/Writes über Tenant-Grenzen hinweg (das ist beabsichtigt — der Solo-Sales-CRM ist gym-übergreifend).
 
-| Route | Filter |
-|---|---|
-| `src/app/api/admin/leads/route.ts` | (CRM, kein gym_id-Filter — beabsichtigt) |
-| `src/app/api/admin/leads/[id]/route.ts` | leads.id |
-| `src/app/api/admin/leads/[id]/activity/{,activityId}/route.ts` | leads.id |
-| `src/app/api/admin/leads/places-search/route.ts` | (CRM, INSERT in sales_leads) — **siehe Härtung C1** |
-| `src/app/api/admin/leads/places-quota/route.ts` | (CRM-Stats, READ-ONLY) |
-| `src/app/api/admin/leads/stats/route.ts` | (CRM-Stats, READ-ONLY) |
-| `src/app/api/admin/sales/leads/{,[id]}/route.ts` | (CRM) |
-| `src/app/api/admin/analytics/route.ts` | (Owner-Site-Analytics) |
+| Route | Filter | Status |
+|---|---|---|
+| `src/app/api/admin/leads/route.ts` | (CRM, kein gym_id-Filter — beabsichtigt) | 🟢 LEGITIM (admin-only via requireAdmin) |
+| `src/app/api/admin/leads/[id]/route.ts` | leads.id | 🟡 GEHÄRTET (Pass 8) — UUID-Format-Check vor DB-Hit |
+| `src/app/api/admin/leads/[id]/activity/{,activityId}/route.ts` | leads.id | 🔴 OFFEN |
+| `src/app/api/admin/leads/places-search/route.ts` | (CRM, INSERT in sales_leads) | 🟡 GEHÄRTET (Pass 7 / C1) — query-Length-Cap 200 |
+| `src/app/api/admin/leads/places-quota/route.ts` | (CRM-Stats, READ-ONLY) | 🟢 LEGITIM (admin-only) |
+| `src/app/api/admin/leads/stats/route.ts` | (CRM-Stats, READ-ONLY) | 🟢 LEGITIM (admin-only) |
+| `src/app/api/admin/sales/leads/{,[id]}/route.ts` | (CRM) | 🟢 LEGITIM (admin-only via requireAdmin) |
+| `src/app/api/admin/analytics/route.ts` | (Owner-Site-Analytics) | 🟢 LEGITIM (admin-only) |
 
 **Härtung C1**: `query`-Param-Length-Cap auf 200 Zeichen in `places-search` (Google API-Cost-Limit). Bestehende Whitelist der gespeicherten Felder ist OK (nur dokumentieren).
 
@@ -95,22 +100,24 @@ Auth via Supabase-Bearer-Token (eingeloggter Owner/Coach/Admin). Filter `gym_id`
 
 Geschützt via `cronGuard()` (Bearer `CRON_SECRET`). Niemals user-aufrufbar.
 
-| Route |
-|---|
-| `src/app/api/cron/aggregate-page-views/route.ts` |
-| `src/app/api/cron/birthday/route.ts` |
-| `src/app/api/cron/dunning-escalation/route.ts` |
-| `src/app/api/cron/missing-plan-reminder/route.ts` |
-| `src/app/api/cron/payment-reminders/route.ts` |
-| `src/app/api/cron/sales-followups/route.ts` |
+| Route | Status |
+|---|---|
+| `src/app/api/cron/aggregate-page-views/route.ts` | 🟢 LEGITIM (cronGuard + DB-Dedup) |
+| `src/app/api/cron/birthday/route.ts` | 🟢 LEGITIM (cronGuard + DB-Dedup, gym_id pro Iteration) |
+| `src/app/api/cron/dunning-escalation/route.ts` | 🟢 LEGITIM (cronGuard + DB-Dedup, gym_id pro Iteration) |
+| `src/app/api/cron/missing-plan-reminder/route.ts` | 🟢 LEGITIM (cronGuard) |
+| `src/app/api/cron/payment-reminders/route.ts` | 🟢 LEGITIM (cronGuard) |
+| `src/app/api/cron/sales-followups/route.ts` | 🟢 LEGITIM (cronGuard, kein gym_id da CRM) |
+| `src/app/api/cron/newsletter-cleanup/route.ts` | 🟢 LEGITIM (cronGuard) |
+| `src/app/api/cron/notification-worker/route.ts` | 🟢 LEGITIM (cronGuard) |
 
 ### F) Stripe-Webhook — LOW
 
-| Route | Schutz |
-|---|---|
-| `src/app/api/stripe/webhook/route.ts` | HMAC-Signatur über `stripe-signature` (kein normaler Cross-Site-Vector) |
-| `src/app/api/stripe/connect/callback/route.ts` | OAuth-State-HMAC |
-| `src/app/api/stripe/sync-payments/route.ts` | Bearer (Owner) |
+| Route | Schutz | Status |
+|---|---|---|
+| `src/app/api/stripe/webhook/route.ts` | HMAC-Signatur über `stripe-signature` | 🟢 LEGITIM — Outbox-Pattern, alle UPDATEs gym_id-/intent-/sub-/customer-spezifisch |
+| `src/app/api/stripe/connect/callback/route.ts` | OAuth-State-HMAC | 🟢 LEGITIM (HMAC-State) |
+| `src/app/api/stripe/sync-payments/route.ts` | Bearer (Owner) | 🔴 OFFEN — gym_id-Filter zu prüfen |
 
 ### G) Lib-Helper — LOW (intern)
 
@@ -148,6 +155,76 @@ Diese werden von autorisierten Routen aufgerufen, nicht direkt user-exposed:
 - `query`-Param-Length-Cap auf 200 Zeichen (Google Places API limitiert auf 256 — wir lassen Buffer für Trim).
 - Whitelist der persistierten Felder ist bereits korrekt (siehe `row`-Object in der Route, Zeilen 137 ff.) — nur Essentials + Pro-SKU-Felder, kein "ganzes Place-Objekt". Diese Aussage ist mit dem Code abgeglichen.
 
+## Pass 8 — Folge-Härtungen (2026-05-09, dieser Audit-Lauf)
+
+23 weitere Routen gehärtet (Pass 7 hatte die Top-3 abgedeckt). Mechanik durchweg minimal-invasiv:
+
+### A2 — Token-Length-Floor 20→32 für alle Portal-/Lead-/Newsletter-/Gym-Mail-Tokens
+
+Alle 17 Token-basierten Public-Routen wurden auf den Floor `>= 32` Zeichen + Char-Class
+`/^[a-zA-Z0-9_-]+$/` umgestellt. Bestands-Tokens sind DB-generiert (~32 Zeichen, base64url
+oder uuid+random), die Anhebung schliesst keine Live-Members aus. Ein paar Routen hatten
+gar keinen Token-Check (`portal/[token]/cancel`, `portal/[token]/plan`, `public/lead/[token]/manifest`,
+`signup`-GET) — die wurden nachgerüstet.
+
+Routen, die bereits via Helper `createServiceClient` aus `@/lib/supabase/service` arbeiten,
+bekommen nur den Length-Cap. Routen mit eigenem inline-`createClient`-Helper bleiben so
+(kein Refactor in dieser Pass — Risk vs. Diff-Size).
+
+### A3 — `is_active=true`-Filter für state-mutierende Portal-Endpoints
+
+`portal/[token]/cancel` und `portal/[token]/plan` filtern jetzt zusätzlich auf `is_active=true`.
+Ohne diesen Filter konnte ein bereits abgemeldetes Mitglied einen weiteren Cancel-Mail-/
+Owner-WhatsApp-Trigger auslösen oder einen Plan-Wechsel beantragen. Der `cancellation_requested_at`-
+Feld wurde mehrfach überschrieben.
+
+### B-input-cap — Slug-/Email-/Name-Length-Caps für Public-Insert-Routen
+
+`public/gym/[slug]/lead`, `public/gym/[slug]/wellpass`, `public/gym/[slug]` (read), `signup`
+bekommen Slug-Format-Check `/^[a-z0-9-]+$/` mit 100-Zeichen-Cap und Body-Field-Length-Caps:
+`first_name/last_name <= 200`, `email <= 320` (RFC), `phone <= 50`, `address <= 500`,
+`message <= 2000`. Ohne diese Caps könnte ein Angreifer mit 100KB-Strings DB-Inserts
+und Email-Templates (Resend-Body) bloated.
+
+### Admin-Härtung
+
+`admin/leads/[id]` (PATCH/DELETE) bekommt UUID-Format-Check vor Service-Client-Hit.
+Verhindert dass ein Admin-Token mit 100KB-ID-String einen DB-Index-Scan triggert.
+
+### Auth-Härtung
+
+`auth/delete-account` Bearer-Token-Format-Check ergänzt (32-4096 Zeichen). Restliche
+Logik (`gyms.owner_id == user.id` + RPC `delete_gym_cascade(p_gym_id, p_user_id)`)
+bleibt unverändert — DB-Funktion macht den Owner-Match-Double-Check.
+
+### Geänderte Files (Pass 8)
+
+- `src/app/api/portal/[token]/cancel/route.ts` — token-floor + is_active + DELETE-Methode geschützt
+- `src/app/api/portal/[token]/manifest/route.ts` — token-floor (war ohne)
+- `src/app/api/portal/[token]/classes/route.ts` — token-floor 20→32
+- `src/app/api/portal/[token]/checkin/route.ts` — token-floor 20→32
+- `src/app/api/portal/[token]/checkout/route.ts` — token-floor 20→32
+- `src/app/api/portal/[token]/gps-checkin/route.ts` — token-floor 20→32
+- `src/app/api/portal/[token]/training-log/route.ts` — token-floor 20→32 (GET+POST)
+- `src/app/api/portal/[token]/subscribe/route.ts` — token-floor 20→32
+- `src/app/api/portal/[token]/plan/route.ts` — token-floor + is_active + plan_id-Cap (POST+DELETE)
+- `src/app/api/portal/[token]/book/[classId]/route.ts` — token-floor 20→32 (POST+DELETE)
+- `src/app/api/public/lead/[token]/route.ts` — token-floor 20→32
+- `src/app/api/public/lead/[token]/book/route.ts` — token-floor + class_id-Cap
+- `src/app/api/public/lead/[token]/cancel/route.ts` — token-floor + class_id-Cap
+- `src/app/api/public/lead/[token]/checkin/route.ts` — token-floor + class_id-Cap
+- `src/app/api/public/lead/[token]/gps-checkin/route.ts` — token-floor 20→32
+- `src/app/api/public/lead/[token]/manifest/route.ts` — token-floor (war ohne)
+- `src/app/api/newsletter/confirm/[token]/route.ts` — token-floor + char-class
+- `src/app/api/newsletter/unsubscribe/[token]/route.ts` — token-floor + char-class
+- `src/app/api/gym-mail/unsubscribe/[token]/route.ts` — token-floor + char-class
+- `src/app/api/signup/route.ts` — token-floor 32 + Input-Length-Caps (GET+POST)
+- `src/app/api/public/gym/[slug]/route.ts` — slug-format-check
+- `src/app/api/public/gym/[slug]/lead/route.ts` — slug-format-check + Input-Length-Caps
+- `src/app/api/public/gym/[slug]/wellpass/route.ts` — slug-format-check + Input-Length-Caps
+- `src/app/api/admin/leads/[id]/route.ts` — UUID-Format-Check (PATCH+DELETE)
+- `src/app/api/auth/delete-account/route.ts` — Bearer-Token-Format-Check
+
 ## Tests
 
 `tests/smoke/portal-hardening.test.ts` — drei Smoke-Tests gegen `TEST_API_BASE`:
@@ -156,10 +233,33 @@ Diese werden von autorisierten Routen aufgerufen, nicht direkt user-exposed:
 2. `GET /api/portal/[token]` mit Member `is_active=false` → 404 (vorher 200 mit Daten).
 3. `GET /api/track` (statt POST, ohne Body) → 405 oder 400 (sanity).
 
-## Offene To-Dos (nicht in diesem Audit)
+## Offene To-Dos
 
-- **A2**: Alle anderen Portal-/Lead-Token-Routen auf `>= 32` umstellen (siehe Tabelle A — 9 Routen). Identische Mechanik wie A1.
-- **A3**: `src/app/api/portal/[token]/cancel/route.ts` hat keinen Token-Length-Check — nachrüsten.
-- **A4**: Migration `members.portal_token` validieren — alle existierenden Tokens sind aktuell schon DB-generiert mit ~32 Zeichen, daher sollte A2 keine Bestands­mitglieder ausschliessen.
+### Erledigt in Pass 8 (2026-05-09)
+- ~~**A2**: Token-Length-Floor auf `>= 32` für alle Portal-/Lead-Token-Routen~~ ✓
+- ~~**A3**: `portal/[token]/cancel` Token-Length-Check~~ ✓
+
+### Top-3 noch offene Risiken (für nächsten Sprint)
+
+1. **D1 (mittelfristig, hoher Hebel)**: Migration auf RLS-Policies für `members`, `payments`, `attendance`.
+   Aktuell sind ~70 Routen Service-Role mit App-Layer-Filter; ein einziger vergessener `gym_id`-Filter
+   leakt Cross-Tenant. Mit RLS wäre das DB-enforced.
+   Aufwand: 2-3 Tage; Hebel: massiv (Service-Client-Footprint sinkt um >50%).
+
+2. **MEDIUM-Routen Owner-Verify-Audit** (Section C): `attendance/`, `members/[id]/`, `gym/`, `staff/`,
+   `classes/bulk/`, `datev/export/`, `gym-mail/send/` etc. — alle nutzen Service-Role, prüfen aber
+   manuell via App-Layer den `gym_id`-Match. Stichprobenartig prüfen ob jeder Filter wirklich gesetzt
+   ist (z. B. UPDATE/DELETE ohne `gym_id`-WHERE wäre Cross-Gym-Bug).
+   Aufwand: 1 Tag; Hebel: defensiv-mittel.
+
+3. **A4 / Token-Rotation-Policy**: Aktuell sind Portal-/Lead-Tokens permanent gültig (kein Expiry).
+   Ein Mitglied, das sein Handy verliert, kann den Token nicht ungültig machen ohne Owner-Eingriff.
+   Token-Rotation per `regenerate_portal_token` RPC + UI-Button für Member ist DSGVO Art. 32-konform
+   und einfach.
+   Aufwand: 0.5 Tage; Hebel: niedrig-mittel (kein Cross-Tenant, aber Member-Self-Service-Lücke).
+
+### Weitere
 - **B2**: Per-Visitor-Hash-Cap (z. B. 200 page_views/visitor/day) auf `/api/track` — vermeidet, dass ein einzelner Browser die Stats verzerrt.
-- **D1**: Weiterhin sukzessive auf RLS-policies migrieren (DB-enforced statt App-enforced), insbesondere für `members`, `payments`, `attendance`. Reduziert Service-Client-Footprint mittelfristig.
+- **C-public-schedule**: `public/schedule/[gymId]` und `schedule/ical` UUID-Format-Check fehlt noch (LOW-Risk, READ-ONLY).
+- **C-stripe-sync-payments**: `stripe/sync-payments` (Bearer-Owner) — gym_id-Filter zu prüfen.
+- **C-admin-leads-activity**: `admin/leads/[id]/activity/{,activityId}` UUID-Format-Check.

@@ -296,6 +296,7 @@ export default function SchedulePage() {
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={() => { setWeekStart(w => addDays(w,-7)); setSelectedDay(s => addDays(s,-7)) }}
+            aria-label={lang === 'en' ? 'Previous week' : 'Vorherige Woche'}
             className="p-2 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition-colors">
             <ChevronLeft size={15} />
           </button>
@@ -304,6 +305,7 @@ export default function SchedulePage() {
             {t('schedule', 'today')}
           </button>
           <button onClick={() => { setWeekStart(w => addDays(w,7)); setSelectedDay(s => addDays(s,7)) }}
+            aria-label={lang === 'en' ? 'Next week' : 'Nächste Woche'}
             className="p-2 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 transition-colors">
             <ChevronRight size={15} />
           </button>
@@ -432,8 +434,10 @@ export default function SchedulePage() {
 
       {/* Bulk clear modal */}
       {showClearModal && (
+        // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => { if (clearStep === 'confirm' || clearStep === 'done') { setShowClearModal(false); setClearStep('confirm') } }}>
+          onClick={() => { if (clearStep === 'confirm' || clearStep === 'done') { setShowClearModal(false); setClearStep('confirm') } }}
+          role="dialog" aria-modal="true" aria-labelledby="schedule-clear-title">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden" onClick={e => e.stopPropagation()}>
 
             {clearStep === 'confirm' && (
@@ -442,7 +446,7 @@ export default function SchedulePage() {
                   <div className="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-3">
                     <Trash2 size={20} className="text-red-500" />
                   </div>
-                  <p className="font-bold text-zinc-900 text-sm mb-1">{t('schedule', 'confirmDelete')}</p>
+                  <p id="schedule-clear-title" className="font-bold text-zinc-900 text-sm mb-1">{t('schedule', 'confirmDelete')}</p>
                   <p className="text-zinc-500 text-sm">
                     {lang === 'en'
                       ? <>All <strong>future</strong> class dates will be permanently deleted.<br />A <strong>CSV backup</strong> will be downloaded automatically — it can be re-imported at any time.</>
@@ -508,16 +512,18 @@ export default function SchedulePage() {
 
       {/* Cancel / Delete confirmation modal */}
       {cancelTarget && (
+        // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => setCancelTarget(null)}
+          role="dialog" aria-modal="true" aria-labelledby="cancel-class-title"
         >
           <div
             className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="px-5 pt-5 pb-4">
-              <p className="font-bold text-zinc-900 text-sm mb-1">
+              <p id="cancel-class-title" className="font-bold text-zinc-900 text-sm mb-1">
                 {cancelTarget.recurrence_parent_id
                   ? (lang === 'en' ? 'Recurring class' : 'Serientermin')
                   : t('schedule', 'cancel')}

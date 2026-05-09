@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { UserPlus, Trash2, MessageCircle, Phone, Mail, Pencil, Link2 } from 'lucide-react'
 import Link from 'next/link'
@@ -74,6 +74,25 @@ export default function LeadsPage() {
     public_page:  t('leads', 'sourcePublic'),
     gym_qr:       lang === 'en' ? 'QR (in gym)' : 'QR (im Gym)',
   }
+
+  // a11y form ids
+  const idCreateFirst = useId()
+  const idCreateLast = useId()
+  const idCreateEmail = useId()
+  const idCreatePhone = useId()
+  const idCreateSource = useId()
+  const idCreateTrial = useId()
+  const idCreateRef = useId()
+  const idCreateNotes = useId()
+  const idEditFirst = useId()
+  const idEditLast = useId()
+  const idEditEmail = useId()
+  const idEditPhone = useId()
+  const idEditSource = useId()
+  const idEditTrial = useId()
+  const idEditRef = useId()
+  const idEditNotes = useId()
+  const editModalTitleId = useId()
 
   const [leads, setLeads]           = useState<Lead[]>([])
   const [loading, setLoading]       = useState(true)
@@ -353,8 +372,9 @@ export default function LeadsPage() {
           <form onSubmit={handleCreate} className="p-5 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'First name *' : 'Vorname *'}</label>
+                <label htmlFor={idCreateFirst} className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'First name *' : 'Vorname *'}</label>
                 <input
+                  id={idCreateFirst}
                   required value={form.first_name}
                   onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
                   placeholder="Max"
@@ -362,8 +382,9 @@ export default function LeadsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Last name *' : 'Nachname *'}</label>
+                <label htmlFor={idCreateLast} className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Last name *' : 'Nachname *'}</label>
                 <input
+                  id={idCreateLast}
                   required value={form.last_name}
                   onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
                   placeholder="Mustermann"
@@ -373,8 +394,9 @@ export default function LeadsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'email')}</label>
+                <label htmlFor={idCreateEmail} className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'email')}</label>
                 <input
+                  id={idCreateEmail}
                   type="email" value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   placeholder="max@example.com"
@@ -382,8 +404,9 @@ export default function LeadsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'phone')}</label>
+                <label htmlFor={idCreatePhone} className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'phone')}</label>
                 <input
+                  id={idCreatePhone}
                   type="tel" value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder="+49 151 234567"
@@ -393,8 +416,9 @@ export default function LeadsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'source')}</label>
+                <label htmlFor={idCreateSource} className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'source')}</label>
                 <select
+                  id={idCreateSource}
                   value={form.source}
                   onChange={e => setForm(f => ({ ...f, source: e.target.value as LeadSource }))}
                   className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
@@ -406,8 +430,9 @@ export default function LeadsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Trial date' : 'Probetraining-Datum'}</label>
+                <label htmlFor={idCreateTrial} className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Trial date' : 'Probetraining-Datum'}</label>
                 <input
+                  id={idCreateTrial}
                   type="date" value={form.trial_date}
                   onChange={e => setForm(f => ({ ...f, trial_date: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
@@ -415,8 +440,9 @@ export default function LeadsPage() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Referred by' : 'Empfohlen von'}</label>
+              <label htmlFor={idCreateRef} className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Referred by' : 'Empfohlen von'}</label>
               <input
+                id={idCreateRef}
                 value={form.referred_by}
                 onChange={e => setForm(f => ({ ...f, referred_by: e.target.value }))}
                 placeholder={lang === 'en' ? 'Member name' : 'Name des Mitglieds'}
@@ -424,8 +450,9 @@ export default function LeadsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'notes')}</label>
+              <label htmlFor={idCreateNotes} className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'notes')}</label>
               <textarea
+                id={idCreateNotes}
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2}
@@ -545,6 +572,7 @@ export default function LeadsPage() {
                         navigator.clipboard.writeText(url).catch(() => {})
                       }}
                       title={lang === 'en' ? 'Copy portal link' : 'Portal-Link kopieren'}
+                      aria-label={lang === 'en' ? 'Copy portal link' : 'Portal-Link kopieren'}
                       className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
                       <Link2 size={14} />
                     </button>
@@ -554,6 +582,7 @@ export default function LeadsPage() {
                       href={`https://wa.me/${toWaPhone(lead.phone)}?text=${encodeURIComponent(`Hallo ${lead.first_name}! 👋`)}`}
                       target="_blank" rel="noopener noreferrer"
                       title="WhatsApp"
+                      aria-label={lang === 'en' ? 'Send WhatsApp message' : 'WhatsApp-Nachricht senden'}
                       className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-50 transition-colors">
                       <MessageCircle size={15} />
                     </a>
@@ -568,12 +597,14 @@ export default function LeadsPage() {
                   <button
                     onClick={() => openEdit(lead)}
                     title={t('leads', 'editLead')}
+                    aria-label={t('leads', 'editLead')}
                     className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-colors">
                     <Pencil size={14} />
                   </button>
                   <button
                     onClick={() => deleteLead(lead.id)}
                     title={t('leads', 'delete')}
+                    aria-label={t('leads', 'delete')}
                     className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                     <Trash2 size={14} />
                   </button>
@@ -586,47 +617,48 @@ export default function LeadsPage() {
 
       {/* Edit modal */}
       {editingLead && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+        // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-0" role="dialog" aria-modal="true" aria-labelledby={editModalTitleId}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
             <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
-              <p className="font-semibold text-zinc-900 text-sm">{lang === 'en' ? 'Edit lead' : 'Interessent bearbeiten'}</p>
-              <button onClick={() => setEditingLead(null)} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors">
+              <p id={editModalTitleId} className="font-semibold text-zinc-900 text-sm">{lang === 'en' ? 'Edit lead' : 'Interessent bearbeiten'}</p>
+              <button onClick={() => setEditingLead(null)} aria-label={lang === 'en' ? 'Close dialog' : 'Dialog schließen'} className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors">
                 ✕
               </button>
             </div>
             <form onSubmit={handleUpdate} className="p-5 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'First name *' : 'Vorname *'}</label>
-                  <input required value={editForm.first_name}
+                  <label htmlFor={idEditFirst} className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'First name *' : 'Vorname *'}</label>
+                  <input id={idEditFirst} required value={editForm.first_name}
                     onChange={e => setEditForm(f => ({ ...f, first_name: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Last name *' : 'Nachname *'}</label>
-                  <input required value={editForm.last_name}
+                  <label htmlFor={idEditLast} className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Last name *' : 'Nachname *'}</label>
+                  <input id={idEditLast} required value={editForm.last_name}
                     onChange={e => setEditForm(f => ({ ...f, last_name: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'email')}</label>
-                  <input type="email" value={editForm.email}
+                  <label htmlFor={idEditEmail} className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'email')}</label>
+                  <input id={idEditEmail} type="email" value={editForm.email}
                     onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'phone')}</label>
-                  <input type="tel" value={editForm.phone}
+                  <label htmlFor={idEditPhone} className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'phone')}</label>
+                  <input id={idEditPhone} type="tel" value={editForm.phone}
                     onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'source')}</label>
-                  <select value={editForm.source}
+                  <label htmlFor={idEditSource} className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'source')}</label>
+                  <select id={idEditSource} value={editForm.source}
                     onChange={e => setEditForm(f => ({ ...f, source: e.target.value as LeadSource }))}
                     className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
                     <option value="walk-in">{t('leads', 'sourceWalkin')}</option>
@@ -637,21 +669,21 @@ export default function LeadsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Trial date' : 'Probetraining'}</label>
-                  <input type="date" value={editForm.trial_date}
+                  <label htmlFor={idEditTrial} className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Trial date' : 'Probetraining'}</label>
+                  <input id={idEditTrial} type="date" value={editForm.trial_date}
                     onChange={e => setEditForm(f => ({ ...f, trial_date: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Referred by' : 'Empfohlen von'}</label>
-                <input value={editForm.referred_by}
+                <label htmlFor={idEditRef} className="block text-xs font-medium text-zinc-500 mb-1">{lang === 'en' ? 'Referred by' : 'Empfohlen von'}</label>
+                <input id={idEditRef} value={editForm.referred_by}
                   onChange={e => setEditForm(f => ({ ...f, referred_by: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'notes')}</label>
-                <textarea value={editForm.notes} rows={2}
+                <label htmlFor={idEditNotes} className="block text-xs font-medium text-zinc-500 mb-1">{t('leads', 'notes')}</label>
+                <textarea id={idEditNotes} value={editForm.notes} rows={2}
                   onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg bg-[#F0F2F5] border border-zinc-200 text-sm text-zinc-900 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 resize-none" />
               </div>

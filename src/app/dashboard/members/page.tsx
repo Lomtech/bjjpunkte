@@ -10,6 +10,7 @@ import type { Belt } from '@/types/database'
 import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 import { toWaPhone } from '@/lib/phone'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { useConfirm } from '@/components/ConfirmModal'
 
 const SUB_COLORS: Record<string, string> = {
   active:    'bg-amber-50 text-amber-700 border border-amber-200',
@@ -503,7 +504,7 @@ export default function MembersPage() {
         <div className="mb-4 flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
           <Navigation size={15} className="flex-shrink-0 text-red-400" />
           <span className="flex-1">{gpsError}</span>
-          <button onClick={() => setGpsError(null)} className="text-red-300 hover:text-red-500 flex-shrink-0"><X size={14} /></button>
+          <button onClick={() => setGpsError(null)} aria-label={lang === 'en' ? 'Dismiss error' : 'Fehler schließen'} className="text-red-300 hover:text-red-500 flex-shrink-0"><X size={14} /></button>
         </div>
       )}
 
@@ -590,9 +591,10 @@ export default function MembersPage() {
 
       {/* Bulk confirm */}
       {showBulkConfirm && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+        // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-confirm-title">
           <div className="bg-white rounded-xl p-6 border border-zinc-200 shadow-lg max-w-sm w-full">
-            <h2 className="font-bold text-zinc-900 mb-2">{lang === 'en' ? 'Request fees' : 'Beiträge anfordern'}</h2>
+            <h2 id="bulk-confirm-title" className="font-bold text-zinc-900 mb-2">{lang === 'en' ? 'Request fees' : 'Beiträge anfordern'}</h2>
             <p className="text-zinc-600 text-sm mb-5">
               {lang === 'en'
                 ? <>Create payment links for <span className="font-semibold">{activeWithEmail.length} members</span>? The links will be displayed so you can send them via WhatsApp or email.</>
@@ -684,6 +686,7 @@ export default function MembersPage() {
                             <a href={`https://wa.me/${toWaPhone(m.phone)}?text=${encodeURIComponent(`${lang === 'en' ? `Hello ${m.first_name}! 👋` : `Hallo ${m.first_name}! 👋`}`)}`}
                               target="_blank" rel="noopener noreferrer"
                               title="WhatsApp"
+                              aria-label={lang === 'en' ? `Send WhatsApp to ${m.first_name}` : `WhatsApp an ${m.first_name} senden`}
                               className="text-[#25D366] hover:text-[#1ebe57] transition-colors">
                               <MessageCircle size={15} />
                             </a>
@@ -830,16 +833,20 @@ export default function MembersPage() {
 
       {/* Class selection modal (shown when >1 eligible class) */}
       {selectingMemberId && (
+        // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => setSelectingMemberId(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="class-select-title"
         >
           <div
             className="bg-white rounded-2xl w-full max-w-xs shadow-xl overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-zinc-100">
-              <p className="font-bold text-zinc-900 text-sm">{lang === 'en' ? 'Which class?' : 'Für welchen Kurs?'}</p>
+              <p id="class-select-title" className="font-bold text-zinc-900 text-sm">{lang === 'en' ? 'Which class?' : 'Für welchen Kurs?'}</p>
               <p className="text-zinc-400 text-xs mt-0.5">
                 {(() => { const m = members.find(x => x.id === selectingMemberId); return m ? `${m.first_name} ${m.last_name}` : '' })()}
               </p>
@@ -906,15 +913,17 @@ export default function MembersPage() {
 
       {/* Bulk Checkout Results Modal */}
       {showBulkResults && bulkMembers.length > 0 && (
+        // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
-          onClick={e => { if (e.target === e.currentTarget) setShowBulkResults(false) }}>
+          onClick={e => { if (e.target === e.currentTarget) setShowBulkResults(false) }}
+          role="dialog" aria-modal="true" aria-labelledby="bulk-results-title">
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 flex-shrink-0">
               <div>
-                <p className="font-bold text-zinc-900 text-sm">{lang === 'en' ? 'Payment links created' : 'Zahlungslinks erstellt'}</p>
+                <p id="bulk-results-title" className="font-bold text-zinc-900 text-sm">{lang === 'en' ? 'Payment links created' : 'Zahlungslinks erstellt'}</p>
                 <p className="text-zinc-400 text-xs">{bulkMembers.length} {lang === 'en' ? 'links — send via WhatsApp or copy' : 'Links — per WhatsApp oder Kopieren versenden'}</p>
               </div>
-              <button onClick={() => setShowBulkResults(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors"><X size={18} /></button>
+              <button onClick={() => setShowBulkResults(false)} aria-label={lang === 'en' ? 'Close dialog' : 'Dialog schließen'} className="text-zinc-400 hover:text-zinc-600 transition-colors"><X size={18} /></button>
             </div>
             <div className="overflow-y-auto flex-1 p-4 space-y-2">
               {bulkMembers.map(m => {
@@ -994,11 +1003,13 @@ function ActivationModal({ member, onClose }: { member: Member; onClose: () => v
     : null
 
   return (
+    // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      role="dialog" aria-modal="true" aria-labelledby="activation-modal-title">
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-zinc-100 bg-zinc-50">
-          <p className="font-bold text-zinc-900 text-sm">✓ {member.first_name} {member.last_name} {lang === 'en' ? 'activated!' : 'aktiviert!'}</p>
+          <p id="activation-modal-title" className="font-bold text-zinc-900 text-sm">✓ {member.first_name} {member.last_name} {lang === 'en' ? 'activated!' : 'aktiviert!'}</p>
           <p className="text-zinc-500 text-xs mt-0.5">{lang === 'en' ? 'Notify now:' : 'Jetzt benachrichtigen:'}</p>
         </div>
         <div className="p-5 space-y-3">
@@ -1076,6 +1087,7 @@ function WhatsAppBulkModal({ members, whatsappGroupUrl, onClose }: {
   const [customMsg, setCustomMsg]   = useState('')
   const [step, setStep]             = useState<'compose' | 'send'>('compose')
   const [sentIdx, setSentIdx]       = useState<Set<string>>(new Set())
+  const confirm = useConfirm()
 
   const tmpl    = BULK_TEMPLATES.find(t => t.id === templateId)!
   const message = templateId === 'custom' ? customMsg : tmpl.text()
@@ -1092,26 +1104,35 @@ function WhatsAppBulkModal({ members, whatsappGroupUrl, onClose }: {
 
   /**
    * Öffnet alle WhatsApp-URLs der noch nicht gesendeten Mitglieder in
-   * neuen Tabs — innerhalb EINES Click-Events, damit der Browser keine
-   * Pop-ups blockt (Synchron im User-Gesture).
+   * neuen Tabs.
    *
-   * Hinweis: Beim ersten Aufruf erscheint ggf. eine Browser-Warnung
-   * „Pop-ups blockiert". User muss sie für osss.pro erlauben.
+   * Pop-up-Blocker-Strategie:
+   * - Bei <= 10 Tabs: direkt öffnen (keine Bestätigung).
+   * - Bei > 10 Tabs: Confirm-Modal vorher anzeigen. Der Klick auf
+   *   "Bestätigen" IST das User-Gesture; der Promise resolved synchron
+   *   im Click-Handler, sodass die folgenden window.open()-Calls noch
+   *   im selben Gesture-Stack laufen. Wichtig: kein weiterer await
+   *   zwischen confirm() und der Schleife einfügen.
    */
-  function openAllRemaining() {
+  async function openAllRemaining() {
     const remaining = members.filter(m => m.phone && !sentIdx.has(m.id))
     if (remaining.length === 0) return
     if (remaining.length > 10) {
-      // TODO(modal): durch <ConfirmModal> ersetzen — synchron im User-Gesture nötig,
-      // damit Pop-up-Blocker die folgenden window.open() nicht killt. Refactor erfordert
-      // State-Splitting in zwei Phasen (Confirm-Open → User-Gesture-Continue).
-      const ok = confirm(
-        lang === 'en'
-          ? `Open ${remaining.length} WhatsApp tabs at once? Browser may ask to allow pop-ups.`
-          : `${remaining.length} WhatsApp-Tabs auf einmal öffnen? Browser fragt evtl. nach Pop-up-Erlaubnis.`
-      )
+      const ok = await confirm({
+        title: lang === 'en'
+          ? `Open ${remaining.length} WhatsApp tabs?`
+          : `${remaining.length} WhatsApp-Tabs öffnen?`,
+        description: lang === 'en'
+          ? 'Your browser may ask to allow pop-ups for this site. Please allow them once.'
+          : 'Der Browser fragt evtl. nach Pop-up-Erlaubnis für diese Seite. Einmalig erlauben.',
+        confirmLabel: lang === 'en' ? 'Open all' : 'Alle öffnen',
+        cancelLabel: lang === 'en' ? 'Cancel' : 'Abbrechen',
+        variant: 'primary',
+      })
       if (!ok) return
     }
+    // KEIN weiterer await hier — sonst killt der Browser-Pop-up-Blocker
+    // alle window.open()-Calls außer dem ersten.
     for (const m of remaining) {
       const personalMsg = personalize(message, m.first_name)
       const waUrl = `https://wa.me/${toWaPhone(m.phone!)}?text=${encodeURIComponent(personalMsg)}`
@@ -1121,19 +1142,21 @@ function WhatsAppBulkModal({ members, whatsappGroupUrl, onClose }: {
   }
 
   return (
+    // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      role="dialog" aria-modal="true" aria-labelledby="wa-bulk-modal-title">
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 bg-[#128C7E] text-white flex-shrink-0">
           <div className="flex items-center gap-2">
             <MessageCircle size={18} />
             <div>
-              <p className="font-bold text-sm">{lang === 'en' ? 'Prepare WhatsApp messages' : 'WhatsApp Nachrichten vorbereiten'}</p>
+              <p id="wa-bulk-modal-title" className="font-bold text-sm">{lang === 'en' ? 'Prepare WhatsApp messages' : 'WhatsApp Nachrichten vorbereiten'}</p>
               <p className="text-white/70 text-xs">{members.length} {lang === 'en' ? 'members with phone number' : 'Mitglieder mit Nummer'}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-white/70 hover:text-white transition-colors"><X size={18} /></button>
+          <button onClick={onClose} aria-label={lang === 'en' ? 'Close dialog' : 'Dialog schließen'} className="text-white/70 hover:text-white transition-colors"><X size={18} /></button>
         </div>
 
         <div className="overflow-y-auto flex-1">
@@ -1303,15 +1326,17 @@ function BulkEmailModal({ memberCount, onClose }: { memberCount: number; onClose
   }
 
   return (
+    // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
     <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm"
          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-         onClick={() => !busy && onClose()}>
+         onClick={() => !busy && onClose()}
+         role="dialog" aria-modal="true" aria-labelledby="bulk-email-modal-title">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
            onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
           <div className="min-w-0">
-            <p className="font-bold text-zinc-900 text-sm flex items-center gap-2">
+            <p id="bulk-email-modal-title" className="font-bold text-zinc-900 text-sm flex items-center gap-2">
               <Mail size={14} className="text-amber-500" />
               {lang === 'en' ? 'Bulk-Email to all members' : 'Massen-E-Mail an alle Mitglieder'}
             </p>
@@ -1322,6 +1347,7 @@ function BulkEmailModal({ memberCount, onClose }: { memberCount: number; onClose
             </p>
           </div>
           <button onClick={onClose} disabled={busy}
+            aria-label={lang === 'en' ? 'Close dialog' : 'Dialog schließen'}
             className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 disabled:opacity-50">✕</button>
         </div>
 
@@ -1345,8 +1371,9 @@ function BulkEmailModal({ memberCount, onClose }: { memberCount: number; onClose
         ) : (
           <div className="p-5 space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1">{lang === 'en' ? 'Subject *' : 'Betreff *'}</label>
+              <label htmlFor="bulk-email-subject" className="block text-xs font-semibold text-zinc-600 mb-1">{lang === 'en' ? 'Subject *' : 'Betreff *'}</label>
               <input
+                id="bulk-email-subject"
                 type="text"
                 value={subject}
                 onChange={e => setSubject(e.target.value.slice(0, 200))}
@@ -1356,8 +1383,9 @@ function BulkEmailModal({ memberCount, onClose }: { memberCount: number; onClose
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-600 mb-1">{lang === 'en' ? 'Message *' : 'Nachricht *'}</label>
+              <label htmlFor="bulk-email-body" className="block text-xs font-semibold text-zinc-600 mb-1">{lang === 'en' ? 'Message *' : 'Nachricht *'}</label>
               <textarea
+                id="bulk-email-body"
                 value={body}
                 onChange={e => setBody(e.target.value.slice(0, 50000))}
                 rows={8}

@@ -23,6 +23,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
 
 async function handleGet(params: Promise<{ slug: string }>) {
   const { slug } = await params
+  // Slug-Hardening (Audit 2026-05-09 / B-input-cap): Format + Length-Cap.
+  // Cache-Header s-maxage=60 wird durch valides Format nicht poisoned —
+  // ungültige Slugs landen im 400-Pfad und cachen nicht.
+  if (!slug || typeof slug !== 'string' || slug.length > 100 || !/^[a-z0-9-]+$/.test(slug)) {
+    return NextResponse.json({ error: 'Ungültiger Slug' }, { status: 400 })
+  }
   const supabase = serviceClient()
 
   const { data: gym, error } = await supabase
