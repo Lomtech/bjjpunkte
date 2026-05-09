@@ -1135,14 +1135,14 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity, setA
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-zinc-900">📧 Cold-Outreach-Mail</h3>
+                <h3 className="text-sm font-bold text-zinc-900">📧 Mail-Vorlage öffnen</h3>
                 <p className="text-xs text-zinc-600 mt-0.5">
-                  Template + 2 Pflicht-Personalisierungen. UWG-§7-konform.
+                  Compose-Hilfe mit Template + Variable-Replace. Öffnet deinen Mail-Client (kein Auto-Versand durch Osss).
                 </p>
               </div>
               <button onClick={() => setShowColdMail(true)}
                 className="shrink-0 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-lg">
-                Verfassen
+                Vorlage öffnen
               </button>
             </div>
           </div>
@@ -1351,44 +1351,71 @@ function ColdMailComposeModal({
   const rendered = renderTemplate(template, vars, subjectIndex)
   const validation = validateRendered(rendered, vars)
 
+  /**
+   * Mail-Compose: öffnet den nativen Mail-Client des Owners mit prefilled
+   * subject + body. Plattform versendet KEINE Cold-Mails mehr — der Owner
+   * sendet aus seinem eigenen Mail-Client (Apple Mail, Gmail, Outlook, …).
+   *
+   * Warum: Cold-Mails von einer Plattform-Domain (osss.pro) tragen UWG-§7-
+   * Risiko und gefährden die Domain-Reputation. mailto:-Open verlagert die
+   * Sende-Verantwortung dorthin wo sie hingehört: zum Owner persönlich.
+   *
+   * Nach mailto:-Open wird sofort eine Activity geloggt (kind=email,
+   * subject, body) + Lead-Status auf 'contacted' gesetzt. Falls der Owner
+   * im Mail-Client doch nicht sendet: er muss die Activity manuell löschen.
+   */
   async function handleSend() {
-    if (!token) { setError('Nicht authentifiziert'); return }
     if (!validation.ok) { setError(validation.reason); return }
+    if (!lead.email) { setError('Lead hat keine E-Mail-Adresse'); return }
     setSending(true)
     setError(null)
-    try {
-      const res = await fetch(`/api/admin/sales/leads/${lead.id}/send-mail`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ variant, subjectIndex, vars }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setError(json.error ?? `HTTP ${res.status}`)
-        setSending(false)
-        return
-      }
-      // Optimistic activity-item für sofortige Timeline-Anzeige.
-      const optimistic: SalesActivity = {
-        id: `optimistic-${Date.now()}`,
-        lead_id: lead.id,
-        user_id: null,
-        kind: 'email',
-        outcome: null,
-        subject: rendered.subject,
-        body: rendered.body,
-        media_urls: null,
-        occurred_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-      } as unknown as SalesActivity
-      onSent(optimistic)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Send fehlgeschlagen')
-      setSending(false)
+
+    // mailto:-URL bauen. Body braucht url-encoded Newlines (%0D%0A).
+    const mailto = `mailto:${encodeURIComponent(lead.email)}`
+      + `?subject=${encodeURIComponent(rendered.subject)}`
+      + `&body=${encodeURIComponent(rendered.body)}`
+
+    // Mail-Client im neuen Tab öffnen (window.location würde die SPA killen
+    // bei manchen Browsern, target=_blank ist sicherer).
+    if (typeof window !== 'undefined') {
+      window.open(mailto, '_blank')
     }
+
+    // Activity loggen via existing /admin/sales/leads/[id]-Endpoint
+    // (kind=email, action_type=contacted). Das legt die Activity an UND
+    // markiert den Lead als 'contacted'. KEIN Server-Mailversand.
+    try {
+      if (token) {
+        await fetch(`/api/admin/sales/leads/${lead.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action_type: 'contacted',
+            notes: `Mail-Vorlage geöffnet: "${rendered.subject}"`,
+          }),
+        })
+      }
+    } catch (err) {
+      console.warn('[mail-compose] activity log failed (non-critical):', err)
+    }
+
+    // Optimistic activity-item für sofortige Timeline-Anzeige.
+    const optimistic: SalesActivity = {
+      id: `optimistic-${Date.now()}`,
+      lead_id: lead.id,
+      user_id: null,
+      kind: 'email',
+      outcome: null,
+      subject: rendered.subject,
+      body: rendered.body,
+      media_urls: null,
+      occurred_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    } as unknown as SalesActivity
+    onSent(optimistic)
   }
 
   function patchVar<K extends keyof TemplateVars>(key: K, value: TemplateVars[K]) {
@@ -1403,7 +1430,7 @@ function ColdMailComposeModal({
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 bg-white border-b border-zinc-200 px-5 py-4 flex items-center justify-between">
-          <h2 id="cold-mail-title" className="text-lg font-bold text-zinc-900">📧 Cold-Outreach-Mail an {lead.name}</h2>
+          <h2 id="cold-mail-title" className="text-lg font-bold text-zinc-900">📧 Mail-Vorlage für {lead.name}</h2>
           <button onClick={onClose} aria-label="Schließen"
             className="text-zinc-400 hover:text-zinc-700 text-2xl leading-none">×</button>
         </div>
@@ -1547,8 +1574,9 @@ function ColdMailComposeModal({
               Abbrechen
             </button>
             <button onClick={handleSend} disabled={sending || !validation.ok}
+              title="Öffnet deinen Mail-Client (Apple Mail, Gmail, Outlook, …) mit prefilled Betreff + Body. Der eigentliche Versand passiert aus deinem Mail-Client — Osss versendet keine Cold-Mails."
               className="flex-1 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-400 text-white font-semibold rounded-lg text-sm">
-              {sending ? 'Sende …' : 'Mail senden'}
+              {sending ? '…' : '📧 Im Mail-Client öffnen'}
             </button>
           </div>
         </div>
@@ -1832,93 +1860,12 @@ function PipelineView({ token, martialOnly, city, onSelect, onChanged }: {
   const [data, setData] = useState<PipelineData | null>(null)
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const confirm = useConfirm()
-
-  // Bulk-Send-Status-Panel (zeigt sich kurz nach einem Bulk-Run).
-  const [bulkBusy, setBulkBusy] = useState(false)
-  const [bulkResult, setBulkResult] = useState<{
-    sent: number
-    skipped: number
-    skipReasons: string[]
-    remainingDailyQuota: number
-    leadsContacted: { id: string; name: string; email: string; variant: string }[]
-    error?: string
-  } | null>(null)
-
-  /**
-   * Bulk-Auto-Send: sendet bis zu BULK_MAX_PER_RUN (server-side: 10) Mails an
-   * unkontaktierte Leads in einem Schwung.
-   *
-   * UWG-§7-Risiko: Bulk-Mails OHNE manuelle Personalisierung sind
-   * abmahn-anfälliger. Hooks werden aus Lead-Daten generiert (Notes/Stadt),
-   * Subject + Body enthalten IMMER Studio-Name und Stadt. Trotzdem:
-   * Konvertiert 5-10× schlechter als Hand-Personalisierung. Owner sollte
-   * das nur als Backup nutzen.
-   */
-  async function handleBulkSend() {
-    const ok = await confirm({
-      title: 'Auto-Send: bis zu 10 Mails',
-      description:
-        'Es werden bis zu 10 Cold-Outreach-Mails an unkontaktierte Leads geschickt — ohne manuelle Personalisierung. ' +
-        'Empfohlen NUR als Backup, wenn keine Zeit für Hand-Mails. Manuelle Mails konvertieren 5-10× besser. ' +
-        'Studio-Name und Stadt sind die einzige Personalisierung. Fortfahren?',
-      confirmLabel: 'Senden',
-      variant: 'primary',
-    })
-    if (!ok) return
-
-    setBulkBusy(true)
-    setBulkResult(null)
-    try {
-      const res = await fetch('/api/admin/sales/leads/bulk-send-mail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
-      })
-      const json = (await res.json().catch(() => ({}))) as {
-        ok?: boolean
-        error?: string
-        sent?: number
-        skipped?: number
-        skipReasons?: string[]
-        remainingDailyQuota?: number
-        leadsContacted?: { id: string; name: string; email: string; variant: string }[]
-      }
-      if (!res.ok || !json.ok) {
-        setBulkResult({
-          sent: 0,
-          skipped: 0,
-          skipReasons: [],
-          remainingDailyQuota: json.remainingDailyQuota ?? 0,
-          leadsContacted: [],
-          error: json.error ?? `HTTP ${res.status}`,
-        })
-        return
-      }
-      setBulkResult({
-        sent: json.sent ?? 0,
-        skipped: json.skipped ?? 0,
-        skipReasons: json.skipReasons ?? [],
-        remainingDailyQuota: json.remainingDailyQuota ?? 0,
-        leadsContacted: json.leadsContacted ?? [],
-      })
-      // Pipeline neu laden, damit kontaktierte Leads aus „Heute fällig"
-      // verschwinden bzw. den neuen Status zeigen.
-      await load()
-      onChanged()
-    } catch (err) {
-      setBulkResult({
-        sent: 0,
-        skipped: 0,
-        skipReasons: [],
-        remainingDailyQuota: 0,
-        leadsContacted: [],
-        error: err instanceof Error ? err.message : 'Bulk-Send fehlgeschlagen',
-      })
-    } finally {
-      setBulkBusy(false)
-    }
-  }
+  // Note: confirm() Modal-Hook bleibt verfügbar für andere Quick-Actions
+  // (z.B. Demo-Termin verschieben, Lead löschen). Cold-Mail-Auto-Send wurde
+  // aus UWG-§7-Gründen entfernt — Plattform sendet keine automatisierten
+  // Cold-Mails mehr. Compose-Hilfe öffnet jetzt mailto:-Link im Mail-Client.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _confirm = useConfirm()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1997,76 +1944,9 @@ function PipelineView({ token, martialOnly, city, onSelect, onChanged }: {
             <span className="px-2.5 py-1 bg-rose-50 rounded-full text-rose-800">
               × <strong>{weekly.lost}</strong> verloren
             </span>
-            <button
-              onClick={handleBulkSend}
-              disabled={bulkBusy}
-              title="Sendet bis zu 10 generische Cold-Mails an unkontaktierte Leads. Nur als Backup nutzen — manuelle Mails konvertieren 5-10× besser."
-              className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-full">
-              {bulkBusy ? '⏳ Sende…' : '⚡ Auto-Send 10 Mails'}
-            </button>
           </div>
         </div>
-        {/* UWG-§7-Hinweis: bei Auto-Send fehlt manuelle Personalisierung,
-            deshalb dauerhaft sichtbar warnen. */}
-        <p className="text-[11px] text-amber-700/80 mt-2">
-          Auto-Send: nur als Backup wenn keine Zeit für manuelle Personalisierung. Manuelle Mails konvertieren 5-10× besser.
-        </p>
       </div>
-
-      {/* Bulk-Send-Resultat-Panel — erscheint direkt nach Bulk-Run */}
-      {bulkResult && (
-        <div className={`rounded-2xl border p-4 ${
-          bulkResult.error
-            ? 'bg-rose-50 border-rose-200'
-            : bulkResult.sent > 0
-              ? 'bg-emerald-50 border-emerald-200'
-              : 'bg-amber-50 border-amber-200'
-        }`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              {bulkResult.error ? (
-                <p className="text-sm font-bold text-rose-900">
-                  ⚠️ Bulk-Send fehlgeschlagen: {bulkResult.error}
-                </p>
-              ) : (
-                <p className="text-sm font-bold text-zinc-900">
-                  ✓ {bulkResult.sent} gesendet · {bulkResult.skipped} übersprungen ·
-                  {' '}{bulkResult.remainingDailyQuota} Slots heute übrig
-                </p>
-              )}
-              {bulkResult.leadsContacted.length > 0 && (
-                <details className="mt-2">
-                  <summary className="text-xs text-zinc-600 cursor-pointer hover:text-zinc-900">
-                    Kontaktierte Leads anzeigen ({bulkResult.leadsContacted.length})
-                  </summary>
-                  <ul className="mt-2 space-y-1 text-xs text-zinc-700">
-                    {bulkResult.leadsContacted.map(l => (
-                      <li key={l.id} className="flex items-center gap-2">
-                        <span className="font-mono px-1.5 py-0.5 bg-white/70 rounded text-[10px] uppercase">{l.variant}</span>
-                        <span className="font-medium">{l.name}</span>
-                        <span className="text-zinc-500">· {l.email}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              {bulkResult.skipReasons.length > 0 && (
-                <details className="mt-1">
-                  <summary className="text-xs text-zinc-600 cursor-pointer hover:text-zinc-900">
-                    Skip-Gründe anzeigen ({bulkResult.skipReasons.length})
-                  </summary>
-                  <ul className="mt-1 space-y-0.5 text-[11px] text-zinc-600 font-mono">
-                    {bulkResult.skipReasons.map((r, i) => (<li key={i}>· {r}</li>))}
-                  </ul>
-                </details>
-              )}
-            </div>
-            <button onClick={() => setBulkResult(null)}
-              className="text-zinc-400 hover:text-zinc-700 text-xl leading-none flex-shrink-0"
-              aria-label="Schließen">×</button>
-          </div>
-        </div>
-      )}
 
       {/* 4-column kanban — scroll horizontally on small screens */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

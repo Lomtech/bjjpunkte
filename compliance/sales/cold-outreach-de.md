@@ -3,6 +3,19 @@
 Sales-Playbook fuer **osss.pro** (Mitgliederverwaltung fuer Kampfsport-Studios DACH).
 Solo-Founder-Outreach: kleine Mengen, hohe Personalisierung, ehrliche Sprache.
 
+> **WICHTIGER HINWEIS — Plattform sendet KEINE Cold-Mails.**
+>
+> Diese Templates sind ausschliesslich Compose-Hilfen fuer den Eigenversand
+> aus dem persoenlichen Mail-Client des Owners (Apple Mail, Gmail, Outlook).
+> Die osss.pro-Plattform versendet KEINE automatisierten Cold-Outreach-Mails.
+> Die CRM-UI oeffnet einen `mailto:`-Link mit prefilled Betreff + Body.
+>
+> Warum: UWG §7 Abs. 2 Nr. 3 verbietet unaufgeforderte Werbe-Mails. Auch bei
+> personalisierten B2B-Mails an Impressum-Adressen ist die Rechtslage in
+> DACH grenzwertig. Solange der Versand vom persoenlichen Mail-Account des
+> Owners ausgeht und nicht von einer Plattform-Domain, traegt der Owner die
+> Verantwortung — nicht osss.pro.
+
 > **Personalisierungs-Hooks** (in jeder Vorlage zu ersetzen):
 > `[STUDIO]` = Studio-Name, `[VORNAME]` = Vorname Ansprechpartner, `[STADT]` = Stadt,
 > `[SPORTART]` = BJJ / MMA / Boxen / Karate / Judo / Taekwondo / Kickboxen / Muay Thai

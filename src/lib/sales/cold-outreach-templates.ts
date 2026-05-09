@@ -4,19 +4,20 @@
  * Synced mit `compliance/sales/cold-outreach-de.md`. Code lädt Templates,
  * UI rendert Auswahl, der Owner füllt Personalisierungs-Hooks pro Lead aus.
  *
- * UWG-§7-Compliance:
- *   Reine Auto-Mails OHNE sichtbare Personalisierung sind in DACH abmahnbar
- *   (LG Köln 2018: §7 Abs. 2 Nr. 3 UWG). Deshalb sind die `personalization_hooks`
- *   PFLICHT-Felder — die UI lässt nicht senden ohne dass mindestens einer
- *   davon befüllt ist. So bleibt jede Mail nachweislich individualisiert.
+ * WICHTIG — Compose-Hilfe ohne Auto-Versand:
+ *   Diese Templates werden ausschließlich als Compose-Hilfe verwendet. Die
+ *   UI öffnet einen `mailto:`-Link mit prefilled Subject + Body — der Owner
+ *   sendet die Mail aus seinem eigenen Mail-Client (Apple Mail, Gmail, …).
  *
- * Rate-Limit:
- *   Send-Endpoint deckelt auf MAX_MAILS_PER_DAY pro Owner. Mehr ist im
- *   Solo-Sales-Workflow ohnehin unrealistisch — DACH-Outreach ist
- *   Hand-Arbeit, nicht Mass-Mailing.
+ *   Plattform versendet KEINE Cold-Mails. Damit:
+ *   - Keine UWG-§7-Plattform-Haftung
+ *   - Keine osss.pro-Domain-Spam-Reputation-Risiko
+ *   - Owner trägt selbst Verantwortung für sein Outreach-Verhalten
+ *
+ *   Die Pflicht-Personalisierungs-Hooks sind trotzdem da — als Hilfe für den
+ *   Owner, individualisierte Mails zu schreiben. Ohne min 10 Zeichen pro
+ *   Hook lehnt die UI das mailto:-Open ab.
  */
-
-export const MAX_MAILS_PER_DAY = 20
 
 export type ColdOutreachVariant = 'small' | 'medium' | 'large'
 
