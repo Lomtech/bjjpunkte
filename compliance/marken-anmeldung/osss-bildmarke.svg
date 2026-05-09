@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OSSS BILDMARKE — Reine Bildmarke ohne Wort.
+  Schützt nur das visuelle Element (Quadrat + drei Balken).
+  Konkurrent darf das Wort "Osss" weiterhin nutzen wenn nur Bildmarke geschützt.
+
+  Maße:  1200 × 1200 px (quadratisch, hochauflösend)
+  Farbe: amber-400 (#FBBF24) — Hintergrund-Quadrat
+         zinc-950 (#09090B) — Balken
+  Konstruktion:
+    - Quadrat 1200×1200 px, Eckenradius 240 px (rounded-3xl-equivalent)
+    - 3 Balken zentriert, gleicher Abstand
+    - Balken absteigend: 100% / 67% / 33% Breite (Belt-Stripes-Anspielung)
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="1200"
+     viewBox="0 0 1200 1200"
+     style="background:#ffffff">
+  <!-- Amber-Quadrat (Hintergrund-Tile) -->
+  <rect x="0" y="0" width="1200" height="1200" rx="240" ry="240" fill="#FBBF24"/>
+
+  <!-- Drei Belt-Stripes, zentriert.
+       Aspect ratio des Original-Logos: 18:14 (Breite:Höhe).
+       Bei 600 px Quadrat-Inhalt-Breite: Stripes-Bereich 600 px breit, 467 px hoch.
+       Vertical-zentriert in 1200 px = y-Start (1200-467)/2 = 367
+       Horizontal-zentriert: x-Start = (1200-600)/2 = 300
+  -->
+  <g fill="#09090B">
+    <!-- Top Stripe: 100% Breite -->
+    <rect x="300" y="367" width="600" height="93" rx="46" ry="46"/>
+    <!-- Middle Stripe: 67% Breite -->
+    <rect x="300" y="554" width="400" height="93" rx="46" ry="46"/>
+    <!-- Bottom Stripe: 33% Breite -->
+    <rect x="300" y="740" width="200" height="93" rx="46" ry="46"/>
+  </g>
+</svg>
