@@ -5,6 +5,11 @@ import Link from 'next/link'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
 import { Calculator, ArrowRight, Clock, Euro, TrendingDown, Zap } from 'lucide-react'
 import { TopNav } from '@/components/TopNav'
+import {
+  getTierForMemberCount,
+  LIFETIME_PILOT_DISCOUNT,
+  LIFETIME_PILOT_PROMO_CODE,
+} from '@/lib/pricing'
 
 /**
  * Gym-Software-Kosten-Rechner
@@ -14,14 +19,10 @@ import { TopNav } from '@/components/TopNav'
  * vs. Software wie Osss.
  *
  * Conversion-Hook: am Ende der Berechnung CTA zu /register.
+ *
+ * Preis-Logik kommt zentral aus src/lib/pricing.ts — nicht hardcoden,
+ * sonst driftet der Rechner beim nächsten Pricing-Realignment auseinander.
  */
-
-function getOsssMonthly(members: number): number {
-  if (members <= 30) return 0
-  if (members <= 50) return 29
-  if (members <= 150) return 59
-  return 99
-}
 
 function getEversportsMonthly(members: number, avgFee: number): number {
   // Eversports: Basisplan ~49 €/mo + 1.5% Plattformgebühr auf Beiträge
@@ -41,8 +42,12 @@ export default function RechnerPage() {
     const annualHours = hoursPerWeek * 50 // 50 Wochen
     const annualLaborCost = annualHours * hourlyRate
 
-    const osssMonthly = getOsssMonthly(members)
+    // Tier kommt aus pricing.ts (single source of truth)
+    const tier = getTierForMemberCount(members)
+    const osssMonthly = tier.monthlyCents / 100
     const osssAnnual = osssMonthly * 12
+    // PILOT10: erste 10 Studios bekommen LIFETIME_PILOT_DISCOUNT (60% des Preises)
+    const pilotMonthly = Math.round(osssMonthly * LIFETIME_PILOT_DISCOUNT)
 
     const eversportsMonthly = getEversportsMonthly(members, avgFee)
     const eversportsAnnual = eversportsMonthly * 12
@@ -53,8 +58,10 @@ export default function RechnerPage() {
     return {
       annualHours,
       annualLaborCost,
+      tier,
       osssMonthly,
       osssAnnual,
+      pilotMonthly,
       eversportsMonthly,
       eversportsAnnual,
       savingsVsManual,
@@ -131,12 +138,19 @@ export default function RechnerPage() {
               <ResultCard
                 tone="emerald"
                 icon={<Zap size={18} />}
-                title="Osss"
+                title={`Osss${calc.osssMonthly > 0 ? ` · ${calc.tier.name}` : ''}`}
                 value={calc.osssAnnual === 0 ? 'Kostenlos' : fmt(calc.osssAnnual)}
                 sub={calc.osssMonthly === 0 ? 'Bis 30 Mitglieder gratis' : `${calc.osssMonthly} €/Monat · 0% Plattformgebühr`}
                 note="Stripe-Standard-Gebühren auf Beiträge (1,4% + 0,25 €), wie überall."
                 highlight
               />
+
+              {/* PILOT10 hint — nur wenn nicht im Free-Tier */}
+              {calc.osssMonthly > 0 && (
+                <p className="text-xs text-emerald-700 leading-relaxed bg-emerald-50/60 border border-emerald-200 rounded-xl px-4 py-3">
+                  💡 Erste 10 Studios bekommen mit Code <strong>{LIFETIME_PILOT_PROMO_CODE}</strong> dauerhaft 40% Rabatt = nur <strong>{calc.pilotMonthly} €/Mo</strong>
+                </p>
+              )}
 
               {/* Savings */}
               <div className="bg-zinc-950 text-white rounded-2xl p-5 sm:p-6 mt-5">

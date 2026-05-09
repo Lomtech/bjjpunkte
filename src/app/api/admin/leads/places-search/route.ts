@@ -41,8 +41,12 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
   const queryLower = query.toLowerCase()
-  const biasLat    = bias?.lat ?? null
-  const biasLng    = bias?.lng ?? null
+  // Bias auf 4 Nachkommastellen runden bevor Cache-Vergleich (≈11m Genauigkeit
+  // bei Lat — ausreichend für eine Stadtgebiet-Bias). Verhindert Cache-Misses
+  // durch Float-Drift wie 52.52 vs 52.5200000001.
+  const round4 = (n: number) => Math.round(n * 1e4) / 1e4
+  const biasLat    = bias?.lat != null ? round4(bias.lat) : null
+  const biasLng    = bias?.lng != null ? round4(bias.lng) : null
   const biasRad    = bias?.radiusMeters ?? null
 
   // ── Step 1: Cache lookup ─────────────────────────────────
@@ -65,12 +69,20 @@ export async function POST(req: Request) {
   const isFresh = sameBias && ageMs < CACHE_TTL_MS
 
   // ── Step 2: Count existing leads matching this query ─────
-  // (Best-effort name match — user wants to know how many are already in DB)
+  // Heuristik (Audit 2026-05-09): Wir versuchen einen plausiblen
+  // City-Token aus der Query zu finden (= das letzte Wort, häufig
+  // Stadtname bei Queries wie „BJJ München" / „Jiu Jitsu Berlin").
+  // Wenn Query nur ein Wort hat, fallen wir auf einen `ilike` auf
+  // `name` zurück. Das ist immer noch ungefähr — informativer als
+  // der vorherige first-word-only-Match, aber keine harte Aussage.
+  const tokens = query.split(/\s+/).filter(Boolean)
+  const cityGuess = tokens.length >= 2 ? tokens[tokens.length - 1] : null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { count: existingMatch } = await (supabase.from('sales_leads') as any)
+  const existingQuery = (supabase.from('sales_leads') as any)
     .select('id', { count: 'exact', head: true })
-    .ilike('name', `%${query.split(' ').slice(0, 1)[0]}%`)
-    .limit(1)
+  const { count: existingMatch } = cityGuess
+    ? await existingQuery.ilike('city', `%${cityGuess}%`)
+    : await existingQuery.ilike('name', `%${tokens[0] ?? query}%`)
 
   if (isFresh && !force) {
     return NextResponse.json({
@@ -107,6 +119,7 @@ export async function POST(req: Request) {
   let totalFound = 0
   let inserted = 0
   let updated = 0
+  let alreadyInDb = 0   // duplicates: places where google_place_id already had a sales_leads row
   let pagesCalled = 0
   const errors: string[] = []
   let pageToken: string | undefined = undefined
@@ -179,6 +192,8 @@ export async function POST(req: Request) {
           })
         }
       } else {
+        // existing lead → counts as "already in DB" duplicate from this search's POV
+        alreadyInDb++
         // refresh metadata only — don't touch pipeline state
         const refresh = {
           formatted_address: row.formatted_address,
@@ -232,6 +247,7 @@ export async function POST(req: Request) {
     totalFound,
     inserted,
     updated,
+    alreadyInDb,
     pagesCalled,
     costUsd: +(pagesCalled * COST_PER_CALL_USD).toFixed(3),
     quota: quotaAfter,

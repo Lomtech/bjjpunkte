@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react'
+import Link from 'next/link'
+import { LayoutDashboard } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { createClient } from '@/lib/supabase/client'
 import type { SalesLead, SalesActivity, SalesLeadStatus } from '@/types/database'
@@ -262,6 +264,7 @@ export default function AdminLeadsPage() {
     message?: string
     inserted: number
     updated: number
+    alreadyInDb?: number
     totalFound?: number
     pagesCalled?: number
     costUsd?: number
@@ -427,6 +430,7 @@ export default function AdminLeadsPage() {
           message: data.message,
           inserted: data.inserted ?? 0,
           updated: data.updated ?? 0,
+          alreadyInDb: data.alreadyInDb,
           totalFound: data.totalFound,
           pagesCalled: data.pagesCalled,
           costUsd: data.costUsd,
@@ -486,11 +490,21 @@ export default function AdminLeadsPage() {
       <header className="bg-white border-b border-zinc-200 sticky top-0 z-20">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-xl font-bold text-zinc-900">Sales-CRM</h1>
-              <p className="text-xs sm:text-sm text-zinc-500 truncate">
-                {total} Leads · {statusCounts.contacted ?? 0} kontakt. · {statusCounts.qualified ?? 0} qualifiz. · {statusCounts.won ?? 0} gewonnen
-              </p>
+            <div className="min-w-0 flex-1 flex items-center gap-2 sm:gap-3">
+              {/* Back to gym dashboard — CRM is its own PWA, so we need an explicit way out. */}
+              <Link href="/dashboard"
+                className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 rounded-xl text-zinc-700 text-xs sm:text-sm font-medium transition-colors"
+                aria-label="Zurück zum Dashboard"
+                title="Zurück zum Studio-Dashboard">
+                <LayoutDashboard size={16} aria-hidden="true" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl font-bold text-zinc-900">Sales-CRM</h1>
+                <p className="text-xs sm:text-sm text-zinc-500 truncate">
+                  {total} Leads · {statusCounts.contacted ?? 0} kontakt. · {statusCounts.qualified ?? 0} qualifiz. · {statusCounts.won ?? 0} gewonnen
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Mobile filter toggle */}
@@ -911,10 +925,13 @@ export default function AdminLeadsPage() {
             {searchResult && !searchResult.cached && (searchResult.inserted > 0 || searchResult.updated > 0 || (searchResult.totalFound ?? 0) > 0) && (
               <div className="text-sm bg-emerald-50 text-emerald-800 px-3 py-2 rounded-lg mb-3">
                 ✓ {searchResult.inserted} neu, {searchResult.updated} aktualisiert
+                {(searchResult.alreadyInDb ?? 0) > 0 && ` · ${searchResult.alreadyInDb} schon im CRM`}
                 {(searchResult.totalFound ?? 0) > 0 && ` · ${searchResult.totalFound} gefunden`}
                 {(searchResult.pagesCalled ?? 0) > 0 && (
                   <div className="text-xs mt-1 opacity-80">
                     {searchResult.pagesCalled} Google-Calls verbraucht (~${searchResult.costUsd?.toFixed(3)})
+                    {(searchResult.alreadyInDb ?? 0) > 0 && (searchResult.totalFound ?? 0) > 0 &&
+                      ` · ${Math.round(((searchResult.alreadyInDb ?? 0) / (searchResult.totalFound ?? 1)) * 100)}% waren Duplikate`}
                   </div>
                 )}
                 {searchResult.errors.length > 0 && (
@@ -1815,6 +1832,93 @@ function PipelineView({ token, martialOnly, city, onSelect, onChanged }: {
   const [data, setData] = useState<PipelineData | null>(null)
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const confirm = useConfirm()
+
+  // Bulk-Send-Status-Panel (zeigt sich kurz nach einem Bulk-Run).
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkResult, setBulkResult] = useState<{
+    sent: number
+    skipped: number
+    skipReasons: string[]
+    remainingDailyQuota: number
+    leadsContacted: { id: string; name: string; email: string; variant: string }[]
+    error?: string
+  } | null>(null)
+
+  /**
+   * Bulk-Auto-Send: sendet bis zu BULK_MAX_PER_RUN (server-side: 10) Mails an
+   * unkontaktierte Leads in einem Schwung.
+   *
+   * UWG-§7-Risiko: Bulk-Mails OHNE manuelle Personalisierung sind
+   * abmahn-anfälliger. Hooks werden aus Lead-Daten generiert (Notes/Stadt),
+   * Subject + Body enthalten IMMER Studio-Name und Stadt. Trotzdem:
+   * Konvertiert 5-10× schlechter als Hand-Personalisierung. Owner sollte
+   * das nur als Backup nutzen.
+   */
+  async function handleBulkSend() {
+    const ok = await confirm({
+      title: 'Auto-Send: bis zu 10 Mails',
+      description:
+        'Es werden bis zu 10 Cold-Outreach-Mails an unkontaktierte Leads geschickt — ohne manuelle Personalisierung. ' +
+        'Empfohlen NUR als Backup, wenn keine Zeit für Hand-Mails. Manuelle Mails konvertieren 5-10× besser. ' +
+        'Studio-Name und Stadt sind die einzige Personalisierung. Fortfahren?',
+      confirmLabel: 'Senden',
+      variant: 'primary',
+    })
+    if (!ok) return
+
+    setBulkBusy(true)
+    setBulkResult(null)
+    try {
+      const res = await fetch('/api/admin/sales/leads/bulk-send-mail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      })
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        error?: string
+        sent?: number
+        skipped?: number
+        skipReasons?: string[]
+        remainingDailyQuota?: number
+        leadsContacted?: { id: string; name: string; email: string; variant: string }[]
+      }
+      if (!res.ok || !json.ok) {
+        setBulkResult({
+          sent: 0,
+          skipped: 0,
+          skipReasons: [],
+          remainingDailyQuota: json.remainingDailyQuota ?? 0,
+          leadsContacted: [],
+          error: json.error ?? `HTTP ${res.status}`,
+        })
+        return
+      }
+      setBulkResult({
+        sent: json.sent ?? 0,
+        skipped: json.skipped ?? 0,
+        skipReasons: json.skipReasons ?? [],
+        remainingDailyQuota: json.remainingDailyQuota ?? 0,
+        leadsContacted: json.leadsContacted ?? [],
+      })
+      // Pipeline neu laden, damit kontaktierte Leads aus „Heute fällig"
+      // verschwinden bzw. den neuen Status zeigen.
+      await load()
+      onChanged()
+    } catch (err) {
+      setBulkResult({
+        sent: 0,
+        skipped: 0,
+        skipReasons: [],
+        remainingDailyQuota: 0,
+        leadsContacted: [],
+        error: err instanceof Error ? err.message : 'Bulk-Send fehlgeschlagen',
+      })
+    } finally {
+      setBulkBusy(false)
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1880,7 +1984,7 @@ function PipelineView({ token, martialOnly, city, onSelect, onChanged }: {
               </div>
             )}
           </div>
-          <div className="flex flex-wrap gap-3 text-xs">
+          <div className="flex flex-wrap gap-3 text-xs items-center">
             <span className="px-2.5 py-1 bg-white/70 rounded-full text-zinc-700">
               📥 <strong>{weekly.new_leads}</strong> neue Leads
             </span>
@@ -1893,9 +1997,76 @@ function PipelineView({ token, martialOnly, city, onSelect, onChanged }: {
             <span className="px-2.5 py-1 bg-rose-50 rounded-full text-rose-800">
               × <strong>{weekly.lost}</strong> verloren
             </span>
+            <button
+              onClick={handleBulkSend}
+              disabled={bulkBusy}
+              title="Sendet bis zu 10 generische Cold-Mails an unkontaktierte Leads. Nur als Backup nutzen — manuelle Mails konvertieren 5-10× besser."
+              className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-full">
+              {bulkBusy ? '⏳ Sende…' : '⚡ Auto-Send 10 Mails'}
+            </button>
           </div>
         </div>
+        {/* UWG-§7-Hinweis: bei Auto-Send fehlt manuelle Personalisierung,
+            deshalb dauerhaft sichtbar warnen. */}
+        <p className="text-[11px] text-amber-700/80 mt-2">
+          Auto-Send: nur als Backup wenn keine Zeit für manuelle Personalisierung. Manuelle Mails konvertieren 5-10× besser.
+        </p>
       </div>
+
+      {/* Bulk-Send-Resultat-Panel — erscheint direkt nach Bulk-Run */}
+      {bulkResult && (
+        <div className={`rounded-2xl border p-4 ${
+          bulkResult.error
+            ? 'bg-rose-50 border-rose-200'
+            : bulkResult.sent > 0
+              ? 'bg-emerald-50 border-emerald-200'
+              : 'bg-amber-50 border-amber-200'
+        }`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              {bulkResult.error ? (
+                <p className="text-sm font-bold text-rose-900">
+                  ⚠️ Bulk-Send fehlgeschlagen: {bulkResult.error}
+                </p>
+              ) : (
+                <p className="text-sm font-bold text-zinc-900">
+                  ✓ {bulkResult.sent} gesendet · {bulkResult.skipped} übersprungen ·
+                  {' '}{bulkResult.remainingDailyQuota} Slots heute übrig
+                </p>
+              )}
+              {bulkResult.leadsContacted.length > 0 && (
+                <details className="mt-2">
+                  <summary className="text-xs text-zinc-600 cursor-pointer hover:text-zinc-900">
+                    Kontaktierte Leads anzeigen ({bulkResult.leadsContacted.length})
+                  </summary>
+                  <ul className="mt-2 space-y-1 text-xs text-zinc-700">
+                    {bulkResult.leadsContacted.map(l => (
+                      <li key={l.id} className="flex items-center gap-2">
+                        <span className="font-mono px-1.5 py-0.5 bg-white/70 rounded text-[10px] uppercase">{l.variant}</span>
+                        <span className="font-medium">{l.name}</span>
+                        <span className="text-zinc-500">· {l.email}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              {bulkResult.skipReasons.length > 0 && (
+                <details className="mt-1">
+                  <summary className="text-xs text-zinc-600 cursor-pointer hover:text-zinc-900">
+                    Skip-Gründe anzeigen ({bulkResult.skipReasons.length})
+                  </summary>
+                  <ul className="mt-1 space-y-0.5 text-[11px] text-zinc-600 font-mono">
+                    {bulkResult.skipReasons.map((r, i) => (<li key={i}>· {r}</li>))}
+                  </ul>
+                </details>
+              )}
+            </div>
+            <button onClick={() => setBulkResult(null)}
+              className="text-zinc-400 hover:text-zinc-700 text-xl leading-none flex-shrink-0"
+              aria-label="Schließen">×</button>
+          </div>
+        </div>
+      )}
 
       {/* 4-column kanban — scroll horizontally on small screens */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
