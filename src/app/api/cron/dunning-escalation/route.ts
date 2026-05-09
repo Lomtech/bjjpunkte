@@ -132,7 +132,6 @@ export async function GET(req: Request) {
       // ts-ignore, weil das Modul evtl. noch nicht existiert — wenn ja, läuft import().catch() die graceful Bahn.
       try {
         const mod = await (
-          // @ts-ignore — module may not exist yet, handled at runtime
           import('@/lib/dunning-mail') as Promise<{
             sendDunningMail?: (memberId: string, level: number, amount: number) => Promise<unknown>
           }>
@@ -199,7 +198,6 @@ export async function GET(req: Request) {
 
       try {
         const mod = await (
-          // @ts-ignore — module may not exist yet, handled at runtime
           import('@/lib/dunning-mail') as Promise<{
             sendDunningMail?: (memberId: string, level: number, amount: number) => Promise<unknown>
           }>

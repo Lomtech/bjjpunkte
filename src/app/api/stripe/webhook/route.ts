@@ -521,7 +521,6 @@ export async function POST(req: Request) {
         // Optional dunning mail to member (defensive dynamic import — sibling agent may not
         // have created the helper yet; never crash the webhook because of this).
         try {
-          // @ts-ignore — module may not exist yet; runtime catches missing module
           const mod = (await import('@/lib/dunning-mail')) as {
             sendDunningMail?: (memberId: string, level: number, amountCents: number) => Promise<unknown>
           }
