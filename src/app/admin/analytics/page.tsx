@@ -20,6 +20,7 @@ import {
 
 interface AnalyticsData {
   range: { days: number; since: string }
+  filter?: AnalyticsFilter
   summary: {
     total_views: number
     unique_visitors: number
@@ -49,6 +50,19 @@ interface AnalyticsData {
 
 type Range = '7d' | '30d' | '90d'
 
+/**
+ * Cross-Filter State. Click auf einen Path/Country/Device/Browser/Source
+ * filtert alle anderen Stats. Path-Filter ist exakt-match oder Prefix mit
+ * trailing /* (z.B. "/blog/*" matcht /blog, /blog/foo).
+ */
+interface AnalyticsFilter {
+  path?: string | null
+  country?: string | null
+  device?: string | null
+  browser?: string | null
+  source?: string | null
+}
+
 // Hübsche Labels für die kategorisierten Quellen aus categorizeReferrer()
 const SOURCE_LABEL: Record<string, string> = {
   google:        '🔍 Google',
@@ -77,6 +91,23 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState<Range>('30d')
+  const [filter, setFilter] = useState<AnalyticsFilter>({})
+
+  // Helper: toggle a filter dimension. Click again on same value = clear.
+  function toggleFilter<K extends keyof AnalyticsFilter>(key: K, value: AnalyticsFilter[K]) {
+    setFilter(prev => {
+      const current = prev[key]
+      if (current === value) {
+        // Same value clicked again → unset this dimension
+        const next = { ...prev }
+        delete next[key]
+        return next
+      }
+      return { ...prev, [key]: value }
+    })
+  }
+  function clearFilter() { setFilter({}) }
+  const hasFilter = Object.values(filter).some(v => v != null)
 
   // Owner-Opt-Out für Tracking: wer auf dieser Seite war, ist Admin/Owner und
   // soll seine eigenen Visits nicht in der Statistik haben. Cookie zusätzlich
@@ -101,7 +132,13 @@ export default function AnalyticsPage() {
           return
         }
 
-        const res = await fetch(`/api/admin/analytics?range=${range}`, {
+        const params = new URLSearchParams({ range })
+        if (filter.path)    params.set('path',    filter.path)
+        if (filter.country) params.set('country', filter.country)
+        if (filter.device)  params.set('device',  filter.device)
+        if (filter.browser) params.set('browser', filter.browser)
+        if (filter.source)  params.set('source',  filter.source)
+        const res = await fetch(`/api/admin/analytics?${params.toString()}`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
           cache: 'no-store',
         })
@@ -122,7 +159,7 @@ export default function AnalyticsPage() {
       }
     })()
     return () => { cancelled = true }
-  }, [range, router])
+  }, [range, router, filter])
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -155,6 +192,36 @@ export default function AnalyticsPage() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-5 py-8">
+
+        {/* Active-Filter-Banner — zeigt aktive Cross-Filter mit X zum Entfernen */}
+        {hasFilter && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="font-bold text-amber-900 uppercase tracking-wider text-[10px]">
+                Filter aktiv:
+              </span>
+              {filter.path && (
+                <FilterChip label="Pfad" value={filter.path} onClear={() => toggleFilter('path', filter.path)} />
+              )}
+              {filter.country && (
+                <FilterChip label="Land" value={filter.country} onClear={() => toggleFilter('country', filter.country)} />
+              )}
+              {filter.device && (
+                <FilterChip label="Gerät" value={filter.device} onClear={() => toggleFilter('device', filter.device)} />
+              )}
+              {filter.browser && (
+                <FilterChip label="Browser" value={filter.browser} onClear={() => toggleFilter('browser', filter.browser)} />
+              )}
+              {filter.source && (
+                <FilterChip label="Quelle" value={filter.source} onClear={() => toggleFilter('source', filter.source)} />
+              )}
+            </div>
+            <button onClick={clearFilter}
+              className="shrink-0 text-xs font-semibold text-amber-900 hover:text-amber-700 underline">
+              Alle entfernen
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6">
@@ -205,8 +272,10 @@ export default function AnalyticsPage() {
               <Section title="Top Pages">
                 {data.top_pages.length === 0 ? <Empty /> : (
                   <BarList
-                    items={data.top_pages.map(p => ({ label: p.path, count: p.count }))}
+                    items={data.top_pages.map(p => ({ label: p.path, count: p.count, value: p.path }))}
                     formatLabel={l => l}
+                    onClick={path => toggleFilter('path', path)}
+                    activeValue={filter.path ?? undefined}
                   />
                 )}
               </Section>
@@ -218,8 +287,11 @@ export default function AnalyticsPage() {
                     items={data.sources.map(r => ({
                       label: SOURCE_LABEL[r.source] ?? r.source,
                       count: r.count,
+                      value: r.source,
                     }))}
                     formatLabel={l => l}
+                    onClick={source => toggleFilter('source', source)}
+                    activeValue={filter.source ?? undefined}
                   />
                 )}
               </Section>
@@ -290,26 +362,37 @@ export default function AnalyticsPage() {
 
             {/* Conversion-Funnel */}
             <Section title="🎯 Conversion Funnel">
-              <Funnel funnel={data.funnel} />
+              <Funnel
+                funnel={data.funnel}
+                onClick={path => toggleFilter('path', path)}
+                activePath={filter.path ?? undefined}
+              />
             </Section>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
               {/* Devices */}
               <Section title="Geräte">
                 {data.devices.length === 0 ? <Empty /> : (
-                  <ul className="space-y-2">
+                  <ul className="space-y-1">
                     {data.devices.map(d => {
                       const total = data.devices.reduce((a, b) => a + b.count, 0)
                       const pct = total > 0 ? Math.round((d.count / total) * 100) : 0
+                      const isActive = filter.device === d.device
                       return (
-                        <li key={d.device} className="flex items-center justify-between text-sm">
-                          <span className="flex items-center gap-2">
-                            {d.device === 'mobile' ? <Smartphone size={14} className="text-zinc-400" /> :
-                             d.device === 'tablet' ? <Tablet size={14} className="text-zinc-400" /> :
-                             <Monitor size={14} className="text-zinc-400" />}
-                            <span className="capitalize text-zinc-700">{d.device}</span>
-                          </span>
-                          <span className="font-semibold text-zinc-900 tabular-nums">{pct}% <span className="text-zinc-400 font-normal">({d.count})</span></span>
+                        <li key={d.device}>
+                          <button
+                            onClick={() => toggleFilter('device', d.device)}
+                            className={`w-full flex items-center justify-between text-sm px-2 py-1.5 rounded-md transition-colors ${
+                              isActive ? 'bg-amber-100 ring-1 ring-amber-400' : 'hover:bg-zinc-50'
+                            }`}>
+                            <span className="flex items-center gap-2">
+                              {d.device === 'mobile' ? <Smartphone size={14} className="text-zinc-400" /> :
+                               d.device === 'tablet' ? <Tablet size={14} className="text-zinc-400" /> :
+                               <Monitor size={14} className="text-zinc-400" />}
+                              <span className="capitalize text-zinc-700">{d.device}</span>
+                            </span>
+                            <span className="font-semibold text-zinc-900 tabular-nums">{pct}% <span className="text-zinc-400 font-normal">({d.count})</span></span>
+                          </button>
                         </li>
                       )
                     })}
@@ -320,13 +403,22 @@ export default function AnalyticsPage() {
               {/* Browsers */}
               <Section title="Browser">
                 {data.browsers.length === 0 ? <Empty /> : (
-                  <ul className="space-y-2">
-                    {data.browsers.map(b => (
-                      <li key={b.browser} className="flex items-center justify-between text-sm">
-                        <span className="capitalize text-zinc-700">{b.browser}</span>
-                        <span className="font-semibold text-zinc-900 tabular-nums">{b.count}</span>
-                      </li>
-                    ))}
+                  <ul className="space-y-1">
+                    {data.browsers.map(b => {
+                      const isActive = filter.browser === b.browser
+                      return (
+                        <li key={b.browser}>
+                          <button
+                            onClick={() => toggleFilter('browser', b.browser)}
+                            className={`w-full flex items-center justify-between text-sm px-2 py-1.5 rounded-md transition-colors ${
+                              isActive ? 'bg-amber-100 ring-1 ring-amber-400' : 'hover:bg-zinc-50'
+                            }`}>
+                            <span className="capitalize text-zinc-700">{b.browser}</span>
+                            <span className="font-semibold text-zinc-900 tabular-nums">{b.count}</span>
+                          </button>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </Section>
@@ -334,16 +426,25 @@ export default function AnalyticsPage() {
               {/* Countries */}
               <Section title="Länder">
                 {data.countries.length === 0 ? <Empty /> : (
-                  <ul className="space-y-2">
-                    {data.countries.map(c => (
-                      <li key={c.country} className="flex items-center justify-between text-sm">
-                        <span className="flex items-center gap-2">
-                          <Globe size={13} className="text-zinc-400" />
-                          <span className="text-zinc-700 uppercase">{c.country === 'unknown' ? '—' : c.country}</span>
-                        </span>
-                        <span className="font-semibold text-zinc-900 tabular-nums">{c.count}</span>
-                      </li>
-                    ))}
+                  <ul className="space-y-1">
+                    {data.countries.map(c => {
+                      const isActive = filter.country === c.country.toUpperCase()
+                      return (
+                        <li key={c.country}>
+                          <button
+                            onClick={() => toggleFilter('country', c.country.toUpperCase())}
+                            className={`w-full flex items-center justify-between text-sm px-2 py-1.5 rounded-md transition-colors ${
+                              isActive ? 'bg-amber-100 ring-1 ring-amber-400' : 'hover:bg-zinc-50'
+                            }`}>
+                            <span className="flex items-center gap-2">
+                              <Globe size={13} className="text-zinc-400" />
+                              <span className="text-zinc-700 uppercase">{c.country === 'unknown' ? '—' : c.country}</span>
+                            </span>
+                            <span className="font-semibold text-zinc-900 tabular-nums">{c.count}</span>
+                          </button>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </Section>
@@ -590,57 +691,142 @@ function Timeline({ data }: { data: { date: string; count: number }[] }) {
   )
 }
 
-function BarList({ items, formatLabel }: { items: { label: string; count: number }[]; formatLabel: (l: string) => string }) {
+/**
+ * BarList — generische Liste mit Balken-Visualisierung. Optional klickbar:
+ * wenn `onClick` + `value` pro Item gesetzt sind, wird das Item zu einem
+ * Filter-Toggle (klick = filtern, klick gleicher Wert = un-filtern).
+ */
+function BarList({
+  items,
+  formatLabel,
+  onClick,
+  activeValue,
+}: {
+  items: { label: string; count: number; value?: string }[]
+  formatLabel: (l: string) => string
+  onClick?: (value: string) => void
+  activeValue?: string
+}) {
   const max = Math.max(...items.map(i => i.count), 1)
   return (
     <ul className="space-y-1.5">
-      {items.map(i => (
-        <li key={i.label} className="text-sm">
-          <div className="flex items-center justify-between mb-0.5">
-            <span className="text-zinc-700 truncate font-mono text-xs" title={i.label}>{formatLabel(i.label)}</span>
-            <span className="font-semibold text-zinc-900 tabular-nums ml-2">{i.count}</span>
-          </div>
-          <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(i.count / max) * 100}%` }} />
-          </div>
-        </li>
-      ))}
+      {items.map(i => {
+        const isActive = onClick && i.value !== undefined && activeValue === i.value
+        const isClickable = !!onClick && i.value !== undefined
+        const inner = (
+          <>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-zinc-700 truncate font-mono text-xs" title={i.label}>{formatLabel(i.label)}</span>
+              <span className="font-semibold text-zinc-900 tabular-nums ml-2">{i.count}</span>
+            </div>
+            <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(i.count / max) * 100}%` }} />
+            </div>
+          </>
+        )
+        if (isClickable) {
+          return (
+            <li key={i.label}>
+              <button
+                onClick={() => onClick!(i.value!)}
+                className={`w-full text-left text-sm px-2 py-1 rounded-md transition-colors ${
+                  isActive ? 'bg-amber-100 ring-1 ring-amber-400' : 'hover:bg-zinc-50'
+                }`}>
+                {inner}
+              </button>
+            </li>
+          )
+        }
+        return <li key={i.label} className="text-sm">{inner}</li>
+      })}
     </ul>
   )
 }
 
-function Funnel({ funnel }: { funnel: AnalyticsData['funnel'] }) {
+/**
+ * Funnel — Conversion-Pipeline-Visualisierung. Path-Filter-aware:
+ * Stages sind klickbar und filtern auf den jeweiligen Pfad.
+ *
+ * Path-Mapping:
+ *   Landing  → '/' (exact)
+ *   Blog     → '/blog/*' (prefix)
+ *   Pricing  → '/pricing'
+ *   Register → '/register'
+ */
+function Funnel({
+  funnel,
+  onClick,
+  activePath,
+}: {
+  funnel: AnalyticsData['funnel']
+  onClick?: (path: string) => void
+  activePath?: string
+}) {
   const max = Math.max(funnel.home, funnel.pricing, funnel.register, 1)
   const stages = [
-    { label: '🏠 Landing (/)',           count: funnel.home,     conversion: null },
-    { label: '📝 Blog (/blog/*)',         count: funnel.blog,     conversion: null },
-    { label: '💰 Pricing (/pricing)',     count: funnel.pricing,  conversion: funnel.home_to_pricing_pct },
-    { label: '✍️ Register (/register)',  count: funnel.register, conversion: funnel.pricing_to_register_pct },
+    { label: '🏠 Landing (/)',           count: funnel.home,     conversion: null,                              path: '/' },
+    { label: '📝 Blog (/blog/*)',         count: funnel.blog,     conversion: null,                              path: '/blog/*' },
+    { label: '💰 Pricing (/pricing)',     count: funnel.pricing,  conversion: funnel.home_to_pricing_pct,        path: '/pricing' },
+    { label: '✍️ Register (/register)',  count: funnel.register, conversion: funnel.pricing_to_register_pct,    path: '/register' },
   ]
   return (
     <div className="space-y-3">
-      {stages.map((s, i) => (
-        <div key={i}>
-          <div className="flex items-center justify-between text-sm mb-1">
-            <span className="text-zinc-700">{s.label}</span>
-            <span className="text-zinc-900 font-semibold tabular-nums">
-              {s.count} {s.conversion !== null && (
-                <span className="text-zinc-400 font-normal ml-1">→ {s.conversion}%</span>
-              )}
-            </span>
-          </div>
-          <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"
-              style={{ width: `${(s.count / max) * 100}%` }}
-            />
-          </div>
-        </div>
-      ))}
+      {stages.map((s, i) => {
+        const isActive = activePath === s.path
+        const inner = (
+          <>
+            <div className="flex items-center justify-between text-sm mb-1">
+              <span className="text-zinc-700">{s.label}</span>
+              <span className="text-zinc-900 font-semibold tabular-nums">
+                {s.count} {s.conversion !== null && (
+                  <span className="text-zinc-400 font-normal ml-1">→ {s.conversion}%</span>
+                )}
+              </span>
+            </div>
+            <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full"
+                style={{ width: `${(s.count / max) * 100}%` }}
+              />
+            </div>
+          </>
+        )
+        if (onClick) {
+          return (
+            <button
+              key={i}
+              onClick={() => onClick(s.path)}
+              className={`w-full text-left px-2 py-1.5 rounded-md transition-colors ${
+                isActive ? 'bg-amber-100 ring-1 ring-amber-400' : 'hover:bg-zinc-50'
+              }`}>
+              {inner}
+            </button>
+          )
+        }
+        return <div key={i}>{inner}</div>
+      })}
       <p className="text-xs text-zinc-500 mt-3 italic">
         Sessions auf der jeweiligen Seite. Conversion-Rate berechnet aus Sessions, nicht
-        Visitors — eine Person kann mehrere Sessions haben.
+        Visitors — eine Person kann mehrere Sessions haben. Tippe auf einen Stage, um
+        alle anderen Statistiken auf den Pfad zu filtern.
       </p>
     </div>
+  )
+}
+
+/**
+ * FilterChip — kleine Pille die einen aktiven Filter zeigt mit X zum Entfernen.
+ */
+function FilterChip({ label, value, onClear }: { label: string; value: string; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-amber-300 rounded-full text-zinc-800">
+      <span className="text-amber-700 font-semibold">{label}:</span>
+      <code className="font-mono text-[11px]">{value}</code>
+      <button
+        onClick={onClear}
+        aria-label={`${label}-Filter entfernen`}
+        className="text-zinc-400 hover:text-zinc-700 leading-none ml-0.5"
+        type="button">×</button>
+    </span>
   )
 }

@@ -25,8 +25,16 @@ interface PageViewRow {
 
 /**
  * GET /api/admin/analytics?range=7d|30d|90d
+ *   &path=/pricing       (optional — exact-match oder Prefix mit Trailing /*)
+ *   &country=DE          (optional — 2-Letter-Code)
+ *   &device=mobile       (optional — mobile/tablet/desktop/unknown)
+ *   &browser=chrome      (optional — chrome/safari/firefox/edge/…)
+ *   &source=google       (optional — kategorisierte Referrer-Source)
  *
  * Aggregierte Analytics-Daten für das Admin-Dashboard.
+ * Cross-Filter: alle Stats werden auf den Filter eingeschränkt — der Funnel
+ * bleibt aber session-vollständig (sonst kein sinnvoller Funnel mehr).
+ *
  * Zugriff nur via requireAdmin().
  */
 export async function GET(req: Request) {
@@ -37,6 +45,15 @@ export async function GET(req: Request) {
   const range = url.searchParams.get('range') || '30d'
   const days = range === '7d' ? 7 : range === '90d' ? 90 : 30
   const since = new Date(Date.now() - days * 86400000).toISOString()
+
+  // Filters — alle optional, werden in-memory nach dem Fetch angewendet.
+  // (Bei kleinen Volumes < 50k Rows ist das schnell genug; bei größeren
+  // Volumes müsste der Filter via .eq()/.like() in die SQL-Query.)
+  const filterPath    = url.searchParams.get('path')?.trim() || null
+  const filterCountry = url.searchParams.get('country')?.trim().toUpperCase() || null
+  const filterDevice  = url.searchParams.get('device')?.trim().toLowerCase() || null
+  const filterBrowser = url.searchParams.get('browser')?.trim().toLowerCase() || null
+  const filterSource  = url.searchParams.get('source')?.trim().toLowerCase() || null
 
   const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +69,30 @@ export async function GET(req: Request) {
 
   // Bot-Filter: alles trennen — Hauptstats nur Menschen, Bot-Zahlen separat
   const botCount   = allRows.filter(r => r.is_bot === true).length
-  const humanRows  = allRows.filter(r => r.is_bot !== true)
+  let humanRows    = allRows.filter(r => r.is_bot !== true)
+
+  // Cross-Filter anwenden. Path: exact OR prefix mit Trailing /* (z.B.
+  // "/blog/*" matcht /blog, /blog/foo, /blog/bar/baz).
+  if (filterPath) {
+    const isPrefix = filterPath.endsWith('/*')
+    const prefix = isPrefix ? filterPath.slice(0, -2) : null
+    humanRows = humanRows.filter(r => {
+      if (isPrefix) return r.path === prefix || r.path.startsWith(prefix + '/')
+      return r.path === filterPath
+    })
+  }
+  if (filterCountry) {
+    humanRows = humanRows.filter(r => (r.country ?? 'unknown').toUpperCase() === filterCountry)
+  }
+  if (filterDevice) {
+    humanRows = humanRows.filter(r => (r.device_type ?? 'unknown') === filterDevice)
+  }
+  if (filterBrowser) {
+    humanRows = humanRows.filter(r => (r.browser ?? 'other').toLowerCase() === filterBrowser)
+  }
+  if (filterSource) {
+    humanRows = humanRows.filter(r => (r.referrer_source ?? 'direct').toLowerCase() === filterSource)
+  }
 
   // Page-Views vs. Click-Events trennen
   const pageViewRows = humanRows.filter(r => (r.event_type ?? 'page_view') === 'page_view')
@@ -127,8 +167,20 @@ export async function GET(req: Request) {
   const timeline = [...daily.entries()].sort().map(([date, count]) => ({ date, count }))
 
   // Conversion-Funnel: Landing → Pricing → Register
+  //
+  // Funnel ignoriert den path-Filter (sonst sieht man immer nur einen Step).
+  // Andere Filter (country/device/browser/source) wirken aber — das ist der
+  // eigentliche Use-Case: "Wie konvertieren Mobile-Nutzer aus DE?"
+  const funnelRowsBase = allRows.filter(r => r.is_bot !== true && (r.event_type ?? 'page_view') === 'page_view')
+  const funnelRows = funnelRowsBase.filter(r => {
+    if (filterCountry && (r.country ?? 'unknown').toUpperCase() !== filterCountry) return false
+    if (filterDevice && (r.device_type ?? 'unknown') !== filterDevice) return false
+    if (filterBrowser && (r.browser ?? 'other').toLowerCase() !== filterBrowser) return false
+    if (filterSource && (r.referrer_source ?? 'direct').toLowerCase() !== filterSource) return false
+    return true
+  })
   const sessionsByPath = new Map<string, Set<string>>()
-  for (const r of rows) {
+  for (const r of funnelRows) {
     if (!r.session_hash) continue
     if (!sessionsByPath.has(r.path)) sessionsByPath.set(r.path, new Set())
     sessionsByPath.get(r.path)!.add(r.session_hash)
@@ -182,6 +234,13 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     range: { days, since },
+    filter: {
+      path: filterPath,
+      country: filterCountry,
+      device: filterDevice,
+      browser: filterBrowser,
+      source: filterSource,
+    },
     summary: {
       total_views: total,
       unique_visitors: uniqueVisitors,
