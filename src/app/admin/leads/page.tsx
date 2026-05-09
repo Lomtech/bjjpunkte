@@ -8,6 +8,14 @@ import { CallScript } from './_components/CallScript'
 import { StatsModal } from './_components/StatsModal'
 import { useConfirm } from '@/components/ConfirmModal'
 import { usePrompt } from '@/components/PromptModal'
+import {
+  TEMPLATES,
+  renderTemplate,
+  validateRendered,
+  extractVars,
+  type ColdOutreachVariant,
+  type TemplateVars,
+} from '@/lib/sales/cold-outreach-templates'
 
 const FILTERS_LS_KEY = 'osss-crm-leads-filters-v1'
 const VIEW_LS_KEY = 'osss-crm-leads-view-v1'
@@ -984,6 +992,7 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity, setA
   }
 
   const [showQR, setShowQR] = useState(false)
+  const [showColdMail, setShowColdMail] = useState(false)
 
   return (
     // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
@@ -1102,6 +1111,42 @@ function LeadDetailPanel({ lead, activities, onClose, onUpdate, onActivity, setA
           contact_count: lead.contact_count,
           notes: lead.notes,
         }} />
+
+        {/* Cold-Outreach-Mail (semi-automatisch). Nur wenn Lead E-Mail hat
+            UND noch nicht im "geschlossen"-Bucket ist (won/lost etc.). */}
+        {lead.email && !['won', 'lost', 'do_not_contact', 'not_a_fit'].includes(lead.status) && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-zinc-900">📧 Cold-Outreach-Mail</h3>
+                <p className="text-xs text-zinc-600 mt-0.5">
+                  Template + 2 Pflicht-Personalisierungen. UWG-§7-konform.
+                </p>
+              </div>
+              <button onClick={() => setShowColdMail(true)}
+                className="shrink-0 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-lg">
+                Verfassen
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showColdMail && (
+          <ColdMailComposeModal
+            lead={lead}
+            onClose={() => setShowColdMail(false)}
+            onSent={(activity) => {
+              setActivities(prev => [activity, ...prev])
+              onUpdate({
+                status: 'contacted' as SalesLeadStatus,
+                last_contacted_at: new Date().toISOString(),
+                contact_count: (lead.contact_count ?? 0) + 1,
+              })
+              setShowColdMail(false)
+            }}
+            token={token}
+          />
+        )}
 
         {/* Add activity */}
         <div className="bg-zinc-50 rounded-xl p-4 space-y-3">
@@ -1229,6 +1274,266 @@ function QRModal({ lead, onClose }: { lead: SalesLead; onClose: () => void }) {
             className="flex-1 px-4 py-2 text-sm rounded-lg bg-zinc-900 text-white hover:bg-zinc-800">
             Schließen
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Cold-Outreach-Mail Compose-Modal.
+ *
+ * Workflow:
+ *   1. Variant-Picker (small/medium/large) — wählt Template + Subject-Optionen
+ *   2. Auto-fill aus Lead-Daten (studio, stadt, sportart)
+ *   3. Pflicht-Personalisierungs-Felder (UWG-§7-Compliance)
+ *   4. Live-Preview (rendered subject + body)
+ *   5. Send via /api/admin/sales/leads/[id]/send-mail
+ *
+ * Bei Erfolg:
+ *   - Activity-Item lokal in den Timeline-State pushen (sofort sichtbar)
+ *   - Lead-Status auf 'contacted' updaten (sofort sichtbar)
+ *   - Modal schließen
+ */
+function ColdMailComposeModal({
+  lead,
+  onClose,
+  onSent,
+  token,
+}: {
+  lead: SalesLead
+  onClose: () => void
+  onSent: (activity: SalesActivity) => void
+  token: string | null
+}) {
+  // Default-Variant aus Lead-Größe ableiten — falls user_ratings_total
+  // > 100 → mittel, > 300 → groß. Sonst klein.
+  const defaultVariant: ColdOutreachVariant =
+    (lead.user_ratings_total ?? 0) > 300 ? 'large'
+    : (lead.user_ratings_total ?? 0) > 100 ? 'medium'
+    : 'small'
+  const [variant, setVariant] = useState<ColdOutreachVariant>(defaultVariant)
+  const [subjectIndex, setSubjectIndex] = useState(0)
+
+  const auto = extractVars(lead)
+  const [vars, setVars] = useState<TemplateVars>({
+    studio: auto.studio,
+    stadt: auto.stadt,
+    sportart: auto.sportart,
+    vorname: '',
+    nachname: '',
+    hook_observation: '',
+    hook_pain: '',
+    hook_custom: '',
+  })
+
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const template = TEMPLATES.find(t => t.variant === variant)!
+  const rendered = renderTemplate(template, vars, subjectIndex)
+  const validation = validateRendered(rendered, vars)
+
+  async function handleSend() {
+    if (!token) { setError('Nicht authentifiziert'); return }
+    if (!validation.ok) { setError(validation.reason); return }
+    setSending(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/admin/sales/leads/${lead.id}/send-mail`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ variant, subjectIndex, vars }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? `HTTP ${res.status}`)
+        setSending(false)
+        return
+      }
+      // Optimistic activity-item für sofortige Timeline-Anzeige.
+      const optimistic: SalesActivity = {
+        id: `optimistic-${Date.now()}`,
+        lead_id: lead.id,
+        user_id: null,
+        kind: 'email',
+        outcome: null,
+        subject: rendered.subject,
+        body: rendered.body,
+        media_urls: null,
+        occurred_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      } as unknown as SalesActivity
+      onSent(optimistic)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Send fehlgeschlagen')
+      setSending(false)
+    }
+  }
+
+  function patchVar<K extends keyof TemplateVars>(key: K, value: TemplateVars[K]) {
+    setVars(prev => ({ ...prev, [key]: value }))
+  }
+
+  return (
+    // TODO(a11y): Add focus trap (e.g. focus-trap-react / @headlessui/react Dialog) for full WCAG 2.1.2.
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+      role="dialog" aria-modal="true" aria-labelledby="cold-mail-title">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-zinc-200 px-5 py-4 flex items-center justify-between">
+          <h2 id="cold-mail-title" className="text-lg font-bold text-zinc-900">📧 Cold-Outreach-Mail an {lead.name}</h2>
+          <button onClick={onClose} aria-label="Schließen"
+            className="text-zinc-400 hover:text-zinc-700 text-2xl leading-none">×</button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Empfänger-Info */}
+          <div className="bg-zinc-50 rounded-lg p-3 text-sm">
+            <p><strong className="text-zinc-700">An:</strong> {lead.email}</p>
+            <p className="text-zinc-500 text-xs mt-1">
+              Auto-Detected: Studio „{auto.studio}", Stadt „{auto.stadt}", Sportart „{auto.sportart}"
+            </p>
+          </div>
+
+          {/* Variant-Picker */}
+          <div>
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide block mb-2">
+              Template (basierend auf Studio-Größe)
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {TEMPLATES.map(t => (
+                <button key={t.variant}
+                  onClick={() => { setVariant(t.variant); setSubjectIndex(0) }}
+                  className={`px-3 py-2 text-xs rounded-lg border transition-colors ${
+                    variant === t.variant
+                      ? 'bg-amber-400 border-amber-400 text-zinc-900 font-semibold'
+                      : 'bg-white border-zinc-200 hover:border-zinc-400'
+                  }`}>
+                  {t.label.replace(/^[^(]*/, '').replace(/[()]/g, '').trim() || t.variant}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-zinc-500 mt-1.5">{template.whenToUse}</p>
+          </div>
+
+          {/* Subject-Picker */}
+          <div>
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wide block mb-2">
+              Betreff (A/B-Variante wählen)
+            </label>
+            <div className="space-y-1.5">
+              {template.subjects.map((s, i) => (
+                <label key={i} className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="subject" checked={subjectIndex === i}
+                    onChange={() => setSubjectIndex(i)} className="mt-1" />
+                  <span className="text-zinc-700">{s.replace(/\{\{(\w+)\}\}/g, (_, k) => (vars as unknown as Record<string, string>)[k] || `{${k}}`)}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Auto-Fill-Felder (editierbar) */}
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Studio-Name</span>
+              <input value={vars.studio} onChange={e => patchVar('studio', e.target.value)}
+                className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Stadt</span>
+              <input value={vars.stadt} onChange={e => patchVar('stadt', e.target.value)}
+                className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">Sportart</span>
+              <input value={vars.sportart} onChange={e => patchVar('sportart', e.target.value)}
+                className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                Vorname {variant === 'small' && <span className="text-rose-600">*</span>}
+              </span>
+              <input value={vars.vorname} onChange={e => patchVar('vorname', e.target.value)}
+                placeholder="z.B. Thorsten"
+                className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" />
+            </label>
+            {variant !== 'small' && (
+              <label className="block col-span-2">
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                  Nachname (für formelle Anrede)
+                </span>
+                <input value={vars.nachname} onChange={e => patchVar('nachname', e.target.value)}
+                  placeholder="z.B. Müller"
+                  className="mt-1 w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm" />
+              </label>
+            )}
+          </div>
+
+          {/* Pflicht-Personalisierungs-Hooks */}
+          <div className="border-t border-zinc-200 pt-5 space-y-3">
+            <h3 className="text-sm font-bold text-zinc-900">
+              Pflicht-Personalisierung <span className="text-zinc-500 font-normal">(UWG §7)</span>
+            </h3>
+            {template.hookPrompts.map((prompt, i) => {
+              const key = i === 0 ? 'hook_observation' : i === 1 ? 'hook_pain' : 'hook_custom'
+              const value = vars[key as keyof TemplateVars] as string
+              const isRequired = i < 2
+              const tooShort = isRequired && value.trim().length < 10
+              return (
+                <label key={i} className="block">
+                  <span className="text-xs font-medium text-zinc-700 mb-1 block">
+                    {prompt} {isRequired && <span className="text-rose-600">*</span>}
+                  </span>
+                  <textarea value={value}
+                    onChange={e => patchVar(key as keyof TemplateVars, e.target.value)}
+                    rows={2}
+                    placeholder="…"
+                    className={`w-full px-3 py-2 text-sm border rounded-lg ${
+                      tooShort ? 'border-rose-300 bg-rose-50' : 'border-zinc-200 bg-white'
+                    }`} />
+                  {tooShort && (
+                    <p className="text-xs text-rose-600 mt-1">Mindestens 10 Zeichen für echte Personalisierung.</p>
+                  )}
+                </label>
+              )
+            })}
+          </div>
+
+          {/* Live-Preview */}
+          <div className="border-t border-zinc-200 pt-5">
+            <h3 className="text-sm font-bold text-zinc-900 mb-2">Vorschau</h3>
+            <div className="bg-zinc-50 rounded-lg p-4 text-sm">
+              <p className="font-semibold text-zinc-900 mb-2">
+                Betreff: <span className="font-normal">{rendered.subject}</span>
+              </p>
+              <pre className="whitespace-pre-wrap font-sans text-zinc-700 text-[13px] leading-relaxed">
+                {rendered.body}
+              </pre>
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-sm text-rose-800">
+              {error}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-2 border-t border-zinc-200 sticky bottom-0 bg-white pb-2 -mx-5 px-5">
+            <button onClick={onClose} disabled={sending}
+              className="flex-1 px-4 py-2.5 border border-zinc-200 text-zinc-700 font-semibold rounded-lg text-sm hover:bg-zinc-50 disabled:opacity-50">
+              Abbrechen
+            </button>
+            <button onClick={handleSend} disabled={sending || !validation.ok}
+              className="flex-1 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-400 text-white font-semibold rounded-lg text-sm">
+              {sending ? 'Sende …' : 'Mail senden'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
