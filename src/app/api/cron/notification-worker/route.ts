@@ -7,10 +7,15 @@ import { cronGuard } from '@/lib/cron-guard'
  * Notification-Worker.
  *
  * Pollt pending Tasks aus `notification_queue` und versendet sie. Läuft
- * alle 5 Minuten (siehe vercel.json) und arbeitet pro Aufruf bis zu
- * BATCH_SIZE Tasks ab. Mehrere parallele Worker-Instanzen sind sicher,
- * weil das Claim-UPDATE atomar ist (filtered auf status='pending') und
- * nur den Task an einen einzigen Worker übergibt.
+ * aktuell EINMAL TÄGLICH (06:00 UTC, siehe vercel.json) — Vercel-Hobby
+ * erlaubt nur 1 Cron pro Tag. Bei Pro-Upgrade ($20/Mo) auf "*/5 * * * *"
+ * zurückstellen, sonst stauen sich pending Notifications bis zum nächsten
+ * Tag (= payment-reminders gehen 24h später raus).
+ *
+ * Pro Aufruf werden bis zu BATCH_SIZE Tasks abgearbeitet. Mehrere
+ * parallele Worker-Instanzen sind sicher, weil das Claim-UPDATE atomar
+ * ist (filtered auf status='pending') und nur den Task an einen einzigen
+ * Worker übergibt.
  *
  * Locking-Strategie: optimistic locking via UPDATE … RETURNING. Postgres
  * hätte FOR UPDATE SKIP LOCKED, das ist mit PostgREST aber nicht direkt
