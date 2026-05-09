@@ -170,15 +170,11 @@ function createInMemoryLimiter() {
   }
 }
 
-const RATE_LIMITED = /^\/(api\/portal|api\/public|api\/signup|api\/auth\/delete-account|api\/staff\/accept|api\/staff\/link|api\/avv|api\/newsletter|api\/track)\//
-
-// Pfade die KEIN Supabase-Session-Sync brauchen — sind public oder
-// nutzen eigene Auth (Bearer-Token, Magic-Link). Wenn man ihnen den
-// Session-Sync aufzwingt, crashed die Middleware in Vercel's Edge-Runtime.
-// Aber CSRF + Rate-Limit MÜSSEN trotzdem laufen — sonst sind die DDoS-
-// anfälligen Endpoints (/api/track, /api/public/*, /api/signup) komplett
-// schutzlos.
-const SKIP_SESSION_SYNC = /^\/(api\/public|api\/portal|api\/signup|api\/track|api\/admin|monitoring)/
+// Rate-Limit in Middleware: NUR für Pfade die mit dem Edge-Runtime-Session-Sync
+// vertragen — sprich, NICHT die Pfade die im Matcher ausgeschlossen sind.
+// Public/Portal/Signup/Track werden separat durch den `applyRateLimit`-Helper
+// in den jeweiligen Route-Handlern geschützt (Node-Runtime, sicherer Pfad).
+const RATE_LIMITED = /^\/(api\/auth\/delete-account|api\/staff\/accept|api\/staff\/link|api\/avv|api\/newsletter)\//
 
 export async function proxy(request: NextRequest) {
   // CSRF-Check VOR Rate-Limit (günstiger, blockt Bot-Attacks früher)
@@ -197,15 +193,9 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Public/Portal/Signup/Track skip Session-Sync — sie nutzen entweder gar
-  // keine Auth (Public-Pages), eigene Token (Portal), oder schreiben anonym
-  // (Track). Session-Sync auf diesen Pfaden hat in der Vergangenheit Edge-
-  // Runtime-Crashes verursacht.
-  if (SKIP_SESSION_SYNC.test(request.nextUrl.pathname)) {
-    return NextResponse.next({ request })
-  }
-
-  // Sync Supabase session into cookies so server components can read it
+  // Sync Supabase session into cookies so server components can read it.
+  // Public/Portal/Signup/Track/Admin/Sentry-Example sind im Matcher
+  // ausgeschlossen — diese Funktion läuft für sie gar nicht erst.
   let response = NextResponse.next({ request })
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -228,12 +218,18 @@ export async function proxy(request: NextRequest) {
   return response
 }
 
-// Matcher includes /api/public/*, /api/portal/*, /api/signup, /api/track, /api/admin
-// — they need CSRF + rate-limit, but skip the Session-Sync inside the handler
-// (see SKIP_SESSION_SYNC above). This is the fix for the v22-bug where these
-// paths were excluded entirely → DDoS-vulnerable.
+// Pass 22-revisited: Matcher excludes /api/public/*, /api/portal/*, /api/signup,
+// /api/track, /api/sentry-example-api, /api/admin/* from the middleware.
+// Reason: the Supabase session-sync via @supabase/ssr is incompatible with
+// some Vercel Edge-Runtime invocations on these paths (proven empirically —
+// /api/public/ping with no Supabase imports STILL returned 500 when running
+// through this middleware). /api/admin/* uses Bearer-token auth via
+// requireAdmin() and doesn't need cookie sync.
+//
+// Rate-Limit for the excluded paths happens IN the route handlers via
+// `applyRateLimit()` in src/lib/rate-limit-handler.ts (Node-Runtime, safe).
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/public|api/portal|api/signup|api/track|api/admin|api/sentry-example-api|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

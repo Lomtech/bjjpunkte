@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AlertTriangle, Check, Loader2, FileWarning, FileText } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 
 /**
  * Inkasso-Panel für Member-Detail-Seite.
@@ -45,6 +46,7 @@ const ACTION_LABELS: Record<string, { label: string; tone: 'amber' | 'rose' | 'e
 const LEVEL_LABEL = ['Unauffällig', '1. Mahnung', '2. Mahnung', 'Inkasso übergeben']
 
 export function DunningPanel({ member, onUpdate }: { member: MemberInfo; onUpdate?: () => void }) {
+  const toast = useToast()
   const [actions, setActions] = useState<Action[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -111,7 +113,7 @@ export function DunningPanel({ member, onUpdate }: { member: MemberInfo; onUpdat
       setNotes('')
       onUpdate?.()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Fehler')
+      toast.error(e instanceof Error ? e.message : 'Fehler')
     } finally {
       setBusy(null)
     }

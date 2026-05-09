@@ -85,6 +85,20 @@ export async function POST(req: Request) {
       // means we don't need to attach the coupon ID server-side — Stripe validates
       // and applies it automatically when a valid code is entered.
       allow_promotion_codes: true,
+      // Stripe Tax handles EU B2B reverse-charge automatically once the customer
+      // provides a valid USt-IdNr / VAT-ID. Without this we'd ship plain 19% DE
+      // VAT to all studios — the first Austrian studio with a valid ATU... ID
+      // would demand a corrected invoice and we'd have to write it manually.
+      // Requires Stripe Tax to be enabled in the Dashboard (Settings → Tax).
+      automatic_tax: { enabled: true },
+      // Auto-collect address + tax-ID from the checkout form.
+      tax_id_collection: { enabled: true },
+      customer_update: {
+        address: 'auto',
+        name:    'auto',
+      },
+      // Localise checkout language — Stripe also uses this for tax-display copy.
+      locale: 'de',
       success_url: `${appUrl}/dashboard/settings?upgraded=1`,
       cancel_url:  `${appUrl}/dashboard/settings`,
     }, { idempotencyKey: `owner-checkout-${gym.id}-${Math.floor(Date.now()/60000)}` })

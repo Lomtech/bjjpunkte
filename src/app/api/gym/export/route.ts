@@ -354,8 +354,9 @@ export async function GET(req: Request) {
       legal_email:          gym.legal_email ?? null,
       tax_number:           gym.tax_number ?? null,
       ustid:                gym.ustid ?? null,
-      // DSGVO Art. 20 — Owner exportiert eigene Daten, daher Klartext-IBAN.
-      bank_iban:            getIbanFromGym(gym as { bank_iban_enc?: string | null; bank_iban?: string | null }),
+      // DSGVO Art. 20 — Owner exportiert eigene Daten, daher Klartext-IBAN
+      // (im Export-JSON, NICHT in der DB — das Decrypt passiert hier ad-hoc).
+      bank_iban:            getIbanFromGym(gym as { bank_iban_enc?: string | null }),
       bank_bic:             gym.bank_bic ?? null,
       bank_name:            gym.bank_name ?? null,
       // DATEV

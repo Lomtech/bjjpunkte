@@ -205,21 +205,21 @@ export async function POST(req: Request) {
     if (gymData[key] !== undefined) gymUpdate[key] = gymData[key]
   }
   // IBAN: niemals als Plaintext in bank_iban schreiben — verschlüsselt in
-  // bank_iban_enc ablegen. Akzeptiert sowohl `bank_iban` (Klartext aus Export)
-  // als auch ggf. `bank_iban_enc` (1:1-Migration zwischen Studios mit gleichem Key).
+  // bank_iban_enc ablegen. Das eingehende JSON kann sowohl `bank_iban`
+  // (Klartext aus älteren Exports) als auch `bank_iban_enc` (1:1-Migration
+  // zwischen Studios mit gleichem Key) enthalten. Wir lesen beides aus dem
+  // JSON, schreiben aber NUR bank_iban_enc in die DB. Die Klartext-Spalte
+  // wurde mit migration 0010 gedroppt.
   const rawIban = typeof gymData.bank_iban === 'string' ? gymData.bank_iban.trim() : ''
   if (rawIban) {
     try {
       gymUpdate.bank_iban_enc = encryptIban(rawIban)
-      // Plaintext-Spalte explizit leeren — DSGVO Art. 32.
-      gymUpdate.bank_iban = null
     } catch (e) {
       console.warn('[import] IBAN-Verschlüsselung fehlgeschlagen:', (e as Error)?.message)
     }
   } else if (typeof gymData.bank_iban_enc === 'string' && gymData.bank_iban_enc.length > 0) {
     // 1:1 Migration: encrypted-Wert direkt übernehmen (Edge Case).
     gymUpdate.bank_iban_enc = gymData.bank_iban_enc
-    gymUpdate.bank_iban = null
   }
   if (newLogoUrl) gymUpdate.logo_url       = newLogoUrl
   if (newHeroUrl) gymUpdate.hero_image_url = newHeroUrl

@@ -14,6 +14,7 @@ import { BillingSection } from './BillingSection'
 import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck, FileText } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { useToast } from '@/components/Toast'
 
 import { toWaPhone } from '@/lib/phone'
 
@@ -77,6 +78,7 @@ export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { t, lang } = useLanguage()
+  const toast = useToast()
   const locale = lang === 'en' ? 'en-GB' : 'de-DE'
   const id = params.id as string
 
@@ -252,7 +254,7 @@ export default function MemberDetailPage() {
       method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
     })
     if (res.ok) { router.push('/dashboard/members') }
-    else { const d = await res.json(); alert(d.error); setDeletingMember(false) }
+    else { const d = await res.json(); toast.error(d.error ?? (lang === 'en' ? 'Could not delete member.' : 'Konnte Mitglied nicht löschen.')); setDeletingMember(false) }
   }
 
   function handleDemoted(belt: string, stripes: number) {
@@ -304,7 +306,7 @@ export default function MemberDetailPage() {
     if (res.ok) {
       setMember(m => m ? { ...m, requested_plan_id: null } : m)
       if (json.checkout_url) {
-        alert(t('memberDetailExtra', 'planAssigned', { url: json.checkout_url }))
+        toast.success(t('memberDetailExtra', 'planAssigned', { url: json.checkout_url }))
       }
     }
   }

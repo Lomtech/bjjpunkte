@@ -90,24 +90,39 @@ export function decryptIban(encrypted: string | null | undefined): string | null
 /**
  * Liest die IBAN aus einem gym-Datensatz.
  *
- * Bevorzugt die verschlüsselte Spalte `bank_iban_enc` (entschlüsselt sie).
- * Fallback auf das alte `bank_iban` Plaintext-Feld solange Backfill läuft.
+ * Liest ausschließlich die verschlüsselte Spalte `bank_iban_enc` und
+ * entschlüsselt sie. Der frühere Klartext-Fallback auf `bank_iban` wurde
+ * entfernt — Klartext-IBANs in der DB widersprachen DSGVO Art. 32 und
+ * waren bei einem Backup-Leak ein Direktrisiko.
  *
- * Sobald alle Datensätze migriert sind, kann `bank_iban` aus der DB entfernt
- * werden — dann liefert dieser Helper immer noch die korrekte IBAN.
+ * Verhalten:
+ *   - `gym` null/undefined          → returns null
+ *   - `bank_iban_enc` null/leer     → returns null
+ *   - `bank_iban_enc` gesetzt + ok  → returns decrypted plaintext
+ *   - `bank_iban_enc` korrupt       → wirft Error (kein Silent-Fallback mehr)
+ *
+ * Wenn ein decrypt fehlschlägt heißt das: entweder wurde der Key rotiert ohne
+ * Backfill, oder die Daten sind manipuliert. In beiden Fällen ist ein lautes
+ * Scheitern besser als die alte Plaintext-Quelle (die jetzt eh nicht mehr
+ * existiert).
+ *
+ * Hinweis zum `bank_iban?`-Param: bleibt im Type aus historischen Gründen,
+ * wird aber komplett ignoriert. Bei Bedarf in Q3/2026 entfernen, wenn alle
+ * Aufrufer migriert sind.
  */
 export function getIbanFromGym(
   gym: { bank_iban_enc?: string | null; bank_iban?: string | null } | null | undefined,
 ): string | null {
   if (!gym) return null
-  if (gym.bank_iban_enc) {
-    try {
-      return decryptIban(gym.bank_iban_enc)
-    } catch {
-      // Falls Entschlüsselung scheitert: lieber Plaintext-Fallback als 500-Fehler.
-      // Das passiert nur wenn der Key rotiert wurde ohne Backfill.
-      return gym.bank_iban ?? null
-    }
+  if (!gym.bank_iban_enc) return null
+  try {
+    return decryptIban(gym.bank_iban_enc)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'unknown error'
+    throw new Error(
+      `getIbanFromGym: Entschlüsselung von bank_iban_enc fehlgeschlagen (${msg}). ` +
+      'Mögliche Ursachen: IBAN_ENCRYPTION_KEY wurde rotiert ohne Backfill, ' +
+      'oder der Ciphertext wurde manuell verändert. Plaintext-Fallback existiert nicht mehr.',
+    )
   }
-  return gym.bank_iban ?? null
 }

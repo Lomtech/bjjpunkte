@@ -294,7 +294,7 @@ async function loadInvoiceData(paymentId: string) {
     .select(`
       *,
       members (first_name, last_name, email, address),
-      gyms (name, address, phone, email, tax_number, ustid, is_kleinunternehmer, invoice_prefix, invoice_counter, bank_iban, bank_iban_enc, bank_bic, bank_name, legal_name, legal_address, legal_email)
+      gyms (name, address, phone, email, tax_number, ustid, is_kleinunternehmer, invoice_prefix, invoice_counter, bank_iban_enc, bank_bic, bank_name, legal_name, legal_address, legal_email)
     `)
     .eq('id', paymentId)
     .single()
@@ -376,8 +376,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ paymentI
   const rawCents      = typeof pmt.amount_cents === 'number' ? pmt.amount_cents : 0
   const amountEur     = (rawCents / 100).toFixed(2).replace('.', ',')
 
-  // IBAN aus encrypted-Spalte (mit Fallback auf Plaintext während Backfill).
-  const iban = getIbanFromGym(gym as { bank_iban_enc?: string | null; bank_iban?: string | null })
+  // IBAN aus encrypted-Spalte (Klartext-Fallback existiert nicht mehr).
+  const iban = getIbanFromGym(gym as { bank_iban_enc?: string | null })
 
   // ── PDF response ──────────────────────────────────────────────────────────
   if (format === 'pdf') {

@@ -71,7 +71,7 @@ export async function GET(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: gym } = await (service.from('gyms') as any)
     .select(
-      'id, name, address, phone, email, tax_number, bank_iban_enc, bank_iban',
+      'id, name, address, phone, email, tax_number, bank_iban_enc',
     )
     .eq('owner_id', user.id)
     .maybeSingle()

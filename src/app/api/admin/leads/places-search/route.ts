@@ -29,7 +29,10 @@ export async function POST(req: Request) {
     force?: boolean
     bias?: { lat: number; lng: number; radiusMeters: number }
   }
-  const query = (body.query ?? '').trim()
+  // Length-Cap (Audit 2026-05-09): Google Places API limitiert auf 256 Zeichen
+  // — wir cappen bei 200, um Buffer für Trim/Encode zu lassen und Cost-Spikes
+  // durch unsinnig lange Queries (Copy-Paste-Unfälle) zu vermeiden.
+  const query = (body.query ?? '').trim().slice(0, 200)
   if (!query) return NextResponse.json({ error: 'query required' }, { status: 400 })
 
   const maxPages = Math.min(Math.max(body.maxPages ?? 3, 1), 5)

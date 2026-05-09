@@ -3,6 +3,11 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { cronGuard } from '@/lib/cron-guard'
+import {
+  enqueueNotificationsBatch,
+  notificationQueueEnabled,
+  type EnqueueInput,
+} from '@/lib/notification-queue'
 
 async function sendEmail(to: string, subject: string, html: string, listUnsubscribe?: string): Promise<{ ok: boolean; error?: string }> {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
@@ -138,7 +143,16 @@ export async function GET(req: Request) {
   let emailsFailed   = 0
   let whatsappSent   = 0
   let whatsappFailed = 0
+  let queuedEmail    = 0
+  let queuedWhatsapp = 0
   const errors: string[] = []
+  // Wenn der Feature-Flag gesetzt ist, sammeln wir alle Tasks in einem
+  // Buffer und schreiben sie am Ende mit einem einzigen bulk-Insert in
+  // die notification_queue. Damit ist der Cron-Lauf O(Gyms × DB-Reads)
+  // statt O(Gyms × Members × Resend-Latenz) — bei 500 Studios fertig in
+  // <30s statt 7-8 Minuten.
+  const useQueue = notificationQueueEnabled()
+  const queueBuffer: EnqueueInput[] = []
 
   // Process gyms in sequential batches to avoid overwhelming the DB and email provider
   const BATCH_SIZE = 20
@@ -197,19 +211,36 @@ export async function GET(req: Request) {
           const listUnsubscribe = portalUrl
             ? `<${portalUrl}>, <mailto:unsubscribe@${fromDomain}>`
             : `<mailto:unsubscribe@${fromDomain}>`
-          const result = await sendEmail(
-            member.email,
-            `Erinnerung: Mitgliedsbeitrag ${monthLabel} — ${gym.name}`,
-            reminderEmailHtml({ firstName: member.first_name, gymName: gym.name, amountCents, portalUrl, checkoutUrl }),
-            listUnsubscribe
-          )
-          if (result.ok) {
-            emailsSent++
+          const subject = `Erinnerung: Mitgliedsbeitrag ${monthLabel} — ${gym.name}`
+          const html = reminderEmailHtml({ firstName: member.first_name, gymName: gym.name, amountCents, portalUrl, checkoutUrl })
+
+          if (useQueue) {
+            // Queue-Pfad: HTML wird hier vor-gerendert und der Worker macht
+            // nur noch den Resend-Call. Spart 200ms × N im Producer-Cron.
+            queueBuffer.push({
+              kind: 'payment_reminder',
+              channel: 'email',
+              payload: {
+                gym_id: gym.id,
+                member_id: member.id,
+                to: member.email,
+                subject,
+                html,
+                list_unsubscribe: listUnsubscribe,
+                gym_name: gym.name,
+              },
+            })
+            queuedEmail++
           } else {
-            emailsFailed++
-            const msg = `Email to ${member.email} (gym ${gym.id}): ${result.error}`
-            errors.push(msg)
-            console.error('[cron/payment-reminders]', msg)
+            const result = await sendEmail(member.email, subject, html, listUnsubscribe)
+            if (result.ok) {
+              emailsSent++
+            } else {
+              emailsFailed++
+              const msg = `Email to ${member.email} (gym ${gym.id}): ${result.error}`
+              errors.push(msg)
+              console.error('[cron/payment-reminders]', msg)
+            }
           }
         }
 
@@ -217,17 +248,32 @@ export async function GET(req: Request) {
           const waBody = checkoutUrl
             ? `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).\n\nJetzt bezahlen: ${ctaUrl}\n\nOss! 🥋`
             : `Hallo ${member.first_name}! 👋 Dein Mitgliedsbeitrag bei *${gym.name}* für diesen Monat ist noch offen (${amount}).${ctaUrl ? `\n\nZum Portal: ${ctaUrl}` : ''}\n\nBei Fragen melde dich bei deinem Gym. Oss! 🥋`
-          try {
-            const ok = await sendWhatsApp({ to: member.phone, body: waBody })
-            if (ok) {
-              whatsappSent++
-            } else {
+          if (useQueue) {
+            queueBuffer.push({
+              kind: 'payment_reminder',
+              channel: 'whatsapp',
+              payload: {
+                gym_id: gym.id,
+                member_id: member.id,
+                to: member.phone,
+                body: waBody,
+                gym_name: gym.name,
+              },
+            })
+            queuedWhatsapp++
+          } else {
+            try {
+              const ok = await sendWhatsApp({ to: member.phone, body: waBody })
+              if (ok) {
+                whatsappSent++
+              } else {
+                whatsappFailed++
+                errors.push(`WhatsApp to ${member.phone} (gym ${gym.id}): sendWhatsApp returned false`)
+              }
+            } catch (err) {
               whatsappFailed++
-              errors.push(`WhatsApp to ${member.phone} (gym ${gym.id}): sendWhatsApp returned false`)
+              errors.push(`WhatsApp to ${member.phone} (gym ${gym.id}): ${String(err)}`)
             }
-          } catch (err) {
-            whatsappFailed++
-            errors.push(`WhatsApp to ${member.phone} (gym ${gym.id}): ${String(err)}`)
           }
         }
       }))
@@ -235,12 +281,34 @@ export async function GET(req: Request) {
     }))
   }
 
+  // Bulk-Flush: alle in queueBuffer gesammelten Tasks in einem Schwung
+  // in die Queue schreiben. Bei queue=on werden emails/whatsapp dann
+  // asynchron vom notification-worker abgearbeitet.
+  let queueInserted = 0
+  let queueFailed = 0
+  if (useQueue && queueBuffer.length > 0) {
+    const result = await enqueueNotificationsBatch(supabase, queueBuffer)
+    queueInserted = result.inserted
+    queueFailed = result.failed
+    if (result.errors.length > 0) {
+      for (const e of result.errors) {
+        errors.push(`queue-insert: ${e}`)
+        console.error('[cron/payment-reminders] queue-insert', e)
+      }
+    }
+  }
+
   return NextResponse.json({
     ok:             errors.length === 0,
+    mode:           useQueue ? 'queue' : 'direct',
     emailsSent,
     emailsFailed,
     whatsappSent,
     whatsappFailed,
+    queuedEmail,
+    queuedWhatsapp,
+    queueInserted,
+    queueFailed,
     errorCount:     errors.length,
     errors:         errors.length > 0 ? errors : undefined,
     noResend:       !process.env.RESEND_API_KEY,

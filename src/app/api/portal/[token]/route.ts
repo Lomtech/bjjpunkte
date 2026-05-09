@@ -10,16 +10,24 @@ function serviceClient() {
 
 export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  if (!token || token.length < 20 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
+  // Token-Hardening (Audit 2026-05-09):
+  //   - Mindestlänge auf 32 Zeichen erhöht (vorher 20) — Brute-Force-Schutz für
+  //     Service-Role-Bypass-Endpoint. Bestands-Tokens sind DB-generiert mit
+  //     ≥32 Zeichen; die Anhebung schliesst keine Members aus.
+  if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {
     return NextResponse.json({ error: 'Ungültiger Token' }, { status: 400 })
   }
 
   const supabase = serviceClient()
 
+  // is_active=true zusätzlich gefiltert — abgemeldete Mitglieder behalten ihren
+  // portal_token bis zum DSGVO-Lösch-Cutoff, sollen aber kein Portal mehr
+  // aufrufen können (Cross-Tenant-Risk + Verwirrung über Status-Anzeige).
   const { data: member, error: memberErr } = await supabase
     .from('members')
     .select('id, first_name, last_name, email, belt, stripes, join_date, is_active, subscription_status, date_of_birth, contract_end_date, gym_id, plan_id, requested_plan_id, cancellation_requested_at')
     .eq('portal_token', token)
+    .eq('is_active', true)
     .single()
 
   if (memberErr || !member) {

@@ -1102,6 +1102,9 @@ function WhatsAppBulkModal({ members, whatsappGroupUrl, onClose }: {
     const remaining = members.filter(m => m.phone && !sentIdx.has(m.id))
     if (remaining.length === 0) return
     if (remaining.length > 10) {
+      // TODO(modal): durch <ConfirmModal> ersetzen — synchron im User-Gesture nötig,
+      // damit Pop-up-Blocker die folgenden window.open() nicht killt. Refactor erfordert
+      // State-Splitting in zwei Phasen (Confirm-Open → User-Gesture-Continue).
       const ok = confirm(
         lang === 'en'
           ? `Open ${remaining.length} WhatsApp tabs at once? Browser may ask to allow pop-ups.`

@@ -13,6 +13,82 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+// ──────────────────────────────────────────────────────────────────────
+// Per-IP Hard-Cap für /api/track (Audit 2026-05-09)
+//
+// Der Proxy-Limiter (src/proxy.ts) deckt bereits 30 req/min/IP für /api/track
+// ab. Dieser Limiter greift als zweite Ebene mit 60 inserts/min/IP — falls
+// der Proxy-Limit hochgesetzt wird, ohne dass /api/track separat geschützt
+// werden muss. Upstash-Redis mit in-memory-Fallback (analog Proxy).
+// ──────────────────────────────────────────────────────────────────────
+type Limiter = { limit: (key: string) => Promise<{ success: boolean }> }
+let trackLimiter: Limiter | null = null
+let trackLimiterPromise: Promise<Limiter> | null = null
+
+const TRACK_WINDOW_MS = 60_000
+const TRACK_MAX       = 60
+
+function createTrackInMemoryLimiter(): Limiter {
+  const store = new Map<string, { n: number; reset: number }>()
+  let lastCleanup = Date.now()
+  return {
+    limit: async (key: string) => {
+      const now = Date.now()
+      if (now - lastCleanup > 5 * TRACK_WINDOW_MS) {
+        lastCleanup = now
+        for (const [k, e] of store) { if (now > e.reset) store.delete(k) }
+      }
+      const e = store.get(key)
+      if (!e || now > e.reset) {
+        store.set(key, { n: 1, reset: now + TRACK_WINDOW_MS })
+        return { success: true }
+      }
+      e.n++
+      return { success: e.n <= TRACK_MAX }
+    },
+  }
+}
+
+async function getTrackLimiter(): Promise<Limiter> {
+  if (trackLimiter) return trackLimiter
+  if (trackLimiterPromise) return trackLimiterPromise
+
+  const url   = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) {
+    trackLimiter = createTrackInMemoryLimiter()
+    return trackLimiter
+  }
+
+  trackLimiterPromise = (async () => {
+    try {
+      const [{ Redis }, { Ratelimit }] = await Promise.all([
+        import('@upstash/redis'),
+        import('@upstash/ratelimit'),
+      ])
+      const redis = new Redis({ url, token })
+      const rl = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(TRACK_MAX, '60 s'),
+        analytics: false,
+        prefix:    'rl:track',
+      }) as unknown as Limiter
+      trackLimiter = rl
+      return rl
+    } catch {
+      trackLimiter = createTrackInMemoryLimiter()
+      return trackLimiter
+    }
+  })()
+  return trackLimiterPromise
+}
+
+async function trackInsertLimit(ip: string): Promise<boolean> {
+  const rl = await getTrackLimiter()
+  const { success } = await rl.limit(`track:${ip}`)
+  return success
+}
+
 /**
  * POST /api/track
  *
@@ -88,6 +164,14 @@ export async function POST(req: Request) {
     req.headers.get('cf-ipcountry') ||
     null
 
+  // Bot-Filter (Audit 2026-05-09): Silent reject statt is_bot-Persist.
+  // Bots (Crawler, Monitoring, Scanner) verzerren sonst die Aggregate und
+  // verbrauchen unnötig Storage. Antwort 200 OK, damit Bots kein Feedback
+  // bekommen, ob sie erkannt wurden — sie sollen nicht ihren UA tunen können.
+  if (isBot(ua)) {
+    return NextResponse.json({ ok: true, skipped: 'bot' })
+  }
+
   const { device_type, browser } = classifyDevice(ua)
   const referrerDomain = extractReferrerDomain(body.referrer ?? req.headers.get('referer'))
 
@@ -107,11 +191,19 @@ export async function POST(req: Request) {
   const utmMedium   = sanitizeUtm(body.utm_medium)
   const utmCampaign = sanitizeUtm(body.utm_campaign)
 
-  // Bot-Detection
-  const bot = isBot(ua)
-
   // Referrer-Quelle aggregieren (für UI-Auswertung)
   const referrerSource = categorizeReferrer(referrerDomain)
+
+  // Hard-Cap pro IP: 60 inserts/min. Greift zusätzlich zum allgemeinen
+  // Proxy-Limit (30 req/min/IP in `src/proxy.ts`). Falls das Proxy-Limit
+  // mal hochgesetzt wird, fängt dieser Limiter den /api/track-Spam ab,
+  // ohne andere Routen zu beeinflussen. Upstash mit in-memory-Fallback,
+  // identische Mechanik wie der Proxy-Limiter.
+  const allowed = await trackInsertLimit(ip)
+  if (!allowed) {
+    // 200 statt 429: wir wollen nicht verraten, dass wir limitieren.
+    return NextResponse.json({ ok: true, skipped: 'rate_cap' })
+  }
 
   const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -123,7 +215,7 @@ export async function POST(req: Request) {
     browser,
     visitor_hash: visitorHash(ip, ua),
     session_hash: sessionHash(ip, ua),
-    is_bot:          bot,
+    is_bot:          false,
     event_type:      eventType,
     event_target:    eventTarget,
     utm_source:      utmSource,

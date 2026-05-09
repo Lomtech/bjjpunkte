@@ -10,6 +10,7 @@ import {
 import { BlockEditor, uid, type Block } from '@/components/BlockEditor'
 import Image from 'next/image'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { useToast } from '@/components/Toast'
 
 async function getAuthHeaders(): Promise<HeadersInit> {
   const { data: { session } } = await createClient().auth.getSession()
@@ -271,6 +272,7 @@ function ImageUpload({
 
 export default function WebsitePage() {
   const { t } = useLanguage()
+  const toast = useToast()
   const [gym,     setGym]     = useState<GymWebsite | null>(null)
   const [gymId,   setGymId]   = useState('')
   const [loading, setLoading] = useState(true)
@@ -369,7 +371,7 @@ export default function WebsitePage() {
 
   async function saveSection(key: string, fields: Record<string, unknown>) {
     const id = gymId || gym?.id
-    if (!id) { alert('Gym-ID nicht gefunden — bitte Seite neu laden.'); return }
+    if (!id) { toast.error('Gym-ID nicht gefunden — bitte Seite neu laden.'); return }
     setSaving(s => ({ ...s, [key]: true }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = createClient() as any
@@ -377,7 +379,7 @@ export default function WebsitePage() {
     setSaving(s => ({ ...s, [key]: false }))
     if (error) {
       console.error('[saveSection]', key, error)
-      alert(`Fehler beim Speichern: ${error.message}`)
+      toast.error(`Fehler beim Speichern: ${error.message}`, { retry: () => saveSection(key, fields) })
       return
     }
     setSaved(s => ({ ...s, [key]: true }))

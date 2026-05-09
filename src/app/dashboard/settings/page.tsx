@@ -13,11 +13,13 @@ import {
 import { DEFAULT_BELT_SYSTEM, SPORT_PRESETS, resolveBeltSystem, isBeltFreeSport, type BeltSystem, type SportType } from '@/lib/belt-system'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { useToast } from '@/components/Toast'
 
 type Tab = 'allgemein' | 'zahlungen' | 'training' | 'zugaenge' | 'vertraege'
 
 function SettingsPageInner() {
   const { t, lang } = useLanguage()
+  const toast = useToast()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<Tab>('allgemein')
 
@@ -264,14 +266,14 @@ function SettingsPageInner() {
         setUstid(data.ustid ?? '')
         setIsKleinunternehmer(data.is_kleinunternehmer ?? true)
         setInvoicePrefix(data.invoice_prefix ?? 'RE')
-        // IBAN: bevorzugt verschlüsselte Spalte (kann nur server-seitig
-        // entschlüsselt werden), Fallback Plaintext solange Backfill läuft.
+        // IBAN: nur noch encrypted-Spalte (Plaintext wurde mit migration 0010 gedroppt).
+        // Wenn gesetzt: Masked-Placeholder anzeigen — der Browser bekommt nie Plaintext zu sehen.
         const encrypted = (data as { bank_iban_enc?: string | null }).bank_iban_enc
         if (encrypted) {
           setBankIban('') // Input bleibt leer, wir zeigen Masked-Placeholder
           setBankIbanEncrypted(true)
         } else {
-          setBankIban(data.bank_iban ?? '')
+          setBankIban('')
           setBankIbanEncrypted(false)
         }
         setBankIbanDirty(false)
@@ -363,7 +365,7 @@ function SettingsPageInner() {
     const { error: uploadErr } = await supabase.storage
       .from('gym-logos')
       .upload(path, file, { contentType: file.type })
-    if (uploadErr) { alert((lang === 'en' ? 'Upload failed: ' : 'Upload fehlgeschlagen: ') + uploadErr.message); setLogoUploading(false); return }
+    if (uploadErr) { toast.error((lang === 'en' ? 'Upload failed: ' : 'Upload fehlgeschlagen: ') + uploadErr.message); setLogoUploading(false); return }
     const { data: { publicUrl } } = supabase.storage.from('gym-logos').getPublicUrl(path)
     await supabase.from('gyms').update({ logo_url: publicUrl }).eq('owner_id', user.id)
     setLogoUrl(publicUrl)
@@ -387,7 +389,7 @@ function SettingsPageInner() {
       const res = await fetch('/api/stripe/connect', { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
       const data = await res.json()
       if (data.url) window.location.href = data.url
-      else if (data.error) alert(data.error)
+      else if (data.error) toast.error(data.error, { retry: handleConnect })
     } catch { /* ignore */ }
     setConnectLoading(false)
   }
@@ -418,12 +420,17 @@ function SettingsPageInner() {
           data.noMemberId > 0 ? `${data.noMemberId} ohne Mitglieds-Zuordnung` : '',
           data.insertErrors?.length > 0 ? `⚠️ ${data.insertErrors.length} Fehler: ${data.insertErrors[0]}` : '',
         ].filter(Boolean).join('\n')
-        alert(`Sync abgeschlossen:\n${parts}`)
+        const hasErrors = data.insertErrors?.length > 0
+        if (hasErrors) {
+          toast.warning(`Sync abgeschlossen:\n${parts}`)
+        } else {
+          toast.success(`Sync abgeschlossen:\n${parts}`)
+        }
       } else {
-        alert(data.error ?? 'Fehler beim Synchronisieren')
+        toast.error(data.error ?? 'Fehler beim Synchronisieren', { retry: handleSyncPayments })
       }
     } catch {
-      alert('Netzwerkfehler')
+      toast.error('Netzwerkfehler', { retry: handleSyncPayments })
     } finally {
       setSyncLoading(false)
     }
@@ -548,7 +555,7 @@ function SettingsPageInner() {
           setBankIbanDirty(false)
         } else {
           const err = await res.json().catch(() => ({ error: 'Fehler' }))
-          alert(`IBAN-Speicher fehlgeschlagen: ${err.error ?? 'Unbekannt'}`)
+          toast.error(`IBAN-Speicher fehlgeschlagen: ${err.error ?? 'Unbekannt'}`)
         }
       }
     }

@@ -99,7 +99,8 @@ export interface Database {
           tax_number: string | null
           ustid: string | null
           is_kleinunternehmer: boolean | null
-          bank_iban: string | null
+          // bank_iban (Klartext) wurde gedroppt — siehe migrations/0010_drop_legacy_bank_iban.sql.
+          // Lese-/Schreibpfad geht ausschließlich über bank_iban_enc.
           bank_iban_enc: string | null
           bank_bic: string | null
           bank_name: string | null
@@ -180,7 +181,6 @@ export interface Database {
           tax_number?: string | null
           ustid?: string | null
           is_kleinunternehmer?: boolean | null
-          bank_iban?: string | null
           bank_iban_enc?: string | null
           bank_bic?: string | null
           bank_name?: string | null
@@ -248,7 +248,6 @@ export interface Database {
           tax_number?: string | null
           ustid?: string | null
           is_kleinunternehmer?: boolean | null
-          bank_iban?: string | null
           bank_iban_enc?: string | null
           bank_bic?: string | null
           bank_name?: string | null
@@ -483,6 +482,46 @@ export interface Database {
         Update: Record<string, never>
         Relationships: Rel[]
       }
+      notification_queue: {
+        Row: {
+          id: string
+          kind: string
+          channel: string
+          payload: Record<string, unknown>
+          status: string
+          scheduled_for: string
+          attempts: number
+          max_attempts: number
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          sent_at: string | null
+          created_at: string
+        }
+        Insert: {
+          kind: string
+          payload: Record<string, unknown>
+          channel?: string
+          status?: string
+          scheduled_for?: string
+          attempts?: number
+          max_attempts?: number
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          status?: string
+          attempts?: number
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          sent_at?: string | null
+          scheduled_for?: string
+        }
+        Relationships: Rel[]
+      }
       sales_leads: {
         Row: { id: string; google_place_id: string | null; name: string; formatted_address: string | null; phone: string | null; international_phone: string | null; email: string | null; website: string | null; instagram_url: string | null; facebook_url: string | null; google_maps_url: string | null; latitude: number | null; longitude: number | null; rating: number | null; user_ratings_total: number | null; business_status: string | null; primary_type: string | null; types: string[] | null; city: string | null; country_code: string | null; status: string; priority: number; notes: string | null; sports: string[]; is_martial_arts: boolean; next_followup_at: string | null; last_contacted_at: string | null; followup_reminded_at: string | null; contact_count: number; next_action: string | null; next_action_at: string | null; last_action_kind: string | null; lost_reason: string | null; converted_gym_id: string | null; converted_at: string | null; assigned_to: string | null; created_by: string | null; created_at: string; updated_at: string }
         Insert: { name: string; google_place_id?: string | null; formatted_address?: string | null; phone?: string | null; international_phone?: string | null; email?: string | null; website?: string | null; instagram_url?: string | null; facebook_url?: string | null; google_maps_url?: string | null; latitude?: number | null; longitude?: number | null; rating?: number | null; user_ratings_total?: number | null; business_status?: string | null; primary_type?: string | null; types?: string[] | null; city?: string | null; country_code?: string | null; status?: string; priority?: number; notes?: string | null; sports?: string[]; is_martial_arts?: boolean; next_followup_at?: string | null; last_contacted_at?: string | null; next_action?: string | null; next_action_at?: string | null; last_action_kind?: string | null; lost_reason?: string | null; assigned_to?: string | null; created_by?: string | null }
@@ -511,6 +550,12 @@ export interface Database {
         Row: { id: string; path: string; referrer_domain: string | null; country: string | null; device_type: string | null; browser: string | null; visitor_hash: string | null; session_hash: string | null; created_at: string; is_bot: boolean; event_type: string; event_target: string | null; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; referrer_source: string | null }
         Insert: { path: string; referrer_domain?: string | null; country?: string | null; device_type?: string | null; browser?: string | null; visitor_hash?: string | null; session_hash?: string | null; is_bot?: boolean; event_type?: string; event_target?: string | null; utm_source?: string | null; utm_medium?: string | null; utm_campaign?: string | null; referrer_source?: string | null }
         Update: never
+        Relationships: Rel[]
+      }
+      page_views_daily: {
+        Row: { date: string; path: string; event_type: string; country: string | null; device_type: string | null; browser: string | null; referrer_source: string | null; unique_visitors: number; total_views: number }
+        Insert: { date: string; path: string; event_type?: string; country?: string | null; device_type?: string | null; browser?: string | null; referrer_source?: string | null; unique_visitors?: number; total_views?: number }
+        Update: { unique_visitors?: number; total_views?: number }
         Relationships: Rel[]
       }
       gym_bulk_mails: {
@@ -586,9 +631,9 @@ export interface Database {
         Relationships: [{ foreignKeyName: 'gym_staff_gym_id_fkey'; columns: ['gym_id']; isOneToOne: false; referencedRelation: 'gyms'; referencedColumns: ['id'] }]
       }
       stripe_events: {
-        Row: { id: string; event_id: string; type: string | null; created_at: string }
-        Insert: { event_id: string; type?: string | null; id?: string; created_at?: string }
-        Update: { event_id?: string; type?: string | null; id?: string; created_at?: string }
+        Row: { id: string; event_id: string; type: string | null; created_at: string; processed_at: string | null; last_error: string | null; retry_count: number }
+        Insert: { event_id: string; type?: string | null; id?: string; created_at?: string; processed_at?: string | null; last_error?: string | null; retry_count?: number }
+        Update: { event_id?: string; type?: string | null; id?: string; created_at?: string; processed_at?: string | null; last_error?: string | null; retry_count?: number }
         Relationships: Rel[]
       }
       training_logs: {

@@ -169,7 +169,7 @@ function parseBelt(raw: string): Belt {
   return 'white'
 }
 
-function parseStripes(raw: string): number {
+export function parseStripes(raw: string): number {
   if (!raw) return 0
   const n = parseInt(raw.trim(), 10)
   if (Number.isNaN(n)) return 0
@@ -226,8 +226,13 @@ function formatDate(y: number, m: number, d: number): string | null {
  */
 export function parseFeeToCents(raw: string): number | null {
   if (!raw) return null
-  // Strip currency symbols, letters, spaces — keep digits, separators, sign
-  let s = raw.replace(/[^\d.,\-]/g, '').trim()
+  // Detekt negatives Vorzeichen BEVOR wir es strippen — sowohl ASCII-Minus
+  // als auch Unicode-Minus (U+2212), En-Dash (U+2013) und Em-Dash (U+2014).
+  // Sonst würde "−5" (Unicode-Minus) als 500 cents interpretiert werden,
+  // weil das Strip-Regex nur ASCII-`-` als Sign erkennt — silent corruption.
+  if (/[\-−–—]/.test(raw)) return null
+  // Strip currency symbols, letters, spaces — keep digits, separators
+  let s = raw.replace(/[^\d.,]/g, '').trim()
   if (!s) return null
 
   // If both `.` and `,` present, the LAST one is the decimal separator.
@@ -264,7 +269,7 @@ export function parseFeeToCents(raw: string): number | null {
   return Math.round(n * 100)
 }
 
-function parseEmail(raw: string): string | null {
+export function parseEmail(raw: string): string | null {
   const s = raw.trim().toLowerCase()
   if (!s) return null
   // Forgiving check — let bad addresses through but obvious garbage stays out

@@ -70,7 +70,7 @@ export async function GET(
   // Gym + Owner-Check
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: gym } = await (service.from('gyms') as any)
-    .select('id, name, address, email, bank_iban_enc, bank_iban')
+    .select('id, name, address, email, bank_iban_enc')
     .eq('owner_id', user.id)
     .maybeSingle()
   if (!gym) {

@@ -86,20 +86,63 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  // Atomic dedup via stripe_events table — UNIQUE index on event_id rejects duplicates.
-  // This MUST run before any state-changing side effects (members.update, payments.insert,
-  // sendMemberPaymentFailedEmail, …) so that Stripe's at-least-once retries cannot replay them.
+  // Transactional-outbox pattern. Two-phase event processing:
+  //
+  //   Phase 1 (claim):    INSERT stripe_events row with processed_at = NULL.
+  //   Phase 2 (handle):   run side-effects (DB updates, Resend mails, Stripe API calls).
+  //   Phase 3 (settle):   markProcessed() sets processed_at = NOW() at the end.
+  //
+  // On 23505 (UNIQUE violation) we look at the existing row's processed_at:
+  //   - NOT NULL → real duplicate, an earlier delivery already finished.   Return 200.
+  //   - NULL     → an earlier delivery CRASHED mid-handler. Stripe is replaying.
+  //                Continue processing (the side-effects must be idempotent — they are:
+  //                payments.update by intent-id, members.update by id, gyms.update by id).
+  //
+  // On any uncaught exception during side-effects we record last_error + bump retry_count
+  // and return 5xx so Stripe retries. The handler stays safe to replay because
+  // processed_at remains NULL until the final markProcessed call.
   const { error: dedupErr } = await supabase
     .from('stripe_events')
     .insert({ event_id: event.id, type: event.type })
-  // 23505 = unique_violation → duplicate event, already processed
   if (dedupErr) {
     if ((dedupErr as { code?: string }).code === '23505') {
-      return NextResponse.json({ received: true, duplicate: true })
+      const { data: existing, error: lookupErr } = await supabase
+        .from('stripe_events')
+        .select('processed_at')
+        .eq('event_id', event.id)
+        .single()
+      if (lookupErr) {
+        console.error('[webhook] stripe_events lookup after 23505 failed:', lookupErr)
+        return NextResponse.json({ error: 'Dedup lookup failed' }, { status: 500 })
+      }
+      if (existing?.processed_at) {
+        // Genuine duplicate — first delivery already settled.
+        return NextResponse.json({ received: true, duplicate: true })
+      }
+      // processed_at IS NULL → earlier delivery crashed; replay the side-effects.
+      console.warn(`[webhook] replaying unprocessed event ${event.id} (recovery)`)
+    } else {
+      console.error('[webhook] stripe_events insert error:', dedupErr)
+      return NextResponse.json({ error: 'Dedup insert failed' }, { status: 500 })
     }
-    console.error('[webhook] stripe_events insert error:', dedupErr)
-    return NextResponse.json({ error: 'Dedup insert failed' }, { status: 500 })
   }
+
+  // Mark the event as fully processed. Called at every success-return below.
+  // After this returns, future deliveries from Stripe for the same event_id
+  // will hit the 23505 branch above and short-circuit as "duplicate".
+  const markProcessed = async () => {
+    const { error: markErr } = await supabase
+      .from('stripe_events')
+      .update({ processed_at: new Date().toISOString() })
+      .eq('event_id', event!.id)
+    if (markErr) {
+      // Don't fail the webhook for this — Stripe replay will hit the
+      // recovery branch and re-run idempotent side-effects.
+      console.error('[webhook] markProcessed failed:', markErr)
+    }
+  }
+
+  try {
 
   // ── checkout.session.completed ──────────────────────────────────────────────
   if (event.type === 'checkout.session.completed') {
@@ -117,7 +160,7 @@ export async function POST(req: Request) {
         osss_stripe_customer_id:     typeof session.customer    === 'string' ? session.customer    : undefined,
         osss_stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : undefined,
       }).eq('id', gymId)
-      if (planErr) return NextResponse.json({ error: planErr.message }, { status: 500 })
+      if (planErr) throw planErr
     }
 
     if (memberId && session.mode === 'subscription') {
@@ -126,7 +169,7 @@ export async function POST(req: Request) {
         const { error: subErr } = await supabase.from('members')
           .update({ stripe_subscription_id: subscriptionId, subscription_status: 'active' })
           .eq('id', memberId)
-        if (subErr) return NextResponse.json({ error: subErr.message }, { status: 500 })
+        if (subErr) throw subErr
       }
     }
 
@@ -141,7 +184,7 @@ export async function POST(req: Request) {
         .eq('stripe_checkout_session_id', sessionId)
         .limit(1)
         .select('id')
-      if (bySessionErr) return NextResponse.json({ error: bySessionErr.message }, { status: 500 })
+      if (bySessionErr) throw bySessionErr
       if (bySession && bySession.length > 0) matched = true
 
       if (!matched && paymentIntentId) {
@@ -151,7 +194,7 @@ export async function POST(req: Request) {
           .eq('stripe_payment_intent_id', paymentIntentId)
           .limit(1)
           .select('id')
-        if (byIntentErr) return NextResponse.json({ error: byIntentErr.message }, { status: 500 })
+        if (byIntentErr) throw byIntentErr
         if (byIntent && byIntent.length > 0) matched = true
 
         if (!matched && memberId) {
@@ -159,12 +202,12 @@ export async function POST(req: Request) {
             .from('payments').select('id')
             .eq('member_id', memberId).eq('status', 'pending')
             .order('created_at', { ascending: false }).limit(1).single()
-          if (pendingErr && pendingErr.code !== 'PGRST116') return NextResponse.json({ error: pendingErr.message }, { status: 500 })
+          if (pendingErr && pendingErr.code !== 'PGRST116') throw pendingErr
           if (pending) {
             const { error: updErr } = await supabase.from('payments')
               .update({ status: 'paid', paid_at: now, stripe_payment_intent_id: paymentIntentId, stripe_checkout_session_id: sessionId })
               .eq('id', pending.id)
-            if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
+            if (updErr) throw updErr
             matched = true
           }
         }
@@ -174,7 +217,7 @@ export async function POST(req: Request) {
         const { data: existing, error: existErr } = await supabase
           .from('payments').select('id')
           .eq('stripe_checkout_session_id', sessionId).limit(1)
-        if (existErr) return NextResponse.json({ error: existErr.message }, { status: 500 })
+        if (existErr) throw existErr
         if (!existing || existing.length === 0) {
           const { data: mRow } = await supabase.from('members').select('first_name, last_name').eq('id', memberId).single()
           const memberName = mRow ? (`${mRow.first_name ?? ''} ${mRow.last_name ?? ''}`).trim() || null : null
@@ -188,7 +231,7 @@ export async function POST(req: Request) {
             stripe_payment_intent_id:   paymentIntentId,
             stripe_checkout_session_id: sessionId,
           })
-          if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+          if (insErr) throw insErr
         }
       }
     }
@@ -198,10 +241,10 @@ export async function POST(req: Request) {
   if (event.type === 'account.updated') {
     const account = event.data.object as Stripe.Account
     const { data: gym, error: gymLookupErr } = await supabase.from('gyms').select('id').eq('stripe_account_id', account.id).single()
-    if (gymLookupErr && gymLookupErr.code !== 'PGRST116') return NextResponse.json({ error: gymLookupErr.message }, { status: 500 })
+    if (gymLookupErr && gymLookupErr.code !== 'PGRST116') throw gymLookupErr
     if (gym) {
       const { error: updErr } = await supabase.from('gyms').update({ stripe_charges_enabled: account.charges_enabled }).eq('id', gym.id)
-      if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
+      if (updErr) throw updErr
     }
   }
 
@@ -217,7 +260,7 @@ export async function POST(req: Request) {
         .eq('stripe_account_id', accountId)
       if (deauthErr) {
         console.error('[webhook] deauthorized cleanup error:', deauthErr)
-        return NextResponse.json({ error: deauthErr.message }, { status: 500 })
+        throw deauthErr
       }
     }
   }
@@ -228,7 +271,7 @@ export async function POST(req: Request) {
     const piId   = typeof charge.payment_intent === 'string' ? charge.payment_intent : null
     if (piId) {
       const { error: refErr } = await supabase.from('payments').update({ status: 'refunded' }).eq('stripe_payment_intent_id', piId)
-      if (refErr) return NextResponse.json({ error: refErr.message }, { status: 500 })
+      if (refErr) throw refErr
     }
   }
 
@@ -236,7 +279,7 @@ export async function POST(req: Request) {
   if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as Stripe.PaymentIntent
     const { error: failErr } = await supabase.from('payments').update({ status: 'failed' }).eq('stripe_payment_intent_id', pi.id)
-    if (failErr) return NextResponse.json({ error: failErr.message }, { status: 500 })
+    if (failErr) throw failErr
   }
 
   // ── customer.subscription.created / updated ──────────────────────────────────
@@ -264,9 +307,10 @@ export async function POST(req: Request) {
           plan_member_limit: PLAN_LIMITS[newPlan],
           osss_stripe_subscription_id: sub.id,
         }).eq('id', gymId)
-        if (ownerSubErr) return NextResponse.json({ error: ownerSubErr.message }, { status: 500 })
+        if (ownerSubErr) throw ownerSubErr
       }
       // owner_plan handled — fall through to the next event-branch.
+      await markProcessed()
       return NextResponse.json({ received: true })
     }
 
@@ -279,7 +323,7 @@ export async function POST(req: Request) {
       const { error: subUpdErr } = await supabase.from('members')
         .update({ stripe_subscription_id: sub.id, subscription_status: status })
         .eq('id', memberId)
-      if (subUpdErr) return NextResponse.json({ error: subUpdErr.message }, { status: 500 })
+      if (subUpdErr) throw subUpdErr
 
       if (event.type === 'customer.subscription.created') {
         const cancelAtTs = sub.metadata?.cancel_at_ts
@@ -307,18 +351,18 @@ export async function POST(req: Request) {
       const { error: delMemberErr } = await supabase.from('members')
         .update({ stripe_subscription_id: null, subscription_status: 'cancelled' })
         .eq('id', memberId)
-      if (delMemberErr) return NextResponse.json({ error: delMemberErr.message }, { status: 500 })
+      if (delMemberErr) throw delMemberErr
     }
 
     const { data: gymWithSub, error: gymLookupErr } = await supabase.from('gyms').select('id').eq('osss_stripe_subscription_id', sub.id).single()
-    if (gymLookupErr && gymLookupErr.code !== 'PGRST116') return NextResponse.json({ error: gymLookupErr.message }, { status: 500 })
+    if (gymLookupErr && gymLookupErr.code !== 'PGRST116') throw gymLookupErr
     if (gymWithSub) {
       const { error: gymDownErr } = await supabase.from('gyms').update({
         plan:                        'free',
         plan_member_limit:           30,
         osss_stripe_subscription_id: null,
       }).eq('id', gymWithSub.id)
-      if (gymDownErr) return NextResponse.json({ error: gymDownErr.message }, { status: 500 })
+      if (gymDownErr) throw gymDownErr
     }
   }
 
@@ -340,14 +384,20 @@ export async function POST(req: Request) {
           .from('payments').select('id')
           .eq('stripe_invoice_id', invoiceId)
           .single()
-        if (byInvoice) return NextResponse.json({ received: true })
+        if (byInvoice) {
+          await markProcessed()
+          return NextResponse.json({ received: true })
+        }
       }
       if (paymentIntentId) {
         const { data: byIntent } = await supabase
           .from('payments').select('id')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .single()
-        if (byIntent) return NextResponse.json({ received: true })
+        if (byIntent) {
+          await markProcessed()
+          return NextResponse.json({ received: true })
+        }
       }
 
       // Recover past_due → active when subscription payment succeeds
@@ -368,7 +418,7 @@ export async function POST(req: Request) {
         stripe_payment_intent_id: paymentIntentId,
         stripe_invoice_id:        invoiceId ?? null,
       } as any)
-      if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+      if (insErr) throw insErr
     }
   }
 
@@ -381,7 +431,7 @@ export async function POST(req: Request) {
       .update({ status: 'paid', paid_at: now })
       .eq('stripe_payment_intent_id', pi.id)
       .eq('status', 'pending')
-    if (sepaErr) return NextResponse.json({ error: sepaErr.message }, { status: 500 })
+    if (sepaErr) throw sepaErr
   }
 
   // ── invoice.payment_failed ───────────────────────────────────────────────────
@@ -392,7 +442,7 @@ export async function POST(req: Request) {
 
     if (memberId) {
       const { error: pastDueErr } = await supabase.from('members').update({ subscription_status: 'past_due' }).eq('id', memberId)
-      if (pastDueErr) return NextResponse.json({ error: pastDueErr.message }, { status: 500 })
+      if (pastDueErr) throw pastDueErr
 
       // Notify gym owner about failed member payment (non-critical — never fail webhook)
       try {
@@ -491,7 +541,7 @@ export async function POST(req: Request) {
       const gymId = meta.gymId
       if (gymId) {
         const { error: downErr } = await supabase.from('gyms').update({ plan: 'free', plan_member_limit: 30 }).eq('id', gymId)
-        if (downErr) return NextResponse.json({ error: downErr.message }, { status: 500 })
+        if (downErr) throw downErr
         console.warn(`[webhook] Owner plan payment failed for gym ${gymId} — downgraded to free`)
       }
     }
@@ -530,6 +580,7 @@ export async function POST(req: Request) {
         }).catch(e => console.error('[webhook] invoice.upcoming email error:', e))
       }
     }
+    await markProcessed()
     return NextResponse.json({ received: true })
   }
 
@@ -544,6 +595,7 @@ export async function POST(req: Request) {
       if (trialErr) console.error('[webhook] trial_will_end update error:', trialErr)
       else console.log(`[webhook] trial_will_end — member ${memberId} status set to trial`)
     }
+    await markProcessed()
     return NextResponse.json({ received: true })
   }
 
@@ -556,8 +608,9 @@ export async function POST(req: Request) {
       const { error: disputeCloseErr } = await supabase.from('payments')
         .update({ status: finalStatus } as never)
         .eq('stripe_payment_intent_id', dispute.payment_intent as string)
-      if (disputeCloseErr) return NextResponse.json({ error: disputeCloseErr.message }, { status: 500 })
+      if (disputeCloseErr) throw disputeCloseErr
     }
+    await markProcessed()
     return NextResponse.json({ received: true })
   }
 
@@ -571,6 +624,7 @@ export async function POST(req: Request) {
         .eq('stripe_payment_intent_id', piId)
         .eq('status', 'disputed')
     }
+    await markProcessed()
     return NextResponse.json({ received: true })
   }
 
@@ -592,7 +646,7 @@ export async function POST(req: Request) {
           .eq('stripe_payment_intent_id', piId)
           .select('gym_id, amount_cents')
           .single()
-        if (disputeUpdErr && disputeUpdErr.code !== 'PGRST116') return NextResponse.json({ error: disputeUpdErr.message }, { status: 500 })
+        if (disputeUpdErr && disputeUpdErr.code !== 'PGRST116') throw disputeUpdErr
 
         if (pmt) {
           await notifyGymDispute(supabase, (pmt as any).gym_id, dispute.id, (pmt as any).amount_cents, chargeId)
@@ -601,5 +655,36 @@ export async function POST(req: Request) {
     }
   }
 
+  await markProcessed()
   return NextResponse.json({ received: true })
+  } catch (handlerErr) {
+    // Side-effect crashed — record diagnostic info on the stripe_events row and
+    // return 5xx so Stripe's at-least-once retry kicks in. The next delivery
+    // will hit the 23505 + processed_at IS NULL recovery branch above and
+    // re-run the (idempotent) side-effects until they fully succeed.
+    const errMsg = handlerErr instanceof Error
+      ? handlerErr.message
+      : (typeof handlerErr === 'object' && handlerErr !== null && 'message' in handlerErr
+          ? String((handlerErr as { message: unknown }).message)
+          : String(handlerErr))
+    console.error(`[webhook] handler crashed for event ${event.id}:`, handlerErr)
+
+    // Read current retry_count, then bump. We avoid an RPC for now to keep the
+    // change minimal; the read+write race is benign because per-event deliveries
+    // from Stripe are sequential.
+    const { data: existing } = await supabase
+      .from('stripe_events')
+      .select('retry_count')
+      .eq('event_id', event.id)
+      .single()
+    const nextRetry = ((existing as { retry_count?: number } | null)?.retry_count ?? 0) + 1
+    const { error: updateErr } = await supabase
+      .from('stripe_events')
+      .update({ last_error: errMsg.slice(0, 4000), retry_count: nextRetry })
+      .eq('event_id', event.id)
+    if (updateErr) {
+      console.error('[webhook] failed to record handler error on stripe_events:', updateErr)
+    }
+    return NextResponse.json({ error: errMsg }, { status: 500 })
+  }
 }

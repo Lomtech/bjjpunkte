@@ -10,7 +10,8 @@
     "test": "tsx tests/osss-test.ts",
     "test:prod": "tsx tests/osss-test.ts --url https://bjjpunkte.vercel.app",
     "test:smoke": "tsx tests/smoke/index.ts",
-    "test:smoke:prod": "TEST_API_BASE=https://www.osss.pro tsx tests/smoke/index.ts"
+    "test:smoke:prod": "TEST_API_BASE=https://www.osss.pro tsx tests/smoke/index.ts",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
@@ -35,11 +36,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.5",
     "dotenv-cli": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }

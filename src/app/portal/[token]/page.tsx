@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { useToast } from '@/components/Toast'
 import { translations } from '@/lib/i18n/translations'
 import { startOfWeek, addDays, CLASS_LABELS } from '@/lib/constants'
 
@@ -291,6 +292,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 export default function MemberPortalPage() {
   const params = useParams()
   const token  = params.token as string
+  const toast = useToast()
 
   const [data, setData]       = useState<MemberData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -335,9 +337,9 @@ export default function MemberPortalPage() {
       const res = await fetch(`/api/portal/${token}/subscribe`, { method: 'POST' })
       const d = await res.json()
       if (d.checkout_url) window.location.href = d.checkout_url
-      else alert(d.error ?? 'Fehler beim Erstellen des Checkouts')
+      else toast.error(d.error ?? 'Fehler beim Erstellen des Checkouts', { retry: handleRestartSubscription })
     } catch {
-      alert('Verbindungsfehler')
+      toast.error('Verbindungsfehler', { retry: handleRestartSubscription })
     } finally {
       setSubscribeLoading(false)
     }

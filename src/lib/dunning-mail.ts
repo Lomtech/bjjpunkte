@@ -152,7 +152,7 @@ export async function sendDunningMail(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: gym, error: gymErr } = await (supabase.from('gyms') as any)
     .select(
-      'name, address, email, bank_iban_enc, bank_iban, dunning_late_fee_cents, dunning_days_to_level_2, dunning_days_to_level_3',
+      'name, address, email, bank_iban_enc, dunning_late_fee_cents, dunning_days_to_level_2, dunning_days_to_level_3',
     )
     .eq('id', member.gym_id)
     .maybeSingle()

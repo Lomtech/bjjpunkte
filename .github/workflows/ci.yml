@@ -26,3 +26,6 @@ jobs:
 
       - name: TypeCheck
         run: npx tsc --noEmit
+
+      - name: Unit Tests
+        run: npm run test:unit

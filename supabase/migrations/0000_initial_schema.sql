@@ -1,0 +1,8 @@
+-- Initial schema baseline.
+-- Generate with: supabase db dump --schema-only --linked > 0000_initial_schema.sql
+-- (run from repo root after `supabase login` and `supabase link --project-ref ktwgvuasjezokhsfpfqb`)
+--
+-- This file is intentionally empty: the live DB at ktwgvuasjezokhsfpfqb is the
+-- source of truth for the baseline. Run the dump command above on a developer
+-- machine to populate it, then commit. After that, all schema changes flow
+-- through numbered migrations 0001+.

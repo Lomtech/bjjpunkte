@@ -64,12 +64,16 @@ export async function POST(req: Request) {
     ? ibanInput.replace(/[\s-]/g, '').toUpperCase()
     : ''
 
-  // Leerer/null-Wert → IBAN entfernen (beide Spalten auf null).
+  // Leerer/null-Wert → IBAN entfernen.
+  // (Klartext-Spalte `bank_iban` wird mit migration 0010 gedroppt; sie wird
+  // hier nicht mehr explizit geleert, weil sie spätestens nach Apply der
+  // Migration nicht mehr existiert. Pre-flight via scripts/check-iban-migration.ts
+  // stellt sicher, dass keine Klartext-Reste übrig bleiben.)
   if (!cleaned) {
     const svc = serviceClient()
     const { error: updateErr } = await svc
       .from('gyms')
-      .update({ bank_iban: null, bank_iban_enc: null })
+      .update({ bank_iban_enc: null })
       .eq('owner_id', user.id)
     if (updateErr) {
       return NextResponse.json({ error: 'DB-Update fehlgeschlagen' }, { status: 500 })
@@ -93,12 +97,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 
-  // Plaintext-Spalte wird auf null gesetzt — ab sofort lebt die IBAN nur
-  // noch verschlüsselt. Lese-Pfad nutzt `getIbanFromGym()` der beides kann.
+  // IBAN lebt nur noch verschlüsselt in bank_iban_enc.
+  // Der Lese-Pfad (`getIbanFromGym`) kennt den Klartext-Fallback nicht mehr,
+  // und die Klartext-Spalte verschwindet mit migration 0010.
   const svc = serviceClient()
   const { error: updateErr } = await svc
     .from('gyms')
-    .update({ bank_iban: null, bank_iban_enc: ciphertext })
+    .update({ bank_iban_enc: ciphertext })
     .eq('owner_id', user.id)
   if (updateErr) {
     return NextResponse.json({ error: 'DB-Update fehlgeschlagen' }, { status: 500 })

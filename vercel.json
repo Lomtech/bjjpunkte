@@ -20,10 +20,25 @@
     {
       "path": "/api/cron/missing-plan-reminder",
       "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/aggregate-page-views",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/notification-worker",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/newsletter-cleanup",
+      "schedule": "30 4 * * *"
     }
   ],
   "functions": {
     "src/app/api/cron/payment-reminders/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/cron/notification-worker/route.ts": {
       "maxDuration": 300
     },
     "src/app/api/cron/birthday/route.ts": {
@@ -37,6 +52,9 @@
     },
     "src/app/api/cron/missing-plan-reminder/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/aggregate-page-views/route.ts": {
+      "maxDuration": 300
     },
     "src/app/api/gym/import/route.ts": {
       "maxDuration": 60

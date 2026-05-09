@@ -1366,6 +1366,8 @@ function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
 
   async function remove() {
     if (!token) return
+    // TODO(modal): durch <ConfirmModal> ersetzen — synchron-Confirm braucht
+    // State-Lift in den Activity-Item-Wrapper.
     if (!confirm('Aktivität wirklich löschen?')) return
     setBusy(true)
     try {
@@ -1754,6 +1756,8 @@ function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }:
             title="Demo vereinbart"
             label="📅"
             onClick={() => {
+              // TODO(modal): durch Datum/Zeit-Modal ersetzen (z.B. <DateTimeInputModal>),
+              // window.prompt() ist 1998-Niveau und akzeptiert auch keine Mobile-Tastatur-Picker.
               const at = window.prompt('Demo-Datum + Uhrzeit (YYYY-MM-DD HH:MM):', '')
               const parsed = at ? new Date(at.replace(' ', 'T')) : null
               const iso = parsed && !isNaN(parsed.getTime()) ? parsed.toISOString() : null
@@ -1764,6 +1768,7 @@ function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }:
             label="✕"
             danger
             onClick={() => {
+              // TODO(modal): durch Text-Input-Modal ersetzen (Grund optional, Textarea).
               const reason = window.prompt('Grund (optional):', '')
               onAction(lead.id, 'lost', reason ? { reason } : undefined)
             }} />
