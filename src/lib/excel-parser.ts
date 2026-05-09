@@ -243,8 +243,19 @@ export function parseFeeToCents(raw: string): number | null {
       s = s.replace(/,/g, '')
     }
   } else if (lastComma !== -1) {
-    // Only comma → decimal separator
+    // Only comma → always decimal separator (German + EU style)
     s = s.replace(',', '.')
+  } else if (lastDot !== -1) {
+    // Only dot is ambiguous: "89.50" is decimal, "1.234" is German thousand-separator.
+    // Heuristic: if the dot is followed by exactly 2 digits, treat it as decimal.
+    // Otherwise (3+ digits or none after the LAST dot), it's a thousands-separator
+    // — strip ALL dots. This is the convention German Excel uses when saving
+    // CSV without a decimal column ("1.234" → 1234, not 1.234).
+    const tailLen = s.length - lastDot - 1
+    if (tailLen !== 2) {
+      s = s.replace(/\./g, '')
+    }
+    // tailLen === 2 → decimal, leave as-is (parseFloat handles "89.50")
   }
 
   const n = parseFloat(s)

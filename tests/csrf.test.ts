@@ -171,7 +171,7 @@ test('Test 7: POST ohne Origin und ohne Bearer → 403', async () => {
 test('Test 7b: PUT mit Evil-Origin → 403', () => {
   const result = checkCsrf(mockRequest({
     method: 'PUT',
-    pathname: '/api/leads/abc',
+    pathname: '/api/admin/leads/abc',
     headers: { Origin: 'https://attacker.example' },
   }))
   assert.notEqual(result, null)
@@ -181,7 +181,7 @@ test('Test 7b: PUT mit Evil-Origin → 403', () => {
 test('Test 7c: DELETE mit Evil-Origin → 403', () => {
   const result = checkCsrf(mockRequest({
     method: 'DELETE',
-    pathname: '/api/leads/abc',
+    pathname: '/api/admin/leads/abc',
     headers: { Origin: 'https://attacker.example' },
   }))
   assert.notEqual(result, null)

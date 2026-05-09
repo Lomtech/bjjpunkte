@@ -34,7 +34,6 @@ export default function robots(): MetadataRoute.Robots {
           '/trial/',          // Trial-Slugs (optional, eher privat)
           '/trial/*',
           '/monitoring',      // Sentry-Tunnel
-          '/sentry-example-page',
         ],
       },
       // Stripe + andere Bots, die uns nicht crawlen müssen

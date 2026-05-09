@@ -3,19 +3,24 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { sendMemberPaymentFailedEmail } from '@/lib/notify'
+import { PRICING_TIERS, type PlanKey } from '@/lib/pricing'
 
-const PLAN_LIMITS: Record<string, number> = { starter: 50, grow: 150, pro: 9999 }
-
-function priceAmountToPlan(amountCents: number): string {
-  // Annual amounts (10× monthly — 2 months free)
-  if (amountCents >= 99000) return 'pro'
-  if (amountCents >= 59000) return 'grow'
-  if (amountCents >= 29000) return 'starter'
-  // Monthly amounts
-  if (amountCents >= 9900) return 'pro'
-  if (amountCents >= 5900) return 'grow'
-  return 'starter'
-}
+// Plan-Member-Limits derived from PRICING_TIERS (single-source-of-truth).
+// Without this derivation the webhook drifts away from /pricing whenever
+// the marketing tiers move — paying customers then hit "limit reached"
+// with their advertised member count. Free is excluded (handled at signup).
+//
+// 'pro' is conceptually unlimited; we use a high sentinel (1e6) instead of
+// null because the consuming columns are NOT NULL in the schema.
+const PRO_PLAN_SENTINEL = 1_000_000
+const PLAN_LIMITS: Record<Exclude<PlanKey, 'free'>, number> = (() => {
+  const map = {} as Record<Exclude<PlanKey, 'free'>, number>
+  for (const t of PRICING_TIERS) {
+    if (t.planKey === 'free') continue
+    map[t.planKey] = t.membersTo ?? PRO_PLAN_SENTINEL
+  }
+  return map
+})()
 
 async function notifyGymDispute(
   supabase: ReturnType<typeof createClient<Database>>,
@@ -105,9 +110,10 @@ export async function POST(req: Request) {
 
     if (session.metadata?.type === 'owner_plan') {
       const { gymId, plan } = session.metadata
+      const planKey = (plan && plan in PLAN_LIMITS) ? plan as Exclude<PlanKey, 'free'> : null
       const { error: planErr } = await supabase.from('gyms').update({
         plan:                        plan as Database['public']['Tables']['gyms']['Update']['plan'],
-        plan_member_limit:           PLAN_LIMITS[plan] ?? 30,
+        plan_member_limit:           planKey ? PLAN_LIMITS[planKey] : 30,
         osss_stripe_customer_id:     typeof session.customer    === 'string' ? session.customer    : undefined,
         osss_stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : undefined,
       }).eq('id', gymId)
@@ -237,6 +243,33 @@ export async function POST(req: Request) {
   if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
     const sub      = event.data.object as Stripe.Subscription
     const memberId = sub.metadata?.memberId
+    const subType  = sub.metadata?.type
+
+    // Owner-Plan branch — Studio-Owner upgraded/downgraded their SaaS-tier
+    // (typically via the Stripe Billing Portal). Without this branch the DB
+    // stays on whatever plan was set at first checkout, so a paid Grow tier
+    // still has Starter's plan_member_limit. That's the fastest support-ticket
+    // generator imaginable.
+    if (subType === 'owner_plan') {
+      const newPlan = sub.metadata?.plan as Exclude<PlanKey, 'free'> | undefined
+      const gymId   = sub.metadata?.gymId
+      if (newPlan && gymId && newPlan in PLAN_LIMITS) {
+        // Note: gyms-table has no subscription_status column (only members does).
+        // We update plan + member-limit + stripe-sub-id; the plan itself
+        // (free vs starter/grow/pro) is the truth signal for the dashboard.
+        // If the sub is canceled, the customer.subscription.deleted branch
+        // below downgrades to 'free' separately.
+        const { error: ownerSubErr } = await supabase.from('gyms').update({
+          plan: newPlan,
+          plan_member_limit: PLAN_LIMITS[newPlan],
+          osss_stripe_subscription_id: sub.id,
+        }).eq('id', gymId)
+        if (ownerSubErr) return NextResponse.json({ error: ownerSubErr.message }, { status: 500 })
+      }
+      // owner_plan handled — fall through to the next event-branch.
+      return NextResponse.json({ received: true })
+    }
+
     if (memberId) {
       const status: Database['public']['Tables']['members']['Update']['subscription_status'] =
         sub.status === 'active'   ? 'active'    :

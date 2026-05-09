@@ -170,7 +170,15 @@ function createInMemoryLimiter() {
   }
 }
 
-const RATE_LIMITED = /^\/(api\/portal|api\/public|api\/signup|api\/auth\/delete-account|api\/staff\/accept|api\/staff\/link|api\/avv|api\/newsletter)\//
+const RATE_LIMITED = /^\/(api\/portal|api\/public|api\/signup|api\/auth\/delete-account|api\/staff\/accept|api\/staff\/link|api\/avv|api\/newsletter|api\/track)\//
+
+// Pfade die KEIN Supabase-Session-Sync brauchen — sind public oder
+// nutzen eigene Auth (Bearer-Token, Magic-Link). Wenn man ihnen den
+// Session-Sync aufzwingt, crashed die Middleware in Vercel's Edge-Runtime.
+// Aber CSRF + Rate-Limit MÜSSEN trotzdem laufen — sonst sind die DDoS-
+// anfälligen Endpoints (/api/track, /api/public/*, /api/signup) komplett
+// schutzlos.
+const SKIP_SESSION_SYNC = /^\/(api\/public|api\/portal|api\/signup|api\/track|api\/admin|monitoring)/
 
 export async function proxy(request: NextRequest) {
   // CSRF-Check VOR Rate-Limit (günstiger, blockt Bot-Attacks früher)
@@ -187,6 +195,14 @@ export async function proxy(request: NextRequest) {
         { status: 429 }
       )
     }
+  }
+
+  // Public/Portal/Signup/Track skip Session-Sync — sie nutzen entweder gar
+  // keine Auth (Public-Pages), eigene Token (Portal), oder schreiben anonym
+  // (Track). Session-Sync auf diesen Pfaden hat in der Vergangenheit Edge-
+  // Runtime-Crashes verursacht.
+  if (SKIP_SESSION_SYNC.test(request.nextUrl.pathname)) {
+    return NextResponse.next({ request })
   }
 
   // Sync Supabase session into cookies so server components can read it
@@ -212,14 +228,12 @@ export async function proxy(request: NextRequest) {
   return response
 }
 
-// Pass 22: matcher excludes /api/public/*, /api/portal/*, /api/signup, /api/sentry-example-api,
-// /api/admin/* from middleware altogether. Middleware was crashing on all GET requests to
-// these paths (proven by /api/public/ping with no Supabase imports also returning 500).
-// The Supabase session sync in proxy.ts is incompatible with these routes in Vercel's Edge
-// runtime. /api/admin/* uses its own Bearer-token auth via requireAdmin() — also doesn't
-// need session-sync.
+// Matcher includes /api/public/*, /api/portal/*, /api/signup, /api/track, /api/admin
+// — they need CSRF + rate-limit, but skip the Session-Sync inside the handler
+// (see SKIP_SESSION_SYNC above). This is the fix for the v22-bug where these
+// paths were excluded entirely → DDoS-vulnerable.
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/public|api/portal|api/signup|api/admin|api/sentry-example-api|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

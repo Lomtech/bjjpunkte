@@ -31,10 +31,10 @@ export default function AgbPage() {
           <section>
             <h2 className="text-base font-bold text-zinc-900 mb-3">§ 1 Geltungsbereich</h2>
             <p>
-              Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle Verträge zwischen der Lomtechs
+              Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle Verträge zwischen Lom-Ali Imadaev
               (nachfolgend „Osss" oder „Anbieter") und ihren Kunden (nachfolgend „Nutzer") über die Nutzung
               der Software-as-a-Service-Plattform „Osss" zur Gym-Verwaltung, zugänglich unter{' '}
-              <span className="font-medium text-zinc-900">bjjpunkte.vercel.app</span> sowie zugehörigen Domains.
+              <span className="font-medium text-zinc-900">osss.pro</span> sowie zugehörigen Domains.
             </p>
             <p className="mt-3">
               Abweichende, entgegenstehende oder ergänzende AGB des Nutzers werden nicht Vertragsbestandteil,
