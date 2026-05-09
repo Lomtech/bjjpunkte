@@ -238,16 +238,22 @@
 
 | Anbieter | Zweck | AVV abgeschlossen? | Datum AVV | Drittland | Absicherung |
 |---|---|:---:|---|---|---|
-| Supabase Inc. | Datenbank, Auth, Storage | ☐ | _[YYYY-MM-DD]_ | UK (Daten) / USA (Vertrag) | EU-Adequacy UK + SCCs für USA |
-| Stripe Inc. / Stripe Payments Europe Ltd. | Zahlungsabwicklung | ☐ | _[YYYY-MM-DD]_ | USA / IE | SCCs + DPF + PCI-DSS |
-| Vercel Inc. | Hosting | ☐ | _[YYYY-MM-DD]_ | USA | SCCs + DPF |
-| Resend Inc. | E-Mail-Versand | ☐ | _[YYYY-MM-DD]_ | USA | SCCs |
-| Functional Software, Inc. (Sentry) | Error-Tracking | ☐ | _[YYYY-MM-DD]_ | USA | SCCs |
-| Upstash, Inc. | Rate-Limiting (Redis) | ☐ | _[YYYY-MM-DD]_ | USA | SCCs |
-| Google LLC (Places API) | Lead-Daten-Anreicherung CRM | ☐ | _[YYYY-MM-DD]_ | USA | SCCs + DPF |
+| Supabase Inc. | Datenbank, Auth, Storage | ⏳ Static | 2026-05-09 (static text) | UK (Daten) / USA (Vertrag) | EU-Adequacy UK + SCCs für USA. **Signed DPA bei Pro-Upgrade** ($25/Mo). |
+| Stripe Inc. / Stripe Payments Europe Ltd. | Zahlungsabwicklung | ✅ Auto | beim Account-Setup | USA / IE | SCCs + DPF + PCI-DSS. Auto-akzeptiert beim Stripe-Onboarding, PDF in Stripe-Dashboard → Documents. |
+| Vercel Inc. | Hosting | ⏳ Static | 2026-05-09 (static text) | USA | SCCs + DPF. **Signed DPA bei Pro-Upgrade** ($20/Mo). |
+| Resend Inc. | E-Mail-Versand | ⏳ Email | _[Email an legal@resend.com pending]_ | USA | SCCs |
+| Functional Software, Inc. (Sentry) | Error-Tracking | ⏳ DocuSign | _[DocuSign-Link pending]_ | USA | SCCs. „All Plans"-DPA via Sentry Help Center. |
+| Upstash, Inc. | Rate-Limiting (Redis) | ⏳ Email | _[PDF signen + an support@upstash.com mailen pending]_ | USA | SCCs |
+| Google LLC (Places API) | Lead-Daten-Anreicherung CRM | ⏳ Console | _[Google Cloud Console → IAM → DPA → Accept pending]_ | USA | SCCs + DPF |
 
-> **Action:** Jeden ☐ in ☑ umwandeln, sobald AVV unterzeichnet vorliegt. Kopien
-> der unterzeichneten AVVs in `compliance/avv/` ablegen (gitignored).
+**Legende**:
+- ✅ = Vollständig signed/accepted
+- ⏳ Static = Static-Vertragstext liegt vor in `compliance/avv-static/`, signed DPA noch ausstehend (Plan-Upgrade nötig oder User-Aktion)
+- ⏳ Email/DocuSign/Console = User-Aktion im jeweiligen Workflow erforderlich
+
+> **Status 2026-05-09:** 1 von 7 vollständig (Stripe). Static-Texte aller 7 in
+> `compliance/avv-static/` (siehe README dort für Reihenfolge der nächsten Schritte).
+> Signed-PDFs landen in `compliance/avv/` (gitignored) mit Datum + Anbieter im Dateinamen.
 
 ---
 
