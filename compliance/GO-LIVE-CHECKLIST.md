@@ -159,3 +159,12 @@ SELECT plan, count(*) FROM gyms WHERE plan != 'free' GROUP BY plan;
 ---
 
 **Letzter Hinweis**: Die Migrations sind bereits in `supabase/migrations/` getrackt. Wenn du auf einer Dev-Maschine `supabase db pull` oder `supabase db diff` machst, sollten keine Diffs entstehen — die Live-DB ist synchronisiert.
+
+---
+
+## Vercel-Deploy-Status (2026-05-09 abends)
+
+Vercel-GitHub-App hatte einen Permission-Update-Pending-Status, der seit
+~9-12h alle Auto-Deploys verschluckt hat. User hat Permission über
+https://github.com/settings/installations/54354138/permissions/update
+approved. Erste Auto-Deploys nach Approval triggern wieder.
