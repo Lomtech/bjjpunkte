@@ -1,12 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 
 /**
  * In-page contact modal — extracted from src/app/page.tsx so the landing page
  * itself can stay a Server Component. Posts to /api/public/contact, includes
  * a hidden honeypot field as the original did.
+ *
+ * IMPORTANT: rendered via createPortal into document.body. Reason: the nav
+ * components use `backdrop-blur-md` (Tailwind backdrop-filter) which creates
+ * a new containing block in Chrome/Safari per CSS spec — `position: fixed`
+ * children would otherwise be positioned relative to the nav, not the
+ * viewport. The portal lifts the modal out of that scope.
  */
 export function ContactModal({ lang, onClose }: { lang: 'de' | 'en'; onClose: () => void }) {
   const [name, setName]       = useState('')
@@ -18,6 +25,17 @@ export function ContactModal({ lang, onClose }: { lang: 'de' | 'en'; onClose: ()
   const [busy, setBusy]       = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [done, setDone]       = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Portal mount-check: warte auf erstes Client-Render damit document.body verfügbar ist
+  useEffect(() => { setMounted(true) }, [])
+
+  // Body-scroll-lock während Modal offen ist (sonst kann User hinter dem Modal scrollen)
+  useEffect(() => {
+    const original = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = original }
+  }, [])
 
   const isEn = lang === 'en'
 
@@ -53,8 +71,10 @@ export function ContactModal({ lang, onClose }: { lang: 'de' | 'en'; onClose: ()
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm overflow-y-auto"
+  if (!mounted) return null
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm overflow-y-auto"
          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
          onClick={() => !busy && onClose()}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl max-h-[100dvh] sm:max-h-[88vh] flex flex-col my-auto"
@@ -178,4 +198,6 @@ export function ContactModal({ lang, onClose }: { lang: 'de' | 'en'; onClose: ()
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }
