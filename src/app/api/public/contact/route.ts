@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { applyRateLimit } from '@/lib/rate-limit-handler'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,14 +12,21 @@ export const dynamic = 'force-dynamic'
  * Sendet eine Mail an oss@osss.pro (CONTACT_FORM_TO override möglich).
  *
  * Spam-Schutz:
- *  1. Honeypot-Feld `hp` — wenn ausgefüllt → silent 200 (Bot fühlt sich erfolgreich)
- *  2. Rate-Limit über Proxy (`/api/public/*` ist whitelisted für Rate-Limit
- *     in src/proxy.ts, Pfad startet mit /api/public/)
+ *  1. Rate-Limit per IP via applyRateLimit (Audit 2026-05-10: vorher
+ *     fälschlicherweise dokumentiert dass /api/public/* im Proxy-Matcher
+ *     steht — das stimmt NICHT, Proxy exkludiert /api/public/. Daher
+ *     handler-side limit jetzt aktiv: 3 Anfragen pro IP / 10 Min)
+ *  2. Honeypot-Feld `hp` — wenn ausgefüllt → silent 200 (Bot fühlt sich erfolgreich)
  *  3. Min/Max Längen für Felder
- *  4. CSRF: Same-Origin-Check via Proxy (whitelisted für /api/public/)
- *     → 403 wenn Origin/Referer nicht passt
+ *  4. CSRF: Same-Origin-Check für non-public-Routen — public sind absichtlich
+ *     ungeschützt damit fremde Seiten oder Mail-Clients posten können
  */
 export async function POST(req: Request) {
+  // Rate-Limit: 3 Submissions pro IP / 10 Min — schützt Resend-Email-Budget
+  // gegen Bot-Sturm an oss@osss.pro.
+  const rl = await applyRateLimit(req, { kind: 'contact', limit: 3, windowSec: 600 })
+  if (rl) return rl
+
   const body = await req.json().catch(() => ({})) as Record<string, unknown>
 
   // Honeypot: ein hidden field das echte User leer lassen, Bots aber ausfüllen

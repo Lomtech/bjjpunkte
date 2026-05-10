@@ -78,7 +78,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         }),
       })
     }
-  } catch {}
+  } catch (err) {
+    // Audit 2026-05-10: vorher leerer catch{} — Owner-Notification-Fehler war
+    // silent, Member sah „Plan-Anfrage gesendet" obwohl Owner nichts wusste.
+    // Plan-Update in DB ist trotzdem erfolgreich → 200 zurück bleibt korrekt,
+    // aber wir loggen den Mail-Fehler für Sentry/Vercel.
+    console.error('[portal/plan] owner notification mail failed:', err)
+  }
 
   return NextResponse.json({ success: true })
 }

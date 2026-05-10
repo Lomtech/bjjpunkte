@@ -32,16 +32,22 @@ async function notifyGymDispute(
   chargeId: string,
 ) {
   if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) return
-  const { data: gym } = await supabase.from('gyms').select('email, name').eq('id', gymId).single()
-  if (!gym || !(gym as any).email) return
-  const g = gym as any
+  // Audit 2026-05-10: vorher zwei `(gym as any).email`-Casts ohne Type-Safety.
+  // Wenn DB-Schema email zu null macht, kam silent `to: null` an Resend → 4xx
+  // → Webhook-Retry-Storm. Jetzt strict typed mit early-return bei null.
+  const { data: gym } = await supabase
+    .from('gyms')
+    .select('email, name')
+    .eq('id', gymId)
+    .single()
+  if (!gym?.email) return
   const amountEur = (amountCents / 100).toFixed(2).replace('.', ',')
   await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
     body: JSON.stringify({
       from: process.env.RESEND_FROM_EMAIL,
-      to: g.email,
+      to: gym.email,
       subject: `⚠️ Chargeback eröffnet – ${amountEur} € – Sofortmaßnahme erforderlich`,
       html: `
         <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
