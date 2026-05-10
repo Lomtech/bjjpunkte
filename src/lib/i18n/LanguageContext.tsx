@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { translations } from './translations'
 import type { Lang } from './translations'
 
@@ -43,6 +44,7 @@ export function LanguageProvider({
   initialLang?: Lang
 }) {
   const [lang, setLangState] = useState<Lang>(initialLang ?? 'de')
+  const router = useRouter()
 
   useEffect(() => {
     // Sync to localStorage on first mount, but only if no SSR-provided initialLang
@@ -58,11 +60,19 @@ export function LanguageProvider({
   }, [])
 
   function setLang(l: Lang) {
+    if (l === lang) return
     setLangState(l)
     if (typeof window !== 'undefined') {
       localStorage.setItem('lang', l)
       document.cookie = `lang=${l}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
     }
+    // RSC-Pages (Landing, About) lesen die Sprache via getServerLang() aus der
+    // Cookie. Ohne router.refresh() bleiben sie auf der alten Sprache bis zum
+    // nächsten Page-Load, weil RSC-Output bereits gerendert ist. router.refresh()
+    // invalidiert den RSC-Cache und holt frische HTML mit neuer Cookie.
+    // Client-only-Pages (Dashboard, Pricing, etc.) sind davon nicht betroffen —
+    // sie reagieren sofort auf den State-Change. Refresh ist für sie no-op.
+    router.refresh()
   }
 
   return (
