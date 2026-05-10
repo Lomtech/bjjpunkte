@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   TrendingUp, CheckCircle2, Clock, AlertCircle, ChevronRight, ChevronLeft,
-  Euro, Users, Calendar, ArrowUpRight, Download,
+  Euro, Users, Calendar, ArrowUpRight, Download, Search, X as XIcon,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
@@ -63,6 +63,7 @@ export default function RevenuePage() {
   const [allPayments, setAllPayments]   = useState<(PaymentFull & { member_name: string })[]>([])
   const [months, setMonths]             = useState<MonthGroup[]>([])
   const [expectedMonthlyCents, setExpectedMonthlyCents] = useState(0)
+  const [historyQuery, setHistoryQuery] = useState('')
   useEffect(() => {
     setLoading(true)
     async function load() {
@@ -453,30 +454,67 @@ export default function RevenuePage() {
       )}
 
       {/* HISTORY TAB */}
-      {tab === 'history' && (
+      {tab === 'history' && (() => {
+        // Lokales Filter-Memo: case-insensitive Substring-Match auf member_name
+        // (mit Trim damit „ Lom " auch matched).
+        const q = historyQuery.trim().toLowerCase()
+        const filteredPayments = q
+          ? allPayments.filter(p => p.member_name.toLowerCase().includes(q))
+          : allPayments
+        const filteredCents = filteredPayments.reduce((s, p) => s + p.amount_cents, 0)
+        return (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{t('revenue', 'paymentHistory')}</p>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-zinc-400">{allPayments.length} {t('revenue', 'transactions')} · {formatCents(allTimeCents)}</span>
-              {allPayments.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <button onClick={downloadPaymentsCSV}
-                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
-                    title={t('revenue', 'exportCsv')}>
-                    <Download size={12} /> CSV
-                  </button>
-                  <button onClick={downloadDATEV}
-                    className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
-                    title="DATEV">
-                    <Download size={12} /> DATEV
-                  </button>
-                </div>
+          <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{t('revenue', 'paymentHistory')}</p>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-zinc-400 whitespace-nowrap">
+                  {q
+                    ? `${filteredPayments.length} / ${allPayments.length} · ${formatCents(filteredCents)}`
+                    : `${allPayments.length} ${t('revenue', 'transactions')} · ${formatCents(allTimeCents)}`}
+                </span>
+                {allPayments.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button onClick={downloadPaymentsCSV}
+                      className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
+                      title={t('revenue', 'exportCsv')}>
+                      <Download size={12} /> CSV
+                    </button>
+                    <button onClick={downloadDATEV}
+                      className="flex items-center gap-1 text-xs text-zinc-400 hover:text-amber-600 transition-colors"
+                      title="DATEV">
+                      <Download size={12} /> DATEV
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Search-Box: Live-Filter auf member_name. Nutzt stored member_name
+                aus payments-Tabelle (überlebt Mitglieds-Löschung). */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                value={historyQuery}
+                onChange={e => setHistoryQuery(e.target.value)}
+                placeholder={lang === 'en' ? 'Search by member name…' : 'Nach Mitgliedsnamen suchen…'}
+                className="w-full pl-9 pr-9 py-2 text-sm rounded-xl border border-zinc-200 bg-white focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+                aria-label={lang === 'en' ? 'Search payments' : 'Zahlungen durchsuchen'}
+              />
+              {historyQuery && (
+                <button
+                  onClick={() => setHistoryQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                  aria-label={lang === 'en' ? 'Clear search' : 'Suche löschen'}
+                  type="button"
+                >
+                  <XIcon size={14} />
+                </button>
               )}
             </div>
           </div>
           <div className="divide-y divide-gray-100">
-            {allPayments.map(p => (
+            {filteredPayments.map(p => (
               <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors group">
                 {p.member_id ? (
                   <Link href={`/dashboard/members/${p.member_id}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -516,9 +554,17 @@ export default function RevenuePage() {
             {allPayments.length === 0 && (
               <div className="py-12 text-center text-zinc-400 text-sm">{t('revenue', 'noPayments')}</div>
             )}
+            {allPayments.length > 0 && filteredPayments.length === 0 && (
+              <div className="py-12 text-center text-zinc-400 text-sm">
+                {lang === 'en'
+                  ? <>No payments match „<span className="font-semibold text-zinc-600">{historyQuery}</span>"</>
+                  : <>Keine Zahlungen passen zu „<span className="font-semibold text-zinc-600">{historyQuery}</span>"</>}
+              </div>
+            )}
           </div>
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

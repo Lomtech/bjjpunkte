@@ -176,7 +176,10 @@ export default function MemberDetailPage() {
           supabase.from('belt_promotions').select('*').eq('member_id', id).order('promoted_at', { ascending: false }),
           supabase.from('attendance').select('*').eq('member_id', id).order('checked_in_at', { ascending: false }).limit(10),
           supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('member_id', id),
-          supabase.from('payments').select('*').eq('member_id', id).order('created_at', { ascending: false }).limit(6),
+          // Erhöht von 6 auf 100 — User möchte vollständige Zahlungs-Historie
+          // im Profil sehen, nicht nur die letzten 6. Performance ok bis ~500
+          // Zahlungen pro Mitglied (= ~40 Jahre monatlich).
+          supabase.from('payments').select('*').eq('member_id', id).order('created_at', { ascending: false }).limit(100),
         ])
 
         setPromotions((promotionsData as Promotion[]) ?? [])
@@ -634,6 +637,7 @@ export default function MemberDetailPage() {
         stripeSubscriptionId={(member as any).stripe_subscription_id ?? null}
         monthlyFeeCents={monthlyFeeCents}
         payments={payments}
+        memberCreatedAt={member.join_date}
       />
 
       {/* Member portal link */}

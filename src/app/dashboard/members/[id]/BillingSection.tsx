@@ -1,13 +1,77 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X, FileText, Check } from 'lucide-react'
+import { CreditCard, Send, ExternalLink, Trash2, Copy, MessageCircle, RefreshCw, X, FileText, Check, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toWaPhone } from '@/lib/phone'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
 
 type Payment = { id: string; amount_cents: number; status: string; paid_at: string | null; created_at: string }
+
+/**
+ * Berechnet "Erwartete Zahlungen" für einen Mitgliedszeitraum.
+ *
+ * Logik:
+ *   - Startet beim Beitritts-Monat (member.created_at)
+ *   - Endet beim aktuellen Monat
+ *   - Pro Monat: gibt es eine `paid` Zahlung mit paid_at in diesem Monat?
+ *     → ja: status='paid', mit Payment-ID + Betrag
+ *     → nein, Monat in der Vergangenheit: status='missing' (offen)
+ *     → nein, aktueller Monat: status='due' (fällig, aber noch nicht überfällig)
+ *   - Limit: max 24 Monate Rückblick (verhindert Endlos-Listen bei Alt-Mitgliedern)
+ *
+ * Hinweis: betrachtet nur paid_at (= tatsächliche Zahlung), nicht created_at
+ * der pending payments. Pending payments tauchen aktuell nicht in der
+ * Expected-View auf — wenn der Owner eine pending payment cancelt, gilt der
+ * Monat als "missing".
+ */
+function computeExpectedPayments(
+  memberCreatedAt: string,
+  monthlyFeeCents: number,
+  payments: Payment[],
+): Array<{ month: string; label: string; status: 'paid' | 'missing' | 'due'; paymentId?: string; amountCents?: number; paidAt?: string }> {
+  const result: Array<{ month: string; label: string; status: 'paid' | 'missing' | 'due'; paymentId?: string; amountCents?: number; paidAt?: string }> = []
+  const now = new Date()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+  // Start: Monat des Beitritts
+  const start = new Date(memberCreatedAt)
+  let cursor = new Date(start.getFullYear(), start.getMonth(), 1)
+  const end = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  // Cap auf 24 Monate Rückblick — alles davor wird übersprungen
+  const oldestAllowed = new Date(now.getFullYear(), now.getMonth() - 24, 1)
+  if (cursor < oldestAllowed) cursor = oldestAllowed
+
+  while (cursor <= end) {
+    const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
+    const paid = payments.find(p =>
+      p.status === 'paid' && p.paid_at && p.paid_at.startsWith(monthKey)
+    )
+    if (paid) {
+      result.push({
+        month: monthKey,
+        label: cursor.toISOString(),  // wird im Render lokalisiert
+        status: 'paid',
+        paymentId: paid.id,
+        amountCents: paid.amount_cents,
+        paidAt: paid.paid_at!,
+      })
+    } else {
+      result.push({
+        month: monthKey,
+        label: cursor.toISOString(),
+        status: monthKey === currentMonth ? 'due' : 'missing',
+        amountCents: monthlyFeeCents,
+      })
+    }
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+
+  // Neueste zuerst
+  return result.reverse()
+}
 
 const STATUS_COLORS: Record<string, string> = {
   paid:     'bg-zinc-100 text-zinc-700 border-zinc-200',
@@ -17,10 +81,11 @@ const STATUS_COLORS: Record<string, string> = {
 }
 // STATUS_LABELS are now resolved via t('paymentStatus', ...) inside the component
 
-export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memberName, subscriptionStatus, stripeCustomerId, monthlyFeeCents, payments: initialPayments, stripeSubscriptionId }: {
+export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memberName, subscriptionStatus, stripeCustomerId, monthlyFeeCents, payments: initialPayments, stripeSubscriptionId, memberCreatedAt }: {
   memberId: string; gymId: string; memberEmail: string | null; memberPhone?: string | null; memberName: string
   subscriptionStatus: string; stripeCustomerId: string | null; monthlyFeeCents: number
   payments: Payment[]; stripeSubscriptionId?: string | null
+  memberCreatedAt?: string
 }) {
   const { t, lang } = useLanguage()
   const locale = lang === 'en' ? 'en-GB' : 'de-DE'
@@ -274,6 +339,83 @@ export function BillingSection({ memberId, gymId, memberEmail, memberPhone, memb
       {error && (
         <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm mb-3">{error}</div>
       )}
+
+      {/* Erwartete Zahlungen — Soll-Ist-Vergleich pro Monat seit Beitritt */}
+      {memberCreatedAt && monthlyFeeCents > 0 && (() => {
+        const expected = computeExpectedPayments(memberCreatedAt, monthlyFeeCents, payments)
+        if (expected.length === 0) return null
+        const missingCount = expected.filter(e => e.status === 'missing').length
+        const paidCount = expected.filter(e => e.status === 'paid').length
+        return (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                {lang === 'en' ? 'Expected payments' : 'Erwartete Zahlungen'}
+              </p>
+              <p className="text-[11px] text-zinc-500 tabular-nums">
+                {paidCount} {lang === 'en' ? 'paid' : 'bezahlt'}
+                {missingCount > 0 && (
+                  <> · <span className="text-amber-700 font-semibold">{missingCount} {lang === 'en' ? 'missing' : 'fehlen'}</span></>
+                )}
+              </p>
+            </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              {expected.map(e => {
+                const monthDate = new Date(e.label)
+                const monthLabel = monthDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
+                const tone =
+                  e.status === 'paid' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                  e.status === 'due'  ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                                        'bg-rose-50 border-rose-200 text-rose-700'
+                const statusLabel =
+                  e.status === 'paid' ? (lang === 'en' ? 'Paid' : 'Bezahlt') :
+                  e.status === 'due'  ? (lang === 'en' ? 'Due' : 'Fällig') :
+                                        (lang === 'en' ? 'Missing' : 'Fehlt')
+                return (
+                  <div key={e.month} className={`flex items-center gap-2 py-1.5 px-2.5 rounded-lg border ${tone}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 ${
+                      e.status === 'paid' ? 'bg-emerald-100' :
+                      e.status === 'due'  ? 'bg-amber-100' :
+                                            'bg-rose-100'
+                    }`}>
+                      {statusLabel}
+                    </span>
+                    <span className="text-zinc-700 text-xs font-medium flex-1 min-w-0 truncate">
+                      {monthLabel}
+                    </span>
+                    {e.amountCents != null && (
+                      <span className="text-zinc-700 text-xs font-semibold tabular-nums flex-shrink-0">
+                        {(e.amountCents / 100).toFixed(2).replace('.', ',')} €
+                      </span>
+                    )}
+                    {e.status === 'paid' && e.paymentId && (
+                      <a
+                        href={`/api/invoices/${e.paymentId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={t('billing', 'viewInvoice')}
+                        className="text-zinc-300 hover:text-zinc-600 transition-colors flex-shrink-0"
+                      >
+                        <FileText size={11} />
+                      </a>
+                    )}
+                    {e.status === 'missing' && (
+                      <AlertCircle size={11} className="text-rose-400 flex-shrink-0" />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            {missingCount > 0 && (
+              <p className="text-[11px] text-zinc-400 mt-2 italic leading-relaxed">
+                {lang === 'en'
+                  ? `Months without a successful payment. Click "${t('billing', 'sendPaymentLink') || 'Send payment link'}" above to collect.`
+                  : `Monate ohne erfolgreiche Zahlung. Nutz „${t('billing', 'sendPaymentLink') || 'Bezahllink senden'}" oben um zu kassieren.`}
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       {payments.length > 0 && (
         <div>
