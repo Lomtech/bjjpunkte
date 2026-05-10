@@ -235,6 +235,84 @@ export default async function Home() {
         </div>
       </Reveal>
 
+      {/* ── COST PROOF — quantitative € comparison, jetzt direkt nach
+           qualitativem MAAT-Strip. Owner sieht erst die Dimensionen
+           (Gebühr/DATEV/Support/Migration), dann die harten Zahlen pro Jahr.
+           Vorher saß dieser Block weit unten kurz vor dem finalen CTA — mit
+           der Reorder-Aktion 2026-05-10 nach vorne gezogen. ── */}
+      <Reveal as="section" className="py-20 px-5 bg-zinc-50 border-y border-zinc-100">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">
+              {lang === 'en' ? 'Real numbers' : 'Echte Zahlen'}
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">
+              {lang === 'en' ? 'What does Excel really cost you?' : 'Was kostet dich Excel wirklich?'}
+            </h2>
+            <p className="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed">
+              {lang === 'en'
+                ? 'Example: 50 members, 3h/week admin, €40/h. The numbers below are not estimates — they\'re math.'
+                : 'Beispiel: 50 Mitglieder, 3 h/Woche Verwaltung, 40 €/h Stundensatz. Die Zahlen unten sind keine Schätzung — das ist Mathematik.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+            {/* Excel/Manuell */}
+            <div className="bg-white rounded-2xl p-6 border-2 border-rose-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-2">
+                {lang === 'en' ? 'Excel / manual' : 'Excel / manuell'}
+              </p>
+              <p className="text-3xl font-black text-zinc-900 tabular-nums tracking-tight">6.000 €</p>
+              <p className="text-xs text-zinc-400 mt-1">
+                {lang === 'en' ? '150 h/year × €40' : '150 h/Jahr × 40 €'}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-2 italic">
+                {lang === 'en' ? 'Your time, calculated.' : 'Deine Lebenszeit, hochgerechnet.'}
+              </p>
+            </div>
+
+            {/* MAAT — direkter Wettbewerbsvergleich, gleiche Studiogröße */}
+            <div className="bg-white rounded-2xl p-6 border-2 border-amber-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-2">MAAT &amp; Co.</p>
+              <p className="text-3xl font-black text-zinc-900 tabular-nums tracking-tight">1.188 €</p>
+              <p className="text-xs text-zinc-400 mt-1">
+                {lang === 'en' ? '49 €/mo + 1 % on dues' : '49 €/Mo + 1 % auf Beiträge'}
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-2 italic">
+                {lang === 'en' ? 'Platform fee at 50 members: 600 €/year.' : 'Plattformgebühr bei 50 Mitgl.: 600 €/Jahr.'}
+              </p>
+            </div>
+
+            {/* Osss — single tier, annual */}
+            <div className="bg-emerald-50 rounded-2xl p-6 border-2 border-emerald-300 relative">
+              <div className="absolute -top-2.5 left-6 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Osss
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-2">{lang === 'en' ? 'Osss (annual)' : 'Osss (jährlich)'}</p>
+              <p className="text-3xl font-black text-emerald-700 tabular-nums tracking-tight">468 €</p>
+              <p className="text-xs text-emerald-700 mt-1">
+                {lang === 'en' ? '39 €/month · 0 % on dues' : '39 €/Monat · 0 % auf Beiträge'}
+              </p>
+              <p className="text-[11px] text-emerald-700 mt-2 italic">
+                {lang === 'en' ? '14-day trial, no credit card.' : '14-Tage-Trial, ohne Kreditkarte.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <Link href="/rechner"
+              className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
+              {lang === 'en' ? 'Calculate with your numbers' : 'Mit deinen Zahlen rechnen'} <ArrowRight size={14} />
+            </Link>
+            <p className="text-xs text-zinc-400 mt-3">
+              {lang === 'en'
+                ? 'Slider-based — interactive, takes 30 seconds.'
+                : 'Mit Slidern — interaktiv, dauert 30 Sekunden.'}
+            </p>
+          </div>
+        </div>
+      </Reveal>
+
       {/* ── SPORTS — interactive tabs Client island, intro is RSC ── */}
       <section className="bg-zinc-50 px-5 py-24 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto">
@@ -606,80 +684,6 @@ export default async function Home() {
             <Link href="/pricing" className="inline-flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 font-medium text-sm transition-colors">
               {lang === 'en' ? 'Full pricing details' : 'Alle Preis-Details'} <ArrowRight size={14} />
             </Link>
-          </div>
-        </div>
-      </Reveal>
-
-      {/* ── COST PROOF + Calculator-Teaser ── RSC */}
-      <Reveal as="section" className="py-20 px-5 bg-zinc-50 border-y border-zinc-100">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.25em] mb-3">
-              {lang === 'en' ? 'Real numbers' : 'Echte Zahlen'}
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">
-              {lang === 'en' ? 'What does Excel really cost you?' : 'Was kostet dich Excel wirklich?'}
-            </h2>
-            <p className="text-zinc-500 text-sm max-w-md mx-auto leading-relaxed">
-              {lang === 'en'
-                ? 'Example: 50 members, 3h/week admin, €40/h. The numbers below are not estimates — they\'re math.'
-                : 'Beispiel: 50 Mitglieder, 3 h/Woche Verwaltung, 40 €/h Stundensatz. Die Zahlen unten sind keine Schätzung — das ist Mathematik.'}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-            {/* Excel/Manuell */}
-            <div className="bg-white rounded-2xl p-6 border-2 border-rose-100">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-2">
-                {lang === 'en' ? 'Excel / manual' : 'Excel / manuell'}
-              </p>
-              <p className="text-3xl font-black text-zinc-900 tabular-nums tracking-tight">6.000 €</p>
-              <p className="text-xs text-zinc-400 mt-1">
-                {lang === 'en' ? '150 h/year × €40' : '150 h/Jahr × 40 €'}
-              </p>
-              <p className="text-[11px] text-zinc-400 mt-2 italic">
-                {lang === 'en' ? 'Your time, calculated.' : 'Deine Lebenszeit, hochgerechnet.'}
-              </p>
-            </div>
-
-            {/* MAAT — direkter Wettbewerbsvergleich, gleiche Studiogröße */}
-            <div className="bg-white rounded-2xl p-6 border-2 border-amber-100">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-2">MAAT &amp; Co.</p>
-              <p className="text-3xl font-black text-zinc-900 tabular-nums tracking-tight">1.188 €</p>
-              <p className="text-xs text-zinc-400 mt-1">
-                {lang === 'en' ? '49 €/mo + 1 % on dues' : '49 €/Mo + 1 % auf Beiträge'}
-              </p>
-              <p className="text-[11px] text-zinc-400 mt-2 italic">
-                {lang === 'en' ? 'Platform fee at 50 members: 600 €/year.' : 'Plattformgebühr bei 50 Mitgl.: 600 €/Jahr.'}
-              </p>
-            </div>
-
-            {/* Osss — single tier, annual */}
-            <div className="bg-emerald-50 rounded-2xl p-6 border-2 border-emerald-300 relative">
-              <div className="absolute -top-2.5 left-6 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Osss
-              </div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-2">{lang === 'en' ? 'Osss (annual)' : 'Osss (jährlich)'}</p>
-              <p className="text-3xl font-black text-emerald-700 tabular-nums tracking-tight">468 €</p>
-              <p className="text-xs text-emerald-700 mt-1">
-                {lang === 'en' ? '39 €/month · 0 % on dues' : '39 €/Monat · 0 % auf Beiträge'}
-              </p>
-              <p className="text-[11px] text-emerald-700 mt-2 italic">
-                {lang === 'en' ? '14-day trial, no credit card.' : '14-Tage-Trial, ohne Kreditkarte.'}
-              </p>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <Link href="/rechner"
-              className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
-              {lang === 'en' ? 'Calculate with your numbers' : 'Mit deinen Zahlen rechnen'} <ArrowRight size={14} />
-            </Link>
-            <p className="text-xs text-zinc-400 mt-3">
-              {lang === 'en'
-                ? 'Slider-based — interactive, takes 30 seconds.'
-                : 'Mit Slidern — interaktiv, dauert 30 Sekunden.'}
-            </p>
           </div>
         </div>
       </Reveal>

@@ -376,6 +376,123 @@ export default function PricingPage() {
               ? 'Numbers above include the platform tools\' subscription + their take on member payments. Stripe\'s own card-processing fees (~1.4 % + 0.25 €) apply identically to all three.'
               : 'Zahlen oben enthalten die Tool-Abos + deren Kürzung von Mitglieds-Zahlungen. Stripe-eigene Karten-Gebühren (~1,4 % + 0,25 €) fallen bei allen drei gleich an.'}
           </p>
+
+          {/* ── DETAIL-VERGLEICHS-TABELLE ──
+              € allein reicht nicht — Owner wollen wissen ob das billigere Tool
+              auch das was sie brauchen kann. Tabelle deckt die 10 Buying-
+              Concerns ab, die in Sales-Calls regelmäßig kommen. Stand Mai 2026
+              — quartalsweise gegen maatapp.com / eversports.de gegen-checken. */}
+          <div className="mt-12 overflow-x-auto rounded-2xl border border-zinc-200 bg-white">
+            <table className="min-w-full text-sm">
+              <thead className="bg-zinc-50">
+                <tr>
+                  <th className="text-left px-5 py-4 font-bold text-zinc-500 text-[11px] uppercase tracking-wider min-w-[180px]">
+                    {en ? 'Feature' : 'Feature'}
+                  </th>
+                  <th className="text-left px-4 py-4 font-bold text-emerald-700 text-[11px] uppercase tracking-wider min-w-[140px] bg-emerald-50">
+                    Osss
+                  </th>
+                  <th className="text-left px-4 py-4 font-bold text-zinc-500 text-[11px] uppercase tracking-wider min-w-[140px]">
+                    MAAT
+                  </th>
+                  <th className="text-left px-4 py-4 font-bold text-zinc-500 text-[11px] uppercase tracking-wider min-w-[140px]">
+                    Eversports &amp; Co.
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  {
+                    label: { de: 'Plattformgebühr auf Beiträge', en: 'Platform fee on dues' },
+                    osss: { de: '0 %', en: '0 %' },
+                    maat: { de: '1 %', en: '1 %' },
+                    evs:  { de: '1,5 %', en: '1.5 %' },
+                  },
+                  {
+                    label: { de: 'Monatspreis (jährliche Abrechnung)', en: 'Monthly price (annual billing)' },
+                    osss: { de: '39 €', en: '39 €' },
+                    maat: { de: '49 €', en: '49 €' },
+                    evs:  { de: '99 €', en: '99 €' },
+                  },
+                  {
+                    label: { de: 'Mindest-Vertragslaufzeit', en: 'Min. contract term' },
+                    osss: { de: 'keine', en: 'none' },
+                    maat: { de: '12 Monate', en: '12 months' },
+                    evs:  { de: '12 Monate', en: '12 months' },
+                  },
+                  {
+                    label: { de: 'DATEV-Export nativ', en: 'Native DATEV export' },
+                    osss: { de: 'inklusive', en: 'included' },
+                    maat: { de: '— manuell', en: '— manual' },
+                    evs:  { de: 'kostenpflichtiges Add-on', en: 'paid add-on' },
+                  },
+                  {
+                    label: { de: '§19 UStG-Rechnungen', en: '§19 UStG invoices' },
+                    osss: { de: 'inklusive', en: 'included' },
+                    maat: { de: 'generisch', en: 'generic' },
+                    evs:  { de: 'generisch', en: 'generic' },
+                  },
+                  {
+                    label: { de: 'Support-Sprache', en: 'Support language' },
+                    osss: { de: 'Deutsch · Englisch', en: 'German · English' },
+                    maat: { de: 'Englisch · Italienisch', en: 'English · Italian' },
+                    evs:  { de: 'Englisch · Deutsch', en: 'English · German' },
+                  },
+                  {
+                    label: { de: 'Founder direkt erreichbar', en: 'Founder directly reachable' },
+                    osss: { de: 'ja — selber Tag', en: 'yes — same day' },
+                    maat: { de: 'Ticket-System', en: 'ticket system' },
+                    evs:  { de: 'Ticket-System', en: 'ticket system' },
+                  },
+                  {
+                    label: { de: 'Belt-Tracking für Kampfsport', en: 'Martial-arts belt tracking' },
+                    osss: { de: '6 Sportarten vorkonfiguriert', en: '6 sports pre-configured' },
+                    maat: { de: '— generisch', en: '— generic' },
+                    evs:  { de: '— Studio-Software, kein KS', en: '— studio SW, not MA' },
+                  },
+                  {
+                    label: { de: 'GPS-/QR-Check-in', en: 'GPS/QR check-in' },
+                    osss: { de: 'Browser, ohne App', en: 'browser, no app' },
+                    maat: { de: 'eigene App-Installation', en: 'app install required' },
+                    evs:  { de: 'eigene App', en: 'own app' },
+                  },
+                  {
+                    label: { de: 'Migration aus altem Tool', en: 'Migration from old tool' },
+                    osss: { de: 'CSV + 1:1-Setup-Call', en: 'CSV + 1:1 setup call' },
+                    maat: { de: 'self-serve only', en: 'self-serve only' },
+                    evs:  { de: 'self-serve only', en: 'self-serve only' },
+                  },
+                ] as const).map((row, i) => (
+                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-zinc-50/50'}>
+                    <td className="px-5 py-3 font-semibold text-zinc-900 align-top">
+                      {en ? row.label.en : row.label.de}
+                    </td>
+                    <td className="px-4 py-3 align-top bg-emerald-50/40 text-emerald-800 font-medium">
+                      {en ? row.osss.en : row.osss.de}
+                    </td>
+                    <td className="px-4 py-3 align-top text-zinc-500">
+                      {en ? row.maat.en : row.maat.de}
+                    </td>
+                    <td className="px-4 py-3 align-top text-zinc-500">
+                      {en ? row.evs.en : row.evs.de}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-center mt-8">
+            <Link href="/vs-maat" data-track="cta_vs_maat_from_pricing"
+              className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
+              {en ? 'Full MAAT comparison' : 'Vollständiger MAAT-Vergleich'} <Sparkles size={14} className="text-amber-300" />
+            </Link>
+            <p className="text-zinc-400 text-xs mt-3">
+              {en
+                ? 'Migration guide, savings calculator and 15-row comparison.'
+                : 'Migrations-Anleitung, Spar-Rechner und 15-Zeilen-Vergleich.'}
+            </p>
+          </div>
         </div>
       </section>
 
