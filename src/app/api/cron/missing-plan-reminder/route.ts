@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { cronGuard } from '@/lib/cron-guard'
+import { withCronSentry } from '@/lib/cron/with-sentry'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -23,7 +24,7 @@ export const maxDuration = 60
  * Vercel-Cron: 1× pro Woche (Montag 8:00 UTC) — siehe vercel.json.
  * Auth: cronGuard via CRON_SECRET (Bearer-Token im Header).
  */
-export async function GET(req: Request) {
+export const GET = withCronSentry('missing-plan-reminder', async (req: Request) => {
   const guard = cronGuard(req)
   if (guard) return guard
 
@@ -258,4 +259,4 @@ export async function GET(req: Request) {
     owners_notified: ownerMailsSent,
     errors: errors.slice(0, 10),
   })
-}
+})

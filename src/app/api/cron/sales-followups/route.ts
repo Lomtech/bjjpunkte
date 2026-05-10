@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { cronGuard } from '@/lib/cron-guard'
 import { getAppUrl } from '@/lib/app-url'
+import { withCronSentry } from '@/lib/cron/with-sentry'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -39,7 +40,7 @@ type LeadRow = {
   contact_count: number
 }
 
-export async function GET(req: Request) {
+export const GET = withCronSentry('sales-followups', async (req: Request) => {
   const guard = cronGuard(req)
   if (guard) return guard
 
@@ -182,7 +183,7 @@ export async function GET(req: Request) {
     emailsSent: sent,
     errors: sendErrors.length > 0 ? sendErrors : undefined,
   })
-}
+})
 
 // ───── Auto-Sequence-Logik ─────────────────────────────────────────────
 //

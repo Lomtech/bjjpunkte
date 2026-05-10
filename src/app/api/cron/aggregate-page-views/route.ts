@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { cronGuard } from '@/lib/cron-guard'
+import { withCronSentry } from '@/lib/cron/with-sentry'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -29,7 +30,7 @@ export const maxDuration = 300
  *
  * Retention: raw `page_views` > 90 Tage werden gelöscht. Aggregat bleibt unbegrenzt.
  */
-export async function GET(req: Request) {
+export const GET = withCronSentry('aggregate-page-views', async (req: Request) => {
   const guard = cronGuard(req)
   if (guard) return guard
 
@@ -205,4 +206,4 @@ export async function GET(req: Request) {
     raw_rows_deleted_retention: deletedCount ?? 0,
     errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
   })
-}
+})

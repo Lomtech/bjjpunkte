@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { cronGuard } from '@/lib/cron-guard'
+import { withCronSentry } from '@/lib/cron/with-sentry'
 
 /**
  * Notification-Worker.
@@ -78,7 +79,7 @@ async function sendEmail(payload: EmailPayload): Promise<{ ok: boolean; error?: 
   }
 }
 
-export async function GET(req: Request) {
+export const GET = withCronSentry('notification-worker', async (req: Request) => {
   const guard = cronGuard(req)
   if (guard) return guard
 
@@ -237,4 +238,4 @@ export async function GET(req: Request) {
     errorCount: errors.length,
     errors: errors.length > 0 ? errors : undefined,
   })
-}
+})

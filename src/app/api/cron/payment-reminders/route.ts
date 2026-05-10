@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { cronGuard } from '@/lib/cron-guard'
+import { withCronSentry } from '@/lib/cron/with-sentry'
 import {
   enqueueNotificationsBatch,
   notificationQueueEnabled,
@@ -109,7 +110,7 @@ function reminderEmailHtml({
 </html>`
 }
 
-export async function GET(req: Request) {
+export const GET = withCronSentry('payment-reminders', async (req: Request) => {
   const guard = cronGuard(req)
   if (guard) return guard
 
@@ -314,4 +315,4 @@ export async function GET(req: Request) {
     noResend:       !process.env.RESEND_API_KEY,
     ranAt:          now.toISOString(),
   })
-}
+})

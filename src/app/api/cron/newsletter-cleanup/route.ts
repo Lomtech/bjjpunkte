@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { cronGuard } from '@/lib/cron-guard'
+import { withCronSentry } from '@/lib/cron/with-sentry'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -27,7 +28,7 @@ export const maxDuration = 60
  * Idempotenz: Operation ist idempotent (DELETE WHERE …; mehrfaches
  *             Triggern hat denselben Effekt). Kein cron_runs-Lock nötig.
  */
-export async function GET(req: Request) {
+export const GET = withCronSentry('newsletter-cleanup', async (req: Request) => {
   const guard = cronGuard(req)
   if (guard) return guard
 
@@ -74,4 +75,4 @@ export async function GET(req: Request) {
     unconfirmedDeleted,
     unsubscribedDeleted,
   })
-}
+})

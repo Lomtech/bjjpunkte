@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { cronGuard } from '@/lib/cron-guard'
+import { withCronSentry } from '@/lib/cron/with-sentry'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -26,7 +27,7 @@ export const maxDuration = 60
  *  - DB-Level via cron_runs(job_name, executed_at) UNIQUE → 2× Aufruf am gleichen Tag = early-return.
  *  - Logik-Level: nach Update ist dunning_last_action_at = now → Filter matcht nicht mehr.
  */
-export async function GET(req: Request) {
+export const GET = withCronSentry('dunning-escalation', async (req: Request) => {
   const guard = cronGuard(req)
   if (guard) return guard
 
@@ -222,4 +223,4 @@ export async function GET(req: Request) {
     escalated_to_level_3: escalatedToLevel3,
     errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
   })
-}
+})

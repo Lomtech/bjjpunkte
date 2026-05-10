@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAppUrl } from '@/lib/app-url'
 import { cronGuard } from '@/lib/cron-guard'
+import { withCronSentry } from '@/lib/cron/with-sentry'
 
 const PAID_PLANS = ['starter', 'grow', 'pro']
 
-export async function GET(req: Request) {
+export const GET = withCronSentry('birthday', async (req: Request) => {
   const guard = cronGuard(req)
   if (guard) return guard
 
@@ -161,4 +162,4 @@ export async function GET(req: Request) {
     failed,
     errors:     errors.length > 0 ? errors : undefined,
   })
-}
+})
