@@ -72,14 +72,17 @@ export function TopNav({ back }: Props) {
         </div>
 
         {/* Center/Right: Main Nav (Desktop) */}
-        <div className="flex items-center gap-6">
+        {/* Reihenfolge + Breakpoints SPIEGELN HeroAnimations.tsx —
+             damit der Menübalken zwischen Landing und Subseiten konsistent ist
+             (sonst springen die Items beim Klicken durch die Pages). */}
+        <div className="flex items-center gap-5 sm:gap-6">
           <Link href="/pricing"     className={`${linkClass} hidden sm:block`}>{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
-          <Link href="/about"       className={`${linkClass} hidden md:block`}>{lang === 'en' ? 'About' : 'Über'}</Link>
-          <Link href="/blog"        className={`${linkClass} hidden lg:block`}>Blog</Link>
-          <Link href="/ressourcen"  className={`${linkClass} hidden lg:block`}>{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
-          <Link href="/#book-demo"  data-track="cta_demo_topnav" className={`${linkClass} hidden md:block text-amber-600 hover:text-amber-700`}>
+          <Link href="/about"       className={`${linkClass} hidden sm:block`}>{lang === 'en' ? 'About' : 'Über'}</Link>
+          <Link href="/#book-demo"  data-track="cta_demo_topnav" className="text-sm text-amber-600 hover:text-amber-700 transition-colors font-bold hidden sm:block">
             {lang === 'en' ? 'Book demo' : 'Demo buchen'}
           </Link>
+          <Link href="/blog"        className={`${linkClass} hidden lg:block`}>Blog</Link>
+          <Link href="/ressourcen"  className={`${linkClass} hidden xl:block`}>{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
           <button
             type="button"
             onClick={() => setContactOpen(true)}
@@ -104,10 +107,10 @@ export function TopNav({ back }: Props) {
             </Link>
           ))}
 
-          {/* Mobile Hamburger */}
+          {/* Mobile Hamburger — sm:hidden matched HeroAnimations damit Items erst ab sm: zeigen */}
           <button
             onClick={() => setMenuOpen(o => !o)}
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg hover:bg-zinc-100 transition-colors"
+            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-lg hover:bg-zinc-100 transition-colors"
             aria-label="Menü"
           >
             {menuOpen
@@ -120,9 +123,9 @@ export function TopNav({ back }: Props) {
       {/* Kontakt-Modal — In-App-Formular statt mailto:-Sprung in die native Mail-App */}
       {contactOpen && <ContactModal lang={lang} onClose={() => setContactOpen(false)} />}
 
-      {/* Mobile Menü */}
+      {/* Mobile Menü — sm:hidden gleich wie HeroAnimations */}
       {menuOpen && (
-        <div className="md:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1">
+        <div className="sm:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1">
           <Link href="/pricing"    onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
           <Link href="/about"      onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'About' : 'Über uns'}</Link>
           <Link href="/#book-demo" onClick={() => setMenuOpen(false)} className="text-sm font-bold text-amber-600 py-2.5 px-3 rounded-lg hover:bg-amber-50">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
