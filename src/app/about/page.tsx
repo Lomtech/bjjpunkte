@@ -128,6 +128,26 @@ export default async function AboutPage() {
               </strong>
             </p>
           </div>
+
+          {/* Hyperlokal-Pitch — Anti-MAAT-Hebel: italienisches SaaS vs. lokaler
+              DACH-Founder. Adressiert ein konkretes Buying-Concern bei
+              Studio-Inhabern: „kann ich den Founder anrufen wenn was bricht". */}
+          <div className="mt-10 bg-amber-50 border-l-4 border-amber-400 rounded-r-2xl p-5 sm:p-6">
+            <p className="text-amber-700 font-bold text-[10px] uppercase tracking-[0.2em] mb-2">
+              {en ? 'Why local matters' : 'Warum lokal wichtig ist'}
+            </p>
+            <p className="text-zinc-800 text-base leading-relaxed">
+              {en ? (
+                <>The biggest competitor in our space (MAAT) is an Italian SaaS — based in Milan, support in English/Italian. I&apos;m one hour from Munich, support in German, and{' '}
+                  <strong>I&apos;ll get on a call with you the same day if something breaks.</strong>{' '}
+                  When you call MAAT support, you talk to a ticket queue. When you call me, you talk to me.</>
+              ) : (
+                <>Der größte Konkurrent in unserem Bereich (MAAT) ist ein italienisches SaaS — Sitz in Mailand, Support auf Englisch/Italienisch. Ich sitze 1 h von München, Support auf Deutsch — und{' '}
+                  <strong>wenn was bricht, hast du mich noch am selben Tag am Telefon.</strong>{' '}
+                  Bei MAAT-Support landest du in einer Ticket-Schleife. Bei mir landest du bei mir.</>
+              )}
+            </p>
+          </div>
         </div>
       </section>
 
