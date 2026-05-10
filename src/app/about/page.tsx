@@ -45,8 +45,9 @@ export default async function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             {/* Founder photo — Hochkant-BJJ-Selfie, Hayabusa-Rashguard, echte
                 Trainings-Atmosphäre. Aspect 3:4 erhält das natürliche Hochformat
-                ohne Crop. */}
-            <div className="order-2 md:order-1">
+                ohne Crop. Mobile-Order: Foto oben, Text unten — gibt sofort
+                Gesicht-zum-Namen statt erst Wall-of-Text. */}
+            <div className="order-1">
               <div className="relative aspect-[3/4] w-full max-w-sm mx-auto">
                 <div className="absolute inset-0 rounded-3xl overflow-hidden bg-gradient-to-br from-amber-100 via-amber-50 to-zinc-100 border border-amber-200/60 shadow-xl shadow-amber-200/40">
                   <Image
@@ -67,22 +68,22 @@ export default async function AboutPage() {
             </div>
 
             {/* Intro text */}
-            <div className="order-1 md:order-2">
+            <div className="order-2">
               <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-4">
-                {en ? 'Solo Founder · Building in public' : 'Solo-Founder · baut öffentlich'}
+                {en ? 'Grappler · Solo Founder' : 'Grappler · Solo-Founder'}
               </p>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-950 tracking-tighter leading-[0.95] mb-6">
                 {en ? <>Hi, I&apos;m <span className="text-amber-500">Lom</span>.</> : <>Hi, ich bin <span className="text-amber-500">Lom</span>.</>}
               </h1>
               <p className="text-zinc-600 text-lg leading-relaxed mb-5">
                 {en
-                  ? 'I build Osss — the gym software for martial-arts studios in Germany. Solo. From a desk in Adelshofen, near Munich.'
-                  : 'Ich baue Osss — die Gym-Software für Kampfsport-Studios in Deutschland. Solo. Vom Schreibtisch in Adelshofen, vor den Toren Münchens.'}
+                  ? 'I’m building Osss — gym software for martial-arts studios in Germany. Solo. From a desk near Munich.'
+                  : 'Ich baue Osss — die Gym-Software für Kampfsport-Studios in Deutschland. Solo. Vom Schreibtisch, vor den Toren Münchens.'}
               </p>
               <p className="text-zinc-500 text-base leading-relaxed">
                 {en
-                  ? 'No VC. No 50-person team. No "100K+ practitioners worldwide" claims. Just one engineer who got tired of seeing martial-arts gyms pay 1-3 % platform fees on every membership — and built the alternative.'
-                  : 'Kein VC. Kein 50-Personen-Team. Keine „100k+ Mitglieder weltweit"-Sprüche. Nur ein Ingenieur, der genug davon hatte, dass Kampfsport-Studios 1-3 % Plattformgebühr auf jede Mitgliedschaft zahlen — und die Alternative gebaut hat.'}
+                  ? 'No Venture Capital. No 50-person team. No “100k+ practitioners worldwide”. Just one engineer who got tired of seeing martial-arts gyms pay 1–3 % platform fees on every membership — and built the alternative.'
+                  : 'Kein Venture Capital. Kein 50-Personen-Team. Keine „100k+ Mitglieder weltweit". Nur ein Ingenieur, der genug davon hatte, dass Kampfsport-Studios 1–3 % Plattformgebühr auf jede Mitgliedschaft zahlen — und die Alternative gebaut hat.'}
               </p>
             </div>
           </div>
@@ -104,8 +105,8 @@ export default async function AboutPage() {
           <div className="prose prose-zinc max-w-none space-y-5 text-zinc-600 text-base leading-relaxed">
             <p>
               {en
-                ? 'I grew up watching my friends run jiu-jitsu academies, boxing gyms, kickboxing schools. Every single one of them used Excel. WhatsApp groups for "did you pay this month?". Hand-written invoices. Manual SEPA mandates printed out and signed.'
-                : 'Ich bin damit aufgewachsen, Freunden beim Aufbau von BJJ-Akademien, Box- und Kickbox-Studios zuzusehen. Alle benutzten Excel. WhatsApp-Gruppen für „hast du diesen Monat gezahlt?". Handgeschriebene Rechnungen. Manuell ausgedruckte und unterschriebene SEPA-Mandate.'}
+                ? 'I’ve watched a few friends build BJJ academies, boxing and kickboxing gyms. They all used Excel. WhatsApp groups for “did you pay this month?”. Hand-written invoices. SEPA mandates printed out and signed by hand.'
+                : 'Ich habe einigen Freunden beim Aufbau von BJJ-Akademien, Box- und Kickbox-Studios zugeschaut. Alle benutzten Excel. WhatsApp-Gruppen für „hast du diesen Monat gezahlt?". Handgeschriebene Rechnungen. Manuell ausgedruckte und unterschriebene SEPA-Mandate.'}
             </p>
             <p>
               {en
