@@ -120,8 +120,8 @@ export default async function AboutPage() {
             </p>
             <p>
               {en
-                ? 'Built for the German market: DATEV export, §19 UStG-compliant invoices, DSGVO from day one, support in German. Built for martial arts: belt systems, promotion tracking, GPS check-in for outdoor classes. And the part nobody else does: '
-                : 'Gebaut für den deutschen Markt: DATEV-Export, §19-UStG-konforme Rechnungen, DSGVO ab Tag eins, Support auf Deutsch. Gebaut für Kampfsport: Gürtel-Systeme, Promotion-Tracking, GPS-Check-in für Outdoor-Classes. Und die Sache die sonst niemand macht: '}
+                ? 'Built for the German market: DATEV export, §19 UStG-compliant invoices, DSGVO from day one, support in German. Built for martial arts: belt systems, promotion tracking, GPS check-in for hassle-free attendance tracking. And the part nobody else does: '
+                : 'Gebaut für den deutschen Markt: DATEV-Export, §19-UStG-konforme Rechnungen, DSGVO ab Tag eins, Support auf Deutsch. Gebaut für Kampfsport: Gürtel-Systeme, Promotion-Tracking, GPS-Check-in für einfache Trainings-Überwachung. Und die Sache die sonst niemand macht: '}
               <strong className="text-zinc-900">
                 {en
                   ? '0 % platform fee on member payments. Forever.'
