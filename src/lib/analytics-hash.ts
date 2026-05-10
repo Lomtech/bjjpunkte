@@ -11,7 +11,19 @@ import { createHash } from 'crypto'
  * wird ein deterministischer (aber dennoch nutzbarer) Default verwendet.
  */
 
-const BASE_SALT = process.env.ANALYTICS_SALT || 'osss-analytics-default-salt-change-in-prod'
+// Audit 2026-05-11: Fail-hard wenn der Default-Salt in Production durchschlägt.
+// Ein vorhersagbarer Salt macht die täglich rotierenden visitor_hashes reversibel
+// und bricht das DSGVO-Anonymitätsversprechen (Erw. 26).
+const DEFAULT_SALT = 'osss-analytics-default-salt-change-in-prod'
+const ENV_SALT = process.env.ANALYTICS_SALT
+if (process.env.NODE_ENV === 'production' && (!ENV_SALT || ENV_SALT === DEFAULT_SALT)) {
+  throw new Error(
+    '[analytics-hash] ANALYTICS_SALT muss in Production gesetzt sein (≠ Default). ' +
+    'Sonst sind page_views.visitor_hash reversibel — DSGVO-Verstoß. ' +
+    'In Vercel Env-Vars unter ANALYTICS_SALT konfigurieren (64+ zufällige Zeichen).'
+  )
+}
+const BASE_SALT = ENV_SALT || DEFAULT_SALT
 
 /** Hash mit täglich rotierendem Salt — kein Cross-Day-Tracking möglich. */
 export function visitorHash(ip: string, userAgent: string): string {

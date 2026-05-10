@@ -12,9 +12,14 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com https://*.sentry.io",
       "frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://youtube.com",
+      // Audit 2026-05-11: frame-ancestors moderner als X-Frame-Options.
+      // Browser nutzt frame-ancestors wenn beides gesetzt; X-Frame-Options bleibt für Legacy.
+      "frame-ancestors 'none'",
       "media-src 'self' https:",
       "font-src 'self' data:",
       "worker-src blob:",
+      "base-uri 'self'",
+      "form-action 'self' https://checkout.stripe.com",
     ].join('; '),
   },
   // Prevent clickjacking — disallow embedding in iframes
@@ -32,6 +37,9 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Audit 2026-05-11: kein X-Powered-By Header (verrät Next.js-Stack unnötig)
+  poweredByHeader: false,
+
   images: {
     // AVIF (~50% kleiner als WebP) > WebP (~30% kleiner als PNG/JPG) > Original.
     // Next.js wählt automatisch das beste Format für den Browser.

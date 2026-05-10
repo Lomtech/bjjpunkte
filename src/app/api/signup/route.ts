@@ -6,6 +6,7 @@ import { notifyGym } from '@/lib/notify'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { getAppUrl } from '@/lib/app-url'
 import { uploadSignature } from '@/lib/signature-storage'
+import { applyRateLimit } from '@/lib/rate-limit-handler'
 
 // Uses service role to bypass RLS — safe because we validate the signup_token
 function serviceClient() {
@@ -63,6 +64,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // Audit 2026-05-11: Service-Role-Bypass + Stripe-Customer-Creation hinter
+  // signup_token. Pro IP 10 POSTs / 15 min — verhindert dass ein geleakter
+  // Token unlimited Member-Inserts + Stripe-API-Calls auslösen kann.
+  const rl = await applyRateLimit(req, { kind: 'signup', limit: 10, windowSec: 15 * 60 })
+  if (rl) return rl
+
   const body = await req.json()
   const {
     token, gymId,

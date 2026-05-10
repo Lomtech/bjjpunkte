@@ -99,11 +99,11 @@ export function TopNav({ back }: Props) {
               Dashboard
             </Link>
           ) : (
-            <a href="/#book-demo" data-track="cta_demo_topnav"
+            <Link href="/#book-demo" data-track="cta_demo_topnav"
               className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 hidden sm:inline-flex">
               <Zap size={13} />
               {lang === 'en' ? 'Book demo' : 'Demo buchen'}
-            </a>
+            </Link>
           ))}
 
           {/* Mobile Hamburger — sm:hidden matched HeroAnimations damit Items erst ab sm: zeigen */}
@@ -144,7 +144,7 @@ export function TopNav({ back }: Props) {
             {checked && (loggedIn ? (
               <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl">Dashboard</Link>
             ) : (
-              <a href="/#book-demo" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</a>
+              <Link href="/#book-demo" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
             ))}
           </div>
         </div>

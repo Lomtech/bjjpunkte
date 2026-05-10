@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { timingSafeEqual } from 'node:crypto'
 
 /**
  * Validates the CRON_SECRET from the Authorization header.
@@ -18,7 +19,19 @@ export function cronGuard(req: Request): NextResponse | null {
   }
 
   const authHeader = req.headers.get('authorization') ?? ''
-  if (authHeader !== `Bearer ${secret}`) {
+  const expected = `Bearer ${secret}`
+  // timingSafeEqual statt `!==` — verhindert Side-Channel-Angriff. Beide Buffers
+  // müssen exakt gleich lang sein, sonst wirft die Funktion. Wir padden auf die
+  // erwartete Länge, damit Länge-Mismatch nicht selber Timing-Info leakt.
+  const a = Buffer.from(authHeader.padEnd(expected.length, '\0'))
+  const b = Buffer.from(expected)
+  let ok = false
+  try {
+    ok = a.length === b.length && timingSafeEqual(a, b) && authHeader.length === expected.length
+  } catch {
+    ok = false
+  }
+  if (!ok) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

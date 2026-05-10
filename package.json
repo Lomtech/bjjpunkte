@@ -7,11 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx tests/osss-test.ts",
-    "test:prod": "tsx tests/osss-test.ts --url https://bjjpunkte.vercel.app",
+    "test": "vitest run",
     "test:smoke": "tsx tests/smoke/index.ts",
     "test:smoke:prod": "TEST_API_BASE=https://www.osss.pro tsx tests/smoke/index.ts",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { cronGuard } from '@/lib/cron-guard'
 import { withCronSentry } from '@/lib/cron/with-sentry'
+import { sendDunningMail } from '@/lib/dunning-mail'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -129,22 +130,11 @@ export const GET = withCronSentry('dunning-escalation', async (req: Request) => 
 
       escalatedToLevel2++
 
-      // Optional: Mail-Versand wenn Helper verfügbar (anderer Agent owns dunning-mail).
-      // ts-ignore, weil das Modul evtl. noch nicht existiert — wenn ja, läuft import().catch() die graceful Bahn.
-      try {
-        const mod = await (
-          import('@/lib/dunning-mail') as Promise<{
-            sendDunningMail?: (memberId: string, level: number, amount: number) => Promise<unknown>
-          }>
-        ).catch(() => null)
-        if (mod?.sendDunningMail) {
-          await mod.sendDunningMail(m.id, 2, amount).catch(err => {
-            console.warn(`[cron/dunning-escalation] mail level=2 member=${m.id} failed:`, err)
-          })
-        }
-      } catch {
-        /* mail-helper nicht da, skip */
-      }
+      // Audit 2026-05-11: dynamic import war defensive (sibling-agent-Era).
+      // Modul existiert stabil → static import oben.
+      await sendDunningMail(m.id, 2, amount).catch(err => {
+        console.warn(`[cron/dunning-escalation] mail level=2 member=${m.id} failed:`, err)
+      })
     } catch (err) {
       errors.push(`L1→L2 ${m.id}: ${err instanceof Error ? err.message : String(err)}`)
     }
@@ -197,20 +187,9 @@ export const GET = withCronSentry('dunning-escalation', async (req: Request) => 
 
       escalatedToLevel3++
 
-      try {
-        const mod = await (
-          import('@/lib/dunning-mail') as Promise<{
-            sendDunningMail?: (memberId: string, level: number, amount: number) => Promise<unknown>
-          }>
-        ).catch(() => null)
-        if (mod?.sendDunningMail) {
-          await mod.sendDunningMail(m.id, 3, amount).catch(err => {
-            console.warn(`[cron/dunning-escalation] mail level=3 member=${m.id} failed:`, err)
-          })
-        }
-      } catch {
-        /* skip */
-      }
+      await sendDunningMail(m.id, 3, amount).catch(err => {
+        console.warn(`[cron/dunning-escalation] mail level=3 member=${m.id} failed:`, err)
+      })
     } catch (err) {
       errors.push(`L2→L3 ${m.id}: ${err instanceof Error ? err.message : String(err)}`)
     }

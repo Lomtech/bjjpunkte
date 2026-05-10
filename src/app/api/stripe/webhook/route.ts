@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { sendMemberPaymentFailedEmail } from '@/lib/notify'
+import { sendDunningMail } from '@/lib/dunning-mail'
 import { PRICING_TIERS, type PlanKey } from '@/lib/pricing'
 
 // Plan-Member-Limits derived from PRICING_TIERS (single-source-of-truth).
@@ -526,20 +527,12 @@ export async function POST(req: Request) {
           console.error('[webhook] members dunning update failed:', dunningUpdErr)
         }
 
-        // Optional dunning mail to member (defensive dynamic import — sibling agent may not
-        // have created the helper yet; never crash the webhook because of this).
-        try {
-          const mod = (await import('@/lib/dunning-mail')) as {
-            sendDunningMail?: (memberId: string, level: number, amountCents: number) => Promise<unknown>
-          }
-          if (typeof mod.sendDunningMail === 'function') {
-            await mod.sendDunningMail(memberId, newLevel, failedAmountCents).catch((err: unknown) => {
-              console.error('[webhook] dunning mail failed (non-critical):', err)
-            })
-          }
-        } catch (importErr) {
-          console.warn('[webhook] dunning-mail helper not available yet:', importErr)
-        }
+        // Optional dunning mail to member. Audit 2026-05-11: dynamic import war
+        // defensiv für einen Zeitraum in dem das Helper-Modul evtl. nicht
+        // existierte. Modul existiert stabil seit längerem → static import.
+        await sendDunningMail(memberId, newLevel, failedAmountCents).catch((err: unknown) => {
+          console.error('[webhook] dunning mail failed (non-critical):', err)
+        })
       } catch (dunningErr) {
         // Swallow: webhook still returns 200; Stripe event-dedup prevents replays.
         console.error('[webhook] dunning escalation failed (non-critical):', dunningErr)
@@ -547,9 +540,20 @@ export async function POST(req: Request) {
     } else if (meta.type === 'owner_plan') {
       const gymId = meta.gymId
       if (gymId) {
-        const { error: downErr } = await supabase.from('gyms').update({ plan: 'free', plan_member_limit: 30 }).eq('id', gymId)
-        if (downErr) throw downErr
-        console.warn(`[webhook] Owner plan payment failed for gym ${gymId} — downgraded to free`)
+        // Audit 2026-05-11: Owner-Plan NICHT bei jedem failed payment downgraden.
+        // Stripe Smart Retries versucht standardmäßig bis zu 4× über ~21 Tage.
+        // Erst bei der letzten Attempt (oder via `customer.subscription.deleted`)
+        // ist das Abo wirklich tot — vorher würde ein 3-Tage-Karten-Decline
+        // den zahlenden Owner für 3 Tage offline werfen.
+        const attemptCount = inv.attempt_count ?? 0
+        const isFinalAttempt = (inv.next_payment_attempt ?? null) === null
+        if (attemptCount >= 4 || isFinalAttempt) {
+          const { error: downErr } = await supabase.from('gyms').update({ plan: 'free', plan_member_limit: 30 }).eq('id', gymId)
+          if (downErr) throw downErr
+          console.warn(`[webhook] Owner plan downgrade for gym ${gymId} — attempt=${attemptCount}, final=${isFinalAttempt}`)
+        } else {
+          console.log(`[webhook] Owner plan payment failed gym=${gymId}, attempt=${attemptCount}, awaiting Stripe retry`)
+        }
       }
     }
   }

@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    groups:
+      # Bündele Patches von Sentry/Supabase/Stripe in ein PR pro Provider,
+      # damit Reviewer nicht für jede 10.51.0 → 10.51.1-Update einen separaten
+      # PR sehen müssen.
+      sentry:
+        patterns: ['@sentry/*']
+      supabase:
+        patterns: ['@supabase/*']
+      stripe:
+        patterns: ['stripe', '@stripe/*']
+      upstash:
+        patterns: ['@upstash/*']
+      types:
+        patterns: ['@types/*']
+        update-types: [minor, patch]
+      eslint:
+        patterns: ['eslint', 'eslint-*', '@typescript-eslint/*']
+    # Audit 2026-05-11: Next.js / React werden NICHT auto-gegruppt —
+    # Major-Updates wollen einzeln reviewed werden (Breaking Changes,
+    # siehe `AGENTS.md` Hinweis "This is NOT the Next.js you know").
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Berlin

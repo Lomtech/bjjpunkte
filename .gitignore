@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# .env.example wird gegenüber dem .env*-Pattern bewusst entsperrt — Vorlage
+# für neue Entwickler, enthält keine echten Geheimnisse.
+!.env.example
 
 # vercel
 .vercel

@@ -1,15 +1,15 @@
-#!/usr/bin/env npx tsx
 /**
  * CSRF Protection Tests
  *
  * Testet die `checkCsrf()` und `safeOrigin()` Helper aus `src/proxy.ts`
  * mit minimal gemockten NextRequest-ähnlichen Objekten.
  *
- * Usage:
- *   npx tsx tests/csrf.test.ts
+ * Runtime: Vitest (eingebunden in tests/csrf.test.ts via vitest.config.ts).
+ * `assert` aus node:assert ist kompatibel mit Vitest und bleibt — die Tests
+ * sind kurz und deklarativ.
  */
 
-import test from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
 
 import { checkCsrf, safeOrigin, type CsrfRequest } from '../src/proxy'

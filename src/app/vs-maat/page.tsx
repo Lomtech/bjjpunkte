@@ -62,7 +62,7 @@ export default async function VsMaatPage() {
       icon: CheckCircle,
       label: { de: 'Monatspreis', en: 'Monthly price' },
       osss: { de: '49 € / 39 € jährlich', en: '49 € / 39 € annual', positive: true },
-      maat: { de: 'ab ~49 €', en: 'from ~49 €', positive: false },
+      maat: { de: '59 € / 49 € jährlich', en: '59 € / 49 € annual', positive: false },
     },
     {
       icon: FileSpreadsheet,
@@ -74,19 +74,19 @@ export default async function VsMaatPage() {
       icon: Headphones,
       label: { de: 'Support-Sprache', en: 'Support language' },
       osss: { de: 'Deutsch · Englisch', en: 'German · English', positive: true },
-      maat: { de: 'Englisch · Italienisch', en: 'English · Italian', positive: false },
+      maat: { de: 'Englisch primär (DE-Lokalisierung partiell)', en: 'English primary (partial DE)', positive: false },
     },
     {
       icon: MapPin,
       label: { de: 'Founder erreichbar', en: 'Founder reachable' },
       osss: { de: 'Direkt (1 h von München)', en: 'Direct (1 h from Munich)', positive: true },
-      maat: { de: 'Ticket-Schleife (Mailand)', en: 'Ticket queue (Milan)', positive: false },
+      maat: { de: 'WhatsApp-Support (Italien/UK-Team)', en: 'WhatsApp support (Italy/UK team)', positive: false },
     },
     {
       icon: Shield,
       label: { de: 'DSGVO-Verträge (AVV)', en: 'GDPR DPA' },
       osss: { de: 'Im Dashboard signiert', en: 'Signed in dashboard', positive: true },
-      maat: { de: 'PDF-Versand auf Anfrage', en: 'PDF request', positive: false },
+      maat: { de: 'Nicht im Dashboard signierbar', en: 'No in-dashboard signing', positive: false },
     },
     {
       icon: Award,
@@ -126,9 +126,15 @@ export default async function VsMaatPage() {
     },
     {
       icon: AlertCircle,
-      label: { de: 'Mindest-Vertragslaufzeit', en: 'Minimum contract term' },
+      label: { de: 'Klassen-Buchung im Voraus', en: 'Class-booking horizon' },
+      osss: { de: 'Beliebig weit (Schedule + iCal)', en: 'Unlimited (schedule + iCal)', positive: true },
+      maat: { de: 'Limit ~2 Wochen im Voraus', en: 'Limited ~2 weeks ahead', positive: false },
+    },
+    {
+      icon: AlertCircle,
+      label: { de: 'Vertragsbindung', en: 'Contract commitment' },
       osss: { de: 'Keine — monatlich kündbar', en: 'None — cancel monthly', positive: true },
-      maat: { de: '12 Monate', en: '12 months', positive: false },
+      maat: { de: 'Jahresvertrag günstiger, Details auf Anfrage', en: 'Annual cheaper, details on request', positive: false },
     },
     {
       icon: CheckCircle,
@@ -140,7 +146,7 @@ export default async function VsMaatPage() {
       icon: Shield,
       label: { de: 'Daten-Standort', en: 'Data location' },
       osss: { de: 'EU/UK (London — Adequacy Decision)', en: 'EU/UK (London — Adequacy Decision)', positive: true },
-      maat: { de: 'EU (Italien)', en: 'EU (Italy)', positive: false },
+      maat: { de: 'Nicht öffentlich dokumentiert', en: 'Not publicly disclosed', positive: false },
     },
   ]
 
@@ -181,7 +187,7 @@ export default async function VsMaatPage() {
     },
     {
       q: 'Why is Osss cheaper than MAAT? What\'s the catch?',
-      a: 'No catch. Osss is built solo by one engineer (me) with low overhead — no 50-person Milan office, no marketing department, no VC investors expecting 30 % revenue growth. The 0 % platform fee model is sustainable because we earn from subscriptions, not by skimming member payments. As long as the subscription pays for hosting + my time, the math works.',
+      a: 'No catch. Osss is built solo by one engineer (me) with low overhead — no UK/Italian office, no marketing department, no VC investors expecting 30 % revenue growth (MAAT raised ~$225 k pre-seed in June 2024 and lists ~18 employees on LinkedIn — small for SaaS, but still 18× my fixed cost). The 0 % platform fee model is sustainable because we earn from subscriptions, not by skimming member payments. As long as the subscription pays for hosting + my time, the math works.',
     },
     {
       q: 'Is my data safe? GDPR-compliant?',
@@ -202,7 +208,7 @@ export default async function VsMaatPage() {
     },
     {
       q: 'Warum ist Osss günstiger als MAAT? Wo ist der Haken?',
-      a: 'Keinen Haken. Osss wird solo von einem Ingenieur (mir) gebaut, mit niedrigen Fixkosten — kein 50-Personen-Mailänder Büro, keine Marketing-Abteilung, keine VC-Investoren die 30 % Umsatz-Wachstum erwarten. Das 0-%-Plattformgebühr-Modell ist nachhaltig, weil wir an Abos verdienen, nicht am Mitglied. Solange das Abo Hosting + meine Zeit deckt, geht die Rechnung auf.',
+      a: 'Keinen Haken. Osss wird solo von einem Ingenieur (mir) gebaut, mit niedrigen Fixkosten — kein UK/Italien-Büro, keine Marketing-Abteilung, keine VC-Investoren die 30 % Umsatz-Wachstum erwarten (MAAT hat im Juni 2024 ~225 k$ Pre-Seed eingesammelt und listet ~18 Mitarbeiter auf LinkedIn — klein für SaaS, aber immer noch 18× mein Fixkostenblock). Das 0-%-Plattformgebühr-Modell ist nachhaltig, weil wir an Abos verdienen, nicht am Mitglied. Solange das Abo Hosting + meine Zeit deckt, geht die Rechnung auf.',
     },
     {
       q: 'Sind meine Daten sicher? DSGVO-konform?',

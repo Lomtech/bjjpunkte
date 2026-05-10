@@ -6,7 +6,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   test: {
-    include: ['tests/unit/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/csrf.test.ts'],
     coverage: {
       reporter: ['text', 'json'],
       include: ['src/lib/excel-parser.ts', 'src/lib/iban.ts', 'src/lib/encryption.ts'],

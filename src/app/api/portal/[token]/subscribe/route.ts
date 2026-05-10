@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
+import { applyRateLimit } from '@/lib/rate-limit-handler'
 
 function adminClient() {
   return createClient(
@@ -13,9 +14,14 @@ function adminClient() {
 // Creates a new Stripe Checkout session for a member's current plan via portal token.
 // Used when the member has a plan_id but no active subscription.
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  // Audit 2026-05-11: Stripe-Checkout-Creation hinter portal_token.
+  // 5 Checkouts / 10 min pro IP — verhindert Customer-Creation-Flood.
+  const rl = await applyRateLimit(req, { kind: 'portal-subscribe', limit: 5, windowSec: 10 * 60 })
+  if (rl) return rl
+
   const { token } = await params
   // Token-Hardening (Audit 2026-05-09 / A2): 20 → 32 Zeichen. Brute-Force-Schutz
   // — dieser Endpoint baut Stripe-Checkout-Sessions, also missbrauchsanfällig.

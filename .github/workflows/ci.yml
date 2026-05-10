@@ -34,3 +34,19 @@ jobs:
 
       - name: Unit Tests
         run: npm run test:unit
+
+      # Audit 2026-05-11: `next build` fängt Build-Time-Fehler, die `tsc --noEmit`
+      # nicht sieht (Image-Optimization, env-validation, Server-Action-Serialisierung,
+      # Sentry-Webpack-Plugin-Konflikte). Verhindert "tsc grün, Vercel-Deploy rot".
+      - name: Build
+        env:
+          # Build braucht ANALYTICS_SALT und IBAN_ENCRYPTION_KEY ≠ leer für Production-NODE_ENV.
+          # Hier Dummies — diese Werte werden NICHT in Production verwendet.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-build
+          SUPABASE_SERVICE_ROLE_KEY: dummy-service-key-for-build
+          IBAN_ENCRYPTION_KEY: 00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+          CRON_SECRET: dummy-cron-secret-min-16-chars
+          ANALYTICS_SALT: dummy-analytics-salt-for-build-only
+          NODE_ENV: production
+        run: npm run build
