@@ -103,16 +103,22 @@ export function HeroAnimations({ lang }: Props) {
           <div className="flex items-center gap-5 sm:gap-6">
             <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
             <Link href="/about" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'About' : 'Über'}</Link>
-            <Link href="#book-demo" data-track="cta_demo_header" className="text-sm text-amber-600 hover:text-amber-700 transition-colors font-bold hidden sm:block">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
             <Link href="/blog" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">Blog</Link>
             <Link href="/ressourcen" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden xl:block">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
             <button onClick={() => setContactOpen(true)} data-track="cta_contact_header" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</button>
             <LanguageSwitcher variant="minimal" />
+            {/* Primary-CTA-Slot — symmetrisch zur Logged-in-Variante: gleiche Position
+                + amber-Filled-Button. Demo buchen ersetzt „Kostenlos starten" weil
+                Demo-Pfad konvertierungsstärker für Studio-Owner ist (warmer Lead). */}
             {checked && (loggedIn
               ? <Link href="/dashboard" className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors">Dashboard</Link>
               : <>
                   <Link href="/login" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Log in' : 'Anmelden'}</Link>
-                  <Link href="/register" data-track="cta_signup_header" className="bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors hidden sm:block">{lang === 'en' ? 'Get started free' : 'Kostenlos starten'}</Link>
+                  <a href="#book-demo" data-track="cta_demo_header"
+                    className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors hidden sm:inline-flex items-center gap-1.5">
+                    <Zap size={13} />
+                    {lang === 'en' ? 'Book demo' : 'Demo buchen'}
+                  </a>
                 </>
             )}
             {/* Mobile hamburger */}
@@ -138,7 +144,6 @@ export function HeroAnimations({ lang }: Props) {
             >
               <Link href="/pricing" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
               <Link href="/about" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'About' : 'Über uns'}</Link>
-              <Link href="#book-demo" onClick={() => setMenuOpen(false)} className="text-sm font-bold text-amber-600 py-2.5 px-3 rounded-lg hover:bg-amber-50 transition-colors">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
               <Link href="/blog" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Blog</Link>
               <Link href="/ressourcen" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
               <Link href="/rechner" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Cost calculator' : 'Kostenrechner'}</Link>
@@ -149,7 +154,7 @@ export function HeroAnimations({ lang }: Props) {
               <div className="pt-1">
                 {checked && (loggedIn
                   ? <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl transition-colors">Dashboard</Link>
-                  : <Link href="/register" onClick={() => setMenuOpen(false)} className="block text-center bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-bold px-4 py-3 rounded-xl transition-colors">{lang === 'en' ? 'Get started free' : 'Kostenlos starten'}</Link>
+                  : <a href="#book-demo" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl transition-colors">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</a>
                 )}
               </div>
             </motion.div>

@@ -16,7 +16,7 @@ import { TopNav } from '@/components/TopNav'
 import { OsssLogo } from '@/components/Logo'
 import { ContactButton } from '@/app/_landing/ContactButton'
 import { getServerLang } from '@/lib/i18n/server'
-import { Mail, Calendar, MessageCircle, Zap, ArrowRight, MapPin } from 'lucide-react'
+import { Calendar, MessageCircle, Zap, ArrowRight, MapPin } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Über Osss · Lom-Ali Imadaev, Solo-Founder',
@@ -226,17 +226,17 @@ export default async function AboutPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/#book-demo" data-track="cta_demo_about"
+            {/* Plain <a> statt <Link>: cross-page Hash-Navigation umgeht Next.js-
+                Prefetch-Caching (Prefetch hatte sonst die Page in vorigen
+                Sprache gecached → User sah deutsch trotz EN-Setting). */}
+            <a href="/#book-demo" data-track="cta_demo_about"
               className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
               <Calendar size={15} className="text-amber-400" />
               {en ? '20-min demo with me' : '20-Min-Demo mit mir'}
-            </Link>
-            <a href="mailto:oss@osss.pro"
-              className="inline-flex items-center gap-2 border border-zinc-300 hover:border-zinc-400 hover:bg-white text-zinc-700 font-semibold px-6 py-3 rounded-xl text-sm transition-all">
-              <Mail size={15} />
-              oss@osss.pro
             </a>
-            <ContactButton lang={lang} className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 text-sm font-medium underline decoration-dotted underline-offset-4" />
+            {/* Kontakt-Modal-Trigger als Outlined-Button (statt mailto + tertiary-Link).
+                Nutzt ContactButton mit Custom-Class für Button-Styling. */}
+            <ContactButton lang={lang} className="inline-flex items-center gap-2 border border-zinc-300 hover:border-zinc-400 hover:bg-white text-zinc-700 font-semibold px-6 py-3 rounded-xl text-sm transition-all" />
           </div>
         </div>
       </section>
