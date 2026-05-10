@@ -263,7 +263,7 @@ export default async function AboutPage() {
             {/* Instagram — Lucide Icon mit Brand-rosa */}
             <li>
               <a
-                href="https://www.instagram.com/lom_combatgrappler/"
+                href="https://www.instagram.com/osss.pro/"
                 target="_blank"
                 rel="noopener noreferrer"
                 data-track="cta_instagram_about"
