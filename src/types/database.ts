@@ -1,7 +1,11 @@
 export type Belt = 'white' | 'blue' | 'purple' | 'brown' | 'black'
 export type ClassType = 'gi' | 'no-gi' | 'open mat' | 'kids' | 'competition'
 export type SubscriptionStatus = 'none' | 'active' | 'past_due' | 'cancelled' | 'trial'
-export type GymPlan = 'free' | 'starter' | 'grow' | 'pro'
+// 2026-05 single-tier model: 'standard' is the new canonical paid tier name.
+// Legacy values (starter/grow/pro) kept for backward compatibility with
+// existing DB rows; new subscriptions write 'standard'. 'free' marks the
+// post-cancellation state (no active sub).
+export type GymPlan = 'free' | 'standard' | 'starter' | 'grow' | 'pro'
 export type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
 export type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page' | 'gym_qr'
 export type BookingStatus = 'confirmed' | 'waitlist' | 'cancelled'

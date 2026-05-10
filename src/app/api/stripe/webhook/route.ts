@@ -12,11 +12,13 @@ import { PRICING_TIERS, type PlanKey } from '@/lib/pricing'
 //
 // 'pro' is conceptually unlimited; we use a high sentinel (1e6) instead of
 // null because the consuming columns are NOT NULL in the schema.
+// 2026-05 single-tier model: alle paid plans haben unbegrenzte Mitglieder.
+// PRO_PLAN_SENTINEL bleibt als Tag in der DB für "unlimited" damit existierende
+// Reports + Member-Limit-Checks weiterlaufen ohne Schema-Migration.
 const PRO_PLAN_SENTINEL = 1_000_000
-const PLAN_LIMITS: Record<Exclude<PlanKey, 'free'>, number> = (() => {
-  const map = {} as Record<Exclude<PlanKey, 'free'>, number>
+const PLAN_LIMITS: Record<PlanKey, number> = (() => {
+  const map = {} as Record<PlanKey, number>
   for (const t of PRICING_TIERS) {
-    if (t.planKey === 'free') continue
     map[t.planKey] = t.membersTo ?? PRO_PLAN_SENTINEL
   }
   return map

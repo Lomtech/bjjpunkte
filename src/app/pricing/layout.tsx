@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Preise – Vier Pläne, keine Versteckkosten',
+  title: 'Preise – Ein Plan, alles inklusive',
   description:
-    'Osss-Preise: kostenlos bis 30 Mitglieder, dann ab €29/Monat. 0% Plattformgebühr. 30 Tage gratis testen, jederzeit kündbar.',
+    'Osss-Preise: 14 Tage gratis testen, danach 49 €/Monat oder 39 €/Monat im Jahresabo. 0 % Plattformgebühr. Unbegrenzte Mitglieder. Jederzeit kündbar.',
   alternates: {
     canonical: '/pricing',
     languages: {
@@ -12,9 +12,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Osss-Preise – Vier Pläne, keine Versteckkosten',
+    title: 'Osss-Preise – Ein Plan, alles inklusive',
     description:
-      'Kostenlos bis 30 Mitglieder. Dann €29/€59/€99 pro Monat. 0% Plattformgebühr — du zahlst nur die Stripe-Gebühren.',
+      '49 €/Monat (oder 39 €/Monat jährlich). 0 % Plattformgebühr auf Mitglieds-Beiträge. Unbegrenzte Mitglieder, alle Features ab Tag 1.',
     url: 'https://www.osss.pro/pricing',
     type: 'website',
     locale: 'de_DE',

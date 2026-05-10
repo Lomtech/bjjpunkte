@@ -147,11 +147,11 @@ export default async function AboutPage() {
             {(en ? [
               { num: '0 %', label: 'platform fee on member dues — ever', sub: 'Stripe Connect routes payments straight to the gym\'s bank account. We earn from subscriptions, not by skimming.' },
               { num: '< 10 min', label: 'from sign-up to live gym', sub: 'No sales call. No 14-day onboarding. Create account, import members, share the portal link.' },
-              { num: '€ 0', label: 'until you have 31 active members', sub: 'Free tier is not a 14-day trial. It\'s the actual product, forever, up to 30 paying members.' },
+              { num: '14 days', label: 'free trial — no credit card', sub: 'Full access to every feature. After 14 days you choose: subscribe at 49 €/month (or 39 €/month annually), or cancel — no questions asked.' },
             ] : [
               { num: '0 %', label: 'Plattformgebühr auf Beiträge — niemals', sub: 'Stripe Connect leitet Zahlungen direkt aufs Gym-Konto. Wir verdienen an Abos, nicht am Mitglied.' },
               { num: '< 10 Min', label: 'vom Sign-up zum Live-Gym', sub: 'Kein Sales-Call. Kein 14-Tage-Onboarding. Account anlegen, Mitglieder importieren, Portal-Link teilen.' },
-              { num: '0 €', label: 'bis zum 31. aktiven Mitglied', sub: 'Free-Tier ist keine 14-Tage-Probe. Das ist das echte Produkt, dauerhaft, bis 30 zahlende Mitglieder.' },
+              { num: '14 Tage', label: 'gratis testen — ohne Kreditkarte', sub: 'Voller Zugang zu allen Features. Nach 14 Tagen: 49 €/Monat (oder 39 €/Monat jährlich) — oder kündigen, ohne Rückfrage.' },
             ]).map(b => (
               <div key={b.label} className="bg-zinc-50 rounded-2xl p-7 border border-zinc-100">
                 <p className="text-4xl font-black text-amber-500 tracking-tight mb-2 leading-none">{b.num}</p>
@@ -249,8 +249,8 @@ export default async function AboutPage() {
           </h2>
           <p className="text-zinc-500 text-base mb-8 leading-relaxed">
             {en
-              ? 'Free up to 30 members. Live in 10 minutes. No credit card.'
-              : 'Bis 30 Mitglieder gratis. Live in 10 Minuten. Ohne Kreditkarte.'}
+              ? '14 days free trial. Live in 10 minutes. No credit card.'
+              : '14 Tage gratis testen. Live in 10 Minuten. Ohne Kreditkarte.'}
           </p>
           <Link href="/register" data-track="cta_signup_about_bottom"
             className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-zinc-950 font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-200">

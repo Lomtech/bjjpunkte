@@ -1,23 +1,28 @@
 /**
- * Central pricing source-of-truth for the Osss SaaS subscription tiers.
+ * Central pricing source-of-truth for the Osss SaaS subscription.
  *
  * Why one file:
- *   The same tier list is rendered on the marketing landing page, on
+ *   The same pricing is rendered on the marketing landing page, on
  *   the dedicated pricing page, on the dashboard's upgrade banner, and
  *   shipped to Stripe Checkout. When marketing copy and Checkout drift,
  *   customers see one price and pay another — the worst kind of bug.
  *
- *   This module owns the canonical tier definitions. UI components import
+ *   This module owns the canonical pricing definitions. UI components import
  *   the constants instead of re-declaring them.
  *
- * What is NOT in this file:
- *   - Stripe Price IDs (those live in Stripe Dashboard / env vars; the
- *     owner-checkout route currently uses ad-hoc `price_data` instead of
- *     fixed Price IDs — see compliance/sales/pricing-rationale.md).
- *   - Studio-side member-plans (those are dynamic gym data, not SaaS tiers).
+ * 2026-05 single-tier realignment:
+ *   Old model: Free / Starter 49 / Grow 89 / Pro 149  (4 tiers, member-count-gated)
+ *   New model: Standard 49€/Mo monthly · 39€/Mo annual · 14-day trial · unlimited
+ *
+ *   Rationale:
+ *     - Decision-paralysis reduction (MAAT-style single price)
+ *     - 0 % Plattformgebühr remains the structural differentiator vs. MAAT (1 %)
+ *     - Trial replaces Free-tier as low-friction entry path
+ *     - "Unlimited members" matches MAAT's offer one-to-one but undercuts on
+ *       transaction-fee structure (0 % vs. 1 %).
  */
 
-export type PlanKey = 'free' | 'starter' | 'grow' | 'pro'
+export type PlanKey = 'standard'
 
 export type PricingTier = {
   /** Stable machine identifier — must match the API contract in
@@ -25,8 +30,10 @@ export type PricingTier = {
   planKey: PlanKey
   /** User-facing tier name, identical in DE and EN. */
   name: string
-  /** Monthly price in cents (EUR). 0 for the Free plan. */
+  /** Monthly price in cents (EUR) when billed monthly. */
   monthlyCents: number
+  /** Effective monthly price in cents (EUR) when billed annually upfront. */
+  annualMonthlyCents: number
   /** Inclusive lower bound of the active-member window for this tier. */
   membersFrom: number
   /** Inclusive upper bound, or null for "unlimited". */
@@ -36,72 +43,49 @@ export type PricingTier = {
 }
 
 /**
- * Canonical tier list — order matches display order on the pricing page.
+ * Single-tier definition.
  *
- * 2026-05 pricing realignment:
- *   Old: 0 / 29 / 49 / 99 EUR
- *   New: 0 / 49 / 89 / 149 EUR  (≈ +69%/82%/51% on the paid tiers)
- *
- *   Rationale lives in compliance/sales/pricing-rationale.md.
- *   Lifetime-Pilot loyalty discount is NOT encoded here — it is granted
- *   per-customer through Stripe coupons, see LIFETIME_PILOT_DISCOUNT below.
+ * Annual billing: customer pays 39 € × 12 = 468 € upfront, gets 12 months access.
+ *   Annual saving vs monthly: (49 - 39) × 12 = 120 € per year (matches MAAT exactly).
  */
-export const PRICING_TIERS: readonly PricingTier[] = [
-  {
-    planKey: 'free',
-    name: 'Free',
-    monthlyCents: 0,
-    membersFrom: 0,
-    membersTo: 30,
-    highlight: false,
-  },
-  {
-    planKey: 'starter',
-    name: 'Starter',
-    monthlyCents: 4900,
-    membersFrom: 31,
-    membersTo: 99,
-    highlight: false,
-  },
-  {
-    planKey: 'grow',
-    name: 'Grow',
-    monthlyCents: 8900,
-    membersFrom: 100,
-    membersTo: 249,
-    highlight: true,
-  },
-  {
-    planKey: 'pro',
-    name: 'Pro',
-    monthlyCents: 14900,
-    membersFrom: 250,
-    membersTo: null,
-    highlight: false,
-  },
-]
+export const STANDARD_TIER: PricingTier = {
+  planKey: 'standard',
+  name: 'Standard',
+  monthlyCents: 4900,         // 49 €/month, billed monthly
+  annualMonthlyCents: 3900,   // 39 €/month equivalent when billed annually
+  membersFrom: 0,
+  membersTo: null,            // unlimited members
+  highlight: true,
+}
 
 /**
- * Annual billing model: customer pays for 10 months, gets 12 months access.
- * That is a 16.67% discount vs paying monthly. Marketing communicates this
- * as "2 Monate gratis" / "2 months free" to keep the pitch concrete.
+ * Backwards-compatible array form. The pricing page and rechner used to
+ * iterate over `PRICING_TIERS` for tier-by-tier rendering. With a single
+ * tier we expose the array form too so existing code keeps working.
  */
-export const ANNUAL_MONTHS_PAID = 10
-export const ANNUAL_MONTHS_USED = 12
+export const PRICING_TIERS: readonly PricingTier[] = [STANDARD_TIER]
+
+/**
+ * Free trial — replaces the previous "Free up to 30 members" entry tier.
+ * Studio gets full access for 14 days, Stripe Checkout marks trial period
+ * via `subscription_data.trial_period_days`. No credit card required during
+ * trial via `payment_method_collection: 'if_required'`.
+ */
+export const FREE_TRIAL_DAYS = 14
 
 /**
  * Loyalty mechanic for the first 10 paying studios ("Lifetime-Pilot-Pricing").
- * They lock in 60% of the new tier price for life as compensation for taking
+ * They lock in 60 % of the standard price for life as compensation for taking
  * the risk on an unproven product.
  *
- * 0.6 means: pilot pays 60%, saves 40%.
+ * 0.6 means: pilot pays 60 %, saves 40 %.
  *
- * Concrete example (Starter):
- *   Standard 49 EUR → Pilot 29.40 EUR → rounded to 29 EUR (matches the
- *   number CSC FFB was originally promised, so we honour it as-is).
+ * Concrete pilot prices:
+ *   Standard monthly  49 € → 29.40 €/month
+ *   Standard annual   39 € → 23.40 €/month  (= 280.80 €/year)
  *
  * Implementation note:
- *   Pilot status is granted via a 40%-off Stripe Coupon attached to the
+ *   Pilot status is granted via a 40 %-off Stripe Coupon attached to the
  *   subscription at first checkout. The coupon's `duration` is `forever`.
  *   See compliance/sales/pricing-rationale.md for the operational steps.
  */
@@ -128,10 +112,6 @@ export const LIFETIME_PILOT_PROMO_CODE = 'PILOT10'
  *
  *   formatPriceEUR(4900, 'de')  → "49,00 €"
  *   formatPriceEUR(4900, 'en')  → "€49.00"
- *   formatPriceEUR(0,    'de')  → "0,00 €"
- *
- * Rounding: banker's rounding via Intl.NumberFormat — fine for the values
- * we deal with (whole-Euro tier prices, no fractional cents).
  */
 export function formatPriceEUR(cents: number, lang: 'de' | 'en'): string {
   const value = cents / 100
@@ -145,8 +125,8 @@ export function formatPriceEUR(cents: number, lang: 'de' | 'en'): string {
 }
 
 /**
- * Compact Euro formatting without decimals — used in tier cards where the
- * price is always a whole-Euro amount and decimals just add visual noise.
+ * Compact Euro formatting without decimals — used in the hero card where
+ * the price is always a whole-Euro amount and decimals just add visual noise.
  *
  *   formatPriceEURShort(4900, 'de') → "49 €"
  *   formatPriceEURShort(4900, 'en') → "€49"
@@ -157,39 +137,30 @@ export function formatPriceEURShort(cents: number, lang: 'de' | 'en'): string {
 }
 
 /**
- * Recommend the cheapest tier whose member window covers `count`.
- * Used by the dashboard upgrade nudge and by the rechner (calculator).
- *
- *   getTierForMemberCount(20)  → free
- *   getTierForMemberCount(75)  → starter
- *   getTierForMemberCount(180) → grow
- *   getTierForMemberCount(800) → pro
+ * The single-tier model has only one tier — this helper is preserved for
+ * backwards compatibility (rechner + dashboard imports). It always returns
+ * STANDARD_TIER regardless of member count, since members are unlimited.
  */
-export function getTierForMemberCount(count: number): PricingTier {
-  const safe = Math.max(0, Math.floor(count))
-  const match = PRICING_TIERS.find(t => {
-    if (safe < t.membersFrom) return false
-    if (t.membersTo === null) return true
-    return safe <= t.membersTo
-  })
-  // Defensive: should never happen because Pro is unbounded, but TypeScript
-  // does not know that — and in practice we'd rather show the top tier than
-  // crash if PRICING_TIERS is ever misconfigured.
-  return match ?? PRICING_TIERS[PRICING_TIERS.length - 1]
+export function getTierForMemberCount(_count: number): PricingTier {
+  return STANDARD_TIER
 }
 
 /**
- * Compute the annual price (cents) for a given monthly price (cents).
- * 10 months paid, 12 used → simply monthly × 10.
+ * Compute the annual subscription total (cents) for the standard tier.
+ *   annualPriceCents() → 46800 (= 468 €/year)
+ *
+ * Note: signature kept compatible with the old `(monthlyCents) => number`
+ * shape used by the Stripe checkout, but we now use the dedicated
+ * annualMonthlyCents internally to compute the right total.
  */
-export function annualPriceCents(monthlyCents: number): number {
-  return monthlyCents * ANNUAL_MONTHS_PAID
+export function annualPriceCents(_monthlyCents?: number): number {
+  return STANDARD_TIER.annualMonthlyCents * 12
 }
 
 /**
  * Compute the absolute Euro saving when switching from monthly to annual.
- *   savingsAnnualEUR(4900) → 98  (= 2 free months)
+ *   savingsAnnualEUR() → 120 (= 120 €/year saved)
  */
-export function savingsAnnualEUR(monthlyCents: number): number {
-  return Math.round((monthlyCents * (ANNUAL_MONTHS_USED - ANNUAL_MONTHS_PAID)) / 100)
+export function savingsAnnualEUR(_monthlyCents?: number): number {
+  return Math.round(((STANDARD_TIER.monthlyCents - STANDARD_TIER.annualMonthlyCents) * 12) / 100)
 }

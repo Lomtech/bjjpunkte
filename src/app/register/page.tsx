@@ -24,14 +24,14 @@ export default function RegisterPage() {
 
   const PERKS = en
     ? [
-        'Free up to 30 members',
-        'No credit card. No sales call.',
+        '14 days free trial — no credit card',
+        '49 €/month after trial (or 39 €/month annually)',
         'Live in 10 minutes',
         'DATEV export · GDPR · Made in Germany',
       ]
     : [
-        'Kostenlos bis 30 Mitglieder',
-        'Keine Kreditkarte. Kein Verkaufs-Call.',
+        '14 Tage gratis testen — ohne Kreditkarte',
+        '49 €/Monat nach Trial (oder 39 €/Monat jährlich)',
         'In 10 Minuten live',
         'DATEV-Export · DSGVO · Made in Germany',
       ]

@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import type { Database } from '@/types/database'
-import { PRICING_TIERS, annualPriceCents, type PlanKey } from '@/lib/pricing'
+import { STANDARD_TIER, FREE_TRIAL_DAYS, type PlanKey } from '@/lib/pricing'
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -14,13 +14,11 @@ function authClient(accessToken: string) {
 }
 
 // Single-source-of-truth: pricing comes from src/lib/pricing.ts.
-// Pricing realignment 2026-05: 29/49/99 → 49/89/149 EUR. The Stripe
-// Checkout used to hardcode the old numbers — keeping a derived map
-// here ensures the pricing page and the checkout can never drift again.
-const PAID_TIERS = PRICING_TIERS.filter(t => t.planKey !== 'free')
-const PLAN_PRICES        = Object.fromEntries(PAID_TIERS.map(t => [t.planKey, t.monthlyCents]))            as Record<PlanKey, number>
-const PLAN_PRICES_ANNUAL = Object.fromEntries(PAID_TIERS.map(t => [t.planKey, annualPriceCents(t.monthlyCents)])) as Record<PlanKey, number>
-const PLAN_NAMES         = Object.fromEntries(PAID_TIERS.map(t => [t.planKey, `${t.name} Plan`]))           as Record<PlanKey, string>
+// 2026-05 single-tier model: Standard 49 €/Mo monthly · 39 €/Mo annual.
+// 14-day trial via subscription_data.trial_period_days, no card required up-front.
+const PLAN_PRICE_MONTHLY = STANDARD_TIER.monthlyCents
+// Annual = 39 €/Mo × 12 = 468 €/year. Stripe charges full year upfront.
+const PLAN_PRICE_ANNUAL  = STANDARD_TIER.annualMonthlyCents * 12
 
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
@@ -29,11 +27,11 @@ export async function POST(req: Request) {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const { plan, annual = false } = await req.json()
-  // Reject unknown plans AND the free tier — Free does not go through Stripe Checkout.
-  const isPaidPlan = (p: unknown): p is Exclude<PlanKey, 'free'> =>
-    typeof p === 'string' && p in PLAN_PRICES
-  if (!isPaidPlan(plan)) return NextResponse.json({ error: 'Ungültiger Plan' }, { status: 400 })
+  // Accept only the single 'standard' plan. `plan` is kept in the body for
+  // forward-compatibility (future tiers) but currently only validates one value.
+  const { plan = 'standard', annual = false } = await req.json()
+  if (plan !== 'standard') return NextResponse.json({ error: 'Ungültiger Plan' }, { status: 400 })
+  const planKey: PlanKey = 'standard'
 
   const supabase = authClient(accessToken)
   const { data: { user } } = await supabase.auth.getUser(accessToken)
@@ -69,16 +67,26 @@ export async function POST(req: Request) {
       line_items: [{
         price_data: {
           currency:     'eur',
-          product_data: { name: annual ? `${PLAN_NAMES[plan]} (Jährlich)` : PLAN_NAMES[plan] },
+          product_data: { name: annual ? `${STANDARD_TIER.name} (Jährlich)` : `${STANDARD_TIER.name} Plan` },
           recurring:    { interval: annual ? 'year' : 'month' },
-          unit_amount:  annual ? PLAN_PRICES_ANNUAL[plan] : PLAN_PRICES[plan],
+          unit_amount:  annual ? PLAN_PRICE_ANNUAL : PLAN_PRICE_MONTHLY,
         },
         quantity: 1,
       }],
-      metadata: { type: 'owner_plan', gymId: gym.id, plan, billing: annual ? 'annual' : 'monthly' },
+      metadata: { type: 'owner_plan', gymId: gym.id, plan: planKey, billing: annual ? 'annual' : 'monthly' },
       subscription_data: {
-        metadata: { type: 'owner_plan', gymId: gym.id, plan, billing: annual ? 'annual' : 'monthly' },
+        metadata: { type: 'owner_plan', gymId: gym.id, plan: planKey, billing: annual ? 'annual' : 'monthly' },
+        // 14-Tage-Trial. Stripe rechnet erst nach Trial-Ende ab. Studios können
+        // ohne Kreditkarte starten (siehe payment_method_collection unten).
+        trial_period_days: FREE_TRIAL_DAYS,
+        trial_settings: {
+          end_behavior: { missing_payment_method: 'cancel' },
+        },
       },
+      // Keine Kreditkarte zwingend — Stripe kassiert nur ab wenn auf bezahltes
+      // Abo upgegradet wird. Das match'd die Marketing-Versprechen
+      // "ohne Kreditkarte testen".
+      payment_method_collection: 'if_required',
       // Lifetime-Pilot: studio enters a promo code (e.g. PILOT10) at checkout.
       // The actual coupon ("Lifetime Pilot — first 10 studios", 40% off forever)
       // is configured in the Stripe Dashboard. Switching to allow_promotion_codes

@@ -207,8 +207,8 @@ export function HeroAnimations({ lang }: Props) {
 
               <motion.p variants={fadeUp} className="text-zinc-500 text-lg mb-8 leading-relaxed">
                 {lang === 'en'
-                  ? <>Members, SEPA, schedule and belts — all in one tool. <span className="text-zinc-800 font-semibold">0 % platform fee</span> on payments. Free up to 30&nbsp;members.</>
-                  : <>Mitglieder, SEPA, Stundenplan und Belts — alles in einem Tool. <span className="text-zinc-800 font-semibold">0 % Plattformgebühr</span> auf Beiträge. Bis 30&nbsp;Mitglieder gratis.</>}
+                  ? <>Members, SEPA, schedule and belts — all in one tool. <span className="text-zinc-800 font-semibold">0 % platform fee</span> on payments. <span className="text-zinc-800 font-semibold">14 days free trial</span>, no credit card.</>
+                  : <>Mitglieder, SEPA, Stundenplan und Belts — alles in einem Tool. <span className="text-zinc-800 font-semibold">0 % Plattformgebühr</span> auf Beiträge. <span className="text-zinc-800 font-semibold">14 Tage gratis testen</span>, ohne Kreditkarte.</>}
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-3">
@@ -225,8 +225,8 @@ export function HeroAnimations({ lang }: Props) {
 
               <motion.p variants={fadeUp} className="text-zinc-400 text-xs mb-8 tracking-wide">
                 {lang === 'en'
-                  ? 'No credit card · Free up to 30 members · Cancel anytime'
-                  : 'Ohne Kreditkarte · Bis 30 Mitglieder gratis · Jederzeit kündbar'}
+                  ? 'No credit card · 14 days free · Cancel anytime'
+                  : 'Ohne Kreditkarte · 14 Tage gratis · Jederzeit kündbar'}
               </motion.p>
 
               {!appInstalled && installPrompt !== null && (
@@ -268,12 +268,12 @@ export function HeroAnimations({ lang }: Props) {
               <motion.div variants={fadeUp} className="flex flex-wrap gap-x-7 gap-y-3">
                 {(lang === 'en' ? [
                   { val: '0 %',     label: 'platform fee on dues' },
-                  { val: '30',      label: 'free members forever' },
+                  { val: '14',      label: 'days free trial' },
                   { val: 'DATEV',   label: 'export built-in' },
                   { val: 'GDPR',    label: 'data in EU/UK' },
                 ] : [
                   { val: '0 %',     label: 'Plattformgebühr auf Beiträge' },
-                  { val: '30',      label: 'Mitglieder dauerhaft gratis' },
+                  { val: '14',      label: 'Tage gratis testen' },
                   { val: 'DATEV',   label: 'Export inklusive' },
                   { val: 'DSGVO',   label: 'Daten in EU/UK' },
                 ]).map(s => (

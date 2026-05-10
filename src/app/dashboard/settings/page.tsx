@@ -420,14 +420,17 @@ function SettingsPageInner() {
     }
   }
 
-  async function handleUpgrade(plan: string) {
-    setLoadingPlan(plan)
+  async function handleUpgrade(plan: string, annual: boolean = false) {
+    // 2026-05 single-tier model: loadingPlan-Tag enthält Billing-Intervall
+    // damit das Modal die richtige Loading-State anzeigt (monthly vs annual).
+    const loadingTag = `${plan}-${annual ? 'annual' : 'monthly'}`
+    setLoadingPlan(loadingTag)
     const { data: { session } } = await createClient().auth.getSession()
-    if (!session) { window.location.href = `/register?plan=${plan}`; return }
+    if (!session) { window.location.href = `/register?plan=${plan}&annual=${annual ? '1' : '0'}`; return }
     const res = await fetch('/api/stripe/owner-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, annual }),
     })
     const data = await res.json()
     if (data.url) window.location.href = data.url
@@ -1786,7 +1789,7 @@ function SettingsPageInner() {
         <UpgradeModal
           currentPlan={gymPlan}
           loadingPlan={loadingPlan}
-          onUpgrade={async (plan) => { setShowUpgradeModal(false); await handleUpgrade(plan) }}
+          onUpgrade={async (plan, annual) => { setShowUpgradeModal(false); await handleUpgrade(plan, annual) }}
           onClose={() => setShowUpgradeModal(false)}
         />
       )}

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Kostenlos registrieren – Dein Gym in 10 Minuten',
+  title: '14 Tage gratis testen – Dein Gym in 10 Minuten',
   description:
-    'Erstelle dein Osss-Gym kostenlos. Bis 30 Mitglieder gratis, keine Kreditkarte, kein Verkaufs-Call. DSGVO-konform, DATEV-Export inklusive.',
+    'Erstelle dein Osss-Gym mit 14-Tage-Trial. Ohne Kreditkarte, ohne Verkaufs-Call. Danach 49 €/Monat (oder 39 €/Monat jährlich). DSGVO + DATEV-Export inklusive.',
   alternates: {
     canonical: '/register',
     languages: {
@@ -12,9 +12,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'Osss kostenlos registrieren',
+    title: 'Osss — 14 Tage gratis testen',
     description:
-      'Dein Gym ist live in 10 Minuten. Bis 30 Mitglieder kostenlos. Keine Kreditkarte.',
+      'Dein Gym ist live in 10 Minuten. 14 Tage gratis testen, ohne Kreditkarte. Danach 49 €/Monat oder 39 €/Monat jährlich.',
     url: 'https://www.osss.pro/register',
     type: 'website',
     locale: 'de_DE',

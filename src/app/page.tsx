@@ -442,51 +442,62 @@ export default async function Home() {
         </div>
       </Reveal>
 
-      {/* ── PRICING TEASER ── RSC */}
+      {/* ── PRICING TEASER (Single-Tier) ── RSC */}
       <Reveal as="section" className="py-24 px-5 bg-white">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Pricing' : 'Preise'}</p>
-          <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Free up to 30 members. Forever.' : 'Bis 30 Mitglieder gratis. Dauerhaft.'}</h2>
-          <p className="text-zinc-500 mb-10 text-sm leading-relaxed">{lang === 'en' ? 'You only pay starting at member 31 — no contract, no card on file, no hidden fees.' : 'Du zahlst erst ab Mitglied 31 — ohne Vertrag, ohne Kreditkarte, ohne versteckte Gebühren.'}</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-            {[
-              { name: 'Free',    price: '€0',   members: lang === 'en' ? '30 mbrs.'  : '30 Mitgl.',   highlight: false },
-              { name: 'Starter', price: '€49',  members: lang === 'en' ? '99 mbrs.'  : '99 Mitgl.',   highlight: false },
-              { name: 'Grow',    price: '€89',  members: lang === 'en' ? '249 mbrs.' : '249 Mitgl.',  highlight: true  },
-              { name: 'Pro',     price: '€149', members: lang === 'en' ? 'Unlimited' : 'Unbegrenzt', highlight: false },
-            ].map(p => (
-              <div key={p.name}
-                className={`rounded-2xl p-5 border-2 text-center transition-all ${
-                  p.highlight ? 'border-amber-400 bg-amber-400 shadow-lg shadow-amber-100' : 'border-zinc-100 bg-zinc-50 hover:border-zinc-200'
-                }`}>
-                <p className={`text-[11px] font-bold mb-1 tracking-wide uppercase ${p.highlight ? 'text-zinc-950/60' : 'text-zinc-400'}`}>{p.name}</p>
-                <p className={`text-2xl font-black tracking-tight ${p.highlight ? 'text-zinc-950' : 'text-zinc-900'}`}>{p.price}</p>
-                <p className={`text-xs mt-1 ${p.highlight ? 'text-zinc-950/60' : 'text-zinc-400'}`}>{p.members}</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">
+            {lang === 'en' ? 'One price. Everything included.' : 'Ein Preis. Alles inklusive.'}
+          </h2>
+          <p className="text-zinc-500 mb-10 text-sm leading-relaxed max-w-md mx-auto">
+            {lang === 'en'
+              ? '14 days free trial — no credit card, no commitment. Then 49 €/month — or save 120 € a year with annual billing.'
+              : '14 Tage gratis testen — ohne Kreditkarte, kein Commitment. Danach 49 €/Monat — oder spare 120 € pro Jahr mit Jahresabo.'}
+          </p>
+
+          {/* Price card — kompakt, 2 Spalten Monatlich vs Jährlich */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto mb-8">
+            <div className="bg-zinc-50 rounded-2xl p-6 border-2 border-zinc-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">{lang === 'en' ? 'Monthly' : 'Monatlich'}</p>
+              <p className="text-4xl font-black tracking-tight text-zinc-900 tabular-nums">49 €</p>
+              <p className="text-xs text-zinc-500 mt-1">{lang === 'en' ? 'per month' : 'pro Monat'}</p>
+            </div>
+            <div className="bg-amber-50 rounded-2xl p-6 border-2 border-amber-300 relative">
+              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">
+                {lang === 'en' ? '−120 €/year' : '−120 €/Jahr'}
               </div>
-            ))}
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-2">{lang === 'en' ? 'Annual' : 'Jährlich'}</p>
+              <p className="text-4xl font-black tracking-tight text-zinc-900 tabular-nums">39 €</p>
+              <p className="text-xs text-amber-700 mt-1">{lang === 'en' ? 'per month, billed yearly' : 'pro Monat, jährlich abgerechnet'}</p>
+            </div>
           </div>
-          {/* Lifetime-Pilot-Hinweis. Stripe limits redemptions to LIFETIME_PILOT_SLOTS. */}
-          <div className="mb-5">
+
+          {/* Lifetime-Pilot strip */}
+          <div className="mb-8">
             <div className="inline-flex flex-wrap items-center justify-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-2 text-xs">
               <span className="font-bold text-amber-700 uppercase tracking-wider text-[10px]">
                 {lang === 'en' ? `First ${LIFETIME_PILOT_SLOTS} studios` : `Erste ${LIFETIME_PILOT_SLOTS} Studios`}
               </span>
               <span className="text-zinc-700">
-                {lang === 'en' ? '40 % off forever with code' : '40 % lebenslang mit Code'}
+                {lang === 'en' ? '40 % lifetime with code' : '40 % lebenslang mit Code'}
               </span>
               <code className="bg-zinc-950 text-amber-300 font-mono font-black px-2 py-0.5 rounded select-all">
                 {LIFETIME_PILOT_PROMO_CODE}
               </code>
+              <span className="text-zinc-500 text-[11px]">
+                {lang === 'en' ? '→ from 23 €/month' : '→ ab 23 €/Monat'}
+              </span>
             </div>
           </div>
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/register" data-track="cta_signup_pricing_teaser"
               className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
               <Zap size={14} className="text-amber-400" />
-              {lang === 'en' ? 'Start free now' : 'Gratis starten'}
+              {lang === 'en' ? 'Start 14-day trial' : '14-Tage-Trial starten'}
             </Link>
             <Link href="/pricing" className="inline-flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 font-medium text-sm transition-colors">
-              {lang === 'en' ? 'Compare all features' : 'Alle Features vergleichen'} <ArrowRight size={14} />
+              {lang === 'en' ? 'Full pricing details' : 'Alle Preis-Details'} <ArrowRight size={14} />
             </Link>
           </div>
         </div>
@@ -524,30 +535,30 @@ export default async function Home() {
               </p>
             </div>
 
-            {/* Eversports */}
+            {/* MAAT — direkter Wettbewerbsvergleich, gleiche Studiogröße */}
             <div className="bg-white rounded-2xl p-6 border-2 border-amber-100">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-2">Eversports &amp; Co.</p>
-              <p className="text-3xl font-black text-zinc-900 tabular-nums tracking-tight">1.128 €</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-2">MAAT &amp; Co.</p>
+              <p className="text-3xl font-black text-zinc-900 tabular-nums tracking-tight">1.188 €</p>
               <p className="text-xs text-zinc-400 mt-1">
-                {lang === 'en' ? '€49/mo + 1.5% platform fee' : '49 €/Mo + 1,5 % Plattformgebühr'}
+                {lang === 'en' ? '49 €/mo + 1 % on dues' : '49 €/Mo + 1 % auf Beiträge'}
               </p>
               <p className="text-[11px] text-zinc-400 mt-2 italic">
-                {lang === 'en' ? 'Platform fee alone: €540/year.' : 'Plattformgebühr allein: 540 €/Jahr.'}
+                {lang === 'en' ? 'Platform fee at 50 members: 600 €/year.' : 'Plattformgebühr bei 50 Mitgl.: 600 €/Jahr.'}
               </p>
             </div>
 
-            {/* Osss */}
+            {/* Osss — single tier, annual */}
             <div className="bg-emerald-50 rounded-2xl p-6 border-2 border-emerald-300 relative">
               <div className="absolute -top-2.5 left-6 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                {lang === 'en' ? 'Osss' : 'Osss'}
+                Osss
               </div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-2">Osss</p>
-              <p className="text-3xl font-black text-emerald-700 tabular-nums tracking-tight">588 €</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-2">{lang === 'en' ? 'Osss (annual)' : 'Osss (jährlich)'}</p>
+              <p className="text-3xl font-black text-emerald-700 tabular-nums tracking-tight">468 €</p>
               <p className="text-xs text-emerald-700 mt-1">
-                {lang === 'en' ? '€49/month · 0% platform fee' : '49 €/Monat · 0 % Plattformgebühr'}
+                {lang === 'en' ? '39 €/month · 0 % on dues' : '39 €/Monat · 0 % auf Beiträge'}
               </p>
               <p className="text-[11px] text-emerald-700 mt-2 italic">
-                {lang === 'en' ? 'Up to 30 members forever free.' : 'Bis 30 Mitglieder dauerhaft gratis.'}
+                {lang === 'en' ? '14-day trial, no credit card.' : '14-Tage-Trial, ohne Kreditkarte.'}
               </p>
             </div>
           </div>
@@ -573,14 +584,14 @@ export default async function Home() {
         <div className="max-w-xl mx-auto relative">
           <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-950 mb-5">{lang === 'en' ? 'Your gym in 10 minutes.' : 'Dein Gym in 10 Minuten.'}</h2>
           <p className="text-zinc-800 text-lg mb-10 leading-relaxed">
-            {lang === 'en' ? <>Free forever up to 30 members.<br />Above that: €49-149/month, no minimum term.</> : <>Bis 30 Mitglieder dauerhaft gratis.<br />Danach: 49 €-149 €/Monat, keine Mindestlaufzeit.</>}
+            {lang === 'en' ? <>14 days free trial — no credit card.<br />Then 49 €/month, or 39 €/month annually.</> : <>14 Tage gratis testen — ohne Kreditkarte.<br />Danach 49 €/Monat oder 39 €/Monat im Jahresabo.</>}
           </p>
           <Link href="/register" data-track="cta_signup_bottom"
             className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-zinc-900/25">
             <Zap size={18} className="text-amber-400" />
             {lang === 'en' ? 'Free account in 60 sec' : 'Gratis Account in 60 Sek.'}
           </Link>
-          <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? 'Free up to 30 members · No credit card · Cancel anytime' : 'Bis 30 Mitglieder gratis · Keine Kreditkarte · Jederzeit kündbar'}</p>
+          <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? '14 days free · No credit card · Cancel anytime' : '14 Tage gratis · Keine Kreditkarte · Jederzeit kündbar'}</p>
           <p className="text-zinc-800/80 text-sm mt-8">
             {lang === 'en' ? 'Still got questions? ' : 'Noch unsicher? '}
             <ContactButton lang={lang} className="text-zinc-950 font-bold underline decoration-2 underline-offset-2 hover:text-zinc-800 transition-colors" />
