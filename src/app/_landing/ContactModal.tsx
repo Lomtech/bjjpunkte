@@ -54,21 +54,23 @@ export function ContactModal({ lang, onClose }: { lang: 'de' | 'en'; onClose: ()
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm"
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm overflow-y-auto"
          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
          onClick={() => !busy && onClose()}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl max-h-[100dvh] sm:max-h-[88vh] flex flex-col my-auto"
            onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-3 border-b border-zinc-100">
+        {/* Sticky Header — bleibt sichtbar während User scrollt */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-6 pb-3 border-b border-zinc-100 bg-white rounded-t-2xl">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-500">{isEn ? 'Contact' : 'Kontakt'}</p>
             <h2 className="text-xl font-black text-zinc-950 mt-0.5">{isEn ? 'How can we help?' : 'Wie können wir helfen?'}</h2>
           </div>
           <button type="button" onClick={onClose} disabled={busy}
-            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 disabled:opacity-50 text-xl leading-none">✕</button>
+            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 disabled:opacity-50 text-xl leading-none flex-shrink-0">✕</button>
         </div>
 
+        {/* Scrollable body — alles unter dem Sticky-Header scrollt unabhängig */}
+        <div className="flex-1 overflow-y-auto">
         {done ? (
           <div className="px-6 py-12 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
@@ -172,6 +174,7 @@ export function ContactModal({ lang, onClose }: { lang: 'de' | 'en'; onClose: ()
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   )

@@ -100,11 +100,13 @@ export function HeroAnimations({ lang }: Props) {
       >
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <OsssLogo variant="dark" />
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5 sm:gap-6">
             <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
-            <Link href="/blog" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">Blog</Link>
-            <Link href="/ressourcen" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
-            <button onClick={() => setContactOpen(true)} data-track="cta_contact_header" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden md:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</button>
+            <Link href="/about" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'About' : 'Über'}</Link>
+            <Link href="#book-demo" data-track="cta_demo_header" className="text-sm text-amber-600 hover:text-amber-700 transition-colors font-bold hidden sm:block">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
+            <Link href="/blog" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">Blog</Link>
+            <Link href="/ressourcen" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden xl:block">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
+            <button onClick={() => setContactOpen(true)} data-track="cta_contact_header" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</button>
             <LanguageSwitcher variant="minimal" />
             {checked && (loggedIn
               ? <Link href="/dashboard" className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors">Dashboard</Link>
@@ -135,6 +137,8 @@ export function HeroAnimations({ lang }: Props) {
               className="sm:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1"
             >
               <Link href="/pricing" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
+              <Link href="/about" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'About' : 'Über uns'}</Link>
+              <Link href="#book-demo" onClick={() => setMenuOpen(false)} className="text-sm font-bold text-amber-600 py-2.5 px-3 rounded-lg hover:bg-amber-50 transition-colors">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
               <Link href="/blog" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">Blog</Link>
               <Link href="/ressourcen" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
               <Link href="/rechner" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 transition-colors">{lang === 'en' ? 'Cost calculator' : 'Kostenrechner'}</Link>
