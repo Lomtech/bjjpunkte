@@ -91,13 +91,13 @@ export function HeroAnimations({ lang }: Props) {
 
   return (
     <>
-      {/* ── NAV ── */}
-      <motion.nav
-        initial={{ y: -16, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4, ease: EASE }}
-        className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100"
-      >
+      {/* ── NAV ── plain <nav> statt motion.nav: framer-motion's initial={{ opacity: 0 }}
+           hat den Nav für ~400ms unsichtbar gemacht beim Direkt-Sprung auf Anchor wie
+           /#book-demo (User klickt von Subseite → Page lädt → Browser auto-scrollt zu
+           Anchor → User sieht Section ohne Nav weil Animation noch lief). Plus:
+           framer-motion fügt inline transform=translate3d hinzu, was sticky-Verhalten
+           in Edge/Safari instabil macht. */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <OsssLogo variant="dark" />
           <div className="flex items-center gap-5 sm:gap-6">
@@ -155,7 +155,7 @@ export function HeroAnimations({ lang }: Props) {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.nav>
+      </nav>
 
       {/* ── HERO ── */}
       <section className="relative bg-white overflow-hidden">

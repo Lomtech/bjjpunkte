@@ -43,29 +43,25 @@ export default async function AboutPage() {
 
         <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28 relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            {/* Founder photo */}
+            {/* Founder photo — Hochkant-BJJ-Selfie, Hayabusa-Rashguard, echte
+                Trainings-Atmosphäre. Aspect 3:4 erhält das natürliche Hochformat
+                ohne Crop. */}
             <div className="order-2 md:order-1">
-              <div className="relative aspect-square w-full max-w-md mx-auto">
-                {/* Real photo — drop file at public/founder-lom.jpg.
-                    Until then this gracefully falls back to the placeholder
-                    via the onError pattern (Next/Image throws if missing). */}
+              <div className="relative aspect-[3/4] w-full max-w-sm mx-auto">
                 <div className="absolute inset-0 rounded-3xl overflow-hidden bg-gradient-to-br from-amber-100 via-amber-50 to-zinc-100 border border-amber-200/60 shadow-xl shadow-amber-200/40">
-                  {/* Aktuell: SVG-Monogramm-Platzhalter. Echtes Foto = JPG bei
-                      public/founder-lom.jpg ablegen + Pfad unten umstellen. */}
                   <Image
-                    src="/founder-lom.svg"
-                    alt="Lom-Ali Imadaev — Founder von Osss"
-                    width={800}
-                    height={800}
+                    src="/founder-lom.jpg"
+                    alt="Lom-Ali Imadaev — Founder von Osss, im BJJ-Training"
+                    width={1200}
+                    height={1600}
                     className="w-full h-full object-cover"
                     priority
-                    unoptimized
                   />
                 </div>
                 {/* Caption pill */}
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-zinc-950 text-white px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-lg">
                   <MapPin size={11} className="text-amber-400" />
-                  {en ? 'Adelshofen · Bayern' : 'Adelshofen · Bayern'}
+                  Adelshofen · Bayern
                 </div>
               </div>
             </div>
