@@ -88,7 +88,13 @@ export default async function Home() {
   const yearNow = new Date().getFullYear()
 
   return (
-    <div className="min-h-screen bg-white font-sans overflow-x-hidden">
+    // overflow-x-clip statt -hidden: clip versteckt horizontalen Overflow ebenfalls,
+    // erzeugt aber KEINEN scroll-context — wichtig damit `position: sticky` der Nav
+    // (in HeroAnimations.tsx) relativ zum Viewport positioniert bleibt und beim
+    // Scrollen zum #book-demo Anchor sichtbar bleibt. overflow-x-hidden hat den
+    // Parent zum Scroll-Container gemacht, wodurch sticky an der DIV-Spitze stecken
+    // blieb statt am Viewport-Top.
+    <div className="min-h-screen bg-white font-sans overflow-x-clip">
 
       {/* ── NAV + HERO + PODIUM + DASHBOARD + VIDEO — animation-heavy Client island ── */}
       <HeroAnimations lang={lang} />
