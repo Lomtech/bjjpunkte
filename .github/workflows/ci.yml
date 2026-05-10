@@ -15,10 +15,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Node 22 LTS — Next.js 16.2 verlangt ≥20.9, wir nehmen 22 für mehr Headroom
+          # und stabilere npm-Version (ships with npm 10.9+).
+          node-version: '22'
           cache: 'npm'
 
       - name: Install
+        # `npm ci` ist strict — bricht bei Lockfile-Drift. Falls das passiert,
+        # haben wir vermutlich ein Sync-Problem das lokal mit `npm install`
+        # gefixt werden muss.
         run: npm ci
 
       - name: Lint
