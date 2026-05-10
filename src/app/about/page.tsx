@@ -14,9 +14,8 @@ import Image from 'next/image'
 import type { Metadata } from 'next'
 import { TopNav } from '@/components/TopNav'
 import { OsssLogo } from '@/components/Logo'
-import { ContactButton } from '@/app/_landing/ContactButton'
 import { getServerLang } from '@/lib/i18n/server'
-import { Calendar, MessageCircle, Zap, ArrowRight, MapPin } from 'lucide-react'
+import { MessageCircle, Zap, ArrowRight, MapPin } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Über Osss · Lom-Ali Imadaev, Solo-Founder',
@@ -210,36 +209,8 @@ export default async function AboutPage() {
         </div>
       </section>
 
-      {/* ── CONTACT / CONNECT ── */}
-      <section className="py-20 px-5 bg-amber-50 border-b border-amber-200">
-        <div className="max-w-2xl mx-auto text-center">
-          <p className="text-amber-700 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-            {en ? 'Direct line to the founder' : 'Direkter Draht zum Founder'}
-          </p>
-          <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-5">
-            {en ? 'Talk to me — really me.' : 'Schreib mir — wirklich mir.'}
-          </h2>
-          <p className="text-zinc-600 text-base mb-10 leading-relaxed">
-            {en
-              ? 'No support ticket queue. No "an agent will reply within 48 hours". You write, I read it, I reply — usually same day.'
-              : 'Keine Support-Ticket-Schleife. Kein „ein Agent meldet sich in 48 Stunden". Du schreibst, ich lese es, ich antworte — meist am selben Tag.'}
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            {/* Plain <a> statt <Link>: cross-page Hash-Navigation umgeht Next.js-
-                Prefetch-Caching (Prefetch hatte sonst die Page in vorigen
-                Sprache gecached → User sah deutsch trotz EN-Setting). */}
-            <a href="/#book-demo" data-track="cta_demo_about"
-              className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
-              <Calendar size={15} className="text-amber-400" />
-              {en ? '20-min demo with me' : '20-Min-Demo mit mir'}
-            </a>
-            {/* Kontakt-Modal-Trigger als Outlined-Button (statt mailto + tertiary-Link).
-                Nutzt ContactButton mit Custom-Class für Button-Styling. */}
-            <ContactButton lang={lang} className="inline-flex items-center gap-2 border border-zinc-300 hover:border-zinc-400 hover:bg-white text-zinc-700 font-semibold px-6 py-3 rounded-xl text-sm transition-all" />
-          </div>
-        </div>
-      </section>
+      {/* CONTACT / CONNECT-Section entfernt — die Final-CTA-Section unten leistet
+           bereits den Lead-Capture-Job ohne Redundanz. */}
 
       {/* ── FINAL CTA ── */}
       <section className="py-20 px-5 bg-white text-center">
