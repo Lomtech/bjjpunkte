@@ -191,30 +191,43 @@ export function HeroAnimations({ lang }: Props) {
               </motion.div>
 
               <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-black tracking-tighter leading-[0.9] mb-6 text-zinc-950">
-                {lang === 'en' ? <>Members. Belts. Payments.<br /><span className="text-amber-500">Live in 10 minutes.</span></> : <>Mitglieder. Belts. Beiträge.<br /><span className="text-amber-500">Live in 10 Minuten.</span></>}
+                {lang === 'en'
+                  ? <>Save 8 h admin per&nbsp;month.<br /><span className="text-amber-500">Keep 100 % of your fees.</span></>
+                  : <>Spar 8 Std. Admin pro&nbsp;Monat.<br /><span className="text-amber-500">Behalte jeden Euro Beitrag.</span></>}
               </motion.h1>
 
               <motion.p variants={fadeUp} className="text-zinc-500 text-lg mb-8 leading-relaxed">
-                {lang === 'en' ? 'The German software for martial arts gyms — with belt system, DATEV export and SEPA, built in.' : 'Die deutsche Software für Kampfsport-Gyms — mit Belt-System, DATEV-Export und SEPA. Alles direkt eingebaut.'}
+                {lang === 'en'
+                  ? <>Members, SEPA, schedule and belts — all in one tool. <span className="text-zinc-800 font-semibold">0 % platform fee</span> on payments. Free up to 30&nbsp;members.</>
+                  : <>Mitglieder, SEPA, Stundenplan und Belts — alles in einem Tool. <span className="text-zinc-800 font-semibold">0 % Plattformgebühr</span> auf Beiträge. Bis 30&nbsp;Mitglieder gratis.</>}
               </motion.p>
 
-              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-8">
+              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-3">
                 <Link href="/register" data-track="cta_signup_hero"
                   className="bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-8 py-3.5 rounded-xl text-base transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-zinc-900/20">
                   <Zap size={16} className="text-amber-400" />
-                  {lang === 'en' ? 'Get started free' : 'Jetzt kostenlos starten'}
+                  {lang === 'en' ? 'Free account in 60 sec' : 'Gratis Account in 60 Sek.'}
                 </Link>
-                <Link href="/pricing" data-track="cta_pricing_hero"
+                <Link href="#book-demo" data-track="cta_demo_hero"
                   className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
-                  {lang === 'en' ? 'View pricing' : 'Preise ansehen'} <ArrowRight size={15} />
+                  {lang === 'en' ? 'Or: book a 20-min demo' : 'Oder: 20-Min-Demo buchen'} <ArrowRight size={15} />
                 </Link>
-                {!appInstalled && installPrompt !== null && (
-                  <button onClick={handleInstallClick}
-                    className="border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 text-zinc-700 font-semibold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2">
-                    {lang === 'en' ? 'Download app' : 'App herunterladen'} <ArrowRight size={15} />
-                  </button>
-                )}
               </motion.div>
+
+              <motion.p variants={fadeUp} className="text-zinc-400 text-xs mb-8 tracking-wide">
+                {lang === 'en'
+                  ? 'No credit card · Free up to 30 members · Cancel anytime'
+                  : 'Ohne Kreditkarte · Bis 30 Mitglieder gratis · Jederzeit kündbar'}
+              </motion.p>
+
+              {!appInstalled && installPrompt !== null && (
+                <motion.div variants={fadeUp} className="mb-8">
+                  <button onClick={handleInstallClick}
+                    className="text-zinc-500 hover:text-zinc-900 text-xs font-medium underline decoration-dotted underline-offset-4 transition-colors">
+                    {lang === 'en' ? 'Install as app on this device' : 'Als App auf diesem Gerät installieren'}
+                  </button>
+                </motion.div>
+              )}
 
               {showIosHint && (
                 <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowIosHint(false)}>
@@ -245,15 +258,15 @@ export function HeroAnimations({ lang }: Props) {
 
               <motion.div variants={fadeUp} className="flex flex-wrap gap-x-7 gap-y-3">
                 {(lang === 'en' ? [
+                  { val: '0 %',     label: 'platform fee on dues' },
                   { val: '30',      label: 'free members forever' },
-                  { val: '0%',      label: 'platform fee' },
-                  { val: 'DATEV',   label: 'export' },
-                  { val: 'GDPR',    label: 'compliant' },
+                  { val: 'DATEV',   label: 'export built-in' },
+                  { val: 'GDPR',    label: 'data in EU/UK' },
                 ] : [
+                  { val: '0 %',     label: 'Plattformgebühr auf Beiträge' },
                   { val: '30',      label: 'Mitglieder dauerhaft gratis' },
-                  { val: '0%',      label: 'Plattformgebühr' },
-                  { val: 'DATEV',   label: 'Export' },
-                  { val: 'DSGVO',   label: 'konform' },
+                  { val: 'DATEV',   label: 'Export inklusive' },
+                  { val: 'DSGVO',   label: 'Daten in EU/UK' },
                 ]).map(s => (
                   <div key={s.label}>
                     <span className="text-zinc-950 font-black text-lg tracking-tight">{s.val}</span>

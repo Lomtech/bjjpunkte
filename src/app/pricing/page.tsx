@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Check, Zap, Shield, CreditCard, Clock, Sparkles } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { TopNav } from '@/components/TopNav'
+import { ContactModal } from '@/app/_landing/ContactModal'
 import {
   PRICING_TIERS,
   LIFETIME_PILOT_SLOTS,
@@ -23,6 +24,7 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [annual, setAnnual] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
 
   const en = lang === 'en'
 
@@ -606,9 +608,13 @@ export default function PricingPage() {
         <div className="mt-12 text-center">
           <p className="text-zinc-400 text-sm">
             {en ? 'More questions?' : 'Weitere Fragen?'}{' '}
-            <a href="mailto:oss@osss.pro" className="text-amber-600 hover:text-amber-700 font-semibold transition-colors">
-              oss@osss.pro
-            </a>
+            <button
+              type="button"
+              onClick={() => setContactOpen(true)}
+              className="text-amber-600 hover:text-amber-700 font-semibold transition-colors"
+            >
+              {en ? 'Contact us' : 'Kontakt aufnehmen'}
+            </button>
           </p>
         </div>
       </div>
@@ -645,10 +651,19 @@ export default function PricingPage() {
           <div className="flex gap-5">
             <Link href="/datenschutz" className="hover:text-zinc-700 transition-colors">{en ? 'Privacy' : 'Datenschutz'}</Link>
             <Link href="/impressum" className="hover:text-zinc-700 transition-colors">{en ? 'Imprint' : 'Impressum'}</Link>
-            <a href="mailto:oss@osss.pro" className="hover:text-zinc-700 transition-colors">{en ? 'Contact' : 'Kontakt'}</a>
+            <button
+              type="button"
+              onClick={() => setContactOpen(true)}
+              className="hover:text-zinc-700 transition-colors"
+            >
+              {en ? 'Contact' : 'Kontakt'}
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* Kontakt-Modal — In-App-Formular statt mailto:-Sprung in die native Mail-App */}
+      {contactOpen && <ContactModal lang={en ? 'en' : 'de'} onClose={() => setContactOpen(false)} />}
     </div>
   )
 }

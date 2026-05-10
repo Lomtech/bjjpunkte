@@ -7,6 +7,7 @@ import { OsssLogo } from '@/components/Logo'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { createClient } from '@/lib/supabase/client'
+import { ContactModal } from '@/app/_landing/ContactModal'
 
 /**
  * Einheitliche Top-Navigation für alle öffentlichen Pages.
@@ -31,6 +32,7 @@ export function TopNav({ back }: Props) {
   const [loggedIn, setLoggedIn] = useState(false)
   const [checked, setChecked] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -72,9 +74,19 @@ export function TopNav({ back }: Props) {
         {/* Center/Right: Main Nav (Desktop) */}
         <div className="flex items-center gap-6">
           <Link href="/pricing"     className={`${linkClass} hidden sm:block`}>{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
-          <Link href="/blog"        className={`${linkClass} hidden md:block`}>Blog</Link>
-          <Link href="/ressourcen"  className={`${linkClass} hidden md:block`}>{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
-          <a href="mailto:oss@osss.pro" className={`${linkClass} hidden lg:block`}>{lang === 'en' ? 'Contact' : 'Kontakt'}</a>
+          <Link href="/about"       className={`${linkClass} hidden md:block`}>{lang === 'en' ? 'About' : 'Über'}</Link>
+          <Link href="/blog"        className={`${linkClass} hidden lg:block`}>Blog</Link>
+          <Link href="/ressourcen"  className={`${linkClass} hidden lg:block`}>{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
+          <Link href="/#book-demo"  data-track="cta_demo_topnav" className={`${linkClass} hidden md:block text-amber-600 hover:text-amber-700`}>
+            {lang === 'en' ? 'Book demo' : 'Demo buchen'}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setContactOpen(true)}
+            className={`${linkClass} hidden lg:block`}
+          >
+            {lang === 'en' ? 'Contact' : 'Kontakt'}
+          </button>
 
           <LanguageSwitcher variant="minimal" />
 
@@ -105,14 +117,25 @@ export function TopNav({ back }: Props) {
         </div>
       </div>
 
+      {/* Kontakt-Modal — In-App-Formular statt mailto:-Sprung in die native Mail-App */}
+      {contactOpen && <ContactModal lang={lang} onClose={() => setContactOpen(false)} />}
+
       {/* Mobile Menü */}
       {menuOpen && (
         <div className="md:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1">
           <Link href="/pricing"    onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
+          <Link href="/about"      onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'About' : 'Über uns'}</Link>
+          <Link href="/#book-demo" onClick={() => setMenuOpen(false)} className="text-sm font-bold text-amber-600 py-2.5 px-3 rounded-lg hover:bg-amber-50">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
           <Link href="/blog"       onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">Blog</Link>
           <Link href="/ressourcen" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
           <Link href="/rechner"    onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Cost calculator' : 'Kostenrechner'}</Link>
-          <a href="mailto:oss@osss.pro" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Contact' : 'Kontakt'}</a>
+          <button
+            type="button"
+            onClick={() => { setMenuOpen(false); setContactOpen(true) }}
+            className="text-left text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50"
+          >
+            {lang === 'en' ? 'Contact' : 'Kontakt'}
+          </button>
           {checked && !loggedIn && (
             <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Log in' : 'Anmelden'}</Link>
           )}

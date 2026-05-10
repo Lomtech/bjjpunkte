@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { OsssLogo } from '@/components/Logo'
+import { ContactButton } from '@/app/_landing/ContactButton'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -43,7 +44,7 @@ export default function NotFound() {
           <div className="text-sm text-zinc-400 space-x-4">
             <Link href="/register" className="hover:text-zinc-700 transition-colors">Kostenlos starten</Link>
             <span className="text-zinc-300">·</span>
-            <a href="mailto:oss@osss.pro" className="hover:text-zinc-700 transition-colors">Kontakt</a>
+            <ContactButton lang="de" className="hover:text-zinc-700 transition-colors" />
             <span className="text-zinc-300">·</span>
             <Link href="/datenschutz" className="hover:text-zinc-700 transition-colors">Datenschutz</Link>
           </div>

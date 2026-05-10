@@ -63,9 +63,9 @@ export function SportsTabs({ lang }: Props) {
               </div>
             </div>
             <div className="flex-shrink-0 self-end md:self-center">
-              <Link href="/register"
+              <Link href={`/register?sport=${activeSport}`} data-track="cta_signup_sports_tab"
                 className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors whitespace-nowrap">
-                {lang === 'en' ? 'Try it now' : 'Jetzt testen'} <ArrowRight size={14} />
+                {lang === 'en' ? `Set up ${features.title} free` : `${features.title} gratis einrichten`} <ArrowRight size={14} />
               </Link>
             </div>
           </div>

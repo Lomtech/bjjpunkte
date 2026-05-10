@@ -27,8 +27,8 @@ import { getServerLang } from '@/lib/i18n/server'
 import { HeroAnimations } from './_landing/HeroAnimations'
 import { SportsTabs } from './_landing/SportsTabs'
 import { ContactButton } from './_landing/ContactButton'
+import { BookDemoSection } from './_landing/BookDemoSection'
 import { Reveal } from './_landing/Reveal'
-import { MARQUEE_ITEMS_DE, MARQUEE_ITEMS_EN } from './_landing/data'
 
 export default async function Home() {
   const lang = await getServerLang()
@@ -63,12 +63,12 @@ export default async function Home() {
 
   const GERMAN_FEATURES_DATA = lang === 'en' ? [
     { icon: FileText,   title: 'German-spec invoices', desc: 'Compliant invoices for small businesses (§19 UStG) — required fields, sequential numbering, automatic dispatch. Set it up once, done.' },
-    { icon: Download,   title: 'DATEV export',         desc: 'Export booking data as DATEV CSV. One click, one file — your accountant imports it directly. Nobody else on the market offers this.' },
+    { icon: Download,   title: 'DATEV export',         desc: 'Export booking data as DATEV CSV. One click, one file — your accountant imports it directly. Most competitors only offer this as a paid add-on.' },
     { icon: Shield,     title: 'GDPR from day one',    desc: 'Data in EU/UK (London, EU adequacy decision). DPA signed electronically in your dashboard. No cookie-banner workarounds.' },
     { icon: Headphones, title: 'Direct support',       desc: 'No English-only ticketing system. Write us directly — oss@osss.pro.' },
   ] : [
     { icon: FileText,   title: '§19 UStG Rechnungen', desc: 'Kleinunternehmer-konforme Rechnungen — Pflichtangaben, fortlaufende Nummerierung, automatischer Versand. Einmal Daten eintragen, fertig.' },
-    { icon: Download,   title: 'DATEV-Export',         desc: 'Buchungsdaten als DATEV-CSV exportieren. Ein Klick, eine Datei — dein Steuerberater importiert sie direkt. Sonst niemand im Markt.' },
+    { icon: Download,   title: 'DATEV-Export',         desc: 'Buchungsdaten als DATEV-CSV exportieren. Ein Klick, eine Datei — dein Steuerberater importiert sie direkt. Bei den meisten anderen nur als Bezahl-Add-on.' },
     { icon: Shield,     title: 'DSGVO ab Tag eins',    desc: 'Daten in der EU/UK (London, Adequacy Decision der EU-Kommission). Auftragsverarbeitungsvertrag elektronisch im Dashboard. Keine Cookie-Banner-Tricks.' },
     { icon: Headphones, title: 'Support auf Deutsch', desc: 'Kein Support-Ticket-System auf Englisch. Schreib uns direkt — oss@osss.pro.' },
   ]
@@ -93,20 +93,32 @@ export default async function Home() {
       {/* ── NAV + HERO + PODIUM + DASHBOARD + VIDEO — animation-heavy Client island ── */}
       <HeroAnimations lang={lang} />
 
-      {/* ── TRUST MARQUEE — pure CSS animation, RSC ── */}
-      <div className="bg-zinc-50 border-y border-zinc-100 py-5 overflow-hidden">
-        <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em] text-center mb-3">
-          {lang === 'en' ? 'For martial arts gyms across Germany' : 'Für Kampfsport-Gyms in ganz Deutschland'}
-        </p>
-        <div className="relative overflow-hidden">
-          <div className="animate-marquee">
-            {(lang === 'en' ? MARQUEE_ITEMS_EN : MARQUEE_ITEMS_DE).map((item, i) => (
-              <span key={i} className="inline-flex items-center mx-5 text-zinc-400 text-sm font-medium whitespace-nowrap">
-                <span className="inline-block w-1 h-1 rounded-full bg-amber-400 mr-5" />
-                {item}
-              </span>
-            ))}
-          </div>
+      {/* ── PILOT-PHASE STRIP — ehrliche Founder-Transparenz statt Fake-Traction-Marquee.
+           Loss-aversion + Scarcity: 10 Plätze, 40 % lebenslang. ── */}
+      <div className="bg-amber-50 border-y border-amber-200 py-4 overflow-hidden">
+        <div className="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-center gap-x-4 gap-y-2 text-center sm:text-left">
+          <span className="inline-flex items-center gap-2 text-amber-700 text-[10px] font-black uppercase tracking-[0.2em]">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+            </span>
+            {lang === 'en' ? 'Pilot Phase · May 2026' : 'Pilot-Phase · Mai 2026'}
+          </span>
+          <span className="hidden sm:inline text-amber-300">·</span>
+          <span className="text-zinc-800 text-sm font-medium">
+            {lang === 'en'
+              ? <>First <span className="font-black">{LIFETIME_PILOT_SLOTS} studios</span> get 40 % off — <span className="font-black">forever</span>.</>
+              : <>Erste <span className="font-black">{LIFETIME_PILOT_SLOTS} Studios</span> bekommen 40 % — <span className="font-black">lebenslang</span>.</>}
+          </span>
+          <span className="hidden sm:inline text-amber-300">·</span>
+          <span className="inline-flex items-center gap-2">
+            <code className="bg-zinc-950 text-amber-300 font-mono font-black px-2 py-0.5 rounded text-xs select-all tracking-wider">
+              {LIFETIME_PILOT_PROMO_CODE}
+            </code>
+            <Link href="/pricing" className="text-amber-700 hover:text-amber-900 text-xs font-bold underline-offset-2 hover:underline">
+              {lang === 'en' ? 'see details →' : 'Details ansehen →'}
+            </Link>
+          </span>
         </div>
       </div>
 
@@ -302,9 +314,9 @@ export default async function Home() {
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
             <div>
-              <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Only at Osss' : 'Nur bei Osss'}</p>
+              <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Built for the German market' : 'Für den deutschen Markt gebaut'}</p>
               <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-8">
-                {lang === 'en' ? <>What no other<br />gym tool can do</> : <>Was kein anderes<br />Gym-Tool kann</>}
+                {lang === 'en' ? <>What most others<br />charge extra for</> : <>Was bei anderen<br />extra kostet</>}
               </h2>
               <div className="space-y-6">
                 {GERMAN_FEATURES_DATA.map(item => (
@@ -379,8 +391,8 @@ export default async function Home() {
               </h2>
               <p className="text-zinc-400 mb-8 leading-relaxed text-sm">
                 {lang === 'en'
-                  ? 'Export your payment data as a DATEV-compatible CSV file — your tax advisor imports it directly into their system. No other gym management tool in Germany offers this.'
-                  : 'Exportiere deine Zahlungsdaten als DATEV-kompatible CSV-Datei — dein Steuerberater importiert sie direkt in sein System. Kein anderes Gym-Management-Tool in Deutschland bietet das.'}
+                  ? 'Export your payment data as a DATEV-compatible CSV file — your tax advisor imports it directly into their system. Built in from day one, no add-on fees.'
+                  : 'Exportiere deine Zahlungsdaten als DATEV-kompatible CSV-Datei — dein Steuerberater importiert sie direkt in sein System. Direkt eingebaut, ohne Add-on-Aufpreis.'}
               </p>
               <div className="flex items-center gap-3 text-sm text-zinc-300">
                 <CheckCircle size={14} className="text-amber-400 flex-shrink-0" />
@@ -428,8 +440,8 @@ export default async function Home() {
       <Reveal as="section" className="py-24 px-5 bg-white">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'Pricing' : 'Preise'}</p>
-          <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Four plans. Zero hidden costs.' : 'Vier Pläne. Keine Versteckkosten.'}</h2>
-          <p className="text-zinc-500 mb-10 text-sm leading-relaxed">{lang === 'en' ? 'Free up to 30 members. Pay only as your gym grows.' : 'Bis 30 Mitglieder kostenlos. Du zahlst erst, wenn dein Gym wächst.'}</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Free up to 30 members. Forever.' : 'Bis 30 Mitglieder gratis. Dauerhaft.'}</h2>
+          <p className="text-zinc-500 mb-10 text-sm leading-relaxed">{lang === 'en' ? 'You only pay starting at member 31 — no contract, no card on file, no hidden fees.' : 'Du zahlst erst ab Mitglied 31 — ohne Vertrag, ohne Kreditkarte, ohne versteckte Gebühren.'}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             {[
               { name: 'Free',    price: '€0',   members: lang === 'en' ? '30 mbrs.'  : '30 Mitgl.',   highlight: false },
@@ -461,9 +473,14 @@ export default async function Home() {
               </code>
             </div>
           </div>
-          <div>
-            <Link href="/pricing" className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-700 font-semibold text-sm transition-colors">
-              {lang === 'en' ? 'Compare all features in detail' : 'Alle Features im Detail vergleichen'} <ArrowRight size={14} />
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/register" data-track="cta_signup_pricing_teaser"
+              className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
+              <Zap size={14} className="text-amber-400" />
+              {lang === 'en' ? 'Start free now' : 'Gratis starten'}
+            </Link>
+            <Link href="/pricing" className="inline-flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 font-medium text-sm transition-colors">
+              {lang === 'en' ? 'Compare all features' : 'Alle Features vergleichen'} <ArrowRight size={14} />
             </Link>
           </div>
         </div>
@@ -543,7 +560,7 @@ export default async function Home() {
         </div>
       </Reveal>
 
-      {/* ── FINAL CTA — full amber, RSC ── */}
+      {/* ── FINAL CTA — full amber, RSC. Zwei Pfade: Decider klickt CTA, Considerer schreibt direkt. ── */}
       <section className="py-28 px-5 bg-amber-400 text-center relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 70% 70% at 50% 110%, rgba(255,255,255,0.15) 0%, transparent 70%)' }} />
@@ -555,14 +572,29 @@ export default async function Home() {
           <Link href="/register" data-track="cta_signup_bottom"
             className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-10 py-4 rounded-xl text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-zinc-900/25">
             <Zap size={18} className="text-amber-400" />
-            {lang === 'en' ? 'Start free now' : 'Jetzt kostenlos starten'}
+            {lang === 'en' ? 'Free account in 60 sec' : 'Gratis Account in 60 Sek.'}
           </Link>
           <p className="text-zinc-700 text-xs mt-5 tracking-wide">{lang === 'en' ? 'Free up to 30 members · No credit card · Cancel anytime' : 'Bis 30 Mitglieder gratis · Keine Kreditkarte · Jederzeit kündbar'}</p>
+          <p className="text-zinc-800/80 text-sm mt-8">
+            {lang === 'en' ? 'Still got questions? ' : 'Noch unsicher? '}
+            <ContactButton lang={lang} className="text-zinc-950 font-bold underline decoration-2 underline-offset-2 hover:text-zinc-800 transition-colors" />
+            {lang === 'en' ? ' — usually replies same day.' : ' — Antwort meist am selben Tag.'}
+          </p>
         </div>
       </section>
 
-      {/* ── NEWSLETTER — wrapper RSC, NewsletterSignup hydrates as own client island ── */}
-      <Reveal as="section" className="py-20 px-5 bg-white border-b border-zinc-100">
+      {/* ── BOOK A FREE DEMO — Conversion-Path für Owner die nicht selbst-onboarden wollen ──
+           Ersetzt die alte Newsletter-Section (Newsletter ist Retention-Hebel; in 0-Customer-Phase
+           brauchen wir Acquisition). Form geht an oss@osss.pro mit [DEMO]-Subject-Prefix.
+           id="book-demo" → Smooth-scroll-Target für Hero-CTA + Nav-Link. ── */}
+      <Reveal as="section" id="book-demo" className="py-20 px-5 bg-zinc-50 border-b border-zinc-100 scroll-mt-20">
+        <BookDemoSection lang={lang} />
+      </Reveal>
+
+
+
+      {/* ── NEWSLETTER — kompakter Footer-Strip statt eigener Section ── */}
+      <div className="py-10 px-5 bg-white border-b border-zinc-100">
         <div className="max-w-3xl mx-auto">
           <NewsletterSignup
             source="landing-footer"
@@ -573,7 +605,7 @@ export default async function Home() {
               : 'DSGVO, DATEV, SEPA, Mitgliederverwaltung — höchstens 1× pro Woche, sofort abbestellbar.'}
           />
         </div>
-      </Reveal>
+      </div>
 
       {/* ── FOOTER — RSC, Kontakt button is small Client island ── */}
       <footer className="bg-white border-t border-zinc-100">
@@ -591,6 +623,7 @@ export default async function Home() {
                 {(lang === 'en'
                   ? [
                       { label: 'Pricing',     href: '/pricing' },
+                      { label: 'About',       href: '/about' },
                       { label: 'Resources',   href: '/ressourcen' },
                       { label: 'Cost calc.',  href: '/rechner' },
                       { label: 'Blog',        href: '/blog' },
@@ -599,6 +632,7 @@ export default async function Home() {
                     ]
                   : [
                       { label: 'Preise',         href: '/pricing' },
+                      { label: 'Über uns',       href: '/about' },
                       { label: 'Ressourcen',     href: '/ressourcen' },
                       { label: 'Kostenrechner',  href: '/rechner' },
                       { label: 'Blog',           href: '/blog' },

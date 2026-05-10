@@ -23,6 +23,8 @@ interface RevealProps {
   rootMargin?: string
   /** Optional delay (ms) before reveal animation starts. */
   delay?: number
+  /** Optional DOM id — used for anchor-targets like `#book-demo`. */
+  id?: string
 }
 
 export function Reveal({
@@ -31,6 +33,7 @@ export function Reveal({
   children,
   rootMargin = '-80px',
   delay = 0,
+  id,
 }: RevealProps) {
   const ref = useRef<HTMLElement | null>(null)
   const [shown, setShown] = useState(false)
@@ -68,38 +71,38 @@ export function Reveal({
   switch (as) {
     case 'section':
       return (
-        <section ref={ref as React.RefObject<HTMLElement | null>} data-reveal={dataReveal} className={finalClassName} style={style}>
+        <section ref={ref as React.RefObject<HTMLElement | null>} id={id} data-reveal={dataReveal} className={finalClassName} style={style}>
           {children}
         </section>
       )
     case 'header':
       return (
-        <header ref={ref as React.RefObject<HTMLElement | null>} data-reveal={dataReveal} className={finalClassName} style={style}>
+        <header ref={ref as React.RefObject<HTMLElement | null>} id={id} data-reveal={dataReveal} className={finalClassName} style={style}>
           {children}
         </header>
       )
     case 'footer':
       return (
-        <footer ref={ref as React.RefObject<HTMLElement | null>} data-reveal={dataReveal} className={finalClassName} style={style}>
+        <footer ref={ref as React.RefObject<HTMLElement | null>} id={id} data-reveal={dataReveal} className={finalClassName} style={style}>
           {children}
         </footer>
       )
     case 'article':
       return (
-        <article ref={ref as React.RefObject<HTMLElement | null>} data-reveal={dataReveal} className={finalClassName} style={style}>
+        <article ref={ref as React.RefObject<HTMLElement | null>} id={id} data-reveal={dataReveal} className={finalClassName} style={style}>
           {children}
         </article>
       )
     case 'aside':
       return (
-        <aside ref={ref as React.RefObject<HTMLElement | null>} data-reveal={dataReveal} className={finalClassName} style={style}>
+        <aside ref={ref as React.RefObject<HTMLElement | null>} id={id} data-reveal={dataReveal} className={finalClassName} style={style}>
           {children}
         </aside>
       )
     case 'div':
     default:
       return (
-        <div ref={ref as React.RefObject<HTMLDivElement | null>} data-reveal={dataReveal} className={finalClassName} style={style}>
+        <div ref={ref as React.RefObject<HTMLDivElement | null>} id={id} data-reveal={dataReveal} className={finalClassName} style={style}>
           {children}
         </div>
       )
