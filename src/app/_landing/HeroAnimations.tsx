@@ -194,9 +194,12 @@ export function HeroAnimations({ lang }: Props) {
               style={{ background: 'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(251,191,36,0.07) 0%, transparent 70%)' }} />
 
             <motion.div variants={stagger} initial="hidden" animate="show" className="relative max-w-xl">
+              {/* Eyebrow — direktes Anti-MAAT-Framing. „Made in Germany" raus,
+                  weil austauschbar; „Alternative zu MAAT" ist konkretes
+                  Mental-Anchoring für Owner die schon evaluieren. */}
               <motion.div variants={fadeUp} className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-1.5 mb-8">
                 <Shield size={11} className="text-amber-600" />
-                <span className="text-amber-700 text-xs font-semibold tracking-wide">{lang === 'en' ? 'Made in Germany · For martial arts gyms' : 'Made in Germany · Für Kampfsport-Gyms'}</span>
+                <span className="text-amber-700 text-xs font-semibold tracking-wide">{lang === 'en' ? 'The German alternative to MAAT' : 'Die deutsche Alternative zu MAAT'}</span>
               </motion.div>
 
               <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl lg:text-[4.5rem] xl:text-[5rem] font-black tracking-tighter leading-[0.9] mb-6 text-zinc-950">
@@ -205,10 +208,14 @@ export function HeroAnimations({ lang }: Props) {
                   : <>Spar 8 Std. Admin pro&nbsp;Monat.<br /><span className="text-amber-500">Behalte jeden Euro Beitrag.</span></>}
               </motion.h1>
 
+              {/* Sub-Headline jetzt MAAT-Direktvergleich statt nur Feature-Liste —
+                  Conversion-Hebel: Owner versteht in einem Satz Preis-Differenz +
+                  Markt-Heimat-Vorteil. „1 % Plattformgebühr" macht die MAAT-
+                  Marktposition explizit teurer. */}
               <motion.p variants={fadeUp} className="text-zinc-500 text-lg mb-8 leading-relaxed">
                 {lang === 'en'
-                  ? <>Members, SEPA, schedule and belts — all in one tool. <span className="text-zinc-800 font-semibold">0 % platform fee</span> on payments. <span className="text-zinc-800 font-semibold">14 days free trial</span>, no credit card.</>
-                  : <>Mitglieder, SEPA, Stundenplan und Belts — alles in einem Tool. <span className="text-zinc-800 font-semibold">0 % Plattformgebühr</span> auf Beiträge. <span className="text-zinc-800 font-semibold">14 Tage gratis testen</span>, ohne Kreditkarte.</>}
+                  ? <>The German alternative to MAAT — <span className="text-zinc-800 font-semibold">without the 1 % platform fee</span>, with real <span className="text-zinc-800 font-semibold">DATEV export</span>. 14 days free, no credit card.</>
+                  : <>Die deutsche Alternative zu MAAT — <span className="text-zinc-800 font-semibold">ohne 1 % Plattformgebühr</span>, mit echtem <span className="text-zinc-800 font-semibold">DATEV-Export</span>. 14 Tage gratis, ohne Kreditkarte.</>}
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-3">

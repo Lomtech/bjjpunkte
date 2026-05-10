@@ -128,6 +128,113 @@ export default async function Home() {
         </div>
       </div>
 
+      {/* ── MAAT VERGLEICH — direkter Conversion-Hebel direkt unter dem Hero.
+           Bewusst HIER (nicht weiter unten in „Cost Proof"), weil ein Owner der
+           schon MAAT auf dem Schirm hat in den ersten 5 Sekunden sehen muss
+           warum Osss billiger UND lokaler ist. Vier Karten = vier Buying-
+           Concerns: Preis, DATEV, Support, Migration. Headline + Tabelle
+           verlinken auf /vs-maat (Tiefen-Battle-Page). ── */}
+      <Reveal as="section" className="py-20 px-5 bg-white border-b border-zinc-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
+              {lang === 'en' ? 'Switching from MAAT?' : 'Wechselst du von MAAT?'}
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">
+              {lang === 'en'
+                ? <>Built in Germany.<br />Without the platform fee.</>
+                : <>In Deutschland gebaut.<br />Ohne 1 % Plattformgebühr.</>}
+            </h2>
+            <p className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
+              {lang === 'en'
+                ? 'MAAT is an Italian SaaS that takes 1 % of every member payment. Osss is built one hour from Munich and takes 0 %.'
+                : 'MAAT ist italienisches SaaS und nimmt 1 % von jeder Mitgliedszahlung. Osss wird 1 h von München gebaut und nimmt 0 %.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+            {/* Plattformgebühr — der Killer-Punkt */}
+            <div className="bg-emerald-50 rounded-2xl p-5 border-2 border-emerald-200 relative">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-3">
+                {lang === 'en' ? 'Platform fee' : 'Plattformgebühr'}
+              </p>
+              <p className="text-3xl font-black text-emerald-700 tabular-nums mb-1">0 %</p>
+              <p className="text-[11px] text-emerald-700 font-semibold mb-3">Osss</p>
+              <div className="h-px bg-emerald-200 mb-3" />
+              <p className="text-2xl font-black text-zinc-400 line-through tabular-nums mb-1">1 %</p>
+              <p className="text-[11px] text-zinc-400">
+                {lang === 'en' ? 'MAAT — ~600 €/year @ 50 members' : 'MAAT — ~600 €/Jahr bei 50 Mitgl.'}
+              </p>
+            </div>
+
+            {/* DATEV */}
+            <div className="bg-zinc-50 rounded-2xl p-5 border-2 border-zinc-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-3">
+                DATEV-Export
+              </p>
+              <p className="flex items-center gap-2 text-emerald-700 font-bold mb-1">
+                <CheckCircle size={16} /> {lang === 'en' ? 'Built-in' : 'Inklusive'}
+              </p>
+              <p className="text-[11px] text-emerald-700 font-semibold mb-3">Osss</p>
+              <div className="h-px bg-zinc-200 mb-3" />
+              <p className="text-zinc-400 font-bold text-sm mb-1">
+                {lang === 'en' ? '✕ Not native' : '✕ Nicht nativ'}
+              </p>
+              <p className="text-[11px] text-zinc-400">
+                {lang === 'en' ? 'MAAT — manual workaround' : 'MAAT — manueller Workaround'}
+              </p>
+            </div>
+
+            {/* Support-Sprache */}
+            <div className="bg-zinc-50 rounded-2xl p-5 border-2 border-zinc-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-3">
+                Support
+              </p>
+              <p className="flex items-center gap-2 text-emerald-700 font-bold mb-1">
+                <CheckCircle size={16} /> {lang === 'en' ? 'German · same day' : 'Deutsch · selber Tag'}
+              </p>
+              <p className="text-[11px] text-emerald-700 font-semibold mb-3">Osss · direkt vom Founder</p>
+              <div className="h-px bg-zinc-200 mb-3" />
+              <p className="text-zinc-400 font-bold text-sm mb-1">
+                {lang === 'en' ? '✕ English / Italian' : '✕ Englisch / Italienisch'}
+              </p>
+              <p className="text-[11px] text-zinc-400">
+                {lang === 'en' ? 'MAAT — ticket queue, Milan' : 'MAAT — Ticket-Schleife, Mailand'}
+              </p>
+            </div>
+
+            {/* Migration */}
+            <div className="bg-zinc-50 rounded-2xl p-5 border-2 border-zinc-100">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-3">
+                {lang === 'en' ? 'Migration' : 'Wechsel'}
+              </p>
+              <p className="flex items-center gap-2 text-emerald-700 font-bold mb-1">
+                <CheckCircle size={16} /> {lang === 'en' ? 'CSV + 1:1 help' : 'CSV + 1:1-Hilfe'}
+              </p>
+              <p className="text-[11px] text-emerald-700 font-semibold mb-3">Osss · gratis Setup-Call</p>
+              <div className="h-px bg-zinc-200 mb-3" />
+              <p className="text-zinc-400 font-bold text-sm mb-1">
+                {lang === 'en' ? '✕ Self-serve only' : '✕ Nur Self-Serve'}
+              </p>
+              <p className="text-[11px] text-zinc-400">
+                {lang === 'en' ? 'MAAT — no migration team' : 'MAAT — kein Migrations-Team'}
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/vs-maat" data-track="cta_vs_maat_landing"
+              className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98]">
+              {lang === 'en' ? 'Full comparison' : 'Vollständigen Vergleich'} <ArrowRight size={14} />
+            </Link>
+            <Link href="/rechner" data-track="cta_rechner_from_maat_strip"
+              className="inline-flex items-center gap-2 bg-white border border-zinc-200 hover:border-zinc-300 text-zinc-900 font-bold px-6 py-3 rounded-xl text-sm transition-all">
+              {lang === 'en' ? 'Calculate your savings' : 'Was du sparst — rechnen'} <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      </Reveal>
+
       {/* ── SPORTS — interactive tabs Client island, intro is RSC ── */}
       <section className="bg-zinc-50 px-5 py-24 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto">
