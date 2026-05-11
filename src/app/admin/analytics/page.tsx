@@ -229,6 +229,11 @@ export default function AnalyticsPage() {
 
       <main className="max-w-6xl mx-auto px-5 py-8">
 
+        {/* Tracking-Toggle — prominent ganz oben, damit Owner sofort sieht ob
+            er gerade getrackt wird oder nicht. Dupliziert mit OwnerFilterBanner
+            am Ende der Page, aber DIESER hier ist der primäre Touch-Point. */}
+        <TrackingToggleCard />
+
         {/* Active-Filter-Banner — zeigt aktive Cross-Filter mit X zum Entfernen */}
         {hasFilter && (
           <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between gap-3">
@@ -508,6 +513,90 @@ export default function AnalyticsPage() {
 }
 
 // ─── Helper Components ─────────────────────────────────────────────────────
+
+/**
+ * Großer prominenter Toggle ganz oben auf der Analytics-Page.
+ * Status-Karte mit zwei knackigen Action-Buttons (Tracking AN / AUS).
+ */
+function TrackingToggleCard() {
+  const [excluded, setExcluded] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    try {
+      const ls = localStorage.getItem('osss-no-track') === '1'
+      const ck = /(?:^|;\s*)osss-internal=1/.test(document.cookie ?? '')
+      setExcluded(ls || ck)
+    } catch { setExcluded(false) }
+  }, [])
+
+  function setOff() {
+    try {
+      localStorage.setItem('osss-no-track', '1')
+      document.cookie = 'osss-internal=1; max-age=31536000; path=/; samesite=lax'
+      setExcluded(true)
+    } catch { /* ignore */ }
+  }
+  function setOn() {
+    try {
+      localStorage.removeItem('osss-no-track')
+      document.cookie = 'osss-internal=; max-age=0; path=/; samesite=lax'
+      setExcluded(false)
+    } catch { /* ignore */ }
+  }
+
+  if (excluded === null) return null  // hydration-safe: nichts bis Cookie geprüft
+
+  return (
+    <div className={`rounded-2xl border-2 p-4 mb-6 ${
+      excluded
+        ? 'bg-emerald-50 border-emerald-300'
+        : 'bg-rose-50 border-rose-300'
+    }`}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${
+            excluded ? 'bg-emerald-100' : 'bg-rose-100'
+          }`}>
+            {excluded ? '🚫' : '👁'}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-500">Tracking dieser Browser</p>
+            <p className={`font-black text-base ${excluded ? 'text-emerald-800' : 'text-rose-800'}`}>
+              {excluded ? 'DEAKTIVIERT' : 'AKTIV — du wirst gezählt'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={setOff}
+            disabled={excluded}
+            className={`text-xs font-bold px-4 py-2 rounded-lg transition-colors ${
+              excluded
+                ? 'bg-emerald-200 text-emerald-700 cursor-default'
+                : 'bg-zinc-900 hover:bg-zinc-800 text-white'
+            }`}
+          >
+            🚫 Mich nicht tracken
+          </button>
+          <button
+            onClick={setOn}
+            disabled={!excluded}
+            className={`text-xs font-bold px-4 py-2 rounded-lg transition-colors ${
+              !excluded
+                ? 'bg-rose-200 text-rose-700 cursor-default'
+                : 'bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700'
+            }`}
+          >
+            🔁 Tracking AN
+          </button>
+        </div>
+      </div>
+      <p className="text-[11px] text-zinc-500 mt-2.5 leading-relaxed">
+        Wirkt auf diesem Browser/Gerät. Für andere Geräte (Smartphone etc.) einfach <a href="/no-track" className="underline font-semibold text-zinc-700">/no-track</a> dort öffnen.
+      </p>
+    </div>
+  )
+}
 
 function KPI({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
   return (

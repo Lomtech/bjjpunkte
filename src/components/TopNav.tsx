@@ -107,11 +107,16 @@ export function TopNav({ back }: Props) {
               Dashboard
             </Link>
           ) : (
-            <Link href="/#book-demo" data-track="cta_demo_topnav"
-              className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 hidden sm:inline-flex">
-              <Zap size={13} />
-              {lang === 'en' ? 'Book demo' : 'Demo buchen'}
-            </Link>
+            <>
+              <Link href="/login" className={`${linkClass} hidden sm:block`}>
+                {lang === 'en' ? 'Log in' : 'Anmelden'}
+              </Link>
+              <Link href="/#book-demo" data-track="cta_demo_topnav"
+                className="bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 hidden sm:inline-flex">
+                <Zap size={13} />
+                {lang === 'en' ? 'Book demo' : 'Demo buchen'}
+              </Link>
+            </>
           ))}
 
           {/* Mobile Hamburger — sm:hidden matched HeroAnimations damit Items erst ab sm: zeigen */}

@@ -2,10 +2,13 @@
 
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { SidebarNav, BottomNav } from './NavLinks'
 import { LogoMark } from '@/components/Logo'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 import Image from 'next/image'
 
 type Role = 'owner' | 'trainer' | null
@@ -165,6 +168,9 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col bg-zinc-50 safe-area-top" style={{ height: '100dvh' }}>
+      {/* Mobile Top Bar — Gym-Name + Logout (Desktop hat das in der Sidebar) */}
+      <MobileTopBar gymName={gymName} logoUrl={logoUrl} isTrainer={isTrainer} />
+
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
         <aside className="hidden md:flex w-56 flex-shrink-0 flex-col bg-white shadow-[1px_0_0_0_#f0f0f0,2px_0_12px_0_rgba(0,0,0,0.03)]">
@@ -197,5 +203,55 @@ export function RoleShell({ children }: { children: React.ReactNode }) {
       </div>
       <BottomNav isTrainer={isTrainer} onboardingDone={onboardingDone} />
     </div>
+  )
+}
+
+/**
+ * Mobile-Only Top-Bar fürs Dashboard.
+ *
+ * Auf Mobile gibt's keine Sidebar — Logout war daher bisher nur über
+ * /auth/signout-URL erreichbar. Diese Top-Bar zeigt Logo + Gym-Name + LogOut-
+ * Button rechts, analog zur Sidebar auf Desktop.
+ */
+function MobileTopBar({
+  gymName,
+  logoUrl,
+  isTrainer,
+}: {
+  gymName: string
+  logoUrl: string | null
+  isTrainer: boolean
+}) {
+  const { t } = useLanguage()
+  return (
+    <header className="md:hidden flex items-center justify-between gap-2 bg-white border-b border-zinc-100 px-4 py-2.5 flex-shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {logoUrl ? (
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-zinc-200/80">
+            <Image src={logoUrl} alt={gymName || 'Gym Logo'} width={32} height={32} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0 shadow-sm shadow-amber-200">
+            <LogoMark className="w-3.5 h-2.5 text-zinc-950" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-black text-zinc-950 text-sm leading-tight tracking-tight truncate">{gymName || 'Osss'}</p>
+          <p className="text-[10px] text-zinc-400 tracking-wide font-medium leading-tight">
+            {isTrainer ? 'Trainer' : 'Owner'}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <LanguageSwitcher variant="minimal" />
+        <Link
+          href="/auth/signout"
+          aria-label={t('nav', 'signout')}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+        >
+          <LogOut size={17} strokeWidth={1.75} />
+        </Link>
+      </div>
+    </header>
   )
 }
