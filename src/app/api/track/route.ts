@@ -84,9 +84,16 @@ async function getTrackLimiter(): Promise<Limiter> {
 }
 
 async function trackInsertLimit(ip: string): Promise<boolean> {
-  const rl = await getTrackLimiter()
-  const { success } = await rl.limit(`track:${ip}`)
-  return success
+  try {
+    const rl = await getTrackLimiter()
+    const { success } = await rl.limit(`track:${ip}`)
+    return success
+  } catch (err) {
+    // Upstash nicht erreichbar oder Token abgelaufen — fail-open:
+    // lieber einen Request durchwinken als das ganze Tracking crashen.
+    console.error('[track] rate-limit check failed, passing through:', err)
+    return true
+  }
 }
 
 /**
