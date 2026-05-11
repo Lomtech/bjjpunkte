@@ -43,8 +43,21 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url)
   const range = url.searchParams.get('range') || '30d'
-  const days = range === '7d' ? 7 : range === '90d' ? 90 : 30
-  const since = new Date(Date.now() - days * 86400000).toISOString()
+
+  // Custom date range: ?from=YYYY-MM-DD&to=YYYY-MM-DD überschreibt range-Preset
+  const paramFrom = url.searchParams.get('from')
+  const paramTo   = url.searchParams.get('to')
+  let since: string
+  let days: number
+  if (paramFrom) {
+    const fromDate = new Date(paramFrom)
+    const toDate   = paramTo ? new Date(paramTo + 'T23:59:59Z') : new Date()
+    since = fromDate.toISOString()
+    days  = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / 86400000))
+  } else {
+    days  = range === '7d' ? 7 : range === '90d' ? 90 : 30
+    since = new Date(Date.now() - days * 86400000).toISOString()
+  }
 
   // Filters — alle optional, werden in-memory nach dem Fetch angewendet.
   // (Bei kleinen Volumes < 50k Rows ist das schnell genug; bei größeren
@@ -57,11 +70,15 @@ export async function GET(req: Request) {
 
   const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('page_views') as any)
+  let query = (supabase.from('page_views') as any)
     .select('path, referrer_domain, country, device_type, browser, visitor_hash, session_hash, created_at, is_bot, event_type, event_target, utm_source, utm_medium, utm_campaign, referrer_source')
     .gte('created_at', since)
     .order('created_at', { ascending: false })
     .limit(50000)
+  if (paramTo) {
+    query = query.lte('created_at', new Date(paramTo + 'T23:59:59Z').toISOString())
+  }
+  const { data, error } = await query
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

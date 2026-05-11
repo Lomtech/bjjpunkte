@@ -92,6 +92,9 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState<Range>('30d')
   const [filter, setFilter] = useState<AnalyticsFilter>({})
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo]     = useState('')
+  const customRange = !!(dateFrom || dateTo)
 
   // Helper: toggle a filter dimension. Click again on same value = clear.
   function toggleFilter<K extends keyof AnalyticsFilter>(key: K, value: AnalyticsFilter[K]) {
@@ -132,7 +135,13 @@ export default function AnalyticsPage() {
           return
         }
 
-        const params = new URLSearchParams({ range })
+        const params = new URLSearchParams()
+        if (customRange) {
+          if (dateFrom) params.set('from', dateFrom)
+          if (dateTo)   params.set('to',   dateTo)
+        } else {
+          params.set('range', range)
+        }
         if (filter.path)    params.set('path',    filter.path)
         if (filter.country) params.set('country', filter.country)
         if (filter.device)  params.set('device',  filter.device)
@@ -159,7 +168,7 @@ export default function AnalyticsPage() {
       }
     })()
     return () => { cancelled = true }
-  }, [range, router, filter])
+  }, [range, router, filter, customRange, dateFrom, dateTo])
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -175,18 +184,45 @@ export default function AnalyticsPage() {
             <OsssLogo variant="dark" />
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 ml-2">Analytics</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {(['7d', '30d', '90d'] as Range[]).map(r => (
               <button
                 key={r}
-                onClick={() => setRange(r)}
+                onClick={() => { setRange(r); setDateFrom(''); setDateTo('') }}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-                  range === r ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-100'
+                  !customRange && range === r ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-100'
                 }`}
               >
                 {r === '7d' ? '7 Tage' : r === '30d' ? '30 Tage' : '90 Tage'}
               </button>
             ))}
+            <span className="text-zinc-200 hidden sm:inline">|</span>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className={`text-xs px-2 py-1.5 rounded-lg border transition-colors outline-none ${
+                  customRange ? 'border-amber-400 bg-amber-50 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-600'
+                }`}
+              />
+              <span className="text-zinc-400 text-xs">–</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+                className={`text-xs px-2 py-1.5 rounded-lg border transition-colors outline-none ${
+                  customRange ? 'border-amber-400 bg-amber-50 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-600'
+                }`}
+              />
+              {customRange && (
+                <button
+                  onClick={() => { setDateFrom(''); setDateTo('') }}
+                  className="text-xs text-zinc-400 hover:text-zinc-700 px-1"
+                  aria-label="Datumsfilter zurücksetzen"
+                >×</button>
+              )}
+            </div>
           </div>
         </div>
       </nav>

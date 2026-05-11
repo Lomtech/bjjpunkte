@@ -567,7 +567,7 @@ export default function PricingPage() {
       {/* Footer (slim) */}
       <footer className="bg-white border-t border-zinc-100 py-6 px-5">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-400">
-          <p>© {new Date().getFullYear()} Osss · {en ? 'The martial arts gym software' : 'Die Kampfsport-Gym-Software'}</p>
+          <p suppressHydrationWarning>© {new Date().getFullYear()} Osss · {en ? 'The martial arts gym software' : 'Die Kampfsport-Gym-Software'}</p>
           <div className="flex gap-5">
             <Link href="/datenschutz" className="hover:text-zinc-700 transition-colors">{en ? 'Privacy' : 'Datenschutz'}</Link>
             <Link href="/impressum" className="hover:text-zinc-700 transition-colors">Impressum</Link>
