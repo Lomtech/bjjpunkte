@@ -3,6 +3,27 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+
+/**
+ * Audit 2026-05-11: alle Gym-Profil-Updates laufen ab jetzt über
+ * /api/gym/update (Same-Origin, Bearer-Auth) statt direkt aus dem
+ * Browser auf supabase.co. Hintergrund: Browser-Preflight-Cache
+ * blockierte PATCH gegen die Supabase-REST-API auch wenn der Server
+ * PATCH offiziell erlaubt — Same-Origin-Route umgeht das Problem.
+ */
+async function patchGym(updates: Record<string, unknown>): Promise<{ ok: true } | { error: string }> {
+  const { data: { session } } = await createClient().auth.getSession()
+  const accessToken = session?.access_token
+  if (!accessToken) return { error: 'Nicht eingeloggt' }
+  const res = await fetch('/api/gym/update', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(updates),
+  })
+  const json = await res.json().catch(() => ({})) as { error?: string }
+  if (!res.ok) return { error: json.error ?? `HTTP ${res.status}` }
+  return { ok: true }
+}
 import Image from 'next/image'
 import {
   Building2, CreditCard, Save, ExternalLink, CheckCircle2, AlertCircle,
@@ -320,21 +341,19 @@ function SettingsPageInner() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
     const feeCents = monthlyFee ? Math.round(parseFloat(monthlyFee.replace(',', '.')) * 100) : 0
     // Clean and save slug together with gym name so it's never empty after first save
     const cleanSlug = gymSlug.trim().toLowerCase()
       .replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     if (cleanSlug) setGymSlug(cleanSlug)
-    await supabase.from('gyms').update({
+    await patchGym({
       name,
       address: address || null,
       phone: phone || null,
       email: email || null,
       monthly_fee_cents: feeCents,
       ...(cleanSlug ? { slug: cleanSlug } : {}),
-    }).eq('owner_id', user?.id ?? '')
+    })
     setLoading(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
 
@@ -351,17 +370,14 @@ function SettingsPageInner() {
       .upload(path, file, { contentType: file.type })
     if (uploadErr) { toast.error((lang === 'en' ? 'Upload failed: ' : 'Upload fehlgeschlagen: ') + uploadErr.message); setLogoUploading(false); return }
     const { data: { publicUrl } } = supabase.storage.from('gym-logos').getPublicUrl(path)
-    await supabase.from('gyms').update({ logo_url: publicUrl }).eq('owner_id', user.id)
+    await patchGym({ logo_url: publicUrl })
     setLogoUrl(publicUrl)
     window.dispatchEvent(new CustomEvent('gym-logo-updated', { detail: { url: publicUrl } }))
     setLogoUploading(false)
   }
 
   async function handleLogoRemove() {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('gyms').update({ logo_url: null }).eq('owner_id', user.id)
+    await patchGym({ logo_url: null })
     setLogoUrl(null)
     window.dispatchEvent(new CustomEvent('gym-logo-updated', { detail: { url: null } }))
   }
@@ -451,23 +467,18 @@ function SettingsPageInner() {
     setSlugSaving(true)
     const clean = gymSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
     setGymSlug(clean)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({ slug: clean }).eq('owner_id', user?.id ?? '')
+    await patchGym({ slug: clean })
     setSlugSaving(false); setSlugSaved(true); setTimeout(() => setSlugSaved(false), 2000)
   }
 
   async function handleSignupSave() {
     setSignupSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('gyms') as any).update({
+    await patchGym({
       signup_enabled:              signupEnabled,
       contract_template:           contractTemplate || null,
       wellpass_agreement_template: wellpassTemplate || null,
       trial_rules_template:        trialTemplate || null,
-    }).eq('owner_id', user?.id ?? '')
+    })
     setSignupSaving(false); setSignupSaved(true); setTimeout(() => setSignupSaved(false), 2000)
   }
 
@@ -482,15 +493,10 @@ function SettingsPageInner() {
       return
     }
     setWhatsappGroupSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('gyms') as any)
-      .update({ whatsapp_group_url: trimmed || null })
-      .eq('owner_id', user?.id ?? '')
+    const result = await patchGym({ whatsapp_group_url: trimmed || null })
     setWhatsappGroupSaving(false)
-    if (error) {
-      setWhatsappGroupError(error.message)
+    if ('error' in result) {
+      setWhatsappGroupError(result.error)
       return
     }
     setWhatsappGroupSaved(true)
@@ -500,12 +506,15 @@ function SettingsPageInner() {
   async function handleInvoiceSave() {
     setInvoiceSaving(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    // Non-IBAN-Felder per Direkt-Update — die sind unkritisch.
-    await supabase.from('gyms').update({
-      tax_number: taxNumber||null, ustid: ustid||null, is_kleinunternehmer: isKleinunternehmer,
-      invoice_prefix: invoicePrefix||'RE', bank_bic: bankBic||null, bank_name: bankName||null,
-    }).eq('owner_id', user?.id ?? '')
+    // Non-IBAN-Felder über /api/gym/update — gleicher Pfad wie restliche Saves.
+    await patchGym({
+      tax_number: taxNumber || null,
+      ustid: ustid || null,
+      is_kleinunternehmer: isKleinunternehmer,
+      invoice_prefix: invoicePrefix || 'RE',
+      bank_bic: bankBic || null,
+      bank_name: bankName || null,
+    })
 
     // IBAN nur dann ans /api/gym/iban schicken, wenn der User den Wert
     // tatsächlich verändert hat — sonst würden wir bei jedem Save den
@@ -544,17 +553,18 @@ function SettingsPageInner() {
   async function handleClassTypesSave() {
     setClassTypesSaving(true)
     const types = classTypesInput.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({ class_types: types }).eq('owner_id', user?.id ?? '')
+    await patchGym({ class_types: types })
     setClassTypesSaving(false); setClassTypesSaved(true); setTimeout(() => setClassTypesSaved(false), 2000)
   }
 
   async function handleBeltSave() {
     setBeltSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({ belt_system: JSON.stringify(beltSlots), sport_type: sportType, belt_system_enabled: beltEnabled, stripes_enabled: stripesEnabled }).eq('owner_id', user?.id ?? '')
+    await patchGym({
+      belt_system: JSON.stringify(beltSlots),
+      sport_type: sportType,
+      belt_system_enabled: beltEnabled,
+      stripes_enabled: stripesEnabled,
+    })
     setBeltSaving(false); setBeltSaved(true); setTimeout(() => setBeltSaved(false), 2000)
   }
 
