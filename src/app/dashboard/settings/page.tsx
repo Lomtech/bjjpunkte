@@ -722,28 +722,29 @@ function SettingsPageInner() {
       {/* ── TAB: ALLGEMEIN ─────────────────────────────────────────────────── */}
       {activeTab === 'allgemein' && (
         <div className="space-y-4">
-          {/* Plan */}
+          {/* Plan-Card — Audit 2026-05-11: pricing.ts ist auf single-tier
+              umgestellt (49€/Unlimited + 14-Tage-Trial statt Free-Tier).
+              Diese Card spiegelt jetzt nur zwei Zustände:
+                - 'pro'   = aktive Stripe-Subscription → ∞ Mitglieder, Portal-Btn
+                - sonst   = Trial oder noch-nicht-bezahlt → Upgrade-Btn,
+                            KEIN Member-Limit anzeigen (matched /pricing-Versprechen) */}
           <div className={`rounded-2xl p-5 border ${
-            gymPlan === 'pro' ? 'bg-zinc-900 border-slate-700' :
-            gymPlan === 'grow' ? 'bg-amber-50 border-amber-200' :
-            gymPlan === 'starter' ? 'bg-zinc-50 border-zinc-200' : 'bg-white border-zinc-200'
+            gymPlan === 'pro' ? 'bg-zinc-900 border-slate-700' : 'bg-white border-zinc-200'
           }`}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    gymPlan === 'pro' ? 'bg-amber-500 text-white' :
-                    gymPlan === 'grow' ? 'bg-amber-500 text-white' :
-                    gymPlan === 'starter' ? 'bg-zinc-700 text-white' : 'bg-zinc-200 text-zinc-600'
-                  }`}>{gymPlan.toUpperCase()}</span>
+                    gymPlan === 'pro' ? 'bg-amber-500 text-white' : 'bg-zinc-200 text-zinc-600'
+                  }`}>
+                    {gymPlan === 'pro' ? 'PRO' : (lang === 'en' ? 'TRIAL' : 'TRIAL')}
+                  </span>
                   <span className={`text-sm font-semibold ${gymPlan === 'pro' ? 'text-white' : 'text-zinc-900'}`}>{t('settings', 'currentPlan')}</span>
                 </div>
                 <p className={`text-sm ${gymPlan === 'pro' ? 'text-zinc-300' : 'text-zinc-500'}`}>
-                  {memberCount} / {gymPlan === 'pro' ? '∞' : planLimit} {t('members', 'activeMembers')}
+                  {memberCount} {t('members', 'activeMembers')}
+                  {gymPlan === 'pro' && <span className="ml-1">· ∞</span>}
                 </p>
-                {gymPlan !== 'pro' && memberCount >= planLimit * 0.9 && (
-                  <p className="text-amber-600 text-xs mt-1 font-medium">{t('settings', 'nearLimit')}</p>
-                )}
               </div>
               <div className="flex flex-col gap-2 flex-shrink-0">
                 {gymPlan === 'pro' ? (
@@ -752,18 +753,10 @@ function SettingsPageInner() {
                     {portalLoading ? t('settings', 'loading') : t('settings', 'manageSubscription')}
                   </button>
                 ) : (
-                  <>
-                    <button onClick={() => setShowUpgradeModal(true)} disabled={loadingPlan !== null}
-                      className="px-4 py-2 rounded-xl text-sm font-semibold bg-zinc-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
-                      {gymPlan === 'free' ? t('settings', 'upgradeBtn') : t('settings', 'changePlan')}
-                    </button>
-                    {gymPlan !== 'free' && (
-                      <button onClick={handlePortal} disabled={portalLoading}
-                        className="px-4 py-2 rounded-xl text-sm font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors">
-                        {portalLoading ? t('settings', 'loading') : t('settings', 'manageSubscription')}
-                      </button>
-                    )}
-                  </>
+                  <button onClick={() => setShowUpgradeModal(true)} disabled={loadingPlan !== null}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold bg-zinc-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors">
+                    {t('settings', 'upgradeBtn')}
+                  </button>
                 )}
               </div>
             </div>
