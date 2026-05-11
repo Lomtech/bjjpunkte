@@ -172,6 +172,24 @@ export default async function VsMaatPage() {
     style: 'currency', currency: 'EUR', maximumFractionDigits: 0,
   }).format(n)
 
+  // Studio-Cost-Frame statt Tech-Lifestyle-Vergleich. Vergegenständlicht die
+  // jährliche Ersparnis in Posten die ein Kampfsport-Studio-Owner kennt:
+  // Matten, Trainer-Lohn, Seminare. Macht die Zahl mental buchbar.
+  function savingsAnchor(members: number): { de: string; en: string } {
+    if (members <= 50) return {
+      de: 'eine neue Wettkampfmatte 4×4 m',
+      en: 'a new 4×4 m competition mat',
+    }
+    if (members <= 100) return {
+      de: '1 Monat Trainer-Lohn (Mini-Job)',
+      en: '1 month of coach pay (part-time)',
+    }
+    return {
+      de: 'kompletter Matten-Refresh für einen 2. Raum',
+      en: 'a complete mat refresh for a second room',
+    }
+  }
+
   const FAQ = en ? [
     {
       q: 'How does the migration from MAAT to Osss actually work?',
@@ -290,6 +308,12 @@ export default async function VsMaatPage() {
                 <p className="text-3xl font-black text-emerald-600 tabular-nums tracking-tight">
                   {fmt(s.saved)}
                   <span className="text-sm text-emerald-500 font-bold ml-1">/{en ? 'yr' : 'Jahr'}</span>
+                </p>
+                {/* Studio-Cost-Frame — vergegenständlicht die Zahl in Posten
+                    die der Studio-Owner kennt. Reduziert Abstraktion, baut
+                    Founder-spricht-deine-Sprache-Signal auf. */}
+                <p className="text-zinc-500 text-xs mt-2 leading-relaxed">
+                  ≈ {en ? savingsAnchor(s.members).en : savingsAnchor(s.members).de}
                 </p>
               </div>
             ))}
