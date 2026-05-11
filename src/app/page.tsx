@@ -99,6 +99,32 @@ export default async function Home() {
       {/* ── NAV + HERO + PODIUM + DASHBOARD + VIDEO — animation-heavy Client island ── */}
       <HeroAnimations lang={lang} />
 
+      {/* ── PAIN POINTS — direkt unter Hero: Besucher soll sofort erkennen
+           dass wir sein konkretes Problem kennen, bevor wir Lösung zeigen. ── */}
+      <Reveal as="section" className="py-16 sm:py-20 px-5 bg-zinc-950">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
+              {lang === 'en' ? 'Sound familiar?' : 'Kommt dir das bekannt vor?'}
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-3">
+              {lang === 'en' ? 'Running a gym shouldn\'t feel like this.' : 'Ein Gym zu führen sollte nicht so sein.'}
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {PAIN_POINTS_DATA.map(p => (
+              <div key={p.title} className="bg-zinc-900 rounded-2xl p-7 border border-zinc-800">
+                <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-5">
+                  <p.icon size={18} className="text-amber-400" />
+                </div>
+                <p className="font-bold text-white mb-2">{p.title}</p>
+                <p className="text-sm text-zinc-400 leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Reveal>
+
       {/* ── PILOT-PHASE STRIP — ehrliche Founder-Transparenz statt Fake-Traction-Marquee.
            Loss-aversion + Scarcity: 10 Plätze, 40 % lebenslang. ── */}
       <div className="bg-amber-50 border-y border-amber-200 py-4 overflow-hidden">
@@ -327,30 +353,6 @@ export default async function Home() {
           <SportsTabs lang={lang} />
         </div>
       </section>
-
-      {/* ── PAIN POINTS ── RSC */}
-      <Reveal as="section" className="py-24 px-5 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-14">
-            <p className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">{lang === 'en' ? 'The problem' : 'Das Problem'}</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Three problems we solved' : 'Drei Probleme, die wir gelöst haben'}</h2>
-            <p className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
-              {lang === 'en' ? 'Gym software is either too expensive, too complex, or not built for the German market.' : 'Gym-Software ist zu teuer, zu komplex — oder nicht für den deutschen Markt gebaut.'}
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {PAIN_POINTS_DATA.map(p => (
-              <div key={p.title} className="bg-zinc-50 rounded-2xl p-7 border border-zinc-100">
-                <div className="w-10 h-10 rounded-xl bg-zinc-100 border border-zinc-200 flex items-center justify-center mb-5">
-                  <p.icon size={18} className="text-zinc-500" />
-                </div>
-                <p className="font-bold text-zinc-900 mb-2">{p.title}</p>
-                <p className="text-sm text-zinc-500 leading-relaxed">{p.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Reveal>
 
       {/* ── HOW IT WORKS ── RSC */}
       <Reveal as="section" className="py-24 px-5 bg-amber-50">

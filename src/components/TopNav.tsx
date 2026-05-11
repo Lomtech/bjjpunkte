@@ -79,11 +79,12 @@ export function TopNav({ back }: Props) {
           <Link href="/pricing"     className={`${linkClass} hidden sm:block`}>{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
           <Link href="/about"       className={`${linkClass} hidden sm:block`}>{lang === 'en' ? 'About' : 'Über'}</Link>
           <Link href="/blog"        className={`${linkClass} hidden lg:block`}>Blog</Link>
+          <Link href="/rechner"     className={`${linkClass} hidden lg:block`}>{lang === 'en' ? 'Calculator' : 'Rechner'}</Link>
           <Link href="/ressourcen"  className={`${linkClass} hidden xl:block`}>{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
           <button
             type="button"
             onClick={() => setContactOpen(true)}
-            className={`${linkClass} hidden lg:block`}
+            className={`${linkClass} hidden xl:block`}
           >
             {lang === 'en' ? 'Contact' : 'Kontakt'}
           </button>
