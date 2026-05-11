@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -29,7 +29,7 @@ interface AnalyticsData {
     bots_filtered: number
     total_clicks: number
   }
-  timeline: { date: string; count: number }[]
+  timeline: { date: string; count: number; views?: number; sessions?: number; visitors?: number }[]
   top_pages: { path: string; count: number }[]
   top_referrers: { domain: string; count: number }[]
   sources: { source: string; count: number }[]
@@ -289,7 +289,10 @@ export default function AnalyticsPage() {
 
             {/* Timeline */}
             <Section title={`Page Views — letzte ${data.range.days} Tage`}>
-              <Timeline data={data.timeline} />
+              <Timeline
+                data={data.timeline}
+                onSelectDay={d => { setDateFrom(d); setDateTo(d) }}
+              />
             </Section>
 
             {/* Bot-Filter + Click-Events Banner */}
@@ -682,49 +685,193 @@ function OwnerFilterBanner() {
   )
 }
 
-function Timeline({ data }: { data: { date: string; count: number }[] }) {
+type Metric = 'views' | 'sessions' | 'visitors'
+
+interface TimelinePoint {
+  date: string
+  count: number
+  views?: number
+  sessions?: number
+  visitors?: number
+}
+
+/**
+ * Voll interaktive Timeline mit:
+ *  - Smooth Catmull-Rom-Bezier-Kurve (statt eckiger Linien)
+ *  - Multi-Metric-Toggle: Page Views / Sessions / Unique Visitors
+ *  - Mouse-Follow-Crosshair (vertikale Linie + Tooltip am Cursor)
+ *  - Click auf Tag → Date-Filter auf diesen Tag setzen
+ *  - Animation beim Laden (Path zeichnet sich)
+ *  - Peak-Marker bleibt sichtbar
+ *  - Wochentag im Tooltip
+ *
+ * Auto-Switch: wenn API neue Felder (views/sessions/visitors) liefert,
+ * werden die Toggles aktiv. Fallback auf altes `count`-Feld.
+ */
+function Timeline({
+  data,
+  onSelectDay,
+}: {
+  data: TimelinePoint[]
+  onSelectDay?: (date: string) => void
+}) {
+  const hasMulti = data.length > 0 && data[0].views !== undefined
+  const [metric, setMetric] = useState<Metric>('views')
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+
   if (data.length === 0) return <Empty />
 
-  // SVG-Line-Chart mit gefüllter Area — sieht auch bei 1 Datenpunkt sauber aus
-  const W = 800   // ViewBox-Breite (skaliert per CSS)
-  const H = 160   // ViewBox-Höhe
+  const W = 800
+  const H = 180
   const PAD_L = 40
-  const PAD_R = 30  // Platz für letztes Datum-Label (z.B. "07.05")
-  const PAD_T = 10
-  const PAD_B = 28
+  const PAD_R = 30
+  const PAD_T = 12
+  const PAD_B = 32
   const innerW = W - PAD_L - PAD_R
   const innerH = H - PAD_T - PAD_B
 
-  const max = Math.max(...data.map(d => d.count), 4)
-  // Y-Achse auf nächste runde Zahl
-  const niceMax = max <= 5 ? 5 : max <= 10 ? 10 : max <= 50 ? Math.ceil(max / 10) * 10 : Math.ceil(max / 100) * 100
+  const valueOf = (d: TimelinePoint): number => {
+    if (!hasMulti) return d.count
+    if (metric === 'views')    return d.views ?? d.count ?? 0
+    if (metric === 'sessions') return d.sessions ?? 0
+    return d.visitors ?? 0
+  }
+
+  const values = data.map(valueOf)
+  const max = Math.max(...values, 4)
+  const niceMax =
+    max <= 5  ? 5  :
+    max <= 10 ? 10 :
+    max <= 50 ? Math.ceil(max / 10) * 10 :
+    max <= 500 ? Math.ceil(max / 50) * 50 :
+    Math.ceil(max / 100) * 100
   const today = new Date().toISOString().slice(0, 10)
 
-  // Punkte berechnen
+  // Points
   const points = data.map((d, i) => {
     const x = PAD_L + (data.length === 1 ? innerW / 2 : (i / (data.length - 1)) * innerW)
-    const y = PAD_T + innerH - (d.count / niceMax) * innerH
-    return { x, y, ...d, isToday: d.date === today }
+    const v = valueOf(d)
+    const y = PAD_T + innerH - (v / niceMax) * innerH
+    return { x, y, value: v, date: d.date, isToday: d.date === today, idx: i }
   })
 
-  // Path-D für Line
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+  // Catmull-Rom → Bezier für smooth curves
+  // Wenn 1 Punkt: nur Punkt. Wenn 2 Punkte: gerade Linie. Sonst: Bezier.
+  function smoothPath(): string {
+    if (points.length === 0) return ''
+    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
+    if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`
+    let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i - 1] ?? points[i]
+      const p1 = points[i]
+      const p2 = points[i + 1]
+      const p3 = points[i + 2] ?? p2
+      const tension = 6  // höher = ausgeprägtere Kurven; 6 = sanft
+      const cp1x = p1.x + (p2.x - p0.x) / tension
+      const cp1y = p1.y + (p2.y - p0.y) / tension
+      const cp2x = p2.x - (p3.x - p1.x) / tension
+      const cp2y = p2.y - (p3.y - p1.y) / tension
+      d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+    }
+    return d
+  }
 
-  // Path-D für Area-Fill
+  const linePath = smoothPath()
   const areaPath = data.length === 1
-    ? '' // kein Area bei 1 Punkt
+    ? ''
     : `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(PAD_T + innerH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(PAD_T + innerH).toFixed(1)} Z`
 
-  // Y-Achse Ticks
   const yTicks = [0, niceMax / 4, niceMax / 2, (niceMax * 3) / 4, niceMax].map(v => Math.round(v))
-
-  // X-Achse: zeige nur jeden 5. Tag (sonst überlappt)
   const xLabelStep = Math.max(1, Math.ceil(data.length / 7))
+
+  // Peak (höchster Wert)
+  const peakIdx = values.reduce((maxI, v, i, arr) => v > arr[maxI] ? i : maxI, 0)
+  const peak = points[peakIdx]
+
+  // Mouse-Tracking: finde nächsten Datenpunkt zur Mausposition
+  function handleMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (!svgRef.current) return
+    const rect = svgRef.current.getBoundingClientRect()
+    const mouseX = ((e.clientX - rect.left) / rect.width) * W
+    let nearest = 0
+    let minDist = Infinity
+    for (let i = 0; i < points.length; i++) {
+      const dist = Math.abs(points[i].x - mouseX)
+      if (dist < minDist) { minDist = dist; nearest = i }
+    }
+    setHoverIdx(nearest)
+  }
+  function handleLeave() { setHoverIdx(null) }
+
+  const hovered = hoverIdx != null ? points[hoverIdx] : null
+  const hoveredDow = hovered ? (() => {
+    const d = new Date(hovered.date + 'T12:00:00Z')
+    return ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getUTCDay()]
+  })() : ''
+
+  // Tooltip-Positionierung im SVG-Koordinatensystem
+  const TOOLTIP_W = 110
+  const TOOLTIP_H = 32
+  let tooltipX = 0, tooltipY = 0
+  if (hovered) {
+    tooltipX = hovered.x + 12
+    if (tooltipX + TOOLTIP_W > W - 5) tooltipX = hovered.x - TOOLTIP_W - 12
+    tooltipY = hovered.y - TOOLTIP_H - 8
+    if (tooltipY < PAD_T) tooltipY = hovered.y + 12
+  }
+
+  const METRIC_LABEL: Record<Metric, string> = {
+    views: 'Page Views',
+    sessions: 'Sessions',
+    visitors: 'Visitors',
+  }
 
   return (
     <div className="w-full">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="none">
-        {/* Grid-Linien (Y-Achse) */}
+      {/* Metric-Toggle (nur wenn Daten verfügbar) */}
+      {hasMulti && (
+        <div className="flex items-center gap-1 mb-3 -mt-1">
+          {(['views', 'sessions', 'visitors'] as Metric[]).map(m => (
+            <button
+              key={m}
+              onClick={() => setMetric(m)}
+              className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md transition-colors ${
+                metric === m
+                  ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                  : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50'
+              }`}
+            >
+              {METRIC_LABEL[m]}
+            </button>
+          ))}
+          <span className="text-[10px] text-zinc-400 ml-auto">Tipp: Klick auf Tag → Filter</span>
+        </div>
+      )}
+
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full h-auto cursor-crosshair select-none"
+        preserveAspectRatio="none"
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+      >
+        <defs>
+          <linearGradient id="timeline-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
+          </linearGradient>
+          {/* Animations-Mask: lässt die Linie von links nach rechts erscheinen */}
+          <clipPath id="timeline-reveal">
+            <rect x="0" y="0" width={W} height={H}>
+              <animate attributeName="width" from="0" to={W} dur="0.9s" fill="freeze" />
+            </rect>
+          </clipPath>
+        </defs>
+
+        {/* Grid */}
         {yTicks.map((tick, i) => {
           const y = PAD_T + innerH - (tick / niceMax) * innerH
           return (
@@ -737,78 +884,78 @@ function Timeline({ data }: { data: { date: string; count: number }[] }) {
           )
         })}
 
-        {/* Area-Fill */}
-        {areaPath && (
-          <path d={areaPath} fill="url(#timeline-grad)" opacity="0.6" />
+        {/* Area + Line — beide mit Reveal-Animation */}
+        <g clipPath="url(#timeline-reveal)">
+          {areaPath && <path d={areaPath} fill="url(#timeline-grad)" />}
+          <path d={linePath} fill="none" stroke="#f59e0b" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+
+        {/* Peak-Marker (immer sichtbar, auch ohne Hover) */}
+        {peak && peak.value > 0 && (
+          <g className="pointer-events-none">
+            <circle cx={peak.x} cy={peak.y} r={3} fill="#f59e0b" stroke="#fff" strokeWidth="1.5" />
+            <text x={peak.x} y={peak.y - 8} textAnchor="middle"
+              fontSize="9" fontWeight="700" fill="#d97706">
+              {peak.value}
+            </text>
+          </g>
         )}
-        <defs>
-          <linearGradient id="timeline-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
-          </linearGradient>
-        </defs>
 
-        {/* Linie */}
-        <path d={linePath} fill="none" stroke="#fbbf24" strokeWidth="2"
-          strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Datenpunkte */}
-        {points.map((p, i) => {
-          // Tooltip-Position: 76px breit. Damit es nicht aus dem SVG ragt,
-          // shiften wir je nach Punkt-Position links/rechts/zentriert.
-          const TOOLTIP_W = 76
-          const HALF = TOOLTIP_W / 2
-          let tooltipX: number
-          let textX: number
-          let textAnchor: 'start' | 'middle' | 'end'
-          if (p.x - HALF < PAD_L) {
-            // Nah linker Rand → Tooltip rechts neben Punkt
-            tooltipX = p.x
-            textX = p.x + 6
-            textAnchor = 'start'
-          } else if (p.x + HALF > W - 5) {
-            // Nah rechter Rand → Tooltip links vom Punkt
-            tooltipX = p.x - TOOLTIP_W
-            textX = p.x - 6
-            textAnchor = 'end'
-          } else {
-            tooltipX = p.x - HALF
-            textX = p.x
-            textAnchor = 'middle'
-          }
-          return (
-            <g key={i} className="group">
-              {/* Größerer Hover-Bereich (transparent) */}
-              <circle cx={p.x} cy={p.y} r={10} fill="transparent" />
-              {/* Sichtbarer Punkt */}
-              <circle cx={p.x} cy={p.y} r={p.isToday ? 5 : 3}
-                fill={p.isToday ? '#f59e0b' : '#fbbf24'}
-                stroke="#fff" strokeWidth="2" />
-              {/* Tooltip on hover */}
-              <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <rect x={tooltipX} y={p.y - 30} width={TOOLTIP_W} height={20} rx={4}
-                  fill="#18181b" />
-                <text x={textX} y={p.y - 16} textAnchor={textAnchor}
-                  fontSize="9" fill="#fafafa" fontFamily="monospace">
-                  {p.date.slice(5)} · {p.count}
-                </text>
-              </g>
-            </g>
-          )
-        })}
-
-        {/* X-Achse Labels — Anchor abhängig von Position (verhindert Clipping am Rand) */}
+        {/* X-Achse Labels */}
         {points.map((p, i) => {
           if (i % xLabelStep !== 0 && i !== points.length - 1) return null
           const isFirst = i === 0
           const isLast = i === points.length - 1
           const anchor: 'start' | 'middle' | 'end' = isFirst ? 'start' : isLast ? 'end' : 'middle'
           return (
-            <text key={i} x={p.x} y={H - 10} textAnchor={anchor}
+            <text key={i} x={p.x} y={H - 12} textAnchor={anchor}
               fontSize="9" fill={p.isToday ? '#d97706' : '#a1a1aa'}
               fontWeight={p.isToday ? '700' : '400'}>
               {p.date.slice(8, 10)}.{p.date.slice(5, 7)}
             </text>
+          )
+        })}
+
+        {/* Mouse-Follow-Crosshair + Hover-Punkt + Tooltip */}
+        {hovered && (
+          <g className="pointer-events-none">
+            {/* Vertikale Crosshair-Linie */}
+            <line x1={hovered.x} y1={PAD_T} x2={hovered.x} y2={PAD_T + innerH}
+              stroke="#d4d4d8" strokeWidth="1" strokeDasharray="3 3" />
+            {/* Hervorgehobener Punkt */}
+            <circle cx={hovered.x} cy={hovered.y} r={6} fill="#fff" stroke="#f59e0b" strokeWidth="2.5" />
+            <circle cx={hovered.x} cy={hovered.y} r={2.5} fill="#f59e0b" />
+            {/* Tooltip */}
+            <rect x={tooltipX} y={tooltipY} width={TOOLTIP_W} height={TOOLTIP_H} rx={6}
+              fill="#18181b" />
+            <text x={tooltipX + 8} y={tooltipY + 12}
+              fontSize="9" fontWeight="700" fill="#fbbf24" fontFamily="monospace">
+              {hoveredDow}, {hovered.date.slice(8, 10)}.{hovered.date.slice(5, 7)}
+            </text>
+            <text x={tooltipX + 8} y={tooltipY + 25}
+              fontSize="11" fontWeight="900" fill="#fff" fontFamily="monospace">
+              {hovered.value} {METRIC_LABEL[metric].toLowerCase()}
+            </text>
+          </g>
+        )}
+
+        {/* Klickbare Hitboxen über jeden Punkt — filtert auf den Tag */}
+        {onSelectDay && points.map((p, i) => {
+          const slotWidth = points.length > 1 ? innerW / (points.length - 1) : innerW
+          return (
+            <rect
+              key={`hit-${i}`}
+              x={p.x - slotWidth / 2}
+              y={PAD_T}
+              width={slotWidth}
+              height={innerH}
+              fill="transparent"
+              style={{ cursor: 'pointer' }}
+              onClick={() => onSelectDay(p.date)}
+            >
+              <title>{`Klick → Filter auf ${p.date}`}</title>
+            </rect>
           )
         })}
       </svg>

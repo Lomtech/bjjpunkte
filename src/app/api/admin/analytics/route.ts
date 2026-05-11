@@ -171,17 +171,32 @@ export async function GET(req: Request) {
     .sort((a, b) => b[1] - a[1])
     .map(([browser, count]) => ({ browser, count }))
 
-  // Daily timeline
-  const daily = new Map<string, number>()
+  // Daily timeline — 3 Serien (Views, Sessions, Unique Visitors) damit im
+  // Chart umschaltbar/overlay-bar. Sessions + Visitors brauchen Set-Tracking
+  // pro Tag, da wir unique zählen.
+  const dailyViews    = new Map<string, number>()
+  const dailySessions = new Map<string, Set<string>>()
+  const dailyVisitors = new Map<string, Set<string>>()
   for (let i = 0; i < days; i++) {
     const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
-    daily.set(d, 0)
+    dailyViews.set(d, 0)
+    dailySessions.set(d, new Set())
+    dailyVisitors.set(d, new Set())
   }
   for (const r of rows) {
     const day = r.created_at.slice(0, 10)
-    if (daily.has(day)) daily.set(day, (daily.get(day) ?? 0) + 1)
+    if (!dailyViews.has(day)) continue
+    dailyViews.set(day, (dailyViews.get(day) ?? 0) + 1)
+    if (r.session_hash) dailySessions.get(day)!.add(r.session_hash)
+    if (r.visitor_hash) dailyVisitors.get(day)!.add(r.visitor_hash)
   }
-  const timeline = [...daily.entries()].sort().map(([date, count]) => ({ date, count }))
+  const timeline = [...dailyViews.entries()].sort().map(([date, count]) => ({
+    date,
+    count,                                     // backwards-compat: page views
+    views:    count,
+    sessions: dailySessions.get(date)?.size ?? 0,
+    visitors: dailyVisitors.get(date)?.size ?? 0,
+  }))
 
   // Conversion-Funnel: Landing → Pricing → Register
   //
