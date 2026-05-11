@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
-import { AVV_VERSION } from '@/lib/legal/avv-content'
+import { AVV_VERSION } from '@/lib/legal/avv-meta'
 
 export const dynamic = 'force-dynamic'
 

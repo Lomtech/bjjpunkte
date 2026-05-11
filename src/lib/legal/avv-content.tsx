@@ -2,37 +2,21 @@
  * AVV — Auftragsverarbeitungsvertrag zwischen Gym (Verantwortlicher) und Osss
  * (Auftragsverarbeiter) nach Art. 28 DSGVO.
  *
- * VERSIONIERUNG: Bei jeder Änderung am Text MUSS AVV_VERSION hochgezählt werden.
- * Bestehende Acceptances bleiben für ihre Version gültig — User wird zu neuer
- * Version geführt, wenn sich Text ändert.
+ * VERSIONIERUNG: Bei jeder Änderung am Text MUSS AVV_VERSION (in avv-meta.ts)
+ * hochgezählt werden. Bestehende Acceptances bleiben für ihre Version gültig.
  *
  * Eine Akzeptanz ist nach eIDAS Art. 25(1) eine Simple Electronic Signature und
  * für AVVs ausreichend (kein Schriftform-Erfordernis nach Art. 28 DSGVO).
+ *
+ * Audit 2026-05-11: Constants leben in `avv-meta.ts` (reine .ts-Datei).
+ * Server-API-Routen importieren NUR aus dort, NICHT aus dieser .tsx-Datei —
+ * sonst Module-Load-Crash unter Next.js 16 (siehe avv-meta.ts Kommentar).
  */
 
-export const AVV_VERSION = '1.0-2026-05-06'
-
-export const AVV_PROVIDER = {
-  name: 'Lom-Ali Imadaev (Osss)',
-  address: 'Kreuzstraße 1, 82276 Adelshofen, Deutschland',
-  email: 'oss@osss.pro',
-}
-
-/** Sub-Auftragsverarbeiter laut Art. 28(2) DSGVO. Bei Änderung Version bumpen! */
-export const AVV_SUBPROCESSORS = [
-  { name: 'Supabase Inc.',                        purpose: 'Datenbank, Authentifizierung, Storage', country: 'UK / USA', safeguard: 'EU-Adequacy-Decision UK + SCCs für US-Mutter' },
-  { name: 'Stripe Payments Europe Ltd. / Stripe Inc.', purpose: 'Zahlungsabwicklung',                country: 'IE / USA', safeguard: 'EU-SCCs + DPF + PCI-DSS' },
-  { name: 'Vercel Inc.',                          purpose: 'Hosting der Webanwendung',              country: 'USA',     safeguard: 'EU-SCCs + EU-US Data Privacy Framework' },
-  { name: 'Resend Inc.',                          purpose: 'Transaktionaler E-Mail-Versand',        country: 'USA',     safeguard: 'EU-Standardvertragsklauseln' },
-  { name: 'Functional Software, Inc. (Sentry)',   purpose: 'Anonymes Fehler-Tracking (kein PII)',   country: 'USA',     safeguard: 'EU-Standardvertragsklauseln' },
-  { name: 'Upstash, Inc.',                        purpose: 'Rate-Limiting (Redis)',                 country: 'USA',     safeguard: 'EU-Standardvertragsklauseln' },
-] as const
-
-export interface AVVRenderProps {
-  gymName: string
-  gymAddress: string | null
-  gymLegalName: string | null
-}
+export { AVV_VERSION, AVV_PROVIDER, AVV_SUBPROCESSORS } from './avv-meta'
+export type { AVVRenderProps } from './avv-meta'
+import { AVV_VERSION, AVV_PROVIDER, AVV_SUBPROCESSORS } from './avv-meta'
+import type { AVVRenderProps } from './avv-meta'
 
 /**
  * Reiner Render-Helper. Gibt strukturierte JSX-Sektionen zurück, die im Modal,
