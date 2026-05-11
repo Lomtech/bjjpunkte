@@ -104,8 +104,9 @@ export function HeroAnimations({ lang }: Props) {
             <Link href="/pricing" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
             <Link href="/about" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden sm:block">{lang === 'en' ? 'About' : 'Über'}</Link>
             <Link href="/blog" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">Blog</Link>
+            <Link href="/rechner" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">{lang === 'en' ? 'Calculator' : 'Rechner'}</Link>
             <Link href="/ressourcen" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden xl:block">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
-            <button onClick={() => setContactOpen(true)} data-track="cta_contact_header" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden lg:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</button>
+            <button onClick={() => setContactOpen(true)} data-track="cta_contact_header" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium hidden xl:block">{lang === 'en' ? 'Contact' : 'Kontakt'}</button>
             <LanguageSwitcher variant="minimal" />
             {/* Primary-CTA-Slot — symmetrisch zur Logged-in-Variante: gleiche Position
                 + amber-Filled-Button. Demo buchen ersetzt „Kostenlos starten" weil
