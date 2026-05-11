@@ -90,9 +90,13 @@ export default function RechnerPage() {
     }
   }, [members, hoursPerWeek, hourlyRate, avgFee])
 
-  const fmt = (n: number) => Math.round(n).toLocaleString(en ? 'en-IE' : 'de-DE') + ' €'
+  // suppressHydrationWarning-sicher: Intl.NumberFormat statt toLocaleString,
+  // damit Server (Node.js/Vercel) und Browser identische Strings erzeugen.
+  const locale = en ? 'en-IE' : 'de-DE'
+  const fmt = (n: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Math.round(n)) + ' €'
   const fmtPrecise = (n: number) =>
-    n.toLocaleString(en ? 'en-IE' : 'de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+    new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €'
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
