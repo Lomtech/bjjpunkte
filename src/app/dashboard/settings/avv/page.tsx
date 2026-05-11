@@ -67,8 +67,15 @@ export default function AVVSettingsPage() {
         setGym(g as GymInfo)
         setSignedName(user.user_metadata?.full_name || user.email?.split('@')[0] || '')
 
-        // Status laden
-        const res = await fetch(`/api/avv/status?gym_id=${g.id}`, { cache: 'no-store' })
+        // Status laden — Bearer-Token-Auth, weil supabase/client localStorage
+        // statt Cookie-Session nutzt (Audit 2026-05-11). Andere Dashboard-Pages
+        // folgen demselben Pattern (siehe dashboard/settings/page.tsx).
+        const { data: { session } } = await supabase.auth.getSession()
+        const accessToken = session?.access_token ?? ''
+        const res = await fetch(`/api/avv/status?gym_id=${g.id}`, {
+          cache: 'no-store',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
         if (res.ok) {
           const json = await res.json()
           if (!cancelled) setAcceptance(json.acceptance)
@@ -95,9 +102,15 @@ export default function AVVSettingsPage() {
     setError(null)
     setSaving(true)
     try {
+      // Bearer-Token-Auth (siehe Status-fetch oben für Begründung).
+      const { data: { session } } = await supabase.auth.getSession()
+      const accessToken = session?.access_token ?? ''
       const res = await fetch('/api/avv/accept', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           gym_id: gym.id,
           signed_name: signedName.trim(),
