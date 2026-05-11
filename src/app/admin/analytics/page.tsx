@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 
 interface AnalyticsData {
-  range: { days: number; since: string }
+  range: { days: number; since: string; until?: string }
   filter?: AnalyticsFilter
   summary: {
     total_views: number
@@ -28,6 +28,13 @@ interface AnalyticsData {
     avg_views_per_session: number
     bots_filtered: number
     total_clicks: number
+    bounce_rate_pct?: number
+  }
+  trend?: {
+    views_pct: number | null
+    visitors_pct: number | null
+    sessions_pct: number | null
+    previous: { total_views: number; unique_visitors: number; unique_sessions: number }
   }
   timeline: { date: string; count: number; views?: number; sessions?: number; visitors?: number }[]
   top_pages: { path: string; count: number }[]
@@ -175,7 +182,7 @@ export default function AnalyticsPage() {
 
       {/* Nav */}
       <nav className="sticky top-0 z-40 bg-white border-b border-zinc-200">
-        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-5 py-2.5 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <Link href="/admin/leads" className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
               <ArrowLeft size={15} /> CRM
@@ -184,46 +191,16 @@ export default function AnalyticsPage() {
             <OsssLogo variant="dark" />
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 ml-2">Analytics</span>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {(['7d', '30d', '90d'] as Range[]).map(r => (
-              <button
-                key={r}
-                onClick={() => { setRange(r); setDateFrom(''); setDateTo('') }}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-                  !customRange && range === r ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-100'
-                }`}
-              >
-                {r === '7d' ? '7 Tage' : r === '30d' ? '30 Tage' : '90 Tage'}
-              </button>
-            ))}
-            <span className="text-zinc-200 hidden sm:inline">|</span>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={e => setDateFrom(e.target.value)}
-                className={`text-xs px-2 py-1.5 rounded-lg border transition-colors outline-none ${
-                  customRange ? 'border-amber-400 bg-amber-50 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-600'
-                }`}
-              />
-              <span className="text-zinc-400 text-xs">–</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={e => setDateTo(e.target.value)}
-                className={`text-xs px-2 py-1.5 rounded-lg border transition-colors outline-none ${
-                  customRange ? 'border-amber-400 bg-amber-50 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-600'
-                }`}
-              />
-              {customRange && (
-                <button
-                  onClick={() => { setDateFrom(''); setDateTo('') }}
-                  className="text-xs text-zinc-400 hover:text-zinc-700 px-1"
-                  aria-label="Datumsfilter zurücksetzen"
-                >×</button>
-              )}
-            </div>
-          </div>
+          <DateRangePicker
+            range={range}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            customRange={customRange}
+            onPreset={(r) => { setRange(r); setDateFrom(''); setDateTo('') }}
+            onCustom={(from, to) => { setDateFrom(from); setDateTo(to) }}
+            onExport={() => downloadCSV(data)}
+            hasData={!!data}
+          />
         </div>
       </nav>
 
@@ -281,10 +258,25 @@ export default function AnalyticsPage() {
           <>
             {/* KPI cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <KPI icon={<Eye size={16} />} label="Page Views" value={data.summary.total_views.toLocaleString('de-DE')} />
-              <KPI icon={<Users size={16} />} label="Unique Visits" value={data.summary.unique_visitors.toLocaleString('de-DE')} sub="(visit-days, anonym)" />
-              <KPI icon={<MousePointerClick size={16} />} label="Sessions" value={data.summary.unique_sessions.toLocaleString('de-DE')} />
-              <KPI icon={<TrendingUp size={16} />} label="Views / Session" value={data.summary.avg_views_per_session.toFixed(1)} />
+              <KPI icon={<Eye size={16} />} label="Page Views"
+                value={data.summary.total_views.toLocaleString('de-DE')}
+                trendPct={data.trend?.views_pct ?? undefined}
+                sub={data.trend?.previous ? `vorher: ${data.trend.previous.total_views.toLocaleString('de-DE')}` : undefined}
+              />
+              <KPI icon={<Users size={16} />} label="Unique Visits"
+                value={data.summary.unique_visitors.toLocaleString('de-DE')}
+                trendPct={data.trend?.visitors_pct ?? undefined}
+                sub={data.trend?.previous ? `vorher: ${data.trend.previous.unique_visitors.toLocaleString('de-DE')}` : '(visit-days, anonym)'}
+              />
+              <KPI icon={<MousePointerClick size={16} />} label="Sessions"
+                value={data.summary.unique_sessions.toLocaleString('de-DE')}
+                trendPct={data.trend?.sessions_pct ?? undefined}
+                sub={data.trend?.previous ? `vorher: ${data.trend.previous.unique_sessions.toLocaleString('de-DE')}` : undefined}
+              />
+              <KPI icon={<TrendingUp size={16} />} label="Bounce Rate"
+                value={`${data.summary.bounce_rate_pct ?? 0}%`}
+                sub="Sessions mit 1 Page-View"
+              />
             </div>
 
             {/* Timeline */}
@@ -494,9 +486,6 @@ export default function AnalyticsPage() {
               </Section>
             </div>
 
-            {/* Owner-Filter-Hinweis */}
-            <OwnerFilterBanner />
-
             {/* DSGVO-Hinweis */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-900 leading-relaxed">
               <p className="font-bold mb-1">🔒 DSGVO-anonyme Reichweiten-Messung</p>
@@ -601,12 +590,38 @@ function TrackingToggleCard() {
   )
 }
 
-function KPI({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
+function KPI({
+  icon, label, value, sub, trendPct,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  sub?: string
+  trendPct?: number | null
+}) {
+  // Trend-Pille: grün wenn up, rot wenn down, grau wenn 0/null
+  const trendUI = trendPct == null ? null : trendPct === 0 ? (
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-zinc-400 bg-zinc-50 px-1.5 py-0.5 rounded-md">
+      = 0%
+    </span>
+  ) : trendPct > 0 ? (
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+      ▲ {trendPct}%
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-md">
+      ▼ {Math.abs(trendPct)}%
+    </span>
+  )
+
   return (
     <div className="bg-white border border-zinc-100 rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-zinc-400 font-bold mb-2">
-        <span className="text-zinc-500">{icon}</span>
-        {label}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-zinc-400 font-bold">
+          <span className="text-zinc-500">{icon}</span>
+          {label}
+        </div>
+        {trendUI}
       </div>
       <div className="text-2xl font-black text-zinc-950 tabular-nums">{value}</div>
       {sub && <p className="text-[10px] text-zinc-400 mt-0.5">{sub}</p>}
@@ -625,64 +640,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Empty() {
   return <p className="text-sm text-zinc-400 italic">Noch keine Daten in diesem Zeitraum.</p>
-}
-
-function OwnerFilterBanner() {
-  const [excluded, setExcluded] = useState(true)
-
-  useEffect(() => {
-    try {
-      const ls = localStorage.getItem('osss-no-track') === '1'
-      const ck = /(?:^|;\s*)osss-internal=1/.test(document.cookie ?? '')
-      setExcluded(ls || ck)
-    } catch { /* ignore */ }
-  }, [])
-
-  function toggle() {
-    try {
-      if (excluded) {
-        localStorage.removeItem('osss-no-track')
-        // Cookie wieder entfernen: max-age=0 löscht den Cookie
-        document.cookie = 'osss-internal=; max-age=0; path=/; samesite=lax'
-        setExcluded(false)
-      } else {
-        localStorage.setItem('osss-no-track', '1')
-        document.cookie = 'osss-internal=1; max-age=31536000; path=/; samesite=lax'
-        setExcluded(true)
-      }
-    } catch { /* ignore */ }
-  }
-
-  return (
-    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-3">
-      <div className="flex items-start gap-3">
-        <div className="text-amber-600 flex-shrink-0 mt-0.5">👤</div>
-        <div className="flex-1 text-xs leading-relaxed">
-          <p className="font-bold text-amber-900 mb-1">
-            Tracking auf diesem Browser: {excluded ? <span className="text-emerald-700">DEAKTIVIERT</span> : <span className="text-rose-700">AKTIV (du wirst gezählt!)</span>}
-          </p>
-          <p className="text-amber-800">
-            {excluded
-              ? 'Deine eigenen Page-Views werden NICHT in die Statistik gezählt. Cookie + LocalStorage gesetzt für 1 Jahr. Wirkt auf diesem Browser auf diesem Gerät — beim ersten Dashboard-Besuch automatisch gesetzt.'
-              : '⚠️ Deine Visits werden gerade in der Statistik gezählt. Klicke unten, um dich auszuschließen.'}
-          </p>
-          <p className="text-[10px] text-amber-700 mt-2 leading-relaxed">
-            <strong>Smartphone, anderer Browser oder Inkognito?</strong> Einfach <a href="/no-track" className="underline font-semibold">/no-track</a> einmal öffnen — setzt Opt-Out auf jedem Gerät.
-          </p>
-          <button
-            onClick={toggle}
-            className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-              excluded
-                ? 'text-zinc-700 hover:bg-zinc-100'
-                : 'text-white bg-zinc-900 hover:bg-zinc-700'
-            }`}
-          >
-            {excluded ? '🔁 Tracking wieder aktivieren' : '🚫 Mich nicht mehr tracken'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 type Metric = 'views' | 'sessions' | 'visitors'
@@ -1084,6 +1041,199 @@ function Funnel({
       </p>
     </div>
   )
+}
+
+/**
+ * Date-Range-Picker mit Quick-Presets + Custom-Inputs + CSV-Export.
+ *
+ * Presets:
+ *  - Heute (heute 00:00 → 23:59)
+ *  - Gestern
+ *  - 7 Tage / 30 Tage / 90 Tage (rollend, Range-Mode)
+ *  - Diesen Monat
+ *  - Letzter Monat
+ *  - Custom (manuelle Datum-Felder)
+ */
+function DateRangePicker({
+  range, dateFrom, dateTo, customRange,
+  onPreset, onCustom, onExport, hasData,
+}: {
+  range: Range
+  dateFrom: string
+  dateTo: string
+  customRange: boolean
+  onPreset: (r: Range) => void
+  onCustom: (from: string, to: string) => void
+  onExport: () => void
+  hasData: boolean
+}) {
+  // Local Date helpers — vermeiden TZ-Schmerz
+  function isoDate(d: Date): string {
+    return d.toISOString().slice(0, 10)
+  }
+  const today = isoDate(new Date())
+  const yesterday = isoDate(new Date(Date.now() - 86400000))
+
+  const monthFirst = (offset: number): string => {
+    const d = new Date()
+    d.setMonth(d.getMonth() + offset, 1)
+    return isoDate(d)
+  }
+  const monthLast = (offset: number): string => {
+    const d = new Date()
+    // Tag 0 des Folge-Monats = letzter Tag des aktuellen Monats
+    d.setMonth(d.getMonth() + offset + 1, 0)
+    return isoDate(d)
+  }
+
+  // Detect which preset is "active" based on dateFrom/dateTo
+  function isActive(from: string, to: string): boolean {
+    return customRange && dateFrom === from && dateTo === to
+  }
+
+  const presets: { key: string; label: string; from: string; to: string }[] = [
+    { key: 'today',     label: 'Heute',          from: today,           to: today           },
+    { key: 'yesterday', label: 'Gestern',        from: yesterday,       to: yesterday       },
+    { key: 'thismonth', label: 'Diesen Monat',   from: monthFirst(0),   to: today           },
+    { key: 'lastmonth', label: 'Letzter Monat',  from: monthFirst(-1),  to: monthLast(-1)   },
+  ]
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+      {/* Quick-Presets (Tag/Monat-basiert) */}
+      {presets.map(p => (
+        <button
+          key={p.key}
+          onClick={() => onCustom(p.from, p.to)}
+          className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
+            isActive(p.from, p.to)
+              ? 'bg-zinc-900 text-white'
+              : 'text-zinc-500 hover:bg-zinc-100'
+          }`}
+        >
+          {p.label}
+        </button>
+      ))}
+
+      <span className="text-zinc-300">·</span>
+
+      {/* Rolling-Range-Presets */}
+      {(['7d', '30d', '90d'] as Range[]).map(r => (
+        <button
+          key={r}
+          onClick={() => onPreset(r)}
+          className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
+            !customRange && range === r ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-100'
+          }`}
+        >
+          {r === '7d' ? '7 T.' : r === '30d' ? '30 T.' : '90 T.'}
+        </button>
+      ))}
+
+      <span className="text-zinc-200 hidden sm:inline">|</span>
+
+      {/* Custom date inputs */}
+      <div className="flex items-center gap-1">
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={e => onCustom(e.target.value, dateTo || e.target.value)}
+          aria-label="Von"
+          className={`text-xs px-2 py-1.5 rounded-lg border transition-colors outline-none ${
+            customRange ? 'border-amber-400 bg-amber-50 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-600'
+          }`}
+        />
+        <span className="text-zinc-400 text-xs">–</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={e => onCustom(dateFrom || e.target.value, e.target.value)}
+          aria-label="Bis"
+          className={`text-xs px-2 py-1.5 rounded-lg border transition-colors outline-none ${
+            customRange ? 'border-amber-400 bg-amber-50 text-zinc-900' : 'border-zinc-200 bg-white text-zinc-600'
+          }`}
+        />
+        {customRange && (
+          <button
+            onClick={() => onCustom('', '')}
+            className="text-xs text-zinc-400 hover:text-zinc-700 px-1"
+            aria-label="Datumsfilter zurücksetzen"
+            title="Zurück zu rollender Range"
+          >×</button>
+        )}
+      </div>
+
+      <button
+        onClick={onExport}
+        disabled={!hasData}
+        className="ml-1 inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-zinc-600 hover:bg-zinc-100 disabled:text-zinc-300 disabled:hover:bg-transparent transition-colors"
+        title="Als CSV herunterladen"
+      >
+        ⬇ CSV
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Exportiert die aktuelle Analytics-Snapshot als CSV — eine Datei mit
+ * mehreren Sektionen (Summary, Timeline, TopPages, etc.) damit ein einzelner
+ * Download alles abdeckt was im UI sichtbar ist.
+ */
+function downloadCSV(data: AnalyticsData | null): void {
+  if (!data) return
+  const esc = (v: string | number) => {
+    const s = String(v)
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"`
+      : s
+  }
+  const lines: string[] = []
+  lines.push('# Osss Analytics Export')
+  lines.push(`# Range: ${data.range.since.slice(0, 10)} → ${(data.range.until ?? '').slice(0, 10)} (${data.range.days} Tage)`)
+  lines.push('')
+
+  lines.push('# Summary')
+  lines.push('metric,value')
+  lines.push(`page_views,${data.summary.total_views}`)
+  lines.push(`unique_visitors,${data.summary.unique_visitors}`)
+  lines.push(`unique_sessions,${data.summary.unique_sessions}`)
+  lines.push(`bounce_rate_pct,${data.summary.bounce_rate_pct ?? ''}`)
+  lines.push(`bots_filtered,${data.summary.bots_filtered}`)
+  lines.push(`total_clicks,${data.summary.total_clicks}`)
+  lines.push('')
+
+  lines.push('# Timeline')
+  lines.push('date,views,sessions,visitors')
+  for (const t of data.timeline) {
+    lines.push(`${t.date},${t.views ?? t.count},${t.sessions ?? ''},${t.visitors ?? ''}`)
+  }
+  lines.push('')
+
+  lines.push('# Top Pages')
+  lines.push('path,count')
+  for (const p of data.top_pages) lines.push(`${esc(p.path)},${p.count}`)
+  lines.push('')
+
+  lines.push('# Sources')
+  lines.push('source,count')
+  for (const s of data.sources) lines.push(`${esc(s.source)},${s.count}`)
+  lines.push('')
+
+  lines.push('# Countries')
+  lines.push('country,count')
+  for (const c of data.countries) lines.push(`${esc(c.country)},${c.count}`)
+
+  const csv = lines.join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `osss-analytics-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 /**

@@ -48,16 +48,25 @@ export async function GET(req: Request) {
   const paramFrom = url.searchParams.get('from')
   const paramTo   = url.searchParams.get('to')
   let since: string
+  let until: Date     // ENDE des Zeitraums (default: jetzt). Wichtig für die
+                      // Timeline-Achse — sonst stimmt sie bei Custom-Range nicht.
   let days: number
   if (paramFrom) {
-    const fromDate = new Date(paramFrom)
+    const fromDate = new Date(paramFrom + 'T00:00:00Z')
     const toDate   = paramTo ? new Date(paramTo + 'T23:59:59Z') : new Date()
     since = fromDate.toISOString()
-    days  = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / 86400000))
+    until = toDate
+    days  = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / 86400000) + 1)
   } else {
     days  = range === '7d' ? 7 : range === '90d' ? 90 : 30
-    since = new Date(Date.now() - days * 86400000).toISOString()
+    until = new Date()
+    since = new Date(until.getTime() - days * 86400000).toISOString()
   }
+
+  // Vorperiode für Trend-Vergleich (gleicher Zeitraum-Längen, davor)
+  const periodMs = new Date(until).getTime() - new Date(since).getTime()
+  const prevSince = new Date(new Date(since).getTime() - periodMs).toISOString()
+  const prevUntil = new Date(new Date(since).getTime() - 1).toISOString()
 
   // Filters — alle optional, werden in-memory nach dem Fetch angewendet.
   // (Bei kleinen Volumes < 50k Rows ist das schnell genug; bei größeren
@@ -76,11 +85,30 @@ export async function GET(req: Request) {
     .order('created_at', { ascending: false })
     .limit(50000)
   if (paramTo) {
-    query = query.lte('created_at', new Date(paramTo + 'T23:59:59Z').toISOString())
+    query = query.lte('created_at', until.toISOString())
   }
-  const { data, error } = await query
+
+  // Vorperiode parallel laden (für %-Delta-Trend)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prevQuery = (supabase.from('page_views') as any)
+    .select('visitor_hash, session_hash, is_bot, event_type', { count: 'exact' })
+    .gte('created_at', prevSince)
+    .lte('created_at', prevUntil)
+    .eq('is_bot', false)
+    .eq('event_type', 'page_view')
+    .limit(50000)
+
+  const [{ data, error }, { data: prevData }] = await Promise.all([query, prevQuery])
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Previous-period summary
+  const prevRows = (prevData ?? []) as { visitor_hash: string | null; session_hash: string | null }[]
+  const prev = {
+    total_views: prevRows.length,
+    unique_visitors: new Set(prevRows.map(r => r.visitor_hash).filter(Boolean)).size,
+    unique_sessions: new Set(prevRows.map(r => r.session_hash).filter(Boolean)).size,
+  }
 
   const allRows = (data ?? []) as PageViewRow[]
 
@@ -174,11 +202,18 @@ export async function GET(req: Request) {
   // Daily timeline — 3 Serien (Views, Sessions, Unique Visitors) damit im
   // Chart umschaltbar/overlay-bar. Sessions + Visitors brauchen Set-Tracking
   // pro Tag, da wir unique zählen.
+  //
+  // Iteration vom Range-START bis Range-ENDE (nicht von HEUTE rückwärts!) —
+  // sonst zeigt der Chart bei Custom-Range "from=2024-01-01&to=2024-01-05"
+  // fälschlicherweise die letzten 5 Tage ab heute.
   const dailyViews    = new Map<string, number>()
   const dailySessions = new Map<string, Set<string>>()
   const dailyVisitors = new Map<string, Set<string>>()
+  const startDay = new Date(since).toISOString().slice(0, 10)
+  const endDay   = until.toISOString().slice(0, 10)
   for (let i = 0; i < days; i++) {
-    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+    const d = new Date(new Date(startDay + 'T12:00:00Z').getTime() + i * 86400000).toISOString().slice(0, 10)
+    if (d > endDay) break
     dailyViews.set(d, 0)
     dailySessions.set(d, new Set())
     dailyVisitors.set(d, new Set())
@@ -264,8 +299,23 @@ export async function GET(req: Request) {
     .sort((a, b) => b.sessions - a.sessions)
     .slice(0, 25)
 
+  // Bounce-Rate: Sessions mit genau 1 Page-View
+  const viewsPerSession = new Map<string, number>()
+  for (const r of rows) {
+    if (!r.session_hash) continue
+    viewsPerSession.set(r.session_hash, (viewsPerSession.get(r.session_hash) ?? 0) + 1)
+  }
+  const singlePageSessions = [...viewsPerSession.values()].filter(v => v === 1).length
+  const bounceRate = uniqueSessions > 0
+    ? Math.round((singlePageSessions / uniqueSessions) * 100)
+    : 0
+
+  // Trend: %-Delta zur Vorperiode (null wenn Vorperiode 0)
+  const pct = (curr: number, prev: number): number | null =>
+    prev === 0 ? null : Math.round(((curr - prev) / prev) * 100)
+
   return NextResponse.json({
-    range: { days, since },
+    range: { days, since, until: until.toISOString() },
     filter: {
       path: filterPath,
       country: filterCountry,
@@ -280,6 +330,13 @@ export async function GET(req: Request) {
       avg_views_per_session: uniqueSessions > 0 ? Math.round((total / uniqueSessions) * 10) / 10 : 0,
       bots_filtered: botCount,
       total_clicks: clickRows.length,
+      bounce_rate_pct: bounceRate,
+    },
+    trend: {
+      views_pct:    pct(total,            prev.total_views),
+      visitors_pct: pct(uniqueVisitors,   prev.unique_visitors),
+      sessions_pct: pct(uniqueSessions,   prev.unique_sessions),
+      previous: prev,
     },
     timeline,
     top_pages: topPages,
