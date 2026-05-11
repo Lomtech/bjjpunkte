@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Menu, X, Zap } from 'lucide-react'
 import { OsssLogo } from '@/components/Logo'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
@@ -29,10 +30,16 @@ interface Props {
 
 export function TopNav({ back }: Props) {
   const { lang } = useLanguage()
+  const pathname = usePathname()
   const [loggedIn, setLoggedIn] = useState(false)
   const [checked, setChecked] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
+
+  // Menü bei jedem Routenwechsel schließen — Next.js App Router recycelt die
+  // TopNav-Instanz zwischen Seiten (gleicher Komponenten-Typ, gleiche Position),
+  // daher bleibt menuOpen=true sonst über Navigationen hinweg bestehen.
+  useEffect(() => { setMenuOpen(false) }, [pathname])
 
   useEffect(() => {
     let cancelled = false
