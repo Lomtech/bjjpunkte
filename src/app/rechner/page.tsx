@@ -101,7 +101,7 @@ export default function RechnerPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
 
-      <TopNav back={{ href: '/ressourcen', label: en ? 'Resources' : 'Ressourcen' }} />
+      <TopNav />
 
       <main className="flex-1 max-w-4xl mx-auto px-5 py-12 sm:py-16 w-full">
 

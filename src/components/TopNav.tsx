@@ -66,7 +66,7 @@ export function TopNav({ back }: Props) {
               <span className="text-zinc-200 hidden sm:inline">|</span>
             </>
           )}
-          <Link href="/" aria-label="Zur Startseite">
+          <Link href="/" aria-label="Zur Startseite" onClick={() => setMenuOpen(false)}>
             <OsssLogo variant="dark" />
           </Link>
         </div>
