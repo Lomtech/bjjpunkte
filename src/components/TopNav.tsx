@@ -59,7 +59,7 @@ export function TopNav({ back }: Props) {
           {back && (
             <>
               <Link href={back.href}
-                className="text-sm text-zinc-400 hover:text-zinc-900 transition-colors font-medium flex items-center gap-1"
+                className="hidden sm:flex text-sm text-zinc-400 hover:text-zinc-900 transition-colors font-medium items-center gap-1"
               >
                 ← {back.label}
               </Link>
@@ -122,32 +122,40 @@ export function TopNav({ back }: Props) {
       {/* Kontakt-Modal — In-App-Formular statt mailto:-Sprung in die native Mail-App */}
       {contactOpen && <ContactModal lang={lang} onClose={() => setContactOpen(false)} />}
 
-      {/* Mobile Menü — sm:hidden gleich wie HeroAnimations */}
+      {/* Mobile Menü — absolute, schwebt über dem Seiteninhalt (kein Layout-Shift) */}
       {menuOpen && (
-        <div className="sm:hidden border-t border-zinc-100 bg-white px-5 py-4 flex flex-col gap-1">
-          <Link href="/pricing"    onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
-          <Link href="/about"      onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'About' : 'Über uns'}</Link>
-          <Link href="/blog"       onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">Blog</Link>
-          <Link href="/ressourcen" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
-          <Link href="/rechner"    onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Cost calculator' : 'Kostenrechner'}</Link>
-          <button
-            type="button"
-            onClick={() => { setMenuOpen(false); setContactOpen(true) }}
-            className="text-left text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50"
-          >
-            {lang === 'en' ? 'Contact' : 'Kontakt'}
-          </button>
-          {checked && !loggedIn && (
-            <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50">{lang === 'en' ? 'Log in' : 'Anmelden'}</Link>
-          )}
-          <div className="pt-1">
-            {checked && (loggedIn ? (
-              <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl">Dashboard</Link>
-            ) : (
-              <Link href="/#book-demo" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
-            ))}
+        <>
+          {/* Backdrop: Klick außerhalb schließt das Menü */}
+          <div
+            className="sm:hidden fixed inset-0 top-16 z-40"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="sm:hidden absolute left-0 right-0 top-full z-50 border-t border-zinc-100 bg-white shadow-lg px-5 py-4 flex flex-col gap-1">
+            <Link href="/pricing"    onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 active:bg-zinc-100">{lang === 'en' ? 'Pricing' : 'Preise'}</Link>
+            <Link href="/about"      onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 active:bg-zinc-100">{lang === 'en' ? 'About' : 'Über uns'}</Link>
+            <Link href="/blog"       onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 active:bg-zinc-100">Blog</Link>
+            <Link href="/ressourcen" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 active:bg-zinc-100">{lang === 'en' ? 'Resources' : 'Ressourcen'}</Link>
+            <Link href="/rechner"    onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 active:bg-zinc-100">{lang === 'en' ? 'Cost calculator' : 'Kostenrechner'}</Link>
+            <button
+              type="button"
+              onClick={() => { setMenuOpen(false); setContactOpen(true) }}
+              className="text-left text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 active:bg-zinc-100"
+            >
+              {lang === 'en' ? 'Contact' : 'Kontakt'}
+            </button>
+            {checked && !loggedIn && (
+              <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-zinc-700 py-2.5 px-3 rounded-lg hover:bg-zinc-50 active:bg-zinc-100">{lang === 'en' ? 'Log in' : 'Anmelden'}</Link>
+            )}
+            <div className="pt-1">
+              {checked && (loggedIn ? (
+                <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl">Dashboard</Link>
+              ) : (
+                <Link href="/#book-demo" onClick={() => setMenuOpen(false)} className="block text-center bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-bold px-4 py-3 rounded-xl">{lang === 'en' ? 'Book demo' : 'Demo buchen'}</Link>
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </nav>
   )
