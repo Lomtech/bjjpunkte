@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { fmtEur } from '@/lib/date-format'
 
 interface PaymentFull {
   id: string
@@ -40,7 +41,7 @@ interface MonthGroup {
 }
 
 function formatCents(cents: number) {
-  return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+  return fmtEur(cents / 100)
 }
 
 function daysSince(dateStr: string) {

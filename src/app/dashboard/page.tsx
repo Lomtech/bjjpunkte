@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { fmtEur } from '@/lib/date-format'
 import {
   Users, TrendingUp, Calendar, Award, Cake, FileWarning,
   Euro, CheckCircle2, Clock, AlertCircle, ChevronRight, Zap,
@@ -21,7 +22,7 @@ interface PaymentRow      { id: string; member_id: string; amount_cents: number;
 interface ChurnMember     { id: string; first_name: string; last_name: string; last_seen: string; days_ago: number }
 
 function formatCents(c: number) {
-  return (c / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+  return fmtEur(c / 100)
 }
 
 function upcomingBirthdays(members: MemberBirthday[]) {
@@ -619,7 +620,7 @@ function StatCard({ icon, label, value, valueCents, primary = false, warn = fals
       </div>
       <div className="text-2xl font-black text-zinc-950 tracking-tight truncate leading-none">
         {valueCents !== undefined
-          ? (valueCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+          ? fmtEur(valueCents / 100)
           : value ?? 0}
       </div>
       <div className="text-zinc-400 text-xs mt-1.5 truncate font-medium">{label}</div>

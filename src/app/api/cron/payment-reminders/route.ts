@@ -4,6 +4,7 @@ import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { cronGuard } from '@/lib/cron-guard'
 import { withCronSentry } from '@/lib/cron/with-sentry'
+import { fmtEur } from '@/lib/date-format'
 import {
   enqueueNotificationsBatch,
   notificationQueueEnabled,
@@ -46,7 +47,7 @@ function reminderEmailHtml({
   portalUrl: string | null
   checkoutUrl: string | null
 }) {
-  const amount   = (amountCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+  const amount   = fmtEur(amountCents / 100)
   const ctaUrl   = checkoutUrl ?? portalUrl ?? ''
   const ctaLabel = checkoutUrl ? 'Jetzt bezahlen' : 'Zum Mitgliederportal'
 
@@ -204,7 +205,7 @@ export const GET = withCronSentry('payment-reminders', async (req: Request) => {
         const amountCents = member.monthly_fee_override_cents ?? (gym as any).monthly_fee_cents ?? 0
         const portalUrl   = member.portal_token ? `${appUrl}/portal/${member.portal_token}` : null
         const checkoutUrl = pendingByMember.get(member.id) ?? null
-        const amount      = (amountCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
+        const amount      = fmtEur(amountCents / 100)
         const ctaUrl      = checkoutUrl ?? portalUrl ?? ''
 
         if (member.email) {

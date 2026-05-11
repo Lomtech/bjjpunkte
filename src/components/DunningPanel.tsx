@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AlertTriangle, Check, Loader2, FileWarning, FileText } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import { fmtEur } from '@/lib/date-format'
 
 /**
  * Inkasso-Panel für Member-Detail-Seite.
@@ -147,7 +148,7 @@ export function DunningPanel({ member, onUpdate }: { member: MemberInfo; onUpdat
             <div className="text-right">
               <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Offen</p>
               <p className="text-lg font-black tabular-nums">
-                {(member.dunning_amount_cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                {fmtEur(member.dunning_amount_cents / 100)}
               </p>
             </div>
           )}
@@ -252,7 +253,7 @@ export function DunningPanel({ member, onUpdate }: { member: MemberInfo; onUpdat
                   </div>
                   {a.amount_cents != null && (
                     <p className="text-zinc-600 mt-0.5 tabular-nums">
-                      {(a.amount_cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                      {fmtEur(a.amount_cents / 100)}
                     </p>
                   )}
                   {a.notes && <p className="text-zinc-500 mt-0.5 italic">&bdquo;{a.notes}&ldquo;</p>}

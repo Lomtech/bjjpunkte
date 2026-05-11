@@ -61,6 +61,8 @@ SOURCE_EXTS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 RE_IMPORT_STMT  = re.compile(r"""^\s*import\s+(?:[^'"`]*?\bfrom\s+)?['"`]([^'"`]+)['"`]""", re.M)
 RE_REQUIRE      = re.compile(r"""\brequire\(\s*['"`]([^'"`]+)['"`]\s*\)""")
 RE_DYN_IMPORT   = re.compile(r"""\bimport\(\s*['"`]([^'"`]+)['"`]\s*\)""")
+# Barrel re-exports: export { X } from '...'  /  export * from '...'
+RE_REEXPORT     = re.compile(r"""^\s*export\s+(?:\*|\{[^}]*\})\s+from\s+['"`]([^'"`]+)['"`]""", re.M)
 RE_EXPORT_DECL  = re.compile(r"""^\s*export\s+(?:default\s+)?(?:async\s+)?(?:function|class|const|let|var)\s+(\w+)""", re.M)
 RE_EXPORT_NAMED = re.compile(r"""^\s*export\s*\{\s*([^}]+)\s*\}""", re.M)
 RE_USE_CLIENT   = re.compile(r"""^\s*['"]use client['"]\s*;?""", re.M)
@@ -234,6 +236,7 @@ def analyze_file(path: Path) -> FileRecord:
     imports += RE_IMPORT_STMT.findall(text)
     imports += RE_REQUIRE.findall(text)
     imports += RE_DYN_IMPORT.findall(text)
+    imports += RE_REEXPORT.findall(text)   # Barrel-Files zählen
     rec.imports = sorted(set(imports))
 
     resolved = []
