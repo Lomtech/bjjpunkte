@@ -67,23 +67,32 @@ export default async function AboutPage() {
               </div>
             </div>
 
-            {/* Intro text */}
+            {/* Intro text — Audit 2026-05-11: Hero auf persönliche Founder-Story
+                umgestellt (Late-Starter-Identität, Dankbarkeits-Frame, "Das Rollen").
+                Spiegelt den Tonfall der funktionierenden Instagram-Caption
+                @osss.pro vom 2026-05-11. Anti-VC-Framing zieht in den Why-Block
+                weiter unten — Hero zeigt die Person, nicht die Empörung. */}
             <div className="order-2">
               <p className="text-amber-600 font-bold text-[10px] uppercase tracking-[0.2em] mb-4">
-                {en ? 'Grappler · Solo Founder' : 'Grappler · Solo-Founder'}
+                {en ? 'Late Starter · Grappler · Solo Founder' : 'Late Starter · Grappler · Solo-Founder'}
               </p>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-950 tracking-tighter leading-[0.95] mb-6">
                 {en ? <>Hi, I&apos;m <span className="text-amber-500">Lom</span>.</> : <>Hi, ich bin <span className="text-amber-500">Lom</span>.</>}
               </h1>
               <p className="text-zinc-600 text-lg leading-relaxed mb-5">
                 {en
-                  ? 'I’m building Osss — gym software for martial-arts studios in Germany. Solo. From a desk near Munich.'
-                  : 'Ich baue Osss — die Gym-Software für Kampfsport-Studios in Deutschland. Solo. Vom Schreibtisch, vor den Toren Münchens.'}
+                  ? <>Late starter in grappling — I started at 32. A year and a half later: <strong className="text-zinc-900">blue belt, two tournaments won</strong>. I love this sport.</>
+                  : <>Late Starter im Grappling — mit 32 angefangen. 1,5 Jahre später: <strong className="text-zinc-900">Blaugurt, zwei Turniere gewonnen</strong>. Ich liebe diesen Sport.</>}
+              </p>
+              <p className="text-zinc-600 text-base leading-relaxed mb-5">
+                {en
+                  ? 'I’m grateful for every gym owner who keeps this sport alive. Who gives people like me a place to discover themselves.'
+                  : 'Ich bin dankbar für jeden Gym-Betreiber, der diesen Sport am Leben hält. Der Menschen wie mir einen Ort gibt, an dem sie sich selbst erforschen können.'}
               </p>
               <p className="text-zinc-500 text-base leading-relaxed">
                 {en
-                  ? 'No Venture Capital. No 50-person team. No “100k+ practitioners worldwide”. Just one engineer who got tired of seeing martial-arts gyms pay 1–3 % platform fees on every membership — and built the alternative.'
-                  : 'Kein Venture Capital. Kein 50-Personen-Team. Keine „100k+ Mitglieder weltweit". Nur ein Ingenieur, der genug davon hatte, dass Kampfsport-Studios 1–3 % Plattformgebühr auf jede Mitgliedschaft zahlen — und die Alternative gebaut hat.'}
+                  ? <>That’s why I’m building <strong className="text-zinc-900">Osss</strong> — software that takes the boring work off gym owners and gives them back time for the sport they love.</>
+                  : <>Darum baue ich <strong className="text-zinc-900">Osss</strong> — eine Software, die Gym-Ownern die langweilige Arbeit abnimmt und Zeit zurückgibt für den Sport, den sie lieben.</>}
               </p>
             </div>
           </div>
