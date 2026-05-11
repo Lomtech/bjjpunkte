@@ -54,3 +54,4 @@ next-env.d.ts
 /compliance/avv/
 /compliance/breach-log.md
 *.signed.pdf
+.analysis/
