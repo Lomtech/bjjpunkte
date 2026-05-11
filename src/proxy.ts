@@ -183,13 +183,22 @@ export async function proxy(request: NextRequest) {
 
   if (RATE_LIMITED.test(request.nextUrl.pathname)) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
-    const rl = await getRatelimiter()
-    const { success } = await rl.limit(`rl:${ip}`)
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Zu viele Anfragen. Bitte kurz warten.' },
-        { status: 429 }
-      )
+    // Audit 2026-05-11: rl.limit() KANN zur Runtime werfen (Upstash WRONGPASS bei
+    // abgelaufenem Token, Netzwerk-Fehler etc.). Ohne try/catch propagiert das
+    // bis ins Edge-Runtime → Vercel returnt generic Plain-Text 500 ohne Body.
+    // Genau das hat /api/avv/* in Production gekillt. Fail-open: lieber 1 Request
+    // durchwinken als das ganze Endpoint crashen.
+    try {
+      const rl = await getRatelimiter()
+      const { success } = await rl.limit(`rl:${ip}`)
+      if (!success) {
+        return NextResponse.json(
+          { error: 'Zu viele Anfragen. Bitte kurz warten.' },
+          { status: 429 }
+        )
+      }
+    } catch (err) {
+      console.error('[proxy] rate-limit check failed, passing through:', err)
     }
   }
 
