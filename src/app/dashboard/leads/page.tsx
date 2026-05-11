@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { toWaPhone } from '@/lib/phone'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { fmtDate } from '@/lib/date-format'
 
 type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
 type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page' | 'gym_qr'
@@ -541,7 +542,7 @@ export default function LeadsPage() {
                     <div className="flex items-center gap-3 mt-1 flex-wrap">
                       {lead.trial_date && (
                         <span className="text-xs text-zinc-400">
-                          {lang === 'en' ? 'Trial' : 'Probetraining'}: {new Date(lead.trial_date).toLocaleDateString(locale)}
+                          {lang === 'en' ? 'Trial' : 'Probetraining'}: {fmtDate(lead.trial_date, lang === 'en' ? 'en-IE' : 'de-DE')}
                         </span>
                       )}
                       {lead.referred_by && (

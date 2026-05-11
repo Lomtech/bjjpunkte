@@ -10,6 +10,7 @@ import { CallScript } from './_components/CallScript'
 import { StatsModal } from './_components/StatsModal'
 import { useConfirm } from '@/components/ConfirmModal'
 import { usePrompt } from '@/components/PromptModal'
+import { fmtDateTime, fmtDate, fmtTime, fmtNumber } from '@/lib/date-format'
 import {
   TEMPLATES,
   renderTemplate,
@@ -896,7 +897,7 @@ export default function AdminLeadsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span>
-                    Frei diesen Monat: <strong className="font-mono text-emerald-700">{quota.freeRemaining.toLocaleString('de-DE')}</strong> / {quota.freeCallsPerMonth.toLocaleString('de-DE')}
+                    Frei diesen Monat: <strong className="font-mono text-emerald-700">{fmtNumber(quota.freeRemaining)}</strong> / {fmtNumber(quota.freeCallsPerMonth)}
                   </span>
                   <span className={quota.monthCostUsd === 0 ? 'text-emerald-700 font-semibold' : ''}>
                     {quota.monthCostUsd === 0 ? '✓ GRATIS (Free-Tier)' : `~$${quota.monthCostUsd.toFixed(2)} diesen Monat`}
@@ -913,7 +914,7 @@ export default function AdminLeadsPage() {
               <div className="text-sm bg-blue-50 text-blue-900 px-3 py-2 rounded-lg mb-3">
                 <div className="font-semibold">⚡ Aus Cache geantwortet — keine API-Kosten</div>
                 <div className="text-xs mt-1">
-                  Letzte Ausführung: {searchResult.lastRunAt && new Date(searchResult.lastRunAt).toLocaleString('de-DE')}
+                  Letzte Ausführung: {searchResult.lastRunAt && fmtDateTime(searchResult.lastRunAt)}
                   {searchResult.lastResultCount != null && ` · ${searchResult.lastResultCount} Studios beim letzten Mal`}
                 </div>
                 <div className="text-xs mt-1">{searchResult.existingMatchCount ?? 0} ähnliche Leads bereits in DB.</div>
@@ -1629,7 +1630,7 @@ function QuotaBadge({ quota }: { quota: {
     `Heute: ${quota.todayPagesCalled} / ${quota.dailyLimit} Calls (Selbstschutz-Limit)`,
     `Diesen Monat: ${quota.monthPagesCalled} / ${quota.freeCallsPerMonth} Free Calls`,
     isFree ? 'GRATIS — Free-Tier nicht überschritten' : `Über Free-Tier: ~$${quota.monthCostUsd.toFixed(2)}`,
-    `${quota.freeRemaining.toLocaleString('de-DE')} Free Calls verbleibend`,
+    `${fmtNumber(quota.freeRemaining)} Free Calls verbleibend`,
   ].join('\n')
 
   return (
@@ -1638,7 +1639,7 @@ function QuotaBadge({ quota }: { quota: {
         <span className="font-mono">{quota.todayPagesCalled}/{quota.dailyLimit}</span>
         <span className="opacity-70 hidden md:inline">heute</span>
         <span className="opacity-30">·</span>
-        <span className="font-mono">{quota.monthPagesCalled.toLocaleString('de-DE')}/{quota.freeCallsPerMonth.toLocaleString('de-DE')}</span>
+        <span className="font-mono">{fmtNumber(quota.monthPagesCalled)}/{fmtNumber(quota.freeCallsPerMonth)}</span>
         <span className="opacity-70 hidden md:inline">free</span>
         {isFree
           ? <span className="text-emerald-700 font-bold ml-1">GRATIS</span>
@@ -1752,7 +1753,7 @@ function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
       <li className="flex gap-3 text-sm bg-amber-50/50 -mx-2 px-2 py-2 rounded-lg">
         <span className="text-lg">{kindIcon(activity.kind)}</span>
         <div className="flex-1 min-w-0 space-y-2">
-          <div className="text-xs text-zinc-500">{kindLabel(activity.kind)} · {new Date(activity.occurred_at).toLocaleString('de-DE')}</div>
+          <div className="text-xs text-zinc-500">{kindLabel(activity.kind)} · {fmtDateTime(activity.occurred_at)}</div>
           {activity.kind === 'call' && (
             <select value={outcome} onChange={e => setOutcome(e.target.value)}
               className="w-full px-3 py-2 text-base sm:text-sm border border-zinc-200 rounded-lg bg-white">
@@ -1822,7 +1823,7 @@ function ActivityItem({ activity, leadId, token, onUpdated, onDeleted }: {
             {renderActivityBody(activity.body)}
           </div>
         )}
-        <p className="text-xs text-zinc-400 mt-0.5">{new Date(activity.occurred_at).toLocaleString('de-DE')}</p>
+        <p className="text-xs text-zinc-400 mt-0.5">{fmtDateTime(activity.occurred_at)}</p>
       </div>
     </li>
   )
@@ -2072,7 +2073,7 @@ function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }:
   function fmtDue(d: Date): string {
     const now = new Date()
     const sameDay = d.toDateString() === now.toDateString()
-    if (sameDay) return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    if (sameDay) return fmtTime(d)
     return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
   }
 
@@ -2162,7 +2163,7 @@ function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }:
         </div>
       )}
       {isClosed && lead.status === 'won' && (
-        <div className="mt-2 text-xs text-emerald-700 font-semibold">✓ Gewonnen{lead.converted_at ? ` · ${new Date(lead.converted_at).toLocaleDateString('de-DE')}` : ''}</div>
+        <div className="mt-2 text-xs text-emerald-700 font-semibold">✓ Gewonnen{lead.converted_at ? ` · ${fmtDate(lead.converted_at)}` : ''}</div>
       )}
       {isClosed && lead.status === 'lost' && (
         <div className="mt-2 text-xs text-rose-700">✕ Verloren{lead.lost_reason ? ` · ${lead.lost_reason}` : ''}</div>

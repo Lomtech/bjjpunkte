@@ -11,6 +11,7 @@ import { type BeltSystem, resolveBeltSystem } from '@/lib/belt-system'
 import { toWaPhone } from '@/lib/phone'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useConfirm } from '@/components/ConfirmModal'
+import { fmtDate } from '@/lib/date-format'
 
 const SUB_COLORS: Record<string, string> = {
   active:    'bg-amber-50 text-amber-700 border border-amber-200',
@@ -656,7 +657,7 @@ export default function MembersPage() {
                         {m.email && <div className="text-xs text-zinc-400 truncate max-w-full">{m.email}</div>}
                       </td>
                       {beltEnabled && <td className="px-4 py-3.5"><BeltBadge belt={m.belt as Belt} stripes={m.stripes} beltSystem={beltSystem} /></td>}
-                      <td className="px-4 py-3.5 text-zinc-500 text-sm">{new Date(m.join_date).toLocaleDateString(locale)}</td>
+                      <td className="px-4 py-3.5 text-zinc-500 text-sm">{fmtDate(m.join_date, lang === 'en' ? 'en-IE' : 'de-DE')}</td>
                       <td className="px-4 py-3.5">
                         {feeCents > 0 ? (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SUB_COLORS[subStatus] || 'text-zinc-500'}`}>
