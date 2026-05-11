@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/admin-auth'
+import { withApiHandler } from '@/lib/api/with-error-handler'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic'
 // - conversion:       { contactRate, qualifyRate, demoRate, winRate }
 // - byDay:            { '2026-05-01': 5, '2026-05-02': 8, ... } (calls per day)
 // - topCities:        [{ city: 'München', count: 18 }, ...]
-export async function GET(req: Request) {
+export const GET = withApiHandler('admin.leads.stats.get', async (req: Request) => {
   const auth = await requireAdmin(req)
   if ('error' in auth) return auth.error
 
@@ -116,4 +117,4 @@ export async function GET(req: Request) {
     totalLeads: total,
     avgContactsPerLead: leadsWithContact > 0 ? +(totalContactCount / leadsWithContact).toFixed(1) : 0,
   })
-}
+})

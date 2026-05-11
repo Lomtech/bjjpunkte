@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { withApiHandler } from '@/lib/api/with-error-handler'
 
 function authedClient(accessToken: string) {
   return createClient(
@@ -9,7 +10,7 @@ function authedClient(accessToken: string) {
   )
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = withApiHandler('classes.byId.put', async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const { searchParams } = new URL(req.url)
   const scope = searchParams.get('scope') // 'single' | 'future' | 'all'
@@ -117,9 +118,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
-}
+})
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withApiHandler('classes.byId.delete', async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const { searchParams } = new URL(req.url)
   const scope = searchParams.get('scope') // 'single' | 'future' | 'all'
@@ -208,4 +209,4 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   }
 
   return NextResponse.json({ success: true })
-}
+})

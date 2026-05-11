@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { withApiHandler } from '@/lib/api/with-error-handler'
 
 function authedClient(accessToken: string) {
   return createClient(
@@ -31,7 +32,7 @@ function toHHMM(iso: string) {
  * Returns all future classes as a CSV backup (import-compatible format).
  * De-duplicates recurring series — one row per series (earliest occurrence).
  */
-export async function GET(req: Request) {
+export const GET = withApiHandler('classes.bulk.get', async (req: Request) => {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
@@ -90,14 +91,14 @@ export async function GET(req: Request) {
       'Content-Disposition': `attachment; filename="stundenplan-backup-${new Date().toISOString().split('T')[0]}.csv"`,
     },
   })
-}
+})
 
 /**
  * DELETE /api/classes/bulk
  * Deletes all future (non-cancelled) classes for this gym.
  * Use GET first to download a CSV backup.
  */
-export async function DELETE(req: Request) {
+export const DELETE = withApiHandler('classes.bulk.delete', async (req: Request) => {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
@@ -120,4 +121,4 @@ export async function DELETE(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ deleted: count ?? 0 })
-}
+})

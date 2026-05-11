@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { withApiHandler } from '@/lib/api/with-error-handler'
 
 function serviceClient() {
   return createClient(
@@ -8,7 +9,7 @@ function serviceClient() {
   )
 }
 
-export async function POST(req: Request) {
+export const POST = withApiHandler('attendance.create', async (req: Request) => {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
@@ -86,4 +87,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true, entry })
-}
+})

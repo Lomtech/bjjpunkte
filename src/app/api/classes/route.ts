@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { withApiHandler } from '@/lib/api/with-error-handler'
 
 function authedClient(accessToken: string) {
   return createClient(
@@ -9,7 +10,7 @@ function authedClient(accessToken: string) {
   )
 }
 
-export async function GET(req: Request) {
+export const GET = withApiHandler('classes.get', async (req: Request) => {
   const authHeader = req.headers.get('Authorization')
   const accessToken = authHeader?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
-}
+})
 
 // Returns the Europe/Berlin UTC offset for a given date+time (handles DST)
 function berlinOffset(dateStr: string, timeStr: string): string {
@@ -79,7 +80,7 @@ function generateDates(
   return dates
 }
 
-export async function POST(req: Request) {
+export const POST = withApiHandler('classes.post', async (req: Request) => {
   const authHeader = req.headers.get('Authorization')
   const accessToken = authHeader?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
@@ -166,4 +167,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ parentId, count: occurrences.length }, { status: 201 })
-}
+})

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Copy, Check, ExternalLink, QrCode, UserPlus, Dumbbell, Printer, Download, Sparkles } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { useCopyFeedback } from '@/lib/hooks/use-copy-feedback'
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react'
 
 // Opens a print window with the poster HTML
@@ -223,9 +224,10 @@ export default function LinksPage() {
   const [wellpassUrl,  setWellpassUrl] = useState<string | null>(null)
   const [gymName,      setGymName]     = useState('')
   const [loading,      setLoading]     = useState(true)
-  const [copiedSignup, setCopiedSignup] = useState(false)
-  const [copiedTrial,  setCopiedTrial]  = useState(false)
-  const [copiedWellpass, setCopiedWellpass] = useState(false)
+  // useCopyFeedback: setState-on-unmounted-Component-Warn-Fix + Re-Click-Safe
+  const [copiedSignup,   triggerCopiedSignup]   = useCopyFeedback()
+  const [copiedTrial,    triggerCopiedTrial]    = useCopyFeedback()
+  const [copiedWellpass, triggerCopiedWellpass] = useCopyFeedback()
 
   useEffect(() => {
     async function load() {
@@ -252,16 +254,9 @@ export default function LinksPage() {
 
   function copy(url: string, which: 'signup' | 'trial' | 'wellpass') {
     navigator.clipboard.writeText(url)
-    if (which === 'signup') {
-      setCopiedSignup(true)
-      setTimeout(() => setCopiedSignup(false), 2000)
-    } else if (which === 'trial') {
-      setCopiedTrial(true)
-      setTimeout(() => setCopiedTrial(false), 2000)
-    } else {
-      setCopiedWellpass(true)
-      setTimeout(() => setCopiedWellpass(false), 2000)
-    }
+    if (which === 'signup')      triggerCopiedSignup()
+    else if (which === 'trial')  triggerCopiedTrial()
+    else                         triggerCopiedWellpass()
   }
 
   /** Hängt ?src=qr an die URL — markiert „im Gym vor Ort gescannt" für Statistik. */

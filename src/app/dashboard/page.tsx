@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { fmtEur } from '@/lib/date-format'
+import { useCopyFeedback } from '@/lib/hooks/use-copy-feedback'
 import {
   Users, TrendingUp, Calendar, Award, Cake, FileWarning,
   Euro, CheckCircle2, Clock, AlertCircle, ChevronRight, Zap,
@@ -62,8 +63,8 @@ export default function DashboardPage() {
   const [signupToken, setSignupToken]       = useState<string | null>(null)
   const [gymSlug, setGymSlug]               = useState<string | null>(null)
   const [currentGymId, setCurrentGymId]     = useState<string | null>(null)
-  const [copiedSignup, setCopiedSignup]     = useState(false)
-  const [copiedSlug, setCopiedSlug]         = useState(false)
+  const [copiedSignup, triggerCopiedSignup] = useCopyFeedback()
+  const [copiedSlug,   triggerCopiedSlug]   = useCopyFeedback()
   const [mounted, setMounted]               = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
@@ -276,8 +277,7 @@ export default function DashboardPage() {
                 copied={copiedSignup}
                 onCopy={() => {
                   navigator.clipboard.writeText(`${window.location.origin}/signup/${signupToken}`)
-                  setCopiedSignup(true)
-                  setTimeout(() => setCopiedSignup(false), 2000)
+                  triggerCopiedSignup()
                 }}
               />
             )}
@@ -289,8 +289,7 @@ export default function DashboardPage() {
                 copied={copiedSlug}
                 onCopy={() => {
                   navigator.clipboard.writeText(`${window.location.origin}/gym/${gymSlug}`)
-                  setCopiedSlug(true)
-                  setTimeout(() => setCopiedSlug(false), 2000)
+                  triggerCopiedSlug()
                 }}
               />
             )}

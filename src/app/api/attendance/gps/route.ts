@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database, ClassType } from '@/types/database'
+import { withApiHandler } from '@/lib/api/with-error-handler'
 
 function serviceClient() {
   return createClient<Database>(
@@ -28,7 +29,7 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
  * then creates attendance + upserts class_bookings so the member
  * appears in the schedule roster immediately.
  */
-export async function POST(req: Request) {
+export const POST = withApiHandler('attendance.gps.post', async (req: Request) => {
   const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
@@ -159,4 +160,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true, entry, distance_m: Math.round(dist) })
-}
+})

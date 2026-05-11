@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { withApiHandler } from '@/lib/api/with-error-handler'
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withApiHandler('attendance.byId.delete', async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
 
   const authHeader = req.headers.get('Authorization')
@@ -38,4 +39,4 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   await supabase.from('attendance').delete().eq('id', id)
 
   return NextResponse.json({ success: true })
-}
+})
