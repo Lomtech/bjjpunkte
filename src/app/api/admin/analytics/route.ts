@@ -239,6 +239,37 @@ export async function GET(req: Request) {
     visitors: dailyVisitors.get(date)?.size ?? 0,
   }))
 
+  // Hour-of-day distribution (24 Buckets, Europe/Berlin lokalisiert) — zeigt
+  // wann am Tag die meisten Visits kommen. DSGVO-konform: rein aggregiert,
+  // keine Korrelation zu individuellen visitor_hashes — der hash wird nur als
+  // Set-Element verwendet um unique-counts zu zählen, nicht persistiert.
+  //
+  // Bewusst Europe/Berlin (nicht UTC): Gym-Owner denken in lokaler Zeit
+  // ("Peak nach Feierabend um 19 Uhr"), nicht in UTC.
+  const hourFmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    hour12: false,
+  })
+  const hourlyViews    = new Array<number>(24).fill(0)
+  const hourlySessions = Array.from({ length: 24 }, () => new Set<string>())
+  const hourlyVisitors = Array.from({ length: 24 }, () => new Set<string>())
+  for (const r of rows) {
+    // Intl.DateTimeFormat liefert "00" .. "23" — bei manchen Locales auch "24"
+    // an der Mitternachts-Grenze. Mit modulo 24 normalisieren.
+    const h = parseInt(hourFmt.format(new Date(r.created_at)), 10) % 24
+    if (!Number.isFinite(h)) continue
+    hourlyViews[h]++
+    if (r.session_hash) hourlySessions[h].add(r.session_hash)
+    if (r.visitor_hash) hourlyVisitors[h].add(r.visitor_hash)
+  }
+  const hourly = hourlyViews.map((views, hour) => ({
+    hour,
+    views,
+    sessions: hourlySessions[hour].size,
+    visitors: hourlyVisitors[hour].size,
+  }))
+
   // Conversion-Funnel: Landing → Pricing → Register
   //
   // Funnel ignoriert den path-Filter (sonst sieht man immer nur einen Step).
@@ -345,6 +376,7 @@ export async function GET(req: Request) {
       previous: prev,
     },
     timeline,
+    hourly,
     top_pages: topPages,
     top_referrers: topReferrers,
     sources,

@@ -37,6 +37,7 @@ interface AnalyticsData {
     previous: { total_views: number; unique_visitors: number; unique_sessions: number }
   }
   timeline: { date: string; count: number; views?: number; sessions?: number; visitors?: number }[]
+  hourly?: { hour: number; views: number; sessions: number; visitors: number }[]
   top_pages: { path: string; count: number }[]
   top_referrers: { domain: string; count: number }[]
   sources: { source: string; count: number }[]
@@ -286,6 +287,13 @@ export default function AnalyticsPage() {
                 onSelectDay={d => { setDateFrom(d); setDateTo(d) }}
               />
             </Section>
+
+            {/* Stunden-Verteilung (Europe/Berlin) — wann am Tag kommen Visits */}
+            {data.hourly && data.hourly.some(h => h.views > 0) && (
+              <Section title="Tageszeit-Verteilung (Berlin)">
+                <HourDistribution data={data.hourly} />
+              </Section>
+            )}
 
             {/* Bot-Filter + Click-Events Banner */}
             {(data.summary.bots_filtered > 0 || data.summary.total_clicks > 0) && (
@@ -916,6 +924,154 @@ function Timeline({
           )
         })}
       </svg>
+    </div>
+  )
+}
+
+/**
+ * HourDistribution — 24-Stunden-Verteilung, Europe/Berlin-lokalisiert.
+ *
+ * DSGVO-Hinweis: Daten kommen rein aggregiert vom Server (counts pro Stunde
+ * über alle visitor_hashes), keine individuellen Zeitstempel hier. Visitor-Hashes
+ * rotieren täglich → kein Cross-Day-Tracking → anonym im Sinne von Erw.-Gr. 26.
+ *
+ * Toggle zwischen Views / Sessions / unique Visitors wie beim Timeline-Chart.
+ */
+function HourDistribution({
+  data,
+}: {
+  data: { hour: number; views: number; sessions: number; visitors: number }[]
+}) {
+  const [metric, setMetric] = useState<Metric>('views')
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+
+  const valueOf = (h: typeof data[number]): number => {
+    if (metric === 'views')    return h.views
+    if (metric === 'sessions') return h.sessions
+    return h.visitors
+  }
+  const values = data.map(valueOf)
+  const max = Math.max(...values, 1)
+  const peakIdx = values.indexOf(max)
+  const total = values.reduce((a, b) => a + b, 0)
+
+  // Mini-Bar-Chart: 24 vertikale Balken
+  const W = 800
+  const H = 160
+  const PAD_L = 36
+  const PAD_R = 12
+  const PAD_T = 16
+  const PAD_B = 28
+  const innerW = W - PAD_L - PAD_R
+  const innerH = H - PAD_T - PAD_B
+  const barW = innerW / 24
+  const barGap = Math.max(1, barW * 0.18)
+
+  return (
+    <div className="space-y-3">
+      {/* Toggle wie bei Timeline */}
+      <div className="flex items-center gap-2 text-xs">
+        {(['views', 'sessions', 'visitors'] as Metric[]).map(m => (
+          <button
+            key={m}
+            onClick={() => setMetric(m)}
+            className={`px-2.5 py-1 rounded-md font-semibold transition-colors ${
+              metric === m ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:bg-zinc-100'
+            }`}
+          >
+            {m === 'views' ? 'Views' : m === 'sessions' ? 'Sessions' : 'Visitors'}
+          </button>
+        ))}
+        <span className="text-zinc-300 ml-auto">·</span>
+        <span className="text-zinc-500">
+          Peak: <span className="font-semibold text-zinc-900">{String(peakIdx).padStart(2, '0')}:00</span> ({max})
+        </span>
+        <span className="text-zinc-300">·</span>
+        <span className="text-zinc-500">Ø {total > 0 ? Math.round(total / 24) : 0}/Std</span>
+      </div>
+
+      <div className="relative">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="none">
+          {/* Gridlines (4 horizontale Linien) */}
+          {[0.25, 0.5, 0.75, 1].map(f => {
+            const y = PAD_T + innerH - innerH * f
+            return (
+              <line
+                key={f}
+                x1={PAD_L} y1={y} x2={W - PAD_R} y2={y}
+                stroke="#e4e4e7" strokeWidth={1} strokeDasharray="2 4"
+              />
+            )
+          })}
+          {/* Y-Achse Max */}
+          <text x={PAD_L - 6} y={PAD_T + 4} fontSize="10" fill="#a1a1aa" textAnchor="end">{max}</text>
+          <text x={PAD_L - 6} y={PAD_T + innerH + 4} fontSize="10" fill="#a1a1aa" textAnchor="end">0</text>
+
+          {data.map((h, i) => {
+            const v = valueOf(h)
+            const x = PAD_L + i * barW + barGap / 2
+            const barH = max > 0 ? (v / max) * innerH : 0
+            const y = PAD_T + innerH - barH
+            const isPeak = i === peakIdx && v > 0
+            const isHover = hoverIdx === i
+            return (
+              <g key={i}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={barW - barGap}
+                  height={barH}
+                  rx={2}
+                  fill={isHover ? '#0f172a' : isPeak ? '#f59e0b' : '#fbbf24'}
+                  fillOpacity={v === 0 ? 0.15 : 1}
+                  className="transition-colors"
+                />
+                {/* Hover-Hotbox über volle Höhe (auch leere Stunden hoverbar) */}
+                <rect
+                  x={x - barGap / 2}
+                  y={PAD_T}
+                  width={barW}
+                  height={innerH}
+                  fill="transparent"
+                  onMouseEnter={() => setHoverIdx(i)}
+                  onMouseLeave={() => setHoverIdx(null)}
+                  style={{ cursor: 'default' }}
+                />
+              </g>
+            )
+          })}
+
+          {/* X-Achse: alle 3 Stunden labeln */}
+          {[0, 3, 6, 9, 12, 15, 18, 21].map(h => {
+            const x = PAD_L + h * barW + barW / 2
+            return (
+              <text
+                key={h}
+                x={x} y={H - PAD_B + 16}
+                fontSize="10" fill="#71717a" textAnchor="middle"
+              >
+                {String(h).padStart(2, '0')}
+              </text>
+            )
+          })}
+          <text x={W - PAD_R} y={H - PAD_B + 16} fontSize="10" fill="#71717a" textAnchor="end">Uhr</text>
+        </svg>
+
+        {/* Tooltip */}
+        {hoverIdx !== null && (
+          <div
+            className="absolute pointer-events-none bg-zinc-900 text-white text-xs rounded-md px-2.5 py-1.5 shadow-lg"
+            style={{
+              left: `${((PAD_L + hoverIdx * barW + barW / 2) / W) * 100}%`,
+              top: 4,
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <div className="font-mono text-amber-300">{String(hoverIdx).padStart(2, '0')}:00 – {String((hoverIdx + 1) % 24).padStart(2, '0')}:00</div>
+            <div className="font-semibold">{valueOf(data[hoverIdx])} {metric}</div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
