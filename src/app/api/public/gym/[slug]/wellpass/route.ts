@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyGym } from '@/lib/notify'
+import { applyRateLimit } from '@/lib/rate-limit-handler'
 
 function serviceClient() {
   return createClient(
@@ -23,6 +24,10 @@ function serviceClient() {
  *         contract_text, contract_accepted: true }
  */
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  // 5 Wellpass-Anmeldungen pro IP / 10 min
+  const rl = await applyRateLimit(req, { kind: 'public-wellpass', limit: 5, windowSec: 600 })
+  if (rl) return rl
+
   const { slug } = await params
   // Slug-Hardening (Audit 2026-05-09 / B-input-cap): Format + Length-Cap.
   if (!slug || typeof slug !== 'string' || slug.length > 100 || !/^[a-z0-9-]+$/.test(slug)) {

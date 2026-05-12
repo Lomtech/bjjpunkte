@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notifyGym } from '@/lib/notify'
+import { applyRateLimit } from '@/lib/rate-limit-handler'
 
 function serviceClient() {
   return createClient(
@@ -10,6 +11,10 @@ function serviceClient() {
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  // 3 Probetraining-Anfragen pro IP / 10 min — Lead-Spam-Schutz
+  const rl = await applyRateLimit(req, { kind: 'public-lead', limit: 3, windowSec: 600 })
+  if (rl) return rl
+
   const { slug } = await params
   // Slug-Hardening (Audit 2026-05-09 / B-input-cap): Format + Length-Cap.
   // Slugs sind URL-Parts wie "fight-club-berlin" — alphanumerisch + bindestriche.

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { applyRateLimit } from '@/lib/rate-limit-handler'
 
 function serviceClient() {
   return createClient(
@@ -12,6 +13,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  const rl = await applyRateLimit(req, { kind: 'lead-cancel', limit: 20, windowSec: 600 })
+  if (rl) return rl
+
   const { token } = await params
   // Token-Hardening (Audit 2026-05-09 / A2): 20 → 32 Zeichen. Brute-Force-Schutz.
   if (!token || token.length < 32 || !/^[a-zA-Z0-9_-]+$/.test(token)) {

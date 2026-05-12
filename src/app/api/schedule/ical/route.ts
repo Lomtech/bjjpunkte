@@ -1,9 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
+import { applyRateLimit } from '@/lib/rate-limit-handler'
+
+// UUID v4-Format. Verhindert dass beliebige Strings als gymId in DB-Lookups
+// landen — die Spalte ist UUID-typisiert, ungültiges Format würde sonst
+// hunderte 4xx-Errors mit lautem Stack-Trace auslösen.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function GET(req: Request) {
+  // iCal-Abos pollen typischerweise alle 15 min — 30 Requests/min pro IP
+  // ist großzügig genug für mehrere Family-Members hinter einer NAT.
+  const rl = await applyRateLimit(req, { kind: 'ical', limit: 30, windowSec: 60 })
+  if (rl) return rl
+
   const { searchParams } = new URL(req.url)
   const gymId = searchParams.get('gymId')
-  if (!gymId) return new Response('gymId fehlt', { status: 400 })
+  if (!gymId || !UUID_RE.test(gymId)) {
+    return new Response('Ungültige gymId', { status: 400 })
+  }
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
