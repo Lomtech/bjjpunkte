@@ -15,6 +15,9 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 import {
   Users, CreditCard, Smartphone, Target, Award,
   FileSpreadsheet, Globe, FileEdit, FileText, Shield, Headphones,
@@ -30,7 +33,43 @@ import { ContactButton } from './_landing/ContactButton'
 import { BookDemoSection } from './_landing/BookDemoSection'
 import { Reveal } from './_landing/Reveal'
 
-export default async function Home() {
+// Eingeloggte Gym-Owner sollen die Marketing-Landing nicht erst durchklicken,
+// nur um aufs Dashboard zu kommen. Server-seitiger Auth-Check direkt am
+// Render-Anfang → 302 zu /dashboard ohne überhaupt HTML zu shippen.
+// Nur ausführen wenn ?stay=1 NICHT in der URL ist, damit man die Landing
+// trotzdem absichtlich besuchen kann (z.B. zum Demo-Buchen-Link teilen).
+async function isLoggedIn(): Promise<boolean> {
+  // Auth-Check getrennt von redirect() halten — letzteres wirft intern
+  // eine NEXT_REDIRECT-Exception, die wir NICHT im catch verschlucken
+  // dürfen, sonst rendert die Landing trotzdem.
+  try {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll:    () => cookieStore.getAll(),
+          setAll: () => {}, // RSC darf keine Cookies setzen
+        },
+      },
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    return !!user
+  } catch {
+    return false
+  }
+}
+
+export default async function Home({ searchParams }: { searchParams: Promise<{ stay?: string }> }) {
+  const { stay } = await searchParams
+  // Eingeloggte Gym-Owner direkt aufs Dashboard schicken — Marketing-Landing
+  // nicht erst durchscrollen müssen. `?stay=1` lässt einen die Landing absicht-
+  // lich behalten (zum Teilen / Demo-Buchen-Link-Test). redirect() läuft AUSSERHALB
+  // try/catch, damit die NEXT_REDIRECT-Exception nicht verschluckt wird.
+  if (stay !== '1' && (await isLoggedIn())) {
+    redirect('/dashboard')
+  }
   const lang = await getServerLang()
 
   // ── Static, language-keyed copy. Originally inlined as `lang === 'en' ? […] : […]`

@@ -108,20 +108,66 @@ const SOURCE_LABEL: Record<string, string> = {
   other:         '🌐 Andere',
 }
 
+// Eine Schluessel-Konstante damit ein späterer Schema-Bruch alle gespeicherten
+// State-Snapshots ungültig macht (statt mit veralteten Defaults zu kollidieren).
+const PERSIST_KEY = 'osss-analytics-state-v1'
+
+interface PersistedState {
+  range: Range
+  metric: Metric
+  dateFrom: string
+  dateTo: string
+  filter: AnalyticsFilter
+}
+
+function loadPersisted(): Partial<PersistedState> {
+  // SSR-safe — useState-Initializer läuft beim Mount, da sind wir im Browser,
+  // aber wenn dieser Code je in einem Server-Render landet, fängt der Guard ab.
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem(PERSIST_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as unknown
+    if (typeof parsed !== 'object' || parsed === null) return {}
+    return parsed as Partial<PersistedState>
+  } catch {
+    return {}
+  }
+}
+
 export default function AnalyticsPage() {
   const router = useRouter()
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [range, setRange] = useState<Range>('30d')
-  const [filter, setFilter] = useState<AnalyticsFilter>({})
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo]     = useState('')
+
+  // Persistierter UI-State (range / metric / dateFrom / dateTo / filter).
+  // useState-Initializer liest einmalig aus localStorage — das vermeidet das
+  // klassische Flicker-Pattern "default → effect-restore → re-render-fetch".
+  // Default-Fallbacks identisch zum vorherigen Verhalten, falls noch nichts
+  // gespeichert ist oder der Browser-Storage geleert wurde.
+  const persisted = loadPersisted()
+  const [range, setRange]       = useState<Range>(persisted.range ?? '30d')
+  const [filter, setFilter]     = useState<AnalyticsFilter>(persisted.filter ?? {})
+  const [dateFrom, setDateFrom] = useState<string>(persisted.dateFrom ?? '')
+  const [dateTo, setDateTo]     = useState<string>(persisted.dateTo ?? '')
   const customRange = !!(dateFrom || dateTo)
   // Globaler Metric-Toggle: Timeline + Stunden-Chart + Geräte/Browser/Länder/
   // Quellen lesen alle aus diesem State. Click auf "Visitors" filtert UI auf
   // unique visitors, nicht auf page views.
-  const [metric, setMetric] = useState<Metric>('views')
+  const [metric, setMetric] = useState<Metric>(persisted.metric ?? 'views')
+
+  // Persistenz: jeder relevanter State-Wechsel schreibt einen Snapshot zurück.
+  // Schreibt nur Felder die wir auch wieder lesen — vermeidet localStorage-Wachstum
+  // bei zukünftigen Refactors.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(PERSIST_KEY, JSON.stringify({
+        range, metric, dateFrom, dateTo, filter,
+      } satisfies PersistedState))
+    } catch { /* Storage voll / private mode → leise scheitern */ }
+  }, [range, metric, dateFrom, dateTo, filter])
 
   // Helper: toggle a filter dimension. Click again on same value = clear.
   function toggleFilter<K extends keyof AnalyticsFilter>(key: K, value: AnalyticsFilter[K]) {
