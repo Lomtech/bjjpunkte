@@ -120,37 +120,55 @@ export async function GET(req: Request) {
 
   // Bot-Filter: alles trennen — Hauptstats nur Menschen, Bot-Zahlen separat
   const botCount   = allRows.filter(r => r.is_bot === true).length
-  let humanRows    = allRows.filter(r => r.is_bot !== true)
+  const humanRowsAll = allRows.filter(r => r.is_bot !== true)
 
-  // Cross-Filter anwenden. Path: exact OR prefix mit Trailing /* (z.B.
-  // "/blog/*" matcht /blog, /blog/foo, /blog/bar/baz).
-  if (filterPath) {
-    const isPrefix = filterPath.endsWith('/*')
-    const prefix = isPrefix ? filterPath.slice(0, -2) : null
-    humanRows = humanRows.filter(r => {
-      if (isPrefix) return r.path === prefix || r.path.startsWith(prefix + '/')
-      return r.path === filterPath
-    })
-  }
-  if (filterCountry) {
-    humanRows = humanRows.filter(r => (r.country ?? 'unknown').toUpperCase() === filterCountry)
-  }
-  if (filterDevice) {
-    humanRows = humanRows.filter(r => (r.device_type ?? 'unknown') === filterDevice)
-  }
-  if (filterBrowser) {
-    humanRows = humanRows.filter(r => (r.browser ?? 'other').toLowerCase() === filterBrowser)
-  }
-  if (filterSource) {
-    humanRows = humanRows.filter(r => (r.referrer_source ?? 'direct').toLowerCase() === filterSource)
+  // Cross-Filter-Helper: gibt humanRows zurück mit allen Filtern AUSSER den
+  // explizit ausgenommenen ('except'). Damit kann jede Aggregat-Sektion ihren
+  // eigenen Filter ignorieren — d.h. das Geräte-Panel zeigt weiterhin alle
+  // Geräte selbst wenn `device=mobile` aktiv ist, aber das Browser-Panel
+  // filtert auf Mobile. Standard-Cross-Filter-UX.
+  type FilterDim = 'path' | 'country' | 'device' | 'browser' | 'source'
+  function applyFilters(except?: FilterDim) {
+    let rs = humanRowsAll
+    if (filterPath && except !== 'path') {
+      const isPrefix = filterPath.endsWith('/*')
+      const prefix = isPrefix ? filterPath.slice(0, -2) : null
+      rs = rs.filter(r => {
+        if (isPrefix) return r.path === prefix || r.path.startsWith(prefix + '/')
+        return r.path === filterPath
+      })
+    }
+    if (filterCountry && except !== 'country') {
+      rs = rs.filter(r => (r.country ?? 'unknown').toUpperCase() === filterCountry)
+    }
+    if (filterDevice && except !== 'device') {
+      rs = rs.filter(r => (r.device_type ?? 'unknown') === filterDevice)
+    }
+    if (filterBrowser && except !== 'browser') {
+      rs = rs.filter(r => (r.browser ?? 'other').toLowerCase() === filterBrowser)
+    }
+    if (filterSource && except !== 'source') {
+      rs = rs.filter(r => (r.referrer_source ?? 'direct').toLowerCase() === filterSource)
+    }
+    return rs
   }
 
-  // Page-Views vs. Click-Events trennen
+  // Hauptdaten = alle Filter aktiv (Timeline, KPIs, Stunden, Funnel, Clicks)
+  const humanRows    = applyFilters()
   const pageViewRows = humanRows.filter(r => (r.event_type ?? 'page_view') === 'page_view')
   const clickRows    = humanRows.filter(r => r.event_type === 'click')
 
   const rows = pageViewRows  // existing variable name compatibility
   const total = pageViewRows.length
+
+  // Pro-Dimension-Subsets: jede Dimension ignoriert NUR ihren eigenen Filter,
+  // damit das Panel beim Klicken eines Werts nicht auf eine einzige Zeile
+  // kollabiert (vorher: filterDevice=mobile → Geräte-Panel zeigte nur Mobile).
+  const dimRowsCountry = applyFilters('country').filter(r => (r.event_type ?? 'page_view') === 'page_view')
+  const dimRowsDevice  = applyFilters('device') .filter(r => (r.event_type ?? 'page_view') === 'page_view')
+  const dimRowsBrowser = applyFilters('browser').filter(r => (r.event_type ?? 'page_view') === 'page_view')
+  const dimRowsSource  = applyFilters('source') .filter(r => (r.event_type ?? 'page_view') === 'page_view')
+  const dimRowsPath    = applyFilters('path')   .filter(r => (r.event_type ?? 'page_view') === 'page_view')
 
   // Unique visitors (über die ganze Range — visitor_hash rotiert täglich,
   // also ist das eher "unique visit-days")
@@ -161,12 +179,13 @@ export async function GET(req: Request) {
   // `count` bleibt erhalten (== views) damit alte Frontend-Versionen weiter
   // funktionieren — Metric-Toggle ist Opt-In.
   function aggregateBy<T extends string>(
+    source: typeof rows,
     keyOf: (r: typeof rows[number]) => T | null | undefined,
   ): { key: T; views: number; sessions: number; visitors: number; count: number }[] {
     const views    = new Map<T, number>()
     const sessions = new Map<T, Set<string>>()
     const visitors = new Map<T, Set<string>>()
-    for (const r of rows) {
+    for (const r of source) {
       const k = keyOf(r)
       if (k == null) continue
       views.set(k, (views.get(k) ?? 0) + 1)
@@ -188,30 +207,33 @@ export async function GET(req: Request) {
     }))
   }
 
-  // Top Pages
-  const topPages = aggregateBy(r => r.path)
+  // Top Pages — nutzt dimRowsPath (alle Filter AUSSER path), damit der Klick
+  // auf einen Pfad das Panel nicht auf eine Zeile kollabiert. Gleiches Muster
+  // bei den anderen vier Dimensionen.
+  const topPages = aggregateBy(dimRowsPath, r => r.path)
     .sort((a, b) => b.views - a.views)
     .slice(0, 15)
     .map(x => ({ path: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
-  // Top Referrers
-  const topReferrers = aggregateBy(r => r.referrer_domain ?? 'direct')
+  // Top Referrers — separate Dimension, aber Referrer ist nicht selbst Filter,
+  // also volle Filterung über `rows`.
+  const topReferrers = aggregateBy(rows, r => r.referrer_domain ?? 'direct')
     .sort((a, b) => b.views - a.views)
     .slice(0, 10)
     .map(x => ({ domain: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Country
-  const countries = aggregateBy(r => r.country ?? 'unknown')
+  const countries = aggregateBy(dimRowsCountry, r => r.country ?? 'unknown')
     .sort((a, b) => b.views - a.views)
     .slice(0, 15)
     .map(x => ({ country: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Device
-  const devices = aggregateBy(r => r.device_type ?? 'unknown')
+  const devices = aggregateBy(dimRowsDevice, r => r.device_type ?? 'unknown')
     .map(x => ({ device: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Browser
-  const browsers = aggregateBy(r => r.browser ?? 'other')
+  const browsers = aggregateBy(dimRowsBrowser, r => r.browser ?? 'other')
     .sort((a, b) => b.views - a.views)
     .map(x => ({ browser: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
@@ -311,7 +333,7 @@ export async function GET(req: Request) {
 
   // Referrer-Source-Aggregation (vor-kategorisierte Quellen wie 'google',
   // 'linkedin', 'direct'). Schöner als rohe Domains für Übersicht.
-  const sources = aggregateBy(r => r.referrer_source ?? 'direct')
+  const sources = aggregateBy(dimRowsSource, r => r.referrer_source ?? 'direct')
     .sort((a, b) => b.views - a.views)
     .map(x => ({ source: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
