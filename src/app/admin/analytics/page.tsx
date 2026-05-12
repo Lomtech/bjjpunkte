@@ -38,14 +38,14 @@ interface AnalyticsData {
   }
   timeline: { date: string; count: number; views?: number; sessions?: number; visitors?: number }[]
   hourly?: { hour: number; views: number; sessions: number; visitors: number }[]
-  top_pages: { path: string; count: number }[]
-  top_referrers: { domain: string; count: number }[]
-  sources: { source: string; count: number }[]
-  clicks: { target: string; count: number }[]
-  campaigns: { source: string; medium: string; campaign: string; sessions: number }[]
-  countries: { country: string; count: number }[]
-  devices: { device: string; count: number }[]
-  browsers: { browser: string; count: number }[]
+  top_pages:    { path: string;    count: number; views?: number; sessions?: number; visitors?: number }[]
+  top_referrers:{ domain: string;  count: number; views?: number; sessions?: number; visitors?: number }[]
+  sources:      { source: string;  count: number; views?: number; sessions?: number; visitors?: number }[]
+  clicks:       { target: string; count: number }[]
+  campaigns:    { source: string; medium: string; campaign: string; sessions: number }[]
+  countries:    { country: string; count: number; views?: number; sessions?: number; visitors?: number }[]
+  devices:      { device: string;  count: number; views?: number; sessions?: number; visitors?: number }[]
+  browsers:     { browser: string; count: number; views?: number; sessions?: number; visitors?: number }[]
   funnel: {
     home: number
     blog: number
@@ -69,6 +69,21 @@ interface AnalyticsFilter {
   device?: string | null
   browser?: string | null
   source?: string | null
+}
+
+/**
+ * Liest den aktuell aktiven Metric-Wert (views/sessions/visitors) aus einer
+ * aggregierten Bucket-Row. Backwards-compat: wenn nur `count` da ist (alte
+ * API-Version), fallback auf `count` für alle Metriken — sonst würden
+ * Visitors-Toggles bei deployment-skew leere Listen zeigen.
+ */
+function metricValue(
+  row: { count: number; views?: number; sessions?: number; visitors?: number },
+  metric: Metric,
+): number {
+  if (metric === 'views')    return row.views    ?? row.count
+  if (metric === 'sessions') return row.sessions ?? row.count
+  return row.visitors ?? row.count
 }
 
 // Hübsche Labels für die kategorisierten Quellen aus categorizeReferrer()
@@ -103,6 +118,10 @@ export default function AnalyticsPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
   const customRange = !!(dateFrom || dateTo)
+  // Globaler Metric-Toggle: Timeline + Stunden-Chart + Geräte/Browser/Länder/
+  // Quellen lesen alle aus diesem State. Click auf "Visitors" filtert UI auf
+  // unique visitors, nicht auf page views.
+  const [metric, setMetric] = useState<Metric>('views')
 
   // Helper: toggle a filter dimension. Click again on same value = clear.
   function toggleFilter<K extends keyof AnalyticsFilter>(key: K, value: AnalyticsFilter[K]) {
@@ -281,9 +300,11 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Timeline */}
-            <Section title={`Page Views — letzte ${data.range.days} Tage`}>
+            <Section title={`${metric === 'views' ? 'Page Views' : metric === 'sessions' ? 'Sessions' : 'Visitors'} — letzte ${data.range.days} Tage`}>
               <Timeline
                 data={data.timeline}
+                metric={metric}
+                onMetricChange={setMetric}
                 onSelectDay={d => { setDateFrom(d); setDateTo(d) }}
               />
             </Section>
@@ -291,7 +312,7 @@ export default function AnalyticsPage() {
             {/* Stunden-Verteilung (Europe/Berlin) — wann am Tag kommen Visits */}
             {data.hourly && data.hourly.some(h => h.views > 0) && (
               <Section title="Tageszeit-Verteilung (Berlin)">
-                <HourDistribution data={data.hourly} />
+                <HourDistribution data={data.hourly} metric={metric} onMetricChange={setMetric} />
               </Section>
             )}
 
@@ -316,7 +337,9 @@ export default function AnalyticsPage() {
               <Section title="Top Pages">
                 {data.top_pages.length === 0 ? <Empty /> : (
                   <BarList
-                    items={data.top_pages.map(p => ({ label: p.path, count: p.count, value: p.path }))}
+                    items={[...data.top_pages]
+                      .sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
+                      .map(p => ({ label: p.path, count: metricValue(p, metric), value: p.path }))}
                     formatLabel={l => l}
                     onClick={path => toggleFilter('path', path)}
                     activeValue={filter.path ?? undefined}
@@ -328,11 +351,13 @@ export default function AnalyticsPage() {
               <Section title="Quellen (kategorisiert)">
                 {data.sources.length === 0 ? <Empty /> : (
                   <BarList
-                    items={data.sources.map(r => ({
-                      label: SOURCE_LABEL[r.source] ?? r.source,
-                      count: r.count,
-                      value: r.source,
-                    }))}
+                    items={[...data.sources]
+                      .sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
+                      .map(r => ({
+                        label: SOURCE_LABEL[r.source] ?? r.source,
+                        count: metricValue(r, metric),
+                        value: r.source,
+                      }))}
                     formatLabel={l => l}
                     onClick={source => toggleFilter('source', source)}
                     activeValue={filter.source ?? undefined}
@@ -344,10 +369,12 @@ export default function AnalyticsPage() {
               <Section title="Top Referrer-Domains">
                 {data.top_referrers.length === 0 ? <Empty /> : (
                   <BarList
-                    items={data.top_referrers.map(r => ({
-                      label: r.domain === 'direct' ? '🔗 Direkt / kein Referrer' : r.domain,
-                      count: r.count,
-                    }))}
+                    items={[...data.top_referrers]
+                      .sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
+                      .map(r => ({
+                        label: r.domain === 'direct' ? '🔗 Direkt / kein Referrer' : r.domain,
+                        count: metricValue(r, metric),
+                      }))}
                     formatLabel={l => l}
                   />
                 )}
@@ -419,8 +446,9 @@ export default function AnalyticsPage() {
                 {data.devices.length === 0 ? <Empty /> : (
                   <ul className="space-y-1">
                     {data.devices.map(d => {
-                      const total = data.devices.reduce((a, b) => a + b.count, 0)
-                      const pct = total > 0 ? Math.round((d.count / total) * 100) : 0
+                      const val = metricValue(d, metric)
+                      const total = data.devices.reduce((a, b) => a + metricValue(b, metric), 0)
+                      const pct = total > 0 ? Math.round((val / total) * 100) : 0
                       const isActive = filter.device === d.device
                       return (
                         <li key={d.device}>
@@ -435,7 +463,7 @@ export default function AnalyticsPage() {
                                <Monitor size={14} className="text-zinc-400" />}
                               <span className="capitalize text-zinc-700">{d.device}</span>
                             </span>
-                            <span className="font-semibold text-zinc-900 tabular-nums">{pct}% <span className="text-zinc-400 font-normal">({d.count})</span></span>
+                            <span className="font-semibold text-zinc-900 tabular-nums">{pct}% <span className="text-zinc-400 font-normal">({val})</span></span>
                           </button>
                         </li>
                       )
@@ -448,7 +476,9 @@ export default function AnalyticsPage() {
               <Section title="Browser">
                 {data.browsers.length === 0 ? <Empty /> : (
                   <ul className="space-y-1">
-                    {data.browsers.map(b => {
+                    {[...data.browsers]
+                      .sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
+                      .map(b => {
                       const isActive = filter.browser === b.browser
                       return (
                         <li key={b.browser}>
@@ -458,7 +488,7 @@ export default function AnalyticsPage() {
                               isActive ? 'bg-amber-100 ring-1 ring-amber-400' : 'hover:bg-zinc-50'
                             }`}>
                             <span className="capitalize text-zinc-700">{b.browser}</span>
-                            <span className="font-semibold text-zinc-900 tabular-nums">{b.count}</span>
+                            <span className="font-semibold text-zinc-900 tabular-nums">{metricValue(b, metric)}</span>
                           </button>
                         </li>
                       )
@@ -471,7 +501,9 @@ export default function AnalyticsPage() {
               <Section title="Länder">
                 {data.countries.length === 0 ? <Empty /> : (
                   <ul className="space-y-1">
-                    {data.countries.map(c => {
+                    {[...data.countries]
+                      .sort((a, b) => metricValue(b, metric) - metricValue(a, metric))
+                      .map(c => {
                       const isActive = filter.country === c.country.toUpperCase()
                       return (
                         <li key={c.country}>
@@ -484,7 +516,7 @@ export default function AnalyticsPage() {
                               <Globe size={13} className="text-zinc-400" />
                               <span className="text-zinc-700 uppercase">{c.country === 'unknown' ? '—' : c.country}</span>
                             </span>
-                            <span className="font-semibold text-zinc-900 tabular-nums">{c.count}</span>
+                            <span className="font-semibold text-zinc-900 tabular-nums">{metricValue(c, metric)}</span>
                           </button>
                         </li>
                       )
@@ -676,12 +708,22 @@ interface TimelinePoint {
 function Timeline({
   data,
   onSelectDay,
+  metric: metricProp,
+  onMetricChange,
 }: {
   data: TimelinePoint[]
   onSelectDay?: (date: string) => void
+  /** Optional controlled metric. Wenn gesetzt, ist der interne State inaktiv. */
+  metric?: Metric
+  onMetricChange?: (m: Metric) => void
 }) {
   const hasMulti = data.length > 0 && data[0].views !== undefined
-  const [metric, setMetric] = useState<Metric>('views')
+  const [internalMetric, setInternalMetric] = useState<Metric>('views')
+  const metric = metricProp ?? internalMetric
+  const setMetric = (m: Metric) => {
+    if (onMetricChange) onMetricChange(m)
+    else setInternalMetric(m)
+  }
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
@@ -939,10 +981,19 @@ function Timeline({
  */
 function HourDistribution({
   data,
+  metric: metricProp,
+  onMetricChange,
 }: {
   data: { hour: number; views: number; sessions: number; visitors: number }[]
+  metric?: Metric
+  onMetricChange?: (m: Metric) => void
 }) {
-  const [metric, setMetric] = useState<Metric>('views')
+  const [internalMetric, setInternalMetric] = useState<Metric>('views')
+  const metric = metricProp ?? internalMetric
+  const setMetric = (m: Metric) => {
+    if (onMetricChange) onMetricChange(m)
+    else setInternalMetric(m)
+  }
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   const valueOf = (h: typeof data[number]): number => {

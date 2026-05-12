@@ -157,53 +157,63 @@ export async function GET(req: Request) {
   const uniqueVisitors = new Set(rows.map(r => r.visitor_hash).filter(Boolean)).size
   const uniqueSessions = new Set(rows.map(r => r.session_hash).filter(Boolean)).size
 
+  // Generischer Aggregator: liefert für jeden Bucket views/sessions/visitors.
+  // `count` bleibt erhalten (== views) damit alte Frontend-Versionen weiter
+  // funktionieren — Metric-Toggle ist Opt-In.
+  function aggregateBy<T extends string>(
+    keyOf: (r: typeof rows[number]) => T | null | undefined,
+  ): { key: T; views: number; sessions: number; visitors: number; count: number }[] {
+    const views    = new Map<T, number>()
+    const sessions = new Map<T, Set<string>>()
+    const visitors = new Map<T, Set<string>>()
+    for (const r of rows) {
+      const k = keyOf(r)
+      if (k == null) continue
+      views.set(k, (views.get(k) ?? 0) + 1)
+      if (r.session_hash) {
+        if (!sessions.has(k)) sessions.set(k, new Set())
+        sessions.get(k)!.add(r.session_hash)
+      }
+      if (r.visitor_hash) {
+        if (!visitors.has(k)) visitors.set(k, new Set())
+        visitors.get(k)!.add(r.visitor_hash)
+      }
+    }
+    return [...views.entries()].map(([key, v]) => ({
+      key,
+      views: v,
+      sessions: sessions.get(key)?.size ?? 0,
+      visitors: visitors.get(key)?.size ?? 0,
+      count: v, // backwards-compat
+    }))
+  }
+
   // Top Pages
-  const pageCount = new Map<string, number>()
-  for (const r of rows) pageCount.set(r.path, (pageCount.get(r.path) ?? 0) + 1)
-  const topPages = [...pageCount.entries()]
-    .sort((a, b) => b[1] - a[1])
+  const topPages = aggregateBy(r => r.path)
+    .sort((a, b) => b.views - a.views)
     .slice(0, 15)
-    .map(([path, count]) => ({ path, count }))
+    .map(x => ({ path: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Top Referrers
-  const refCount = new Map<string, number>()
-  for (const r of rows) {
-    const ref = r.referrer_domain ?? 'direct'
-    refCount.set(ref, (refCount.get(ref) ?? 0) + 1)
-  }
-  const topReferrers = [...refCount.entries()]
-    .sort((a, b) => b[1] - a[1])
+  const topReferrers = aggregateBy(r => r.referrer_domain ?? 'direct')
+    .sort((a, b) => b.views - a.views)
     .slice(0, 10)
-    .map(([domain, count]) => ({ domain, count }))
+    .map(x => ({ domain: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Country
-  const countryCount = new Map<string, number>()
-  for (const r of rows) {
-    const c = r.country ?? 'unknown'
-    countryCount.set(c, (countryCount.get(c) ?? 0) + 1)
-  }
-  const countries = [...countryCount.entries()]
-    .sort((a, b) => b[1] - a[1])
+  const countries = aggregateBy(r => r.country ?? 'unknown')
+    .sort((a, b) => b.views - a.views)
     .slice(0, 15)
-    .map(([country, count]) => ({ country, count }))
+    .map(x => ({ country: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Device
-  const deviceCount = new Map<string, number>()
-  for (const r of rows) {
-    const d = r.device_type ?? 'unknown'
-    deviceCount.set(d, (deviceCount.get(d) ?? 0) + 1)
-  }
-  const devices = [...deviceCount.entries()].map(([device, count]) => ({ device, count }))
+  const devices = aggregateBy(r => r.device_type ?? 'unknown')
+    .map(x => ({ device: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Browser
-  const browserCount = new Map<string, number>()
-  for (const r of rows) {
-    const b = r.browser ?? 'other'
-    browserCount.set(b, (browserCount.get(b) ?? 0) + 1)
-  }
-  const browsers = [...browserCount.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([browser, count]) => ({ browser, count }))
+  const browsers = aggregateBy(r => r.browser ?? 'other')
+    .sort((a, b) => b.views - a.views)
+    .map(x => ({ browser: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Daily timeline — 3 Serien (Views, Sessions, Unique Visitors) damit im
   // Chart umschaltbar/overlay-bar. Sessions + Visitors brauchen Set-Tracking
@@ -301,14 +311,9 @@ export async function GET(req: Request) {
 
   // Referrer-Source-Aggregation (vor-kategorisierte Quellen wie 'google',
   // 'linkedin', 'direct'). Schöner als rohe Domains für Übersicht.
-  const sourceCount = new Map<string, number>()
-  for (const r of rows) {
-    const s = r.referrer_source ?? 'direct'
-    sourceCount.set(s, (sourceCount.get(s) ?? 0) + 1)
-  }
-  const sources = [...sourceCount.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([source, count]) => ({ source, count }))
+  const sources = aggregateBy(r => r.referrer_source ?? 'direct')
+    .sort((a, b) => b.views - a.views)
+    .map(x => ({ source: x.key, count: x.count, views: x.views, sessions: x.sessions, visitors: x.visitors }))
 
   // Click-Events nach Target (z.B. cta_signup_hero: 5)
   const clickByTarget = new Map<string, number>()
