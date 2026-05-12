@@ -60,11 +60,17 @@ export async function GET(req: Request) {
   } else {
     days  = range === '7d' ? 7 : range === '90d' ? 90 : 30
     until = new Date()
-    since = new Date(until.getTime() - days * 86400000).toISOString()
+    // (days - 1) statt days, damit HEUTE als letzter Tag im Fenster liegt.
+    // Vorher: 30 Tage zurück → Loop erzeugte [heute−30, heute−1] → heute fehlte.
+    // Jetzt:  Fenster = [heute − (days−1), heute] inklusiv = exakt `days` Tage.
+    since = new Date(until.getTime() - (days - 1) * 86400000).toISOString()
   }
 
-  // Vorperiode für Trend-Vergleich (gleicher Zeitraum-Längen, davor)
-  const periodMs = new Date(until).getTime() - new Date(since).getTime()
+  // Vorperiode für Trend-Vergleich (gleicher Zeitraum-Längen, davor).
+  // periodMs basiert auf `days` (Anzahl Tage im Fenster), nicht auf der Differenz
+  // until−since, damit Rolling-Range und Custom-Range konsistent dieselbe
+  // Tageszahl als Vergleichsfenster nehmen.
+  const periodMs  = days * 86400000
   const prevSince = new Date(new Date(since).getTime() - periodMs).toISOString()
   const prevUntil = new Date(new Date(since).getTime() - 1).toISOString()
 
