@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { OsssLogo, LogoMark } from '@/components/Logo'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
-import { LIFETIME_PILOT_PROMO_CODE, LIFETIME_PILOT_SLOTS } from '@/lib/pricing'
+// Audit 2026-05-13: PILOT10-Discount + Slots-Konstanten entfernt.
 import { getServerLang } from '@/lib/i18n/server'
 import { HeroAnimations } from './_landing/HeroAnimations'
 import { SportsTabs } from './_landing/SportsTabs'
@@ -231,34 +231,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
         </div>
       </Reveal>
 
-      {/* ── PILOT-PHASE STRIP — ehrliche Founder-Transparenz statt Fake-Traction-Marquee.
-           Loss-aversion + Scarcity: 10 Plätze, 40 % lebenslang. ── */}
-      <div className="bg-amber-50 border-y border-amber-200 py-4 overflow-hidden">
-        <div className="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-center gap-x-4 gap-y-2 text-center sm:text-left">
-          <span className="inline-flex items-center gap-2 text-amber-700 text-[10px] font-black uppercase tracking-[0.2em]">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-            </span>
-            {lang === 'en' ? 'Pilot Phase · May 2026' : 'Pilot-Phase · Mai 2026'}
-          </span>
-          <span className="hidden sm:inline text-amber-300">·</span>
-          <span className="text-zinc-800 text-sm font-medium">
-            {lang === 'en'
-              ? <>First <span className="font-black">{LIFETIME_PILOT_SLOTS} studios</span> get 40 % off — <span className="font-black">forever</span>.</>
-              : <>Erste <span className="font-black">{LIFETIME_PILOT_SLOTS} Studios</span> bekommen 40 % — <span className="font-black">lebenslang</span>.</>}
-          </span>
-          <span className="hidden sm:inline text-amber-300">·</span>
-          <span className="inline-flex items-center gap-2">
-            <code className="bg-zinc-950 text-amber-300 font-mono font-black px-2 py-0.5 rounded text-xs select-all tracking-wider">
-              {LIFETIME_PILOT_PROMO_CODE}
-            </code>
-            <Link href="/pricing" className="text-amber-700 hover:text-amber-900 text-xs font-bold underline-offset-2 hover:underline">
-              {lang === 'en' ? 'see details →' : 'Details ansehen →'}
-            </Link>
-          </span>
-        </div>
-      </div>
+      {/* Audit 2026-05-13: Pilot-Discount-Strip (PILOT10, 40 % lebenslang) entfernt. */}
 
       {/* ── MAAT VERGLEICH — direkter Conversion-Hebel direkt unter dem Hero.
            Bewusst HIER (nicht weiter unten in „Cost Proof"), weil ein Owner der
@@ -820,23 +793,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
             </div>
           </div>
 
-          {/* Lifetime-Pilot strip */}
-          <div className="mb-8">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-2 text-xs">
-              <span className="font-bold text-amber-700 uppercase tracking-wider text-[10px]">
-                {lang === 'en' ? `First ${LIFETIME_PILOT_SLOTS} studios` : `Erste ${LIFETIME_PILOT_SLOTS} Studios`}
-              </span>
-              <span className="text-zinc-700">
-                {lang === 'en' ? '40 % lifetime with code' : '40 % lebenslang mit Code'}
-              </span>
-              <code className="bg-zinc-950 text-amber-300 font-mono font-black px-2 py-0.5 rounded select-all">
-                {LIFETIME_PILOT_PROMO_CODE}
-              </code>
-              <span className="text-zinc-500 text-[11px]">
-                {lang === 'en' ? '→ from 23 €/month' : '→ ab 23 €/Monat'}
-              </span>
-            </div>
-          </div>
+          {/* Audit 2026-05-13: Lifetime-Pilot strip (PILOT10, 40 %) entfernt. */}
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/register" data-track="cta_signup_pricing_teaser"

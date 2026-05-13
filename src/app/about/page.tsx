@@ -210,8 +210,8 @@ export default async function AboutPage() {
               { date: 'Mar 2026', title: 'Product v1',
                 desc: 'Members, SEPA via Stripe Connect, member portal, public gym page, schedule, belt system. 6 sports preconfigured. DATEV CSV export added.' },
               { date: 'May 2026', title: 'Pilot phase begins',
-                desc: 'Open the first 10 lifetime-pilot slots. 40 % off forever for early studios. First warm leads in the pipeline.' },
-              { date: 'You are here', title: 'Looking for the first 10',
+                desc: 'Early studios get personal onboarding and direct line to me as founder. First warm leads in the pipeline.' },
+              { date: 'You are here', title: 'Looking for the first studios',
                 desc: 'I\'m talking to studio owners directly. If you run a martial-arts gym in Germany, Austria or Switzerland and want to migrate from Excel, Eversports or Magicline — let\'s talk.', current: true },
             ] : [
               { date: 'Q4 2025', title: 'Erste Code-Zeilen',
@@ -219,8 +219,8 @@ export default async function AboutPage() {
               { date: 'März 2026', title: 'Produkt v1',
                 desc: 'Mitgliederverwaltung, SEPA über Stripe Connect, Member-Portal, öffentliche Gym-Seite, Stundenplan, Gürtel-System. 6 Sportarten vorkonfiguriert. DATEV-CSV-Export eingebaut.' },
               { date: 'Mai 2026', title: 'Pilot-Phase startet',
-                desc: 'Erste 10 Lifetime-Pilot-Plätze öffnen. 40 % Rabatt für immer für Early-Adopter. Erste warme Leads in der Pipeline.' },
-              { date: 'Du bist hier', title: 'Suche die ersten 10',
+                desc: 'Early-Adopter bekommen persönliches Onboarding und direkten Draht zu mir als Founder. Erste warme Leads in der Pipeline.' },
+              { date: 'Du bist hier', title: 'Suche die ersten Studios',
                 desc: 'Ich spreche direkt mit Studio-Ownern. Wenn du ein Kampfsport-Gym in DACH betreibst und von Excel, Eversports oder Magicline migrieren willst — lass uns reden.', current: true },
             ]).map((item, idx) => (
               <div key={idx} className="flex gap-5 relative">

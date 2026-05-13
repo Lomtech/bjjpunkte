@@ -72,49 +72,31 @@ These are working assumptions used to set the price, not commitments.
 If we miss any of these by >50 % for two consecutive quarters,
 the next pricing review (see §6) is triggered early.
 
-## 4. Lifetime-Pilot programme
+## 4. Lifetime-Pilot programme — REMOVED 2026-05-13
 
-### Mechanics
+The PILOT10 40 %-off-lifetime discount was retired on 2026-05-13.
+Public pricing is now uniform: 49 €/month monthly, 39 €/month annual,
+no promo codes, no first-N-discount.
 
-- **Cap:** 10 paying studios. After studio #10, the offer is closed.
-- **Discount:** **40 % off the standard tier price, locked in for life.**
-  Implemented as a Stripe Coupon with `duration: 'forever'` attached
-  at first checkout.
-- **Worked examples:**
-  - Starter: 49 € × 0.6 = 29.40 € → **honoured at 29 €/month**
-    (matches the original quote given to CSC FFB).
-  - Grow: 89 € × 0.6 = 53.40 € → **53 €/month**.
-  - Pro: 149 € × 0.6 = 89.40 € → **89 €/month**.
-- **Annual flavour:** if a pilot opts for annual billing, they pay
-  10 × the discounted monthly rate (so the 16.7 % "2 months free"
-  benefit stacks on top of the 40 % pilot discount).
+### Why it was removed
 
-### Legal framing
+- **Anchoring problem.** A visible "40 % off forever" discount
+  trained prospects to wait for the discount rather than buy at
+  standard price. Future paying customers would have asked
+  "where's mine?".
+- **Loss-aversion is bidirectional.** The discount we offered as a
+  carrot also signalled "we're not sure our price is right" — a
+  weaker founder signal than charging the asked price confidently.
+- **No promise rollback.** Existing pilot studios (none signed as of
+  2026-05-13) would have been unaffected. Removal is a forward-only
+  change to the public marketing surface.
 
-- The discount is presented as a **loyalty bonus for early customers
-  taking on the risk of an unproven product**. This is the
-  consideration that makes "for life" defensible: the pilot accepts
-  risk we would otherwise carry.
-- "For life" means **for as long as the subscription stays continuously
-  active**. Cancellation followed by re-subscription does **not**
-  re-grant pilot pricing — the standard rate applies. This must be in
-  the pilot terms-of-service addendum.
-- Pilots get the same product as standard customers. We do not promise
-  features in exchange for the discount.
-- We commit, in writing, **not to retroactively raise** the pilot price.
-  A general price increase (see §6) does not invalidate pilot rates.
+### What replaced it
 
-### Operational checklist (Owner action items)
-
-1. Create three "pilot" Stripe Coupons (`starter_pilot_40`,
-   `grow_pilot_40`, `pro_pilot_40`) — `percent_off: 40`,
-   `duration: 'forever'`.
-2. Add a per-gym `pilot_status` flag in the database (proposed:
-   `gyms.pilot_cohort` boolean, default `false`).
-3. Track the slot count manually until #10 is hit. After that, remove
-   the coupons and disable the pilot CTA on `/pricing`.
-4. Send a written confirmation email when granting pilot status —
-   record the discount, the lock-in language, and the date.
+- 14-day free trial without credit card is the entry path.
+- Founder-led onboarding ("Lom personally sets you up") is the
+  scarcity hook in the sales script (see `CallScript.tsx` —
+  "3 Pilot-Gyms, 6 Monate gratis" pitch retained).
 
 ## 5. What is NOT included in this change
 

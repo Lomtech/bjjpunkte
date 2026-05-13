@@ -9,9 +9,6 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 import {
   STANDARD_TIER,
   FREE_TRIAL_DAYS,
-  LIFETIME_PILOT_DISCOUNT,
-  LIFETIME_PILOT_PROMO_CODE,
-  LIFETIME_PILOT_SLOTS,
 } from '@/lib/pricing'
 
 /**
@@ -23,8 +20,9 @@ import {
  *   - MAAT (49 €/Mo + 1 %) als primärer Wettbewerbsvergleich (war: Eversports)
  *   - i18n DE/EN via useLanguage()
  *   - 4 Ergebnis-Karten: Manuell / MAAT / Osss Monatlich / Osss Jährlich
- *   - PILOT10-Hint mit aktualisierten Pilot-Preisen (29,40 € monatlich,
- *     23,40 € jährlich)
+ *
+ * Audit 2026-05-13: PILOT10-Lifetime-Discount entfernt — Single-Tier-
+ * Preise (49/39 €/Mo) sind jetzt die einzigen Anker.
  *
  * Conversion-Hook: am Ende der Berechnung CTA zu /register.
  *
@@ -59,9 +57,7 @@ export default function RechnerPage() {
     const osssAnnualMonthlyCost = STANDARD_TIER.annualMonthlyCents / 100
     const osssMonthlyAnnual = osssMonthlyCost * 12
     const osssAnnualAnnual = osssAnnualMonthlyCost * 12
-    // PILOT10: 60 % des Preises (40 % Rabatt forever)
-    const pilotMonthlyMonthly = Math.round(osssMonthlyCost * LIFETIME_PILOT_DISCOUNT * 100) / 100
-    const pilotAnnualMonthly = Math.round(osssAnnualMonthlyCost * LIFETIME_PILOT_DISCOUNT * 100) / 100
+    // Audit 2026-05-13: Pilot-Discount-Berechnung entfernt.
 
     // MAAT
     const maatMonthly = getMaatMonthly(members, avgFee)
@@ -79,8 +75,6 @@ export default function RechnerPage() {
       osssAnnualMonthlyCost,
       osssMonthlyAnnual,
       osssAnnualAnnual,
-      pilotMonthlyMonthly,
-      pilotAnnualMonthly,
       maatMonthly,
       maatAnnual,
       maatPlatformFee,
@@ -212,20 +206,7 @@ export default function RechnerPage() {
               highlight
             />
 
-            {/* PILOT10 hint — immer relevant in Single-Tier-Modell */}
-            <p className="text-xs text-emerald-700 leading-relaxed bg-emerald-50/60 border border-emerald-200 rounded-xl px-4 py-3">
-              {en ? (
-                <>💡 First {LIFETIME_PILOT_SLOTS} studios get 40 % off forever with code{' '}
-                  <strong>{LIFETIME_PILOT_PROMO_CODE}</strong> — only{' '}
-                  <strong>{fmtPrecise(calc.pilotMonthlyMonthly)}/mo</strong> monthly or{' '}
-                  <strong>{fmtPrecise(calc.pilotAnnualMonthly)}/mo</strong> annual.</>
-              ) : (
-                <>💡 Erste {LIFETIME_PILOT_SLOTS} Studios bekommen mit Code{' '}
-                  <strong>{LIFETIME_PILOT_PROMO_CODE}</strong> dauerhaft 40 % Rabatt = nur{' '}
-                  <strong>{fmtPrecise(calc.pilotMonthlyMonthly)}/Mo</strong> monatlich oder{' '}
-                  <strong>{fmtPrecise(calc.pilotAnnualMonthly)}/Mo</strong> jährlich.</>
-              )}
-            </p>
+            {/* Audit 2026-05-13: PILOT10-Hint entfernt. */}
 
             {/* Savings */}
             <div className="bg-zinc-950 text-white rounded-2xl p-5 sm:p-6 mt-5">

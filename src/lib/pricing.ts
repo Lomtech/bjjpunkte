@@ -73,39 +73,10 @@ export const PRICING_TIERS: readonly PricingTier[] = [STANDARD_TIER]
  */
 export const FREE_TRIAL_DAYS = 14
 
-/**
- * Loyalty mechanic for the first 10 paying studios ("Lifetime-Pilot-Pricing").
- * They lock in 60 % of the standard price for life as compensation for taking
- * the risk on an unproven product.
- *
- * 0.6 means: pilot pays 60 %, saves 40 %.
- *
- * Concrete pilot prices:
- *   Standard monthly  49 € → 29.40 €/month
- *   Standard annual   39 € → 23.40 €/month  (= 280.80 €/year)
- *
- * Implementation note:
- *   Pilot status is granted via a 40 %-off Stripe Coupon attached to the
- *   subscription at first checkout. The coupon's `duration` is `forever`.
- *   See compliance/sales/pricing-rationale.md for the operational steps.
- */
-export const LIFETIME_PILOT_DISCOUNT = 0.6
-
-/** Fixed cap for the pilot programme. After 10 paying studios the offer is closed. */
-export const LIFETIME_PILOT_SLOTS = 10
-
-/**
- * Promotion code displayed publicly on the pricing page. Studios enter this
- * at Stripe Checkout to redeem the LIFETIME_PILOT_DISCOUNT.
- *
- * The code itself, the 10-redemption cap, and the "forever" duration are
- * configured in the Stripe Dashboard — Stripe enforces all of those, the
- * frontend only displays the string.
- *
- * Update both places when changing it (Stripe Dashboard → Promotion Code,
- * AND this constant). Otherwise customers paste a code Stripe rejects.
- */
-export const LIFETIME_PILOT_PROMO_CODE = 'PILOT10'
+// Audit 2026-05-13: Lifetime-Pilot-Discount + PILOT10-Promo-Code entfernt
+// (User-Entscheidung). Single-Tier 49/39 €/Mo bleibt der einzige öffentliche
+// Preisanker. Falls jemals wieder ein zeitlich begrenzter Discount erscheinen
+// soll, gehören die Konstanten zurück hierhin, NICHT verstreut in Page-Files.
 
 /**
  * Format a Euro price stored in cents into a localised display string.

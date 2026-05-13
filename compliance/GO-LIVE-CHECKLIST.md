@@ -63,17 +63,16 @@ Stand: 2026-05-09 nach Sprint-Finalize (Commit `d315d6a`).
 
 ### 3. Test-Checkout durchspielen (10 Minuten)
 
-**Warum**: Verifiziert dass `PILOT10`-Coupon greift, Stripe-Tax richtig läuft, Webhook das Event verarbeitet.
+**Warum**: Verifiziert dass Standard-Tarif (49 €/Mo bzw. 39 €/Mo jährlich) greift, Stripe-Tax richtig läuft, Webhook das Event verarbeitet.
 
 **Schritte**:
 1. https://www.osss.pro/pricing in einem Inkognito-Fenster öffnen
-2. Klick „Jetzt mit Code starten" → Stripe-Checkout
-3. Code `PILOT10` eingeben → 40% Rabatt sollte erscheinen
-4. Adresse eingeben (echte oder fake-Adresse) → Tax sollte 0% (Kleinunternehmer) zeigen
-5. Test-Karte `4242 4242 4242 4242`, beliebiges Datum + CVC
-6. Subscription wird angelegt → bei Erfolg im Stripe-Dashboard sehen
-7. Im Supabase: `SELECT plan, plan_member_limit FROM gyms WHERE owner_id = '<deine UUID>'` → muss `starter`/`grow`/`pro` mit korrektem Limit zeigen
-8. Test-Subscription wieder kündigen + Customer löschen
+2. Klick „Jetzt starten" → Stripe-Checkout
+3. Adresse eingeben (echte oder fake-Adresse) → Tax sollte 0% (Kleinunternehmer) zeigen
+4. Test-Karte `4242 4242 4242 4242`, beliebiges Datum + CVC
+5. Subscription wird angelegt → bei Erfolg im Stripe-Dashboard sehen
+6. Im Supabase: `SELECT plan, plan_member_limit FROM gyms WHERE owner_id = '<deine UUID>'` → muss `pro` mit korrektem Limit zeigen
+7. Test-Subscription wieder kündigen + Customer löschen
 
 ---
 
@@ -112,7 +111,7 @@ Falls Probleme: Feature-Flag in Vercel auf `false` setzen → fällt zurück auf
 **Sales-Schiene** (dein eigener Funnel):
 1. Test-Checkout in deinem Account selbst → bezahle dich (Stripe-Test-Mode oder echte 49€)
 2. Onboarding-Flow durchklicken → Pain-Points selbst spüren
-3. Mit echten Studios Demo-Calls machen → die ersten 10 mit `PILOT10` → Lifetime 40% off
+3. Mit echten Studios Demo-Calls machen → 14-Tage-Trial + persönliches Onboarding als Knappheits-Hebel (3 Pilot-Slots, kein Discount nötig)
 
 **Wenn der erste echte Studio kommt**:
 - Sei dabei beim Onboarding (Bildschirm-Sharing-Call)

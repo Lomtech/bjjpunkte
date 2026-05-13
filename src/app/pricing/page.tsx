@@ -11,9 +11,6 @@ import { ContactModal } from '@/app/_landing/ContactModal'
 import {
   STANDARD_TIER,
   FREE_TRIAL_DAYS,
-  LIFETIME_PILOT_SLOTS,
-  LIFETIME_PILOT_PROMO_CODE,
-  LIFETIME_PILOT_DISCOUNT,
   formatPriceEURShort,
   savingsAnnualEUR,
 } from '@/lib/pricing'
@@ -38,9 +35,7 @@ export default function PricingPage() {
   // Effective monthly price displayed in the hero card.
   const displayCents = annual ? STANDARD_TIER.annualMonthlyCents : STANDARD_TIER.monthlyCents
   const annualSavings = savingsAnnualEUR()
-  // Pilot price for the marketing strip (60 % of base).
-  const pilotMonthlyCents = Math.round(STANDARD_TIER.monthlyCents * LIFETIME_PILOT_DISCOUNT)
-  const pilotAnnualMonthlyCents = Math.round(STANDARD_TIER.annualMonthlyCents * LIFETIME_PILOT_DISCOUNT)
+  // Audit 2026-05-13: Pilot-Discount-Berechnungen entfernt.
 
   const FEATURES = en ? [
     'All features unlocked from day 1',
@@ -133,10 +128,6 @@ export default function PricingPage() {
       q: 'Is there a free tier?',
       a: 'Not anymore. We had one (free up to 30 members) but found it didn\'t convert — studios stayed at 25 members forever to avoid the upgrade. The 14-day trial is the new entry point: full access, no card, no commitment.',
     },
-    {
-      q: 'What about the lifetime PILOT10 discount?',
-      a: `First ${LIFETIME_PILOT_SLOTS} studios that sign up with code ${LIFETIME_PILOT_PROMO_CODE} at Stripe Checkout get 40 % off forever — that\'s ${formatPriceEURShort(pilotMonthlyCents, 'en')}/month monthly or ${formatPriceEURShort(pilotAnnualMonthlyCents, 'en')}/month annual. The discount stays for the life of the subscription, even when we eventually raise prices.`,
-    },
   ] : [
     {
       q: 'Wie funktioniert der 14-Tage-Trial?',
@@ -161,10 +152,6 @@ export default function PricingPage() {
     {
       q: 'Gibt es einen Free-Tier?',
       a: 'Nicht mehr. Wir hatten einen (gratis bis 30 Mitglieder), aber er konvertierte nicht — Studios blieben dauerhaft bei 25 Mitgliedern um das Upgrade zu vermeiden. Der 14-Tage-Trial ist der neue Einstieg: voller Zugang, keine Kreditkarte, kein Commitment.',
-    },
-    {
-      q: 'Wie funktioniert der Lifetime-PILOT10-Rabatt?',
-      a: `Die ersten ${LIFETIME_PILOT_SLOTS} Studios, die mit Code ${LIFETIME_PILOT_PROMO_CODE} bei Stripe Checkout abschließen, bekommen 40 % lebenslang — das sind ${formatPriceEURShort(pilotMonthlyCents, 'de')}/Monat monatlich oder ${formatPriceEURShort(pilotAnnualMonthlyCents, 'de')}/Monat jährlich. Der Rabatt bleibt für die gesamte Abo-Laufzeit, auch wenn wir später die Preise erhöhen.`,
     },
   ]
 
@@ -290,26 +277,7 @@ export default function PricingPage() {
             </p>
           </div>
 
-          {/* PILOT10 strip */}
-          <div className="mt-10 max-w-2xl mx-auto">
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-              <p className="text-amber-700 font-bold text-[10px] uppercase tracking-[0.2em] mb-2">
-                {en ? `Pilot Program — first ${LIFETIME_PILOT_SLOTS} studios` : `Pilot-Programm — erste ${LIFETIME_PILOT_SLOTS} Studios`}
-              </p>
-              <p className="text-zinc-800 text-sm sm:text-base mb-3 leading-relaxed">
-                {en ? <>Lock in <span className="font-black">40 % off — forever</span> with code{' '}</>
-                    : <>Sichere dir <span className="font-black">40 % Rabatt — lebenslang</span> mit Code{' '}</>}
-                <code className="bg-zinc-950 text-amber-300 font-mono font-black px-2 py-0.5 rounded text-sm select-all tracking-wider">
-                  {LIFETIME_PILOT_PROMO_CODE}
-                </code>
-              </p>
-              <p className="text-zinc-500 text-xs">
-                {en
-                  ? `→ ${formatPriceEURShort(pilotMonthlyCents, 'en')}/month monthly · ${formatPriceEURShort(pilotAnnualMonthlyCents, 'en')}/month annual. Discount applies for the lifetime of your subscription.`
-                  : `→ ${formatPriceEURShort(pilotMonthlyCents, 'de')}/Monat monatlich · ${formatPriceEURShort(pilotAnnualMonthlyCents, 'de')}/Monat jährlich. Rabatt gilt lebenslang.`}
-              </p>
-            </div>
-          </div>
+          {/* Audit 2026-05-13: Pilot-Discount-Strip (PILOT10, 40 %) entfernt. */}
         </div>
       </section>
 

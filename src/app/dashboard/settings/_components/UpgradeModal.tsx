@@ -139,8 +139,8 @@ export function UpgradeModal({ currentPlan, loadingPlan, onUpgrade, onClose }: {
 
         <p className="text-center text-xs text-zinc-400 pb-6 px-6 leading-relaxed">
           {en
-            ? 'Stripe Checkout opens in a new tab. EU VAT calculated automatically. Promo code PILOT10 (40 % off lifetime) can be entered at checkout.'
-            : 'Stripe-Checkout öffnet sich im neuen Tab. EU-USt. wird automatisch berechnet. Promo-Code PILOT10 (40 % lebenslang) kann beim Checkout eingegeben werden.'}
+            ? 'Stripe Checkout opens in a new tab. EU VAT calculated automatically. Cancel anytime.'
+            : 'Stripe-Checkout öffnet sich im neuen Tab. EU-USt. wird automatisch berechnet. Jederzeit kündbar.'}
         </p>
       </div>
     </div>

@@ -87,11 +87,9 @@ export async function POST(req: Request) {
       // Abo upgegradet wird. Das match'd die Marketing-Versprechen
       // "ohne Kreditkarte testen".
       payment_method_collection: 'if_required',
-      // Lifetime-Pilot: studio enters a promo code (e.g. PILOT10) at checkout.
-      // The actual coupon ("Lifetime Pilot — first 10 studios", 40% off forever)
-      // is configured in the Stripe Dashboard. Switching to allow_promotion_codes
-      // means we don't need to attach the coupon ID server-side — Stripe validates
-      // and applies it automatically when a valid code is entered.
+      // Audit 2026-05-13: Lifetime-Pilot-Discount (PILOT10) entfernt — Studios
+      // bezahlen den Standard-Tarif. Wir lassen allow_promotion_codes trotzdem
+      // an, damit zukünftige Werbe-Codes ohne Code-Änderung funktionieren.
       allow_promotion_codes: true,
       // Stripe Tax handles EU B2B reverse-charge automatically once the customer
       // provides a valid USt-IdNr / VAT-ID. Without this we'd ship plain 19% DE
