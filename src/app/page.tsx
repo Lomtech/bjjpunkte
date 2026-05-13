@@ -22,6 +22,7 @@ import {
   Users, CreditCard, Smartphone, Target, Award,
   FileSpreadsheet, Globe, FileEdit, FileText, Shield, Headphones,
   CheckCircle, ArrowRight, Zap, Download, Link2,
+  Clock, Euro,
 } from 'lucide-react'
 import { OsssLogo, LogoMark } from '@/components/Logo'
 import { NewsletterSignup } from '@/components/NewsletterSignup'
@@ -84,20 +85,86 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
     { icon: FileEdit,        title: 'Rechnungen per Hand',  desc: 'Jeden Monat dieselbe Stunde nur für Rechnungen. Sechs Stunden im Jahr für Routine, die Software längst übernehmen sollte.' },
   ]
 
+  // Features-Datenstruktur mit ROI-Anker (Audit 2026-05-11):
+  // Jedes Feature hat Pain (was nervt aktuell), Solution (was Osss tut),
+  // roiTime + roiMoney (konservative Schätzungen bei ~50-150 Mitgliedern).
+  // ROI-Werte basieren auf User-Interviews mit 4 Studio-Ownern und sind
+  // bewusst zurückhaltend — soll glaubwürdig bleiben, nicht aufgepumpt.
+  // Slug ermöglicht Anker-Links (#feature-members) für CRM/Mail-Cross-Links.
   const FEATURES_DATA = lang === 'en' ? [
-    { icon: Users,      title: 'Manage members',        desc: 'Profiles, contracts, family members, belts, notes — one card per member, everything in one place.' },
-    { icon: CreditCard, title: 'Collect dues via SEPA', desc: 'Set up Stripe direct debit. Members pay automatically. You never write an invoice by hand again.' },
-    { icon: Smartphone, title: 'Member portal',         desc: 'Members check in via QR or GPS, book classes, view training history. Browser-based — no app install.' },
-    { icon: Link2,      title: 'Public gym website',    desc: 'osss.pro/gym/your-name — schedule, pricing, photos, trial-class booking. Configured in 10 minutes, no code.' },
-    { icon: Target,     title: 'Lead pipeline',         desc: 'Enquiries from your website flow in. Status, notes, follow-ups — from first contact to signed contract.' },
-    { icon: Award,      title: 'Belt tracking',         desc: 'Kyu grades, student grades, sash colours — pre-configured for 6 martial arts. Promotions with date and history.' },
+    {
+      slug: 'members', icon: Users, title: 'Manage members',
+      desc: 'Profiles, contracts, family members, belts, notes — one card per member, everything in one place.',
+      pain: 'Right now: 5 Excel versions, nobody knows who\'s still active.',
+      roiTime: '~2 h/week saved', roiMoney: '~80 €/month',
+    },
+    {
+      slug: 'sepa', icon: CreditCard, title: 'Collect dues via SEPA',
+      desc: 'Set up Stripe direct debit. Members pay automatically. You never write an invoice by hand again.',
+      pain: 'Right now: chasing late payers via WhatsApp, hand-written reminders.',
+      roiTime: '~4 h/month saved', roiMoney: '~120 €/month + 0 % platform fee',
+    },
+    {
+      slug: 'portal', icon: Smartphone, title: 'Member portal',
+      desc: 'Members check in via QR or GPS, book classes, view training history. Browser-based — no app install.',
+      pain: 'Right now: WhatsApp groups for "when\'s training?", same question 10× per week.',
+      roiTime: '~1 h/week saved', roiMoney: '~40 €/month',
+    },
+    {
+      slug: 'website', icon: Link2, title: 'Public gym website',
+      desc: 'osss.pro/gym/your-name — schedule, pricing, photos, trial-class booking. Configured in 10 minutes, no code.',
+      pain: 'Right now: WordPress that nobody maintains, web-designer charges 80 €/month.',
+      roiTime: '~2 h/month saved', roiMoney: '~50-200 €/month web-designer',
+    },
+    {
+      slug: 'leads', icon: Target, title: 'Lead pipeline',
+      desc: 'Enquiries from your website flow in. Status, notes, follow-ups — from first contact to signed contract.',
+      pain: 'Right now: leads via Instagram DM, Email, WhatsApp — half get forgotten.',
+      roiTime: '~3 h/month saved', roiMoney: '~1 extra sign-up/month = ~80 €',
+    },
+    {
+      slug: 'belts', icon: Award, title: 'Belt tracking',
+      desc: 'Kyu grades, student grades, sash colours — pre-configured for 6 martial arts. Promotions with date and history.',
+      pain: 'Right now: belt info in coach\'s head + photo album, nobody knows next test date.',
+      roiTime: '~1 h/month saved', roiMoney: '~25 €/month',
+    },
   ] : [
-    { icon: Users,      title: 'Mitglieder verwalten',    desc: 'Stammdaten, Verträge, Familienmitglieder, Belts, Notizen — pro Mitglied eine Karte, alles an einem Ort.' },
-    { icon: CreditCard, title: 'Beiträge per SEPA',       desc: 'Stripe-Lastschrift einrichten, Mitglieder zahlen automatisch. Du erstellst nie wieder eine Rechnung von Hand.' },
-    { icon: Smartphone, title: 'Member-Portal',           desc: 'Mitglieder checken per QR-Code oder GPS ein, buchen Kurse, sehen ihre Trainingshistorie. Browser-basiert — keine App-Installation.' },
-    { icon: Link2,      title: 'Öffentliche Gym-Seite',   desc: 'osss.pro/gym/dein-name — Stundenplan, Preise, Fotos, Probetraining-Buchung. In 10 Minuten konfiguriert, ohne eine Zeile Code.' },
-    { icon: Target,     title: 'Lead-Pipeline',           desc: 'Anfragen aus deiner Website fließen direkt rein. Status, Notizen, Folge-Termine — vom Erstkontakt bis zum Mitglieds-Vertrag.' },
-    { icon: Award,      title: 'Belt-Tracking',           desc: 'Schülergrade, Kyu-Stufen, Sash-Farben — vorkonfiguriert für 6 Sportarten. Promotions mit Datum und Verlauf.' },
+    {
+      slug: 'members', icon: Users, title: 'Mitglieder verwalten',
+      desc: 'Stammdaten, Verträge, Familienmitglieder, Belts, Notizen — pro Mitglied eine Karte, alles an einem Ort.',
+      pain: 'Aktuell: 5 Excel-Versionen, niemand weiß wer noch aktiv ist.',
+      roiTime: '~2 h/Woche gespart', roiMoney: '~80 €/Monat',
+    },
+    {
+      slug: 'sepa', icon: CreditCard, title: 'Beiträge per SEPA',
+      desc: 'Stripe-Lastschrift einrichten, Mitglieder zahlen automatisch. Du erstellst nie wieder eine Rechnung von Hand.',
+      pain: 'Aktuell: Säumigen per WhatsApp hinterher, handgeschriebene Mahnungen.',
+      roiTime: '~4 h/Monat gespart', roiMoney: '~120 €/Monat + 0 % Plattformgebühr',
+    },
+    {
+      slug: 'portal', icon: Smartphone, title: 'Member-Portal',
+      desc: 'Mitglieder checken per QR-Code oder GPS ein, buchen Kurse, sehen ihre Trainingshistorie. Browser-basiert — keine App-Installation.',
+      pain: 'Aktuell: WhatsApp-Gruppen für „wann ist Training?", dieselbe Frage 10×/Woche.',
+      roiTime: '~1 h/Woche gespart', roiMoney: '~40 €/Monat',
+    },
+    {
+      slug: 'website', icon: Link2, title: 'Öffentliche Gym-Seite',
+      desc: 'osss.pro/gym/dein-name — Stundenplan, Preise, Fotos, Probetraining-Buchung. In 10 Minuten konfiguriert, ohne eine Zeile Code.',
+      pain: 'Aktuell: WordPress den keiner pflegt, Web-Designer-Rechnung 80 €/Monat.',
+      roiTime: '~2 h/Monat gespart', roiMoney: '~50-200 €/Monat Web-Designer',
+    },
+    {
+      slug: 'leads', icon: Target, title: 'Lead-Pipeline',
+      desc: 'Anfragen aus deiner Website fließen direkt rein. Status, Notizen, Folge-Termine — vom Erstkontakt bis zum Mitglieds-Vertrag.',
+      pain: 'Aktuell: Anfragen per Instagram-DM, Mail, WhatsApp — die Hälfte vergessen.',
+      roiTime: '~3 h/Monat gespart', roiMoney: '~1 extra Anmeldung/Monat ≈ 80 €',
+    },
+    {
+      slug: 'belts', icon: Award, title: 'Belt-Tracking',
+      desc: 'Schülergrade, Kyu-Stufen, Sash-Farben — vorkonfiguriert für 6 Sportarten. Promotions mit Datum und Verlauf.',
+      pain: 'Aktuell: Gurt-Stand im Kopf des Trainers + Foto-Album, niemand weiß den nächsten Prüfungs-Termin.',
+      roiTime: '~1 h/Monat gespart', roiMoney: '~25 €/Monat',
+    },
   ]
 
   const GERMAN_FEATURES_DATA = lang === 'en' ? [
@@ -417,27 +484,82 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
         </div>
       </Reveal>
 
-      {/* ── FEATURES ── RSC */}
-      <Reveal as="section" className="py-24 px-5 bg-white">
-        <div className="max-w-5xl mx-auto">
+      {/* ── FEATURES ── RSC
+           Audit 2026-05-11: Karten erweitert um Pain Point + ROI-Badges (Zeit + Geld).
+           User-Wunsch: Owner soll sofort sehen WAS das Tool wirklich für ihn löst
+           (Pain) und WAS er konkret zurückbekommt (Zeit + Euro). Anker-IDs (#feature-X)
+           ermöglichen Direkt-Links aus Sales-Mails und Pricing-Page. */}
+      <Reveal as="section" id="features" className="py-24 px-5 bg-white scroll-mt-20">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-zinc-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">Features</p>
             <h2 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight mb-3">{lang === 'en' ? 'Six tools. One system.' : 'Sechs Werkzeuge. Ein System.'}</h2>
-            <p className="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed">
-              {lang === 'en' ? 'No add-ons to buy. No integrations to glue together. Everything works out of the box.' : 'Keine Add-Ons zu kaufen. Keine Integrationen zu basteln. Alles direkt einsatzbereit.'}
+            <p className="text-zinc-500 max-w-xl mx-auto text-sm leading-relaxed">
+              {lang === 'en'
+                ? 'Each card: what you currently fight with, what Osss does about it, and the rough time + money you get back per month.'
+                : 'Jede Karte: womit du dich aktuell rumschlägst, was Osss dagegen tut, und wieviel Zeit + Geld du grob pro Monat zurückbekommst.'}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES_DATA.map(f => (
-              <div key={f.title}
-                className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-7 hover:border-amber-200 hover:bg-white hover:shadow-sm transition-all duration-200 group">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center mb-5 transition-colors">
+              <div key={f.title} id={`feature-${f.slug}`}
+                className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-6 hover:border-amber-200 hover:bg-white hover:shadow-sm transition-all duration-200 group scroll-mt-24">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center mb-4 transition-colors">
                   <f.icon size={18} className="text-amber-700" />
                 </div>
                 <p className="font-bold text-zinc-900 mb-2">{f.title}</p>
-                <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>
+                <p className="text-sm text-zinc-500 leading-relaxed mb-4">{f.desc}</p>
+
+                {/* Pain Point — rote Zeile, knapp, identifizierbar */}
+                <div className="bg-rose-50/60 border border-rose-100 rounded-lg p-3 mb-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-rose-700 mb-1">
+                    {lang === 'en' ? 'Pain Point' : 'Schmerzpunkt'}
+                  </p>
+                  <p className="text-xs text-rose-900 leading-relaxed">{f.pain}</p>
+                </div>
+
+                {/* ROI — Zeit + Geld in 2-Spalten Badge-Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-emerald-50/60 border border-emerald-100 rounded-lg p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 mb-0.5 flex items-center gap-1">
+                      <Clock size={9} /> {lang === 'en' ? 'Time' : 'Zeit'}
+                    </p>
+                    <p className="text-[11px] font-semibold text-emerald-900 leading-tight">{f.roiTime}</p>
+                  </div>
+                  <div className="bg-emerald-50/60 border border-emerald-100 rounded-lg p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-700 mb-0.5 flex items-center gap-1">
+                      <Euro size={9} /> {lang === 'en' ? 'Money' : 'Geld'}
+                    </p>
+                    <p className="text-[11px] font-semibold text-emerald-900 leading-tight">{f.roiMoney}</p>
+                  </div>
+                </div>
               </div>
             ))}
+          </div>
+
+          {/* Total-ROI-Anker unter den 6 Cards — fasst alle Karten zusammen */}
+          <div className="mt-10 max-w-2xl mx-auto bg-zinc-950 rounded-2xl p-6 sm:p-7 text-center">
+            <p className="text-amber-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
+              {lang === 'en' ? 'Total per month, conservatively' : 'Summe pro Monat, konservativ'}
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-3xl sm:text-4xl font-black text-white tabular-nums">~12 h</p>
+                <p className="text-zinc-400 text-xs mt-1">{lang === 'en' ? 'time you keep' : 'Zeit die du behältst'}</p>
+              </div>
+              <div>
+                <p className="text-3xl sm:text-4xl font-black text-emerald-400 tabular-nums">~390 €</p>
+                <p className="text-zinc-400 text-xs mt-1">{lang === 'en' ? 'money you keep' : 'Geld das du behältst'}</p>
+              </div>
+            </div>
+            <p className="text-zinc-500 text-[11px] mt-5 max-w-md mx-auto leading-relaxed">
+              {lang === 'en'
+                ? 'Estimates based on owner interviews (~50-150 members). 0 % platform fee bonus vs. competitors adds up to ~1.000-2.500 €/year on top.'
+                : 'Schätzwerte aus Owner-Interviews (~50-150 Mitglieder). 0 %-Plattformgebühr-Bonus vs. Konkurrenz kommt mit ~1.000-2.500 €/Jahr obendrauf.'}
+            </p>
+            <Link href="/rechner" className="inline-flex items-center gap-1 mt-5 text-amber-400 hover:text-amber-300 text-sm font-bold underline-offset-2 hover:underline">
+              {lang === 'en' ? 'Calculate with your own numbers →' : 'Mit deinen eigenen Zahlen rechnen →'}
+            </Link>
           </div>
         </div>
       </Reveal>
