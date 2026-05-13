@@ -72,16 +72,25 @@ function leadMatchesFilters(lead: SalesLead, f: {
   if (f.city && !(lead.city ?? '').toLowerCase().includes(f.city.toLowerCase())) return false
   if (f.search) {
     const q = f.search.toLowerCase()
-    const haystack = [lead.name, lead.formatted_address ?? '', lead.phone ?? '', lead.email ?? ''].join(' ').toLowerCase()
-    // Audit 2026-05-11: Telefon-Normalisierung — wenn die Suche viele Ziffern
-    // enthält, vergleiche zusätzlich die Digits-Only-Form (matcht +49-, 0049-
-    // und Leerzeichen-Varianten).
+    // Audit 2026-05-11: erweitertes Haystack — Notizen + alle URLs + intl. Phone.
+    // Server matcht auch in Activities, das kann der Client nicht spiegeln —
+    // nach jedem PATCH wird die Liste sowieso server-side gefetched, also
+    // konvergiert die Anzeige.
+    const haystack = [
+      lead.name,
+      lead.formatted_address ?? '',
+      lead.phone ?? '',
+      lead.international_phone ?? '',
+      lead.email ?? '',
+      lead.notes ?? '',
+      lead.website ?? '',
+      lead.instagram_url ?? '',
+      lead.facebook_url ?? '',
+    ].join(' ').toLowerCase()
     const digits = f.search.replace(/\D/g, '')
     const isPhoneLike = digits.length >= 5 && digits.length / f.search.length > 0.5
     if (isPhoneLike) {
-      const phoneDigits = (lead.phone ?? '').replace(/\D/g, '')
-      // Match letzten 7 Digits (lokaler Teil ohne Country-Code/Vorwahl) — robust
-      // gegen `+49 151 …`, `0151 …`, `0049 151 …`, US/UK-Formats.
+      const phoneDigits = ((lead.phone ?? '') + (lead.international_phone ?? '')).replace(/\D/g, '')
       const tail = digits.slice(-7)
       if (phoneDigits.includes(tail)) return true
     }
@@ -549,6 +558,43 @@ export default function AdminLeadsPage() {
           {/* Mobile-only quota badge below header */}
           {quota && <div className="sm:hidden mt-2"><QuotaBadge quota={quota} /></div>}
 
+          {/* Audit 2026-05-11: Prominente Global-Suche oben in der Header-
+              Leiste statt vergraben in Aside-Filter. User-Szenario "Rückruf
+              und ich weiß nicht welches Gym es ist" muss in 2 Sekunden
+              auffindbar sein. Suche jetzt über Name, Adresse, Telefon
+              (digit-normalisiert), E-Mail, Notizen UND Activity-Subject/
+              Body/Outcome (Anrufe, Mails, Voicemails). */}
+          <div className="mt-3 relative">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+              width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.3-4.3" />
+            </svg>
+            <input
+              id="admin-leads-global-search"
+              type="search"
+              inputMode="search"
+              placeholder="Suche: Name, Telefon, Email, Notizen, Anruf-/Mail-Inhalt …"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(0) }}
+              className="w-full pl-10 pr-10 py-3 text-base border border-zinc-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl bg-white shadow-sm transition-all"
+              autoComplete="off"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => { setSearch(''); setPage(0) }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100"
+                aria-label="Suche leeren"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+              </button>
+            )}
+          </div>
+
           {/* View tabs: Liste / Pipeline.
               Pipeline = "wer ist heute dran"; Liste = klassische CRM-Tabelle. */}
           <div className="mt-3 flex gap-1 bg-zinc-100 rounded-xl p-1 w-full sm:w-fit">
@@ -722,10 +768,8 @@ export default function AdminLeadsPage() {
             <input id="admin-leads-city-input" type="text" placeholder="Stadt …" value={city}
               onChange={e => { setCity(e.target.value); setPage(0) }}
               className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg" />
-            <label htmlFor="admin-leads-search-input" className="sr-only">Suche</label>
-            <input id="admin-leads-search-input" type="text" placeholder="Suche Name/Adresse/Tel/Mail" value={search}
-              onChange={e => { setSearch(e.target.value); setPage(0) }}
-              className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg" />
+            {/* Audit 2026-05-11: Globale Suche zog hoch in den Header (siehe
+                #admin-leads-global-search). Hier nicht mehr duplizieren. */}
             <select value={sort} onChange={e => setSort(e.target.value)}
               className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg">
               <option value="priority">Priorität</option>

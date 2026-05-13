@@ -42,31 +42,57 @@ export async function GET(req: Request) {
   }
   if (search) {
     const safe = search.replace(/[%,]/g, '')
-    // Audit 2026-05-11: Telefon-Normalisierung. User-Szenario: Rückruf von
-    // `+4915127600077` ankommt, im DB ist phone als `+49 151 27600077` oder
-    // `0151/2760-0077` formatiert. Ohne Normalisierung matcht ilike nicht.
+    // Audit 2026-05-11: erweiterte globale Suche.
     //
-    // Lösung: wenn die Suche überwiegend Ziffern enthält, zusätzlich gegen die
-    // Digits-Only-Form der phone-Spalte matchen (regexp_replace strippt alles
-    // ausser Ziffern). Plus: der Suchstring wird ebenfalls auf Digits reduziert.
+    // Was wir matchen:
+    //   1. sales_leads:    name, formatted_address, phone, email, notes
+    //   2. sales_leads:    international_phone, website, instagram_url, facebook_url
+    //   3. sales_activities: subject, body, outcome (Anruf-Notizen, Mail-Inhalte)
+    //   4. phone-digits-Normalisierung — siehe Phone-Like-Branch unten
+    //
+    // Activities werden via Pre-Query gefiltert: erst die lead_ids holen, die
+    // im subject/body/outcome matchen, dann in den or()-Filter der Haupt-Query
+    // einbauen mit id.in.(...).
+    //
+    // Activity-Search wird übersprungen wenn Search < 3 Zeichen — sonst floodet
+    // die or()-Liste mit zu vielen IDs.
     const digits = safe.replace(/\D/g, '')
     const isPhoneLike = digits.length >= 5 && digits.length / safe.length > 0.5
-    if (isPhoneLike) {
-      q = q.or(
-        `name.ilike.%${safe}%,` +
-        `formatted_address.ilike.%${safe}%,` +
-        `phone.ilike.%${safe}%,` +
-        `email.ilike.%${safe}%,` +
-        // Postgrest-Notation: regexp_replace-Filter via .or() funktioniert nicht
-        // direkt — wir nutzen stattdessen die phone-Spalte mit Digits-only-LIKE.
-        // Trick: wenn die DB phone `+49 151 27600077` enthält, matcht
-        // `phone.ilike.%151%27600077%` weil ilike die Leerzeichen erlaubt.
-        // Sicherer: zusätzlicher Match gegen formatted_phone (E.164) wenn vorhanden.
-        `phone.ilike.%${digits.slice(-7)}%` // matcht letzten 7 Digits (lokaler Teil)
-      )
-    } else {
-      q = q.or(`name.ilike.%${safe}%,formatted_address.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`)
+
+    // Pre-Query: Lead-IDs aus sales_activities die im subject/body/outcome matchen
+    let activityLeadIds: string[] = []
+    if (safe.length >= 3 && !isPhoneLike) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: activityHits } = await (supabase.from('sales_activities') as any)
+        .select('lead_id')
+        .or(`subject.ilike.%${safe}%,body.ilike.%${safe}%,outcome.ilike.%${safe}%`)
+        .limit(500)
+      if (Array.isArray(activityHits)) {
+        activityLeadIds = [...new Set(activityHits.map((r: { lead_id: string }) => r.lead_id).filter(Boolean))]
+      }
     }
+
+    // Build or()-Filter — kombiniert Lead-Felder + Activity-Match
+    const orParts: string[] = [
+      `name.ilike.%${safe}%`,
+      `formatted_address.ilike.%${safe}%`,
+      `phone.ilike.%${safe}%`,
+      `email.ilike.%${safe}%`,
+      `notes.ilike.%${safe}%`,
+      `international_phone.ilike.%${safe}%`,
+      `website.ilike.%${safe}%`,
+      `instagram_url.ilike.%${safe}%`,
+      `facebook_url.ilike.%${safe}%`,
+    ]
+    if (isPhoneLike) {
+      // Letzte 7 Digits matchen lokalen Telefonteil unabhängig von Country-Code
+      orParts.push(`phone.ilike.%${digits.slice(-7)}%`)
+      orParts.push(`international_phone.ilike.%${digits.slice(-7)}%`)
+    }
+    if (activityLeadIds.length > 0) {
+      orParts.push(`id.in.(${activityLeadIds.join(',')})`)
+    }
+    q = q.or(orParts.join(','))
   }
 
   // Sort: dir-Param ist optional — wenn nicht gesetzt, wird sinnvoller Default je Key gewählt.
