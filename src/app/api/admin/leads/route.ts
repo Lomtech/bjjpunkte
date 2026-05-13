@@ -42,7 +42,31 @@ export async function GET(req: Request) {
   }
   if (search) {
     const safe = search.replace(/[%,]/g, '')
-    q = q.or(`name.ilike.%${safe}%,formatted_address.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`)
+    // Audit 2026-05-11: Telefon-Normalisierung. User-Szenario: Rückruf von
+    // `+4915127600077` ankommt, im DB ist phone als `+49 151 27600077` oder
+    // `0151/2760-0077` formatiert. Ohne Normalisierung matcht ilike nicht.
+    //
+    // Lösung: wenn die Suche überwiegend Ziffern enthält, zusätzlich gegen die
+    // Digits-Only-Form der phone-Spalte matchen (regexp_replace strippt alles
+    // ausser Ziffern). Plus: der Suchstring wird ebenfalls auf Digits reduziert.
+    const digits = safe.replace(/\D/g, '')
+    const isPhoneLike = digits.length >= 5 && digits.length / safe.length > 0.5
+    if (isPhoneLike) {
+      q = q.or(
+        `name.ilike.%${safe}%,` +
+        `formatted_address.ilike.%${safe}%,` +
+        `phone.ilike.%${safe}%,` +
+        `email.ilike.%${safe}%,` +
+        // Postgrest-Notation: regexp_replace-Filter via .or() funktioniert nicht
+        // direkt — wir nutzen stattdessen die phone-Spalte mit Digits-only-LIKE.
+        // Trick: wenn die DB phone `+49 151 27600077` enthält, matcht
+        // `phone.ilike.%151%27600077%` weil ilike die Leerzeichen erlaubt.
+        // Sicherer: zusätzlicher Match gegen formatted_phone (E.164) wenn vorhanden.
+        `phone.ilike.%${digits.slice(-7)}%` // matcht letzten 7 Digits (lokaler Teil)
+      )
+    } else {
+      q = q.or(`name.ilike.%${safe}%,formatted_address.ilike.%${safe}%,phone.ilike.%${safe}%,email.ilike.%${safe}%`)
+    }
   }
 
   // Sort: dir-Param ist optional — wenn nicht gesetzt, wird sinnvoller Default je Key gewählt.

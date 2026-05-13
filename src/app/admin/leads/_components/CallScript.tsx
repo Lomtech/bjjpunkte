@@ -164,36 +164,38 @@ function Opener({ lead, cityPart, returning }: { lead: Lead; cityPart: string; r
         </p>
       ) : (
         <>
-          {/* PRIMARY — Pilot-Anfrage */}
+          {/* PRIMARY — Discovery-First-Opener (2026-05-11 User-Wunsch).
+              Statt direktem Pitch sofort filtern: redet er nur weiter wenn
+              er die Persona "keine Software" oder "unzufrieden" anspricht.
+              Knappheit + 6-Monate-Pilot-Wert kommen erst in Phase "Pilot-Deal". */}
           <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-300">
             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-2">
-              🎯 PRIMÄR · Pilot-Anfrage (15 Sek, Knappheit + Wert)
+              🎯 PRIMÄR · Discovery-First (10 Sek, Persona-Filter)
             </p>
 
             <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „Hallo, ich bin <strong>Lom-Ali Imadaev</strong>. Direkt: ich hab eine
-              <strong> Software für Kampfsport-Gyms</strong> entwickelt — Mitgliederverwaltung,
-              Beitragseinzug, Belt-Tracking."
+              „Hallo, ich bin <strong>Lom-Ali Imadaev</strong>. Ich bin auf der Suche nach Gyms,
+              die <strong>noch keine Software nutzen</strong> oder <strong>nicht ganz zufrieden</strong> mit
+              ihrer vorhandenen sind."
             </p>
-            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[1 Sek Pause — er weiß: Mensch + Branche.]</p>
-
-            <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „Suche gerade <strong>3 Pilot-Gyms</strong>, die&apos;s <strong>6 Monate gratis</strong> testen
-              wollen. <strong>Ich richte alles persönlich ein</strong>, im Gegenzug: ehrliches Feedback."
-            </p>
-            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[2 Sek Pause — Wertangebot soll wirken.]</p>
-
-            <p className="italic text-base leading-relaxed font-medium text-zinc-900">
-              „<strong>Wäre das was für euer Gym?</strong>"
-            </p>
+            <p className="text-xs text-emerald-700 mt-1 mb-3 italic">[2 Sek Pause — du wartest auf Reaktion. Stille ist dein Freund.]</p>
 
             <div className="text-xs text-emerald-800 mt-3 space-y-1 border-t border-emerald-200 pt-2">
               <p><strong>Warum es wirkt:</strong></p>
-              <p>• <strong>Direkt</strong> — kein Verkaufs-Drumherum, sofort zur Sache</p>
-              <p>• <strong>Software für Kampfsport-Gyms</strong> — 4 Wörter, sofort klar wer&apos;s ist</p>
-              <p>• <strong>3 Pilot-Gyms</strong> — Knappheit aktiviert FOMO</p>
-              <p>• <strong>6 Monate gratis + persönliches Setup</strong> — konkreter Wert ohne Risiko</p>
-              <p>• <strong>Klare Ja/Nein-Frage</strong> am Ende — er muss antworten</p>
+              <p>• <strong>Kein Pitch</strong> — du verkaufst nicht, du suchst Fit</p>
+              <p>• <strong>Zwei klare Personas</strong> — er weiß sofort ob er gemeint ist</p>
+              <p>• <strong>„Nicht ganz zufrieden"</strong> öffnet den Dialog auch bei Eversports/Magicline-Nutzern</p>
+              <p>• <strong>Keine Knappheit am Anfang</strong> — die kommt erst wenn klar ist dass er passt</p>
+              <p>• <strong>Klare Reaktions-Aufforderung</strong> — er muss „Ja/Nein/Mehr Info?" antworten</p>
+            </div>
+
+            <div className="mt-3 bg-white rounded-lg p-2 border border-emerald-200 text-xs text-zinc-700">
+              <p className="font-bold text-emerald-900 mb-1">→ Wenn er reagiert mit „Ja, erzähl mehr":</p>
+              <p>Geh in Tab <strong>Fit-Check</strong> → die 3 Fragen (Größe, aktuelle Lösung, Setup-Bereitschaft).</p>
+              <p className="font-bold text-emerald-900 mb-1 mt-2">→ Wenn er sagt „Wir nutzen X und sind happy":</p>
+              <p>Tab <strong>Einwände</strong> → Empfehlungs-Frage stellen.</p>
+              <p className="font-bold text-emerald-900 mb-1 mt-2">→ Wenn er ablehnt:</p>
+              <p>Tab <strong>Tschüss</strong> → sauber auflegen, Status „Kein Fit".</p>
             </div>
           </div>
 

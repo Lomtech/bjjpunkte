@@ -73,6 +73,18 @@ function leadMatchesFilters(lead: SalesLead, f: {
   if (f.search) {
     const q = f.search.toLowerCase()
     const haystack = [lead.name, lead.formatted_address ?? '', lead.phone ?? '', lead.email ?? ''].join(' ').toLowerCase()
+    // Audit 2026-05-11: Telefon-Normalisierung — wenn die Suche viele Ziffern
+    // enthält, vergleiche zusätzlich die Digits-Only-Form (matcht +49-, 0049-
+    // und Leerzeichen-Varianten).
+    const digits = f.search.replace(/\D/g, '')
+    const isPhoneLike = digits.length >= 5 && digits.length / f.search.length > 0.5
+    if (isPhoneLike) {
+      const phoneDigits = (lead.phone ?? '').replace(/\D/g, '')
+      // Match letzten 7 Digits (lokaler Teil ohne Country-Code/Vorwahl) — robust
+      // gegen `+49 151 …`, `0151 …`, `0049 151 …`, US/UK-Formats.
+      const tail = digits.slice(-7)
+      if (phoneDigits.includes(tail)) return true
+    }
     if (!haystack.includes(q)) return false
   }
   return true
