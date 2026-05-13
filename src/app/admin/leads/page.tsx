@@ -558,41 +558,103 @@ export default function AdminLeadsPage() {
           {/* Mobile-only quota badge below header */}
           {quota && <div className="sm:hidden mt-2"><QuotaBadge quota={quota} /></div>}
 
-          {/* Audit 2026-05-11: Prominente Global-Suche oben in der Header-
-              Leiste statt vergraben in Aside-Filter. User-Szenario "Rückruf
-              und ich weiß nicht welches Gym es ist" muss in 2 Sekunden
-              auffindbar sein. Suche jetzt über Name, Adresse, Telefon
-              (digit-normalisiert), E-Mail, Notizen UND Activity-Subject/
-              Body/Outcome (Anrufe, Mails, Voicemails). */}
-          <div className="mt-3 relative">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
-              width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="M21 21l-4.3-4.3" />
-            </svg>
-            <input
-              id="admin-leads-global-search"
-              type="search"
-              inputMode="search"
-              placeholder="Suche: Name, Telefon, Email, Notizen, Anruf-/Mail-Inhalt …"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(0) }}
-              className="w-full pl-10 pr-10 py-3 text-base border border-zinc-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl bg-white shadow-sm transition-all"
-              autoComplete="off"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => { setSearch(''); setPage(0) }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100"
-                aria-label="Suche leeren"
+          {/* Audit 2026-05-11: Filter-Row mit Globaler Suche + Stadt + Sort +
+              Toggle-Pills. Alles auf 1 Desktop-Zeile, Mobile wrappt automatisch.
+              Suche dominiert (flex-1), Filter daneben kompakt. User-Wunsch:
+              "horizontal auf ebene der suchleiste" — sonst Klick-Tiefe zu hoch.
+              Status-Filter bleibt in Aside (informativ mit Counts). */}
+          <div className="mt-3 flex flex-wrap items-stretch gap-2">
+            {/* Search — Flex-1, schrumpft ab md:240px, mit Icon + Clear */}
+            <div className="relative flex-1 min-w-[240px]">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
+                width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
-              </button>
-            )}
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+              <input
+                id="admin-leads-global-search"
+                type="search"
+                inputMode="search"
+                placeholder="Suche: Name, Tel, Email, Notiz, Anruf-Inhalt …"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(0) }}
+                className="w-full pl-10 pr-10 py-2.5 text-sm border border-zinc-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl bg-white shadow-sm transition-all"
+                autoComplete="off"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => { setSearch(''); setPage(0) }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 rounded-lg hover:bg-zinc-100"
+                  aria-label="Suche leeren"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></svg>
+                </button>
+              )}
+            </div>
+
+            {/* Stadt — fester Breitenanteil */}
+            <input
+              type="text"
+              placeholder="Stadt …"
+              value={city}
+              onChange={e => { setCity(e.target.value); setPage(0) }}
+              className="w-32 sm:w-40 px-3 py-2.5 text-sm border border-zinc-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl bg-white shadow-sm"
+              aria-label="Stadt"
+            />
+
+            {/* Sort — knapp, fester Breitenanteil */}
+            <select
+              value={sort}
+              onChange={e => setSort(e.target.value)}
+              className="w-36 sm:w-44 px-3 py-2.5 text-sm border border-zinc-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl bg-white shadow-sm"
+              aria-label="Sortierung"
+            >
+              <option value="priority">Priorität</option>
+              <option value="next_followup">Nächster Follow-up</option>
+              <option value="updated">Zuletzt geändert</option>
+              <option value="created">Neueste zuerst</option>
+              <option value="name">Name A-Z</option>
+            </select>
+
+            {/* Toggle-Pills: Fällig + Kampfsport — kompakt statt Checkbox-Zeilen.
+                Aktiv = amber-Hintergrund, inaktiv = neutral. Mit Count-Badge bei fällig. */}
+            <button
+              type="button"
+              onClick={() => { setDueOnly(!dueOnly); setPage(0) }}
+              className={`px-3 py-2.5 text-xs font-semibold rounded-xl border shadow-sm transition-colors inline-flex items-center gap-1.5 ${
+                dueOnly
+                  ? 'bg-amber-400 border-amber-500 text-zinc-900'
+                  : 'bg-white border-zinc-300 text-zinc-600 hover:bg-zinc-50'
+              }`}
+              aria-pressed={dueOnly}
+              title="Nur fällige Follow-ups"
+            >
+              ⏰ <span>Fällig</span>
+              {(overdueCount + todayCount) > 0 && (
+                <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded-full ${
+                  dueOnly ? 'bg-zinc-900 text-amber-400' : (overdueCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')
+                }`}>
+                  {overdueCount + todayCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMartialOnly(!martialOnly); setPage(0) }}
+              className={`px-3 py-2.5 text-xs font-semibold rounded-xl border shadow-sm transition-colors inline-flex items-center gap-1.5 ${
+                martialOnly
+                  ? 'bg-amber-400 border-amber-500 text-zinc-900'
+                  : 'bg-white border-zinc-300 text-zinc-600 hover:bg-zinc-50'
+              }`}
+              aria-pressed={martialOnly}
+              title="Nur Kampfsport-Studios"
+            >
+              🥋 <span>Kampfsport</span>
+            </button>
           </div>
 
           {/* View tabs: Liste / Pipeline.
@@ -748,37 +810,9 @@ export default function AdminLeadsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-zinc-200 p-4 space-y-3">
-            <label className="flex items-center justify-between gap-2 text-sm">
-              <span className="flex items-center gap-2">
-                <input type="checkbox" checked={dueOnly} onChange={e => { setDueOnly(e.target.checked); setPage(0) }} />
-                <span>Nur fällige Follow-ups</span>
-              </span>
-              {(overdueCount + todayCount) > 0 && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${overdueCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {overdueCount + todayCount}
-                </span>
-              )}
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={martialOnly} onChange={e => { setMartialOnly(e.target.checked); setPage(0) }} />
-              <span>Nur Kampfsport-Studios</span>
-            </label>
-            <label htmlFor="admin-leads-city-input" className="sr-only">Stadt</label>
-            <input id="admin-leads-city-input" type="text" placeholder="Stadt …" value={city}
-              onChange={e => { setCity(e.target.value); setPage(0) }}
-              className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg" />
-            {/* Audit 2026-05-11: Globale Suche zog hoch in den Header (siehe
-                #admin-leads-global-search). Hier nicht mehr duplizieren. */}
-            <select value={sort} onChange={e => setSort(e.target.value)}
-              className="w-full px-3 py-3 sm:py-2 text-base sm:text-sm border border-zinc-200 rounded-lg">
-              <option value="priority">Priorität</option>
-              <option value="next_followup">Nächster Follow-up</option>
-              <option value="updated">Zuletzt geändert</option>
-              <option value="created">Neueste zuerst</option>
-              <option value="name">Name A-Z</option>
-            </select>
-          </div>
+          {/* Audit 2026-05-11: Stadt-Input, Sort-Select und die Toggle-Checkboxen
+              (Fällig, Kampfsport) sind in die horizontale Filter-Row oben gezogen
+              worden. Hier in der Aside bleiben nur Status-Liste + Tages-Stats. */}
 
           {/* Mobile-only "Anwenden" close button */}
           <button onClick={() => setShowMobileFilters(false)}
