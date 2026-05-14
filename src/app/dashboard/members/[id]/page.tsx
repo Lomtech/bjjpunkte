@@ -11,6 +11,7 @@ import { PromoteButton } from './PromoteButton'
 import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
+import { TournamentsSection } from './TournamentsSection'
 import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck, FileText } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -638,6 +639,14 @@ export default function MemberDetailPage() {
         monthlyFeeCents={monthlyFeeCents}
         payments={payments}
         memberCreatedAt={member.join_date}
+      />
+
+      {/* Tournament-Tracking — Audit 2026-05-14: Owner kann Turnier-Antritte
+          + Ergebnisse pro Member tracken, optional auf Public-Gym-Page (Roll-of-Honor)
+          freischalten. Siehe supabase/migrations/0012_member_tournaments.sql */}
+      <TournamentsSection
+        memberId={member.id}
+        memberName={`${member.first_name} ${member.last_name}`}
       />
 
       {/* Member portal link */}

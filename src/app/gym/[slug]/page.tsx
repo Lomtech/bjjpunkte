@@ -30,6 +30,14 @@ interface GymPost {
   id: string; title: string; cover_url: string | null
   blocks: PostBlock[]; published_at: string; created_at: string
 }
+interface PublicTournament {
+  id: string; name: string; event_date: string; location: string | null
+  discipline: string; weight_class: string | null; age_division: string | null
+  belt_at_event: string | null; result: string
+  matches_won: number | null; matches_lost: number | null
+  smoothcomp_url: string | null
+  member_first_name: string | null; member_last_initial: string | null
+}
 type DayKey = 'mo' | 'di' | 'mi' | 'do' | 'fr' | 'sa' | 'so'
 interface DayHours { closed: boolean; open: string; close: string }
 interface GymInfo {
@@ -247,6 +255,7 @@ export default function PublicGymPage() {
   const [classes, setClasses]  = useState<GymClass[]>([])
   const [plans, setPlans]      = useState<Plan[]>([])
   const [posts, setPosts]      = useState<GymPost[]>([])
+  const [tournaments, setTournaments] = useState<PublicTournament[]>([])
   const [loading, setLoading]  = useState(true)
   const [showImpressum, setShowImpressum] = useState(false)
   const [bookingClass, setBookingClass]   = useState<GymClass | null>(null)
@@ -266,6 +275,7 @@ export default function PublicGymPage() {
         setClasses(d.classes ?? [])
         setPlans(d.plans ?? [])
         setPosts(d.posts ?? [])
+        setTournaments(d.tournaments ?? [])
       })
       .catch(() => { /* gym stays null → shows error card */ })
       .finally(() => setLoading(false))
@@ -599,6 +609,78 @@ export default function PublicGymPage() {
       {/* ── NEWS / POSTS ── */}
       <PostsSection />
       {posts.length > 0 && <SectionWave fromBg="bg-white" toBg="bg-zinc-50" />}
+
+      {/* ── ROLL OF HONOR — Tournament-Erfolge der Mitglieder ──
+          Audit 2026-05-14: Zeigt Podium-Plätze + Finalisten der letzten 18
+          Monate. Nur Einträge mit public_visible=true. DSGVO: Vorname +
+          Nachname-Initiale, keine Geburtsdaten. */}
+      {tournaments.length > 0 && (
+        <>
+          <section id="roll-of-honor" className="bg-zinc-950 py-20 px-5">
+            <div className="max-w-5xl mx-auto">
+              <div data-reveal className="flex items-center gap-2 mb-3">
+                <span className="w-6 h-px bg-amber-400" />
+                <p className="text-amber-400 text-xs font-bold uppercase tracking-[0.2em]">
+                  {lang === 'en' ? 'Roll of Honor' : 'Erfolge'}
+                </p>
+              </div>
+              <h2 data-reveal className="text-3xl sm:text-4xl font-black text-white mb-3" style={{ transitionDelay: '60ms' }}>
+                {lang === 'en' ? 'Our competitors on the podium' : 'Unsere Wettkämpfer auf dem Podest'}
+              </h2>
+              <p data-reveal className="text-zinc-400 text-sm max-w-md mb-10" style={{ transitionDelay: '120ms' }}>
+                {lang === 'en'
+                  ? 'Tournament results from the last 18 months. Every name belongs to a member of this gym.'
+                  : 'Wettkampf-Ergebnisse der letzten 18 Monate. Jeder Name gehört zu einem Mitglied dieses Gyms.'}
+              </p>
+
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {tournaments.map((t, idx) => (
+                  <li
+                    key={t.id}
+                    data-reveal
+                    style={{ transitionDelay: `${Math.min(idx * 40, 600)}ms` }}
+                    className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-amber-500/40 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="text-3xl leading-none flex-shrink-0">
+                        {t.result === 'gold'     && '🥇'}
+                        {t.result === 'silver'   && '🥈'}
+                        {t.result === 'bronze'   && '🥉'}
+                        {t.result === 'finalist' && '🏅'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-white text-sm truncate">
+                          {t.member_first_name ?? '—'}
+                          {t.member_last_initial && <> {t.member_last_initial}</>}
+                        </p>
+                        <p className="text-amber-400 text-[11px] font-semibold uppercase tracking-wider mt-0.5">
+                          {t.result === 'gold'     && (lang === 'en' ? 'Gold' : 'Gold')}
+                          {t.result === 'silver'   && (lang === 'en' ? 'Silver' : 'Silber')}
+                          {t.result === 'bronze'   && 'Bronze'}
+                          {t.result === 'finalist' && (lang === 'en' ? 'Finalist' : 'Finalist')}
+                        </p>
+                        <p className="text-zinc-300 text-[13px] mt-2 line-clamp-2">{t.name}</p>
+                        <p className="text-zinc-500 text-[11px] mt-1">
+                          {new Date(t.event_date).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-DE', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                          })}
+                          {t.location && <> · {t.location}</>}
+                        </p>
+                        {(t.weight_class || t.age_division || t.belt_at_event) && (
+                          <p className="text-zinc-600 text-[11px] mt-0.5">
+                            {[t.age_division, t.belt_at_event, t.weight_class].filter(Boolean).join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+          <SectionWave fromBg="bg-zinc-950" toBg="bg-zinc-50" flip />
+        </>
+      )}
 
       {/* ── SCHEDULE ── */}
       {classes.length > 0 && (<>

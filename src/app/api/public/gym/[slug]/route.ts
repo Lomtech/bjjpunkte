@@ -51,7 +51,16 @@ async function handleGet(params: Promise<{ slug: string }>) {
   const now = new Date().toISOString()
   const end = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [{ data: classes }, { data: plans }, { data: posts }] = await Promise.all([
+  // Roll-of-Honor Cutoff: nur Tournaments der letzten 18 Monate, damit die
+  // Seite nicht über die Jahre mit altem Material zugemüllt wird.
+  const rolloHCutoff = new Date(Date.now() - 540 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+  const [
+    { data: classes },
+    { data: plans },
+    { data: posts },
+    { data: tournaments },
+  ] = await Promise.all([
     supabase
       .from('classes')
       .select('id, title, class_type, instructor, starts_at, ends_at, max_capacity')
@@ -75,6 +84,23 @@ async function handleGet(params: Promise<{ slug: string }>) {
       .lte('published_at', new Date().toISOString())
       .order('published_at', { ascending: false } as never)
       .limit(10),
+    // Public Roll-of-Honor: nur public_visible=true (Member-Consent), nur
+    // Podium-Plätze (Gold/Silber/Bronze) + Finalisten, letzte 18 Monate.
+    // DSGVO: zeigen Vorname + Nachname-Initiale (nicht voller Name).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('member_tournaments') as any)
+      .select(`
+        id, name, event_date, location, discipline, weight_class,
+        age_division, belt_at_event, result, matches_won, matches_lost,
+        smoothcomp_url,
+        members!inner(first_name, last_name)
+      `)
+      .eq('gym_id', gym.id)
+      .eq('public_visible', true)
+      .in('result', ['gold', 'silver', 'bronze', 'finalist'])
+      .gte('event_date', rolloHCutoff)
+      .order('event_date', { ascending: false })
+      .limit(30),
   ])
 
   const g = gym as typeof gym & Record<string, unknown>
@@ -116,6 +142,25 @@ async function handleGet(params: Promise<{ slug: string }>) {
     posts:   posts   ?? [],
     trialContract,
     wellpassContract,
+    // Audit 2026-05-14: Roll-of-Honor — public-visible tournament results.
+    // DSGVO-Mindest: Vorname + Nachname-Initiale, keine Geburtsdaten.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tournaments: (tournaments ?? []).map((t: any) => ({
+      id:             t.id,
+      name:           t.name,
+      event_date:     t.event_date,
+      location:       t.location,
+      discipline:     t.discipline,
+      weight_class:   t.weight_class,
+      age_division:   t.age_division,
+      belt_at_event:  t.belt_at_event,
+      result:         t.result,
+      matches_won:    t.matches_won,
+      matches_lost:   t.matches_lost,
+      smoothcomp_url: t.smoothcomp_url,
+      member_first_name: t.members?.first_name ?? null,
+      member_last_initial: t.members?.last_name ? t.members.last_name.charAt(0).toUpperCase() + '.' : null,
+    })),
   }
 
   return NextResponse.json(payload, {
