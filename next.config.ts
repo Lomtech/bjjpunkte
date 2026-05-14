@@ -70,6 +70,16 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+
+  // Audit 2026-05-14: /favicon.ico crawler-Anfragen (Slack/LinkedIn/Search-Bots
+  // fragen explizit diese URL — der HTML-Link auf /icon hilft denen nicht) auf
+  // den dynamischen /icon-Endpoint rewriten. Vorher: hard 404 → Crawler bekommen
+  // kein Brand-Icon für Link-Previews.
+  async rewrites() {
+    return [
+      { source: '/favicon.ico', destination: '/icon' },
+    ]
+  },
 };
 
 export default nextConfig;

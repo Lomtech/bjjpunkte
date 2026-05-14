@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Osss – Gym-Software für BJJ',
+    name: 'Osss – Gym-Software für Kampfsport-Studios',
     short_name: 'Osss',
-    description: 'Mitgliederverwaltung, Belt-Tracking und Zahlungen für BJJ-Gyms.',
+    description: 'Mitgliederverwaltung, SEPA-Beitragseinzug, Belt-Tracking und Turnier-Historie für BJJ-, MMA-, Karate- und andere Kampfsport-Studios in DACH. 0 % Plattformgebühr, DATEV-Export, DSGVO ab Tag eins.',
     start_url: '/dashboard/',
     scope: '/dashboard/',
     display: 'standalone',
