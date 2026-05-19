@@ -11,7 +11,7 @@ const UPDATABLE = new Set([
 ])
 
 const STATUSES = new Set([
-  'new','researching','contacted','qualified','demo_scheduled','demo_done',
+  'new','researching','contacted','callback','qualified','demo_scheduled','demo_done',
   'negotiating','won','lost','not_a_fit','do_not_contact',
 ])
 
@@ -47,7 +47,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .select('status, priority').eq('id', id).maybeSingle()
 
   // Auto-set last_contacted_at if status moves to contacted+
-  if (update.status === 'contacted' || update.status === 'qualified' || update.status === 'demo_scheduled') {
+  if (update.status === 'contacted' || update.status === 'callback' || update.status === 'qualified' || update.status === 'demo_scheduled') {
     update.last_contacted_at = new Date().toISOString()
   }
 
