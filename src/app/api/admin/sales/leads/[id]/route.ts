@@ -5,11 +5,12 @@ import { requireAdmin } from '@/lib/admin-auth'
 export const dynamic = 'force-dynamic'
 
 // POST /api/admin/sales/leads/[id]
-//   { action_type: 'mark_done' | 'contacted' | 'demo_scheduled' | 'demo_done'
+//   { action_type: 'mark_done' | 'contacted' | 'callback' | 'demo_scheduled' | 'demo_done'
 //                | 'won' | 'lost' | 'snooze',
 //     notes?: string,
 //     reason?: string,            // for 'lost'
 //     demo_at?: string,           // for 'demo_scheduled'
+//     callback_at?: string,       // for 'callback' (ISO; defaults to +1 day)
 //     snooze_days?: number }      // for 'snooze'
 //
 // One endpoint that handles every Pipeline-Quick-Action. The owner doesn't
@@ -20,9 +21,10 @@ export const dynamic = 'force-dynamic'
 // IMPORTANT: this NEVER overwrites work the cron already did. We only set
 // next_action_at when the action implies a clear next step.
 
-const ACTIONS = new Set(['mark_done','contacted','demo_scheduled','demo_done','won','lost','snooze'])
+const ACTIONS = new Set(['mark_done','contacted','callback','demo_scheduled','demo_done','won','lost','snooze'])
 
 const NEXT_AFTER_CONTACT_DAYS = 3 // first follow-up after a fresh contact
+const DEFAULT_CALLBACK_DAYS = 1   // fallback when caller didn't provide callback_at
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin(req)
@@ -41,6 +43,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ? Math.min(60, Math.floor(body.snooze_days))
     : null
   const demoAt = typeof body.demo_at === 'string' ? body.demo_at : null
+  const callbackAt = typeof body.callback_at === 'string' ? body.callback_at : null
 
   const supabase = createServiceClient()
 
@@ -87,6 +90,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       update.last_action_kind = 'email'
       activity.kind = 'email'
       activity.subject = 'Kontakt erfasst'
+      break
+    }
+    case 'callback': {
+      // Gym hat um Rückruf gebeten — wir parken den Lead auf 'callback' und
+      // planen den nächsten Anruf auf callback_at (oder +1 Tag falls leer).
+      // contact_count wird bumped, weil der erste Kontakt schon stattfand.
+      update.status = 'callback'
+      update.last_contacted_at = nowIso
+      update.contact_count = ((lead.contact_count as number | null) ?? 0) + 1
+      let when: Date
+      if (callbackAt) {
+        const parsed = new Date(callbackAt)
+        when = isNaN(parsed.getTime())
+          ? new Date(Date.now() + DEFAULT_CALLBACK_DAYS * 86400_000)
+          : parsed
+      } else {
+        when = new Date(Date.now() + DEFAULT_CALLBACK_DAYS * 86400_000)
+      }
+      update.next_action = 'callback_call'
+      update.next_action_at = when.toISOString()
+      update.last_action_kind = 'call'
+      activity.kind = 'followup_scheduled'
+      activity.subject = `Rückruf geplant: ${when.toLocaleString('de-DE')}`
       break
     }
     case 'demo_scheduled': {

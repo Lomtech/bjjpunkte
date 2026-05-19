@@ -20,7 +20,7 @@ const PIPELINE_BUCKET_LIMIT = 200
 
 const DEMO_PHASE_STATUSES = new Set(['demo_scheduled','demo_done','negotiating'])
 const CLOSED_STATUSES = new Set(['won','lost','do_not_contact','not_a_fit'])
-const ACTIVE_STATUSES = ['new','researching','contacted','qualified']
+const ACTIVE_STATUSES = ['new','researching','contacted','callback','qualified']
 
 type Bucket = 'today' | 'this_week' | 'demo' | 'closed'
 

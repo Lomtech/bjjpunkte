@@ -390,6 +390,7 @@ function actionLabel(a: string | null): string {
     case 'followup_mail_2': return '✉ Follow-up-Mail #2'
     case 'linkedin_dm':     return '💼 LinkedIn-DM'
     case 'call_followup':   return '📞 Anruf-Follow-up'
+    case 'callback_call':   return '🔁 Rückruf'
     case 'demo_call':       return '🎯 Demo-Termin'
     case 'demo_followup':   return '📋 Demo-Nachfass'
     case 'onboarding_check':return '🚀 Onboarding-Check'

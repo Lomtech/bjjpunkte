@@ -33,6 +33,7 @@ function pipelineActionLabel(a: string | null): string {
     case 'followup_mail_2':  return 'Follow-up-Mail #2'
     case 'linkedin_dm':      return 'LinkedIn-DM'
     case 'call_followup':    return 'Anruf-Follow-up'
+    case 'callback_call':    return 'Rückruf'
     case 'demo_call':        return 'Demo-Termin'
     case 'demo_followup':    return 'Demo-Nachfass'
     case 'onboarding_check': return 'Onboarding-Check'
@@ -46,6 +47,7 @@ function pipelineActionIcon(a: string | null): string {
     case 'followup_mail_2':  return '✉'
     case 'linkedin_dm':      return '💼'
     case 'call_followup':    return '📞'
+    case 'callback_call':    return '🔁'
     case 'demo_call':
     case 'demo_followup':    return '🎯'
     case 'onboarding_check': return '🚀'
@@ -132,6 +134,7 @@ const STATUSES: { v: SalesLeadStatus; label: string; color: string }[] = [
   { v: 'new',             label: 'Neu',          color: 'bg-zinc-100 text-zinc-700' },
   { v: 'researching',     label: 'Recherche',    color: 'bg-blue-50 text-blue-700' },
   { v: 'contacted',       label: 'Kontaktiert',  color: 'bg-amber-50 text-amber-700' },
+  { v: 'callback',        label: 'Rückruf',      color: 'bg-amber-100 text-amber-800' },
   { v: 'qualified',       label: 'Qualifiziert', color: 'bg-purple-50 text-purple-700' },
   { v: 'demo_scheduled',  label: 'Demo geplant', color: 'bg-indigo-50 text-indigo-700' },
   { v: 'demo_done',       label: 'Demo gehabt',  color: 'bg-cyan-50 text-cyan-700' },
@@ -2216,6 +2219,28 @@ function PipelineCard({ lead, showOverdue, isClosed, onSelect, onAction, busy }:
             title="Kontaktiert"
             label="📞"
             onClick={() => onAction(lead.id, 'contacted')} />
+          <PipelineQuickButton
+            title="Rückruf vereinbart"
+            label="🔁"
+            onClick={async () => {
+              // Wann soll zurückgerufen werden? Default = +1 Tag, gleiche Uhrzeit.
+              // Wenn der User abbricht → keine Aktion. Leer/ungültig → Server-Default (+1d).
+              const tomorrow = new Date(Date.now() + 86400_000)
+              const defaultVal = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60_000)
+                .toISOString().slice(0, 16)
+              const at = await prompt({
+                title: 'Rückruf vereinbart',
+                label: 'Wann zurückrufen?',
+                type: 'datetime-local',
+                description: 'Wann soll der Lead wieder kontaktiert werden?',
+                defaultValue: defaultVal,
+                confirmLabel: 'Speichern',
+              })
+              if (at === null) return
+              const parsed = at ? new Date(at) : null
+              const iso = parsed && !isNaN(parsed.getTime()) ? parsed.toISOString() : null
+              onAction(lead.id, 'callback', iso ? { callback_at: iso } : undefined)
+            }} />
           <PipelineQuickButton
             title="Demo vereinbart"
             label="📅"

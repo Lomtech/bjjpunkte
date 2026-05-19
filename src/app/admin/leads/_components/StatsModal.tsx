@@ -40,11 +40,12 @@ const OUTCOME_LABELS: Record<string, { label: string; positive: boolean }> = {
   wrong_number:   { label: 'Falsche Nummer',     positive: false },
 }
 
-const PIPELINE_ORDER = ['new','researching','contacted','qualified','demo_scheduled','demo_done','negotiating','won','lost','not_a_fit','do_not_contact']
+const PIPELINE_ORDER = ['new','researching','contacted','callback','qualified','demo_scheduled','demo_done','negotiating','won','lost','not_a_fit','do_not_contact']
 const PIPELINE_LABELS: Record<string, string> = {
   new: 'Neu',
   researching: 'Recherche',
   contacted: 'Kontaktiert',
+  callback: 'Rückruf',
   qualified: 'Qualifiziert',
   demo_scheduled: 'Demo geplant',
   demo_done: 'Demo gehabt',
