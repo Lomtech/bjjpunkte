@@ -378,6 +378,9 @@ export interface Database {
           parent_consent_text: string | null
           parent_id_document_type: string | null
           sole_custody_declared: boolean
+          email_confirmed_at: string | null
+          email_confirmation_token: string | null
+          email_confirmation_sent_at: string | null
         }
         Insert: {
           gym_id: string
@@ -436,6 +439,9 @@ export interface Database {
           parent_consent_text?: string | null
           parent_id_document_type?: string | null
           sole_custody_declared?: boolean
+          email_confirmed_at?: string | null
+          email_confirmation_token?: string | null
+          email_confirmation_sent_at?: string | null
         }
         Update: {
           first_name?: string
@@ -496,6 +502,9 @@ export interface Database {
           parent_consent_text?: string | null
           parent_id_document_type?: string | null
           sole_custody_declared?: boolean
+          email_confirmed_at?: string | null
+          email_confirmation_token?: string | null
+          email_confirmation_sent_at?: string | null
         }
         Relationships: Rel[]
       }

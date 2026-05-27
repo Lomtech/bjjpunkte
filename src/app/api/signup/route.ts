@@ -7,6 +7,8 @@ import { sendWhatsApp } from '@/lib/whatsapp'
 import { getAppUrl } from '@/lib/app-url'
 import { uploadSignature } from '@/lib/signature-storage'
 import { applyRateLimit } from '@/lib/rate-limit-handler'
+import { sendMemberConfirmationMail } from '@/lib/member-confirmation-mail'
+import { randomBytes } from 'node:crypto'
 
 // Uses service role to bypass RLS — safe because we validate the signup_token
 function serviceClient() {
@@ -142,6 +144,9 @@ export async function POST(req: Request) {
   const consentText = `Ich stimme den AGB und der Datenschutzerklärung von ${gymWithName?.name ?? 'dem Gym'} zu. Digitale Unterschrift geleistet am ${new Date().toLocaleString('de-DE')}.`
 
   const now = new Date().toISOString()
+  // Confirmation-Token: 24 random bytes => 32 URL-safe base64-chars.
+  // Wird via Email an Member geschickt + auf members.email_confirmation_token gespeichert.
+  const confirmationToken = randomBytes(24).toString('base64url')
 
   // Fetch plan for contract_months (used for contract_end_date calculation)
   let selectedPlan: { contract_months: number | null } | null = null
@@ -180,6 +185,12 @@ export async function POST(req: Request) {
       stripes:                 0,
       is_active:               true,           // auto-activated — gym gets notified
       onboarding_status:       'complete',
+      // Email-Confirmation (Feature 2026-05-27): Member bekommt Confirmation-Mail
+      // mit Link auf /api/members/confirm-email. Backfill-Members wurden via
+      // Migration auf email_confirmed_at = contract_signed_at gesetzt.
+      email_confirmed_at:         null,
+      email_confirmation_token:   confirmationToken,
+      email_confirmation_sent_at: now,
       // Auto-set contract_end_date based on plan's contract_months
       contract_end_date: (() => {
         const months = selectedPlan?.contract_months
@@ -219,6 +230,24 @@ export async function POST(req: Request) {
     } catch (sigErr) {
       console.warn('Signup: signature upload threw:', sigErr instanceof Error ? sigErr.message : sigErr)
     }
+  }
+
+  // Confirmation-Mail an das Mitglied senden (best-effort, kein Block bei Fehler).
+  // Member-Insert + Token bleiben auch wenn Resend nicht erreichbar — Owner
+  // kann manuell re-senden (Endpoint folgt) oder Member fragt nach.
+  try {
+    const mailRes = await sendMemberConfirmationMail({
+      toEmail:           email.toLowerCase().trim(),
+      memberFirstName:   firstName.trim(),
+      gymName:           gymWithName?.name ?? 'deinem Gym',
+      gymEmail:          null, // Hinweis-Footer: Lom kann später gym.email injecten
+      confirmationToken: confirmationToken,
+    })
+    if (!mailRes.sent) {
+      console.warn('[signup] Member-Confirmation-Mail nicht versendet:', mailRes.reason, mailRes.error)
+    }
+  } catch (mailErr) {
+    console.error('[signup] Member-Confirmation-Mail Exception:', mailErr instanceof Error ? mailErr.message : mailErr)
   }
 
   // Auto-create lead so the gym owner sees new signups in Interessenten
