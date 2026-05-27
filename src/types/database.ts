@@ -6,7 +6,11 @@ export type SubscriptionStatus = 'none' | 'active' | 'past_due' | 'cancelled' | 
 // existing DB rows; new subscriptions write 'standard'. 'free' marks the
 // post-cancellation state (no active sub).
 export type GymPlan = 'free' | 'standard' | 'starter' | 'grow' | 'pro'
-export type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
+export type LeadStatus =
+  | 'new' | 'contacted' | 'qualified'
+  | 'trial_scheduled' | 'trial_done' | 'trial_no_show'
+  | 'second_trial_scheduled'
+  | 'converted' | 'lost'
 export type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page' | 'gym_qr'
 export type BookingStatus = 'confirmed' | 'waitlist' | 'cancelled'
 export type LeadBookingStatus = 'booked' | 'checked_in' | 'cancelled'
@@ -14,6 +18,14 @@ export type SalesLeadStatus = 'new' | 'researching' | 'contacted' | 'callback' |
 export type SalesActivityKind = 'call' | 'email' | 'sms' | 'whatsapp' | 'meeting' | 'demo' | 'note' | 'status_change' | 'followup_scheduled' | 'place_imported'
 export type SalesActivityOutcome = 'answered' | 'no_answer' | 'voicemail' | 'interested' | 'not_interested' | 'call_back' | 'wrong_number' | 'sent' | 'replied' | 'bounced' | 'positive' | 'neutral' | 'negative'
 export type MembershipSource = 'direct' | 'wellpass' | 'hansefit' | 'egym' | 'urban_sports'
+export type MembershipPlanKind = 'subscription' | 'punch_card'
+export type ContractStatus = 'active' | 'paused' | 'cancelled_pending' | 'cancelled' | 'ended'
+export type PauseReason = 'injury' | 'travel' | 'financial' | 'other'
+export type ContractRole = 'owner' | 'member' | 'admin'
+export type TerminationKind = 'regular' | 'special_right'
+export type TerminationStatus = 'requested' | 'accepted' | 'rejected' | 'withdrawn'
+export type TerminationReasonCategory = 'moved' | 'injury' | 'financial' | 'dissatisfaction' | 'medical' | 'contract_breach' | 'other'
+export type CommunicationMethod = 'email' | 'portal' | 'manual'
 
 export interface SalesLead {
   id: string
@@ -348,6 +360,9 @@ export interface Database {
           dunning_notes: string | null
           membership_source: string | null
           plan_reminder_sent_at: string | null
+          punch_units_remaining: number | null
+          punch_units_total: number | null
+          punch_card_purchased_at: string | null
         }
         Insert: {
           gym_id: string
@@ -388,6 +403,9 @@ export interface Database {
           dunning_amount_cents?: number | null
           membership_source?: string | null
           plan_reminder_sent_at?: string | null
+          punch_units_remaining?: number | null
+          punch_units_total?: number | null
+          punch_card_purchased_at?: string | null
         }
         Update: {
           first_name?: string
@@ -430,6 +448,9 @@ export interface Database {
           dunning_notes?: string | null
           membership_source?: string | null
           plan_reminder_sent_at?: string | null
+          punch_units_remaining?: number | null
+          punch_units_total?: number | null
+          punch_card_purchased_at?: string | null
         }
         Relationships: Rel[]
       }
@@ -599,15 +620,45 @@ export interface Database {
         Relationships: Rel[]
       }
       membership_plans: {
-        Row: { id: string; gym_id: string; name: string; description: string | null; price_cents: number; billing_interval: string; contract_months: number; sort_order: number; is_active: boolean; stripe_price_id: string | null; stripe_product_id: string | null; created_at: string }
-        Insert: { gym_id: string; name: string; description?: string | null; price_cents: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null; stripe_product_id?: string | null }
-        Update: { name?: string; description?: string | null; price_cents?: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null; stripe_product_id?: string | null }
+        Row: { id: string; gym_id: string; name: string; description: string | null; price_cents: number; billing_interval: string; contract_months: number; sort_order: number; is_active: boolean; stripe_price_id: string | null; stripe_product_id: string | null; created_at: string; kind: MembershipPlanKind; punch_units: number | null; auto_renew: boolean }
+        Insert: { gym_id: string; name: string; description?: string | null; price_cents: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null; stripe_product_id?: string | null; kind?: MembershipPlanKind; punch_units?: number | null; auto_renew?: boolean }
+        Update: { name?: string; description?: string | null; price_cents?: number; billing_interval?: string; contract_months?: number; sort_order?: number; is_active?: boolean; stripe_price_id?: string | null; stripe_product_id?: string | null; kind?: MembershipPlanKind; punch_units?: number | null; auto_renew?: boolean }
+        Relationships: Rel[]
+      }
+      punch_card_purchases: {
+        Row: { id: string; gym_id: string; member_id: string; plan_id: string | null; units_purchased: number; amount_cents: number; stripe_payment_intent_id: string | null; note: string | null; paid_at: string; created_at: string }
+        Insert: { gym_id: string; member_id: string; plan_id?: string | null; units_purchased: number; amount_cents: number; stripe_payment_intent_id?: string | null; note?: string | null; paid_at?: string }
+        Update: { units_purchased?: number; amount_cents?: number; stripe_payment_intent_id?: string | null; note?: string | null; paid_at?: string }
+        Relationships: Rel[]
+      }
+      member_contracts: {
+        Row: { id: string; gym_id: string; member_id: string; plan_id: string | null; start_date: string; initial_term_months: number; original_end_date: string | null; effective_end_date: string | null; status: ContractStatus; is_first_term: boolean; monthly_fee_cents: number | null; billing_interval: string | null; notice_period_days: number; notice_period_days_after_first_term: number; contract_signed_at: string | null; contract_template_version: string | null; notes: string | null; created_at: string; updated_at: string }
+        Insert: { gym_id: string; member_id: string; plan_id?: string | null; start_date: string; initial_term_months?: number; original_end_date?: string | null; effective_end_date?: string | null; status?: ContractStatus; is_first_term?: boolean; monthly_fee_cents?: number | null; billing_interval?: string | null; notice_period_days?: number; notice_period_days_after_first_term?: number; contract_signed_at?: string | null; contract_template_version?: string | null; notes?: string | null }
+        Update: { plan_id?: string | null; initial_term_months?: number; original_end_date?: string | null; effective_end_date?: string | null; status?: ContractStatus; is_first_term?: boolean; monthly_fee_cents?: number | null; billing_interval?: string | null; notice_period_days?: number; notice_period_days_after_first_term?: number; contract_signed_at?: string | null; contract_template_version?: string | null; notes?: string | null }
+        Relationships: Rel[]
+      }
+      contract_pauses: {
+        Row: { id: string; gym_id: string; contract_id: string; member_id: string; paused_from: string; paused_until: string | null; reason: PauseReason; reason_note: string | null; extends_contract: boolean; days_added_to_contract: number | null; created_by_user_id: string | null; created_by_role: ContractRole; closed_at: string | null; closed_by_user_id: string | null; created_at: string }
+        Insert: { gym_id: string; contract_id: string; member_id: string; paused_from: string; paused_until?: string | null; reason: PauseReason; reason_note?: string | null; extends_contract?: boolean; created_by_user_id?: string | null; created_by_role: ContractRole }
+        Update: { paused_until?: string | null; reason_note?: string | null; days_added_to_contract?: number | null; closed_at?: string | null; closed_by_user_id?: string | null }
+        Relationships: Rel[]
+      }
+      contract_terminations: {
+        Row: { id: string; gym_id: string; contract_id: string; member_id: string; requested_by_role: 'member'|'owner'; requested_by_user_id: string | null; termination_kind: TerminationKind; reason_category: TerminationReasonCategory | null; reason_text: string; effective_date: string; status: TerminationStatus; accepted_by_user_id: string | null; accepted_at: string | null; rejected_reason: string | null; communicated_at: string | null; communication_method: CommunicationMethod | null; created_at: string }
+        Insert: { gym_id: string; contract_id: string; member_id: string; requested_by_role: 'member'|'owner'; requested_by_user_id?: string | null; termination_kind: TerminationKind; reason_category?: TerminationReasonCategory | null; reason_text: string; effective_date: string; status?: TerminationStatus }
+        Update: { status?: TerminationStatus; accepted_by_user_id?: string | null; accepted_at?: string | null; rejected_reason?: string | null; communicated_at?: string | null; communication_method?: CommunicationMethod | null }
+        Relationships: Rel[]
+      }
+      plan_price_changes: {
+        Row: { id: string; gym_id: string; plan_id: string; old_price_cents: number; new_price_cents: number; pct_change: number | null; announced_at: string; effective_date: string; objection_deadline: string; notification_sent_at: string | null; notification_count: number; applied_at: string | null; stripe_price_id_new: string | null; apply_error: string | null; apply_attempts: number; created_at: string }
+        Insert: { gym_id: string; plan_id: string; old_price_cents: number; new_price_cents: number; effective_date: string; objection_deadline: string }
+        Update: { notification_sent_at?: string | null; notification_count?: number; applied_at?: string | null; stripe_price_id_new?: string | null; apply_error?: string | null; apply_attempts?: number }
         Relationships: Rel[]
       }
       leads: {
-        Row: { id: string; gym_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; status: LeadStatus; source: LeadSource; notes: string | null; trial_date: string | null; referred_by: string | null; lead_token: string | null; created_at: string; contacted_at: string | null; converted_at: string | null; marketing_email_consent: boolean; marketing_consent_at: string | null; marketing_unsubscribe_token: string | null; trial_consent_at: string | null; trial_consent_ip: string | null; trial_consent_ua: string | null; trial_consent_text: string | null }
-        Insert: { gym_id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; lead_token?: string | null; marketing_email_consent?: boolean; marketing_consent_at?: string | null; trial_consent_at?: string | null; trial_consent_ip?: string | null; trial_consent_ua?: string | null; trial_consent_text?: string | null }
-        Update: { first_name?: string; last_name?: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; contacted_at?: string | null; converted_at?: string | null; marketing_email_consent?: boolean; marketing_consent_at?: string | null; trial_consent_at?: string | null; trial_consent_ip?: string | null; trial_consent_ua?: string | null; trial_consent_text?: string | null }
+        Row: { id: string; gym_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; status: LeadStatus; source: LeadSource; notes: string | null; trial_date: string | null; referred_by: string | null; lead_token: string | null; created_at: string; contacted_at: string | null; converted_at: string | null; marketing_email_consent: boolean; marketing_consent_at: string | null; marketing_unsubscribe_token: string | null; trial_consent_at: string | null; trial_consent_ip: string | null; trial_consent_ua: string | null; trial_consent_text: string | null; next_action: string | null; next_action_at: string | null; last_contacted_at: string | null; contact_count: number; lost_reason: string | null; followup_reminded_at: string | null; last_action_kind: string | null }
+        Insert: { gym_id: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; lead_token?: string | null; marketing_email_consent?: boolean; marketing_consent_at?: string | null; trial_consent_at?: string | null; trial_consent_ip?: string | null; trial_consent_ua?: string | null; trial_consent_text?: string | null; next_action?: string | null; next_action_at?: string | null; last_contacted_at?: string | null; contact_count?: number; lost_reason?: string | null; followup_reminded_at?: string | null; last_action_kind?: string | null }
+        Update: { first_name?: string; last_name?: string; email?: string | null; phone?: string | null; status?: LeadStatus; source?: LeadSource; notes?: string | null; trial_date?: string | null; referred_by?: string | null; contacted_at?: string | null; converted_at?: string | null; marketing_email_consent?: boolean; marketing_consent_at?: string | null; trial_consent_at?: string | null; trial_consent_ip?: string | null; trial_consent_ua?: string | null; trial_consent_text?: string | null; next_action?: string | null; next_action_at?: string | null; last_contacted_at?: string | null; contact_count?: number; lost_reason?: string | null; followup_reminded_at?: string | null; last_action_kind?: string | null }
         Relationships: Rel[]
       }
       lead_bookings: {
@@ -656,6 +707,13 @@ export interface Database {
       cancel_booking_by_token: { Args: { p_token: string; p_class_id: string }; Returns: unknown }
       delete_gym_cascade: { Args: { p_gym_id: string; p_user_id: string }; Returns: void }
       delete_member_cascade: { Args: { p_member_id: string; p_gym_id: string }; Returns: void }
+      consume_punch_unit: { Args: { p_member_id: string; p_gym_id: string }; Returns: number | null }
+      start_contract_pause: { Args: { p_contract_id: string; p_paused_from: string; p_reason: PauseReason; p_role: ContractRole; p_reason_note?: string | null; p_extends_contract?: boolean; p_user_id?: string | null }; Returns: string }
+      close_contract_pause: { Args: { p_pause_id: string; p_paused_until: string; p_user_id?: string | null }; Returns: number }
+      request_contract_termination: { Args: { p_contract_id: string; p_requested_by_role: 'member'|'owner'; p_termination_kind: TerminationKind; p_reason_text: string; p_effective_date: string; p_reason_category?: TerminationReasonCategory | null; p_user_id?: string | null }; Returns: string }
+      accept_contract_termination: { Args: { p_termination_id: string; p_user_id?: string | null; p_communication_method?: CommunicationMethod }; Returns: null }
+      reject_contract_termination: { Args: { p_termination_id: string; p_rejected_reason: string; p_user_id?: string | null }; Returns: null }
+      withdraw_contract_termination: { Args: { p_termination_id: string; p_user_id?: string | null }; Returns: null }
     }
   }
 }

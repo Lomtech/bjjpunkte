@@ -25,7 +25,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   // aufrufen können (Cross-Tenant-Risk + Verwirrung über Status-Anzeige).
   const { data: member, error: memberErr } = await supabase
     .from('members')
-    .select('id, first_name, last_name, email, belt, stripes, join_date, is_active, subscription_status, date_of_birth, contract_end_date, gym_id, plan_id, requested_plan_id, cancellation_requested_at')
+    .select('id, first_name, last_name, email, belt, stripes, join_date, is_active, subscription_status, date_of_birth, contract_end_date, gym_id, plan_id, requested_plan_id, cancellation_requested_at, punch_units_remaining, punch_units_total, punch_card_purchased_at')
     .eq('portal_token', token)
     .eq('is_active', true)
     .single()
@@ -39,7 +39,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const now      = new Date()
   const in7days  = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  // All 8 queries in a single parallel batch — no sequential round-trips.
+  // All 9 queries in a single parallel batch — no sequential round-trips.
   const [
     { data: gym },
     { data: attendance },
@@ -49,6 +49,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     { data: announcements },
     { data: posts },
     { data: bookings },
+    { data: activeContract },
   ] = await Promise.all([
     (supabase.from('gyms') as any).select('name, belt_system, belt_system_enabled, logo_url, class_types, whatsapp_group_url').eq('id', gymId).maybeSingle(),
     supabase.from('attendance').select('id, checked_in_at, class_type').eq('member_id', memberId).order('checked_in_at', { ascending: false }).limit(50),
@@ -64,7 +65,27 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
       .in('status', ['confirmed', 'waitlist'])
       .gte('classes.starts_at', now.toISOString())
       .lte('classes.starts_at', in7days),
+    // Aktiver Vertrag (Epic 1): höchstens 1 mit Status active/paused/cancelled_pending pro Member
+    supabase.from('member_contracts')
+      .select('id, status, start_date, initial_term_months, original_end_date, effective_end_date, is_first_term, notice_period_days, notice_period_days_after_first_term, monthly_fee_cents')
+      .eq('member_id', memberId)
+      .in('status', ['active', 'paused', 'cancelled_pending'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
+
+  // Open pause (nur eine möglich pro Vertrag durch DB-Constraint)
+  let openPause: unknown = null
+  if (activeContract) {
+    const { data: pause } = await supabase
+      .from('contract_pauses')
+      .select('id, paused_from, reason, reason_note, extends_contract')
+      .eq('contract_id', (activeContract as { id: string }).id)
+      .is('paused_until', null)
+      .maybeSingle()
+    openPause = pause
+  }
 
   if (!gym) {
     return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
@@ -112,5 +133,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
       instructor:     b.classes?.instructor,
       booking_status: b.status,
     })).filter((b: any) => b.class_id),
+    active_contract: activeContract ?? null,
+    open_pause:      openPause ?? null,
   })
 }

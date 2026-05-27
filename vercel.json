@@ -14,6 +14,10 @@
       "schedule": "0 7 * * *"
     },
     {
+      "path": "/api/cron/lead-followups",
+      "schedule": "30 7 * * *"
+    },
+    {
       "path": "/api/cron/dunning-escalation",
       "schedule": "0 8 * * *"
     },
@@ -32,6 +36,14 @@
     {
       "path": "/api/cron/newsletter-cleanup",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/flip-first-term-flag",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/apply-price-changes",
+      "schedule": "0 4 * * *"
     }
   ],
   "functions": {
@@ -45,6 +57,9 @@
       "maxDuration": 120
     },
     "src/app/api/cron/sales-followups/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/lead-followups/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/cron/dunning-escalation/route.ts": {
@@ -61,6 +76,12 @@
     },
     "src/app/api/gym/export/route.ts": {
       "maxDuration": 120
+    },
+    "src/app/api/cron/flip-first-term-flag/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/apply-price-changes/route.ts": {
+      "maxDuration": 300
     }
   }
 }

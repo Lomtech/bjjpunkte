@@ -10,16 +10,23 @@ import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
 import { fmtDate } from '@/lib/date-format'
 
-type LeadStatus = 'new' | 'contacted' | 'trial_scheduled' | 'trial_done' | 'converted' | 'lost'
+type LeadStatus =
+  | 'new' | 'contacted' | 'qualified'
+  | 'trial_scheduled' | 'trial_done' | 'trial_no_show'
+  | 'second_trial_scheduled'
+  | 'converted' | 'lost'
 type LeadSource = 'walk-in' | 'referral' | 'instagram' | 'website' | 'other' | 'signup_link' | 'public_page' | 'gym_qr'
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
-  new:             'bg-zinc-100 text-zinc-600 border-zinc-200',
-  contacted:       'bg-zinc-200 text-zinc-700 border-zinc-300',
-  trial_scheduled: 'bg-amber-50 text-amber-700 border-amber-200',
-  trial_done:      'bg-amber-100 text-amber-800 border-amber-200',
-  converted:       'bg-zinc-900 text-white border-zinc-900',
-  lost:            'bg-zinc-100 text-zinc-400 border-zinc-200',
+  new:                    'bg-zinc-100 text-zinc-600 border-zinc-200',
+  contacted:              'bg-zinc-200 text-zinc-700 border-zinc-300',
+  qualified:              'bg-blue-50 text-blue-700 border-blue-200',
+  trial_scheduled:        'bg-amber-50 text-amber-700 border-amber-200',
+  trial_done:             'bg-amber-100 text-amber-800 border-amber-200',
+  trial_no_show:          'bg-rose-50 text-rose-700 border-rose-200',
+  second_trial_scheduled: 'bg-amber-50 text-amber-700 border-amber-200',
+  converted:              'bg-zinc-900 text-white border-zinc-900',
+  lost:                   'bg-zinc-100 text-zinc-400 border-zinc-200',
 }
 
 const SOURCE_COLORS: Partial<Record<LeadSource, string>> = {
@@ -28,7 +35,86 @@ const SOURCE_COLORS: Partial<Record<LeadSource, string>> = {
   gym_qr:      'bg-emerald-50 text-emerald-700 border-emerald-200',
 }
 
-const STATUS_ORDER: LeadStatus[] = ['new', 'contacted', 'trial_scheduled', 'trial_done', 'converted', 'lost']
+const STATUS_ORDER: LeadStatus[] = [
+  'new', 'contacted', 'qualified',
+  'trial_scheduled', 'trial_done', 'trial_no_show', 'second_trial_scheduled',
+  'converted', 'lost',
+]
+
+// Quick-Actions je nach aktuellem Status — was kann der Owner als nächstes tun?
+// Reihenfolge = Display-Reihenfolge im UI (linke Buttons = Happy-Path).
+type QuickAction = { action: string; labelKey: string; tone: 'primary' | 'success' | 'warning' | 'danger' | 'neutral' }
+const QUICK_ACTIONS_BY_STATUS: Record<LeadStatus, QuickAction[]> = {
+  new: [
+    { action: 'contacted',       labelKey: 'actContacted', tone: 'primary' },
+    { action: 'qualified',       labelKey: 'actQualified', tone: 'success' },
+    { action: 'lost',            labelKey: 'actLost',      tone: 'neutral' },
+  ],
+  contacted: [
+    { action: 'qualified',       labelKey: 'actQualified', tone: 'success' },
+    { action: 'contacted',       labelKey: 'actContacted', tone: 'neutral' }, // re-contact → bumpt count
+    { action: 'lost',            labelKey: 'actLost',      tone: 'neutral' },
+  ],
+  qualified: [
+    { action: 'trial_scheduled', labelKey: 'actScheduleTrial', tone: 'primary' },
+    { action: 'lost',            labelKey: 'actLost',      tone: 'neutral' },
+  ],
+  trial_scheduled: [
+    { action: 'trial_done',      labelKey: 'actTrialDone', tone: 'success' },
+    { action: 'trial_no_show',   labelKey: 'actTrialNoShow', tone: 'danger' },
+  ],
+  trial_done: [
+    { action: 'converted',       labelKey: 'actConverted', tone: 'success' },
+    { action: 'second_trial_scheduled', labelKey: 'actSecondTrial', tone: 'warning' },
+    { action: 'lost',            labelKey: 'actLost',      tone: 'neutral' },
+  ],
+  trial_no_show: [
+    { action: 'contacted',       labelKey: 'actReopen',    tone: 'primary' },
+    { action: 'lost',            labelKey: 'actLost',      tone: 'neutral' },
+  ],
+  second_trial_scheduled: [
+    { action: 'trial_done',      labelKey: 'actTrialDone', tone: 'success' },
+    { action: 'trial_no_show',   labelKey: 'actTrialNoShow', tone: 'danger' },
+  ],
+  converted: [],
+  lost: [
+    { action: 'contacted',       labelKey: 'actReopen',    tone: 'neutral' },
+  ],
+}
+
+const TONE_CLASSES: Record<QuickAction['tone'], string> = {
+  primary: 'bg-zinc-900 hover:bg-zinc-800 text-white border-zinc-900',
+  success: 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600',
+  warning: 'bg-amber-500 hover:bg-amber-400 text-white border-amber-500',
+  danger:  'bg-rose-600 hover:bg-rose-500 text-white border-rose-600',
+  neutral: 'bg-white hover:bg-zinc-50 text-zinc-700 border-zinc-300',
+}
+
+// Next-Action-Label-Lookup für UI (spiegelt actionLabel im Cron)
+function nextActionLabelKey(a: string | null): string | null {
+  if (!a) return null
+  switch (a) {
+    case 'first_contact':       return 'naFirstContact'
+    case 'followup':            return 'naFollowup'
+    case 'schedule_trial':      return 'naScheduleTrial'
+    case 'trial_reminder':      return 'naTrialReminder'
+    case 'check_trial_date':    return 'naCheckTrialDate'
+    case 'post_trial_followup': return 'naPostTrialFollowup'
+    case 'no_show_followup':    return 'naNoShowFollowup'
+    default:                    return null
+  }
+}
+
+function dueClassification(when: string | null): 'overdue' | 'today' | 'tomorrow' | 'future' | null {
+  if (!when) return null
+  const d = new Date(when)
+  const now = new Date()
+  if (d <= now) return 'overdue'
+  if (d.toDateString() === now.toDateString()) return 'today'
+  const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1)
+  if (d.toDateString() === tomorrow.toDateString()) return 'tomorrow'
+  return 'future'
+}
 
 interface Lead {
   id: string
@@ -46,6 +132,13 @@ interface Lead {
   contacted_at: string | null
   converted_at: string | null
   lead_token: string | null
+  // Pipeline-Felder (Migration 2026-05-26)
+  next_action: string | null
+  next_action_at: string | null
+  last_contacted_at: string | null
+  contact_count: number | null
+  lost_reason: string | null
+  last_action_kind: string | null
 }
 
 function daysSince(dateStr: string): number {
@@ -57,12 +150,22 @@ export default function LeadsPage() {
   const locale = lang === 'en' ? 'en-GB' : 'de-DE'
 
   const STATUS_LABELS: Record<LeadStatus, string> = {
-    new:             t('leads', 'statusNew'),
-    contacted:       t('leads', 'statusContacted'),
-    trial_scheduled: t('leads', 'statusTrialScheduled'),
-    trial_done:      t('leads', 'statusTrialDone'),
-    converted:       t('leads', 'statusConverted'),
-    lost:            t('leads', 'statusLost'),
+    new:                    t('leads', 'statusNew'),
+    contacted:              t('leads', 'statusContacted'),
+    qualified:              t('leads', 'statusQualified'),
+    trial_scheduled:        t('leads', 'statusTrialScheduled'),
+    trial_done:             t('leads', 'statusTrialDone'),
+    trial_no_show:          t('leads', 'statusTrialNoShow'),
+    second_trial_scheduled: t('leads', 'statusSecondTrialScheduled'),
+    converted:              t('leads', 'statusConverted'),
+    lost:                   t('leads', 'statusLost'),
+  }
+
+  const DUE_LABELS: Record<'overdue' | 'today' | 'tomorrow' | 'future', string> = {
+    overdue:  t('leads', 'dueOverdue'),
+    today:    t('leads', 'dueToday'),
+    tomorrow: t('leads', 'dueTomorrow'),
+    future:   '',
   }
 
   const SOURCE_LABELS: Record<LeadSource, string> = {
@@ -181,6 +284,35 @@ export default function LeadsPage() {
     if (status === 'converted' && !lead.converted_at) extra.converted_at = new Date().toISOString()
     const { data: updated } = await sb.from('leads').update({ status, ...extra } as never).eq('id', lead.id).select().single()
     if (updated) setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
+  }
+
+  // Quick-Action über /api/leads/[id]/action — Backend setzt next_action(_at),
+  // last_contacted_at, contact_count, status atomar. UI muss nichts berechnen.
+  async function triggerAction(lead: Lead, action_type: string, extra?: Record<string, unknown>) {
+    const sb = createClient()
+    const { data: { session } } = await sb.auth.getSession()
+    if (!session) return
+    const res = await fetch(`/api/leads/${lead.id}/action`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action_type, ...extra }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      console.error('[leads] action failed:', err)
+      return
+    }
+    const { lead: updated } = await res.json()
+    if (updated) {
+      setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
+      // notes-State synchron halten, da Backend notes additiv setzt
+      if (typeof updated.notes === 'string') {
+        setEditNotes(prev => ({ ...prev, [lead.id]: updated.notes }))
+      }
+    }
   }
 
   async function saveNotes(lead: Lead) {
@@ -537,8 +669,8 @@ export default function LeadsPage() {
                     )}
                   </div>
 
-                  {/* Trial date + referred by */}
-                  {(lead.trial_date || lead.referred_by) && (
+                  {/* Trial date + referred by + contact_count */}
+                  {(lead.trial_date || lead.referred_by || (lead.contact_count ?? 0) > 0) && (
                     <div className="flex items-center gap-3 mt-1 flex-wrap">
                       {lead.trial_date && (
                         <span className="text-xs text-zinc-400">
@@ -550,6 +682,41 @@ export default function LeadsPage() {
                           {lang === 'en' ? 'Referred by' : 'Empfohlen von'}: {lead.referred_by}
                         </span>
                       )}
+                      {(lead.contact_count ?? 0) > 0 && (
+                        <span className="text-xs text-zinc-400">
+                          {lead.contact_count}× {lang === 'en' ? 'contacted' : 'kontaktiert'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Next-Action-Badge — was steht als nächstes an und wann */}
+                  {lead.next_action && lead.next_action_at && (() => {
+                    const due = dueClassification(lead.next_action_at)
+                    const labelKey = nextActionLabelKey(lead.next_action)
+                    if (!labelKey || !due) return null
+                    const tone = due === 'overdue' ? 'text-rose-700 bg-rose-50 border-rose-200'
+                               : due === 'today'   ? 'text-amber-700 bg-amber-50 border-amber-200'
+                               : 'text-zinc-600 bg-zinc-50 border-zinc-200'
+                    return (
+                      <div className={`mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-medium ${tone}`}>
+                        <span>{t('leads', labelKey)}</span>
+                        {due !== 'future' && <span className="opacity-70">· {DUE_LABELS[due]}</span>}
+                      </div>
+                    )
+                  })()}
+
+                  {/* Quick-Action-Buttons — was kann der Owner als nächstes tun */}
+                  {QUICK_ACTIONS_BY_STATUS[lead.status].length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {QUICK_ACTIONS_BY_STATUS[lead.status].map(qa => (
+                        <button
+                          key={qa.action}
+                          onClick={() => triggerAction(lead, qa.action)}
+                          className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${TONE_CLASSES[qa.tone]}`}>
+                          {t('leads', qa.labelKey)}
+                        </button>
+                      ))}
                     </div>
                   )}
 

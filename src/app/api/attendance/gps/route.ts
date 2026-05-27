@@ -104,10 +104,10 @@ export const POST = withApiHandler('attendance.gps.post', async (req: Request) =
     )
   }
 
-  // Verify member belongs to this gym + lade membership_source für Wellpass-Flag
+  // Verify member belongs to this gym + lade membership_source + Punch-Card-Stand
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: member } = await (svc.from('members') as any)
-    .select('id, membership_source')
+    .select('id, membership_source, punch_units_remaining')
     .eq('id', member_id)
     .eq('gym_id', gym.id)
     .maybeSingle()
@@ -117,9 +117,11 @@ export const POST = withApiHandler('attendance.gps.post', async (req: Request) =
   // Anbieter-Mitgliedschaften (Wellpass / Hansefit / EGYM / Urban Sports) →
   // Check-in wird automatisch als Anbieter-Checkin markiert. Ermöglicht
   // separate Statistik + späteres Reporting an Wellpass-Anbieter.
-  const memberSource = (member as { membership_source?: string | null }).membership_source ?? null
+  const memberRow = member as { membership_source?: string | null; punch_units_remaining?: number | null }
+  const memberSource = memberRow.membership_source ?? null
   const isProviderMember = memberSource != null
     && ['wellpass', 'hansefit', 'egym', 'urban_sports'].includes(memberSource)
+  const isPunchCard = memberRow.punch_units_remaining !== null && memberRow.punch_units_remaining !== undefined
 
   // Dedup: don't create a second attendance record for the same class
   if (class_id) {
@@ -129,8 +131,28 @@ export const POST = withApiHandler('attendance.gps.post', async (req: Request) =
       .eq('class_id', class_id)
       .maybeSingle()
     if (existing) {
-      return NextResponse.json({ ok: true, entry: existing, distance_m: Math.round(dist), already_checked_in: true, via_wellpass: isProviderMember })
+      return NextResponse.json({ ok: true, entry: existing, distance_m: Math.round(dist), already_checked_in: true, via_wellpass: isProviderMember, punch_units_remaining: memberRow.punch_units_remaining ?? null })
     }
+  }
+
+  // 10er-Karte: atomar 1 Einheit abziehen BEVOR attendance angelegt wird.
+  // Bei 0 Einheiten raised die RPC 'insufficient_punch_units' (ERRCODE 23514).
+  let punchUnitsRemaining: number | null = null
+  if (isPunchCard) {
+    const { data: rpcData, error: rpcErr } = await svc.rpc('consume_punch_unit', {
+      p_member_id: member_id,
+      p_gym_id: gym.id,
+    })
+    if (rpcErr) {
+      if (rpcErr.message?.includes('insufficient_punch_units')) {
+        return NextResponse.json(
+          { error: 'Keine Einheiten mehr auf der 10er-Karte. Bitte beim Gym aufladen.', code: 'insufficient_punch_units' },
+          { status: 422 }
+        )
+      }
+      return NextResponse.json({ error: rpcErr.message }, { status: 500 })
+    }
+    punchUnitsRemaining = rpcData
   }
 
   // Insert attendance
@@ -152,12 +174,12 @@ export const POST = withApiHandler('attendance.gps.post', async (req: Request) =
 
   // Upsert class_bookings so member shows up in schedule roster
   if (class_id) {
-     
+
     await svc.from('class_bookings').upsert(
       { gym_id: gym.id, member_id, class_id, status: 'confirmed' as const },
       { onConflict: 'member_id,class_id' }
     )
   }
 
-  return NextResponse.json({ ok: true, entry, distance_m: Math.round(dist) })
+  return NextResponse.json({ ok: true, entry, distance_m: Math.round(dist), punch_units_remaining: punchUnitsRemaining })
 })

@@ -12,6 +12,8 @@ import { DemoteButton } from './DemoteButton'
 import { ToggleActiveButton } from './ToggleActiveButton'
 import { BillingSection } from './BillingSection'
 import { TournamentsSection } from './TournamentsSection'
+import { PunchCardSection } from './PunchCardSection'
+import { ContractLifecycleSection } from './ContractSection'
 import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck, FileText } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -48,6 +50,9 @@ interface Member {
   cancellation_note: string | null
   requested_plan_id: string | null
   monthly_fee_override_cents: number | null
+  punch_units_remaining: number | null
+  punch_units_total: number | null
+  punch_card_purchased_at: string | null
   plan_id: string | null
   stripe_subscription_id: string | null
 }
@@ -639,6 +644,19 @@ export default function MemberDetailPage() {
         monthlyFeeCents={monthlyFeeCents}
         payments={payments}
         memberCreatedAt={member.join_date}
+      />
+
+      {/* Vertrag (Epic 1) — Migration 0014_contracts_and_pauses.
+          Aktueller Vertrag aus member_contracts; Pause-Mechanik mit auto-Verlängerung. */}
+      <ContractLifecycleSection memberId={member.id} />
+
+      {/* 10er-Karte (Punch-Card) — Migration 0013_punch_card_membership.
+          Owner sieht Restkontingent + kann aufladen; GPS-Checkin zieht atomar ab. */}
+      <PunchCardSection
+        memberId={member.id}
+        initialRemaining={member.punch_units_remaining}
+        initialTotal={member.punch_units_total}
+        initialPurchasedAt={member.punch_card_purchased_at}
       />
 
       {/* Tournament-Tracking — Audit 2026-05-14: Owner kann Turnier-Antritte

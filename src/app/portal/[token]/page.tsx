@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
+import { PortalContractActions } from './PortalContractActions'
 import Image from 'next/image'
 import { BeltBadge } from '@/components/BeltBadge'
 import { resolveBeltSystem } from '@/lib/belt-system'
@@ -65,6 +66,9 @@ interface MemberData {
     plan_id: string | null
     requested_plan_id: string | null
     cancellation_requested_at: string | null
+    punch_units_remaining: number | null
+    punch_units_total: number | null
+    punch_card_purchased_at: string | null
   }
   gym: { name: string; logo_url?: string | null; belt_system?: unknown; belt_system_enabled?: boolean; whatsapp_group_url?: string | null } | null
   attendance: { id: string; checked_in_at: string; class_type: string }[]
@@ -83,6 +87,25 @@ interface MemberData {
     instructor: string | null
     booking_status: string
   }[]
+  active_contract: {
+    id: string
+    status: 'active' | 'paused' | 'cancelled_pending'
+    start_date: string
+    initial_term_months: number
+    original_end_date: string | null
+    effective_end_date: string | null
+    is_first_term: boolean
+    notice_period_days: number
+    notice_period_days_after_first_term: number
+    monthly_fee_cents: number | null
+  } | null
+  open_pause: {
+    id: string
+    paused_from: string
+    reason: 'injury' | 'travel' | 'financial' | 'other'
+    reason_note: string | null
+    extends_contract: boolean
+  } | null
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -591,7 +614,7 @@ export default function MemberPortalPage() {
     </div>
   )
 
-  const { member, gym, attendance, totalSessions, payments, plans, announcements, posts, upcoming_bookings } = data
+  const { member, gym, attendance, totalSessions, payments, plans, announcements, posts, upcoming_bookings, active_contract, open_pause } = data
   const { sessionsThisMonth, streak } = calcStats(attendance ?? [])
 
   // Show banner if most recent check-in was within the last 10 minutes (trainer checked them in)
@@ -1059,6 +1082,119 @@ export default function MemberPortalPage() {
                     ? 'Your membership has been cancelled and confirmed by the gym. Contact the gym to rejoin.'
                     : 'Deine Mitgliedschaft wurde gekündigt und vom Gym bestätigt. Melde dich beim Gym, um wieder beizutreten.'}
                 </p>
+              </div>
+            )}
+
+            {/* Vertrag-Status (Epic 1) — wenn Member einen aktiven Vertrag hat */}
+            {member.is_active && active_contract && (
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                <h2 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                  <Package size={15} className="text-indigo-500" /> {lang === 'en' ? 'Your contract' : 'Dein Vertrag'}
+                </h2>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <p className="text-slate-400">{lang === 'en' ? 'Start' : 'Start'}</p>
+                    <p className="text-slate-700 font-medium">{new Date(active_contract.start_date).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-DE')}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">{active_contract.original_end_date ? (lang === 'en' ? 'Effective end' : 'Effektives Ende') : (lang === 'en' ? 'Term' : 'Laufzeit')}</p>
+                    <p className="text-slate-700 font-medium">
+                      {active_contract.original_end_date
+                        ? new Date(active_contract.effective_end_date ?? active_contract.original_end_date).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-DE')
+                        : (lang === 'en' ? 'Open-ended' : 'Unbefristet')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">{lang === 'en' ? 'Notice period' : 'Kündigungsfrist'}</p>
+                    <p className="text-slate-700 font-medium">
+                      {(active_contract.is_first_term ? active_contract.notice_period_days : active_contract.notice_period_days_after_first_term)} {lang === 'en' ? 'days' : 'Tage'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">{lang === 'en' ? 'Status' : 'Status'}</p>
+                    <p className="text-slate-700 font-medium">
+                      {active_contract.status === 'paused' ? (lang === 'en' ? 'Paused' : 'Pausiert')
+                        : active_contract.status === 'cancelled_pending' ? (lang === 'en' ? 'Cancellation pending' : 'Kündigung anstehend')
+                        : (lang === 'en' ? 'Active' : 'Aktiv')}
+                    </p>
+                  </div>
+                </div>
+                {open_pause && (
+                  <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <p className="text-xs font-medium text-amber-900">
+                      {lang === 'en' ? 'Paused since' : 'Pausiert seit'} {new Date(open_pause.paused_from).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-DE')}
+                    </p>
+                    {open_pause.reason_note && (
+                      <p className="text-[11px] text-amber-700 mt-0.5">{open_pause.reason_note}</p>
+                    )}
+                    {open_pause.extends_contract && (
+                      <p className="text-[11px] text-amber-600 mt-1">
+                        {lang === 'en' ? 'Your contract will be extended by the pause duration.' : 'Dein Vertrag verlängert sich um die Pausen-Dauer.'}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {active_contract.original_end_date && active_contract.effective_end_date &&
+                 active_contract.effective_end_date !== active_contract.original_end_date && (
+                  <p className="text-[11px] text-slate-400 mt-2">
+                    {lang === 'en' ? 'Original end: ' : 'Original-Ende: '}
+                    {new Date(active_contract.original_end_date).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-DE')}
+                  </p>
+                )}
+                {/* Self-Service Actions: Member kann Pause + Kündigung beantragen */}
+                <PortalContractActions
+                  token={String((params as { token?: string })?.token ?? '')}
+                  hasOpenPause={!!open_pause}
+                  hasPendingTermination={active_contract.status === 'cancelled_pending'}
+                  lang={lang}
+                  onAfterAction={() => window.location.reload()}
+                />
+              </div>
+            )}
+
+            {/* 10er-Karte — wenn Member punch_units hat, vor Plans anzeigen */}
+            {member.is_active && member.punch_units_remaining !== null && (
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                <h2 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                  <Package size={15} className="text-amber-500" /> {lang === 'en' ? '10-class card' : '10er-Karte'}
+                </h2>
+                {(() => {
+                  const rem = member.punch_units_remaining ?? 0
+                  const tot = member.punch_units_total
+                  const usedUp = rem <= 0
+                  const pct = tot && tot > 0 ? Math.max(0, Math.min(100, (rem / tot) * 100)) : 0
+                  return (
+                    <>
+                      <div className="flex items-baseline justify-between mb-2">
+                        <div>
+                          <span className={`text-3xl font-semibold ${usedUp ? 'text-red-600' : 'text-slate-900'}`}>{rem}</span>
+                          {tot != null && <span className="text-sm text-slate-400"> {lang === 'en' ? `of ${tot}` : `von ${tot}`}</span>}
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {lang === 'en' ? 'units remaining' : 'Einheiten verbleibend'}
+                          </p>
+                        </div>
+                        {usedUp && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">
+                            {lang === 'en' ? 'used up' : 'aufgebraucht'}
+                          </span>
+                        )}
+                      </div>
+                      {tot != null && tot > 0 && (
+                        <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${usedUp ? 'bg-red-400' : 'bg-amber-400'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      )}
+                      {usedUp && (
+                        <p className="text-xs text-slate-600 mt-3">
+                          {lang === 'en' ? 'Please contact your gym to recharge.' : 'Bitte beim Gym aufladen lassen.'}
+                        </p>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             )}
 
