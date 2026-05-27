@@ -1,0 +1,132 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+
+// API für externe Inkasso-Übergabe (Feature #2/#3, Sprint 2026-05-27).
+// Stufe-4 nach 3-Stufen-internem-Mahnwesen. Erzeugt eine handoffs-Row mit
+// Lifecycle-Tracking + zusätzliche dunning_actions Audit-Zeile.
+//
+// Pattern: Cookie-Auth (consistent mit /api/members/[id]/dunning) + Service-Role
+// für Schreibops nach Owner-Verify.
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+const VALID_PROVIDERS = new Set([
+  'sport_alliance', 'fair_pay', 'eos', 'creditreform',
+  'riverty', 'manual', 'other',
+])
+
+/**
+ * GET /api/members/[id]/dunning/handoffs
+ * → Alle Inkasso-Übergaben dieses Mitglieds (chronologisch).
+ */
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: memberId } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
+  if (!gym) return NextResponse.json({ error: 'Kein Gym' }, { status: 404 })
+
+  const service = createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (service.from('dunning_handoffs') as any)
+    .select('*')
+    .eq('member_id', memberId)
+    .eq('gym_id', gym.id)
+    .order('last_status_change_at', { ascending: false })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ handoffs: data ?? [] })
+}
+
+/**
+ * POST /api/members/[id]/dunning/handoffs
+ * Body: { provider, amount_cents, notes? }
+ * → Erzeugt handoffs-Row (status='initiated') + dunning_actions Audit-Eintrag.
+ * → PDF kann separat über /api/members/[id]/dunning/handoff-pdf abgerufen werden.
+ */
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: memberId } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+
+  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
+  if (!gym) return NextResponse.json({ error: 'Kein Gym' }, { status: 404 })
+
+  // Verify member belongs to gym
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: member } = await (supabase.from('members') as any)
+    .select('id, gym_id').eq('id', memberId).maybeSingle()
+  if (!member || member.gym_id !== gym.id) {
+    return NextResponse.json({ error: 'Mitglied nicht gefunden' }, { status: 404 })
+  }
+
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>
+  const provider = typeof body.provider === 'string' ? body.provider : ''
+  const amountCentsRaw = body.amount_cents
+  const notes = typeof body.notes === 'string' ? body.notes.slice(0, 5000) : null
+
+  if (!VALID_PROVIDERS.has(provider)) {
+    return NextResponse.json({
+      error: `provider muss einer von: ${Array.from(VALID_PROVIDERS).join(', ')}`,
+    }, { status: 400 })
+  }
+  const amount_cents = typeof amountCentsRaw === 'number' && amountCentsRaw > 0
+    ? Math.floor(amountCentsRaw)
+    : null
+  if (!amount_cents) {
+    return NextResponse.json({ error: 'amount_cents > 0 erforderlich' }, { status: 400 })
+  }
+
+  const service = createServiceClient()
+  const nowIso = new Date().toISOString()
+
+  // 1. handoffs-Row anlegen
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const insertRes = await (service.from('dunning_handoffs') as any).insert({
+    gym_id: gym.id,
+    member_id: memberId,
+    provider,
+    status: 'initiated',
+    amount_cents,
+    notes,
+    initiated_by: user.id,
+    initiated_at: nowIso,
+    last_status_change_at: nowIso,
+  }).select().single()
+
+  if (insertRes.error) {
+    return NextResponse.json({ error: insertRes.error.message }, { status: 500 })
+  }
+  const handoff = insertRes.data
+
+  // 2. Audit-Eintrag in dunning_actions (für History-Sicht im Dunning-Tab)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const actionRes = await (service.from('dunning_actions') as any).insert({
+    gym_id: gym.id,
+    member_id: memberId,
+    action_type: 'collection_handoff',
+    amount_cents,
+    notes: `Übergeben an ${provider}. Handoff-ID: ${handoff.id}${notes ? ` · ${notes}` : ''}`,
+    performed_by: user.id,
+    performed_at: nowIso,
+  })
+  if (actionRes.error) {
+    console.error('[dunning/handoffs] dunning_actions audit insert failed:', actionRes.error.message)
+    // Best-effort — handoff selbst ist drin, lass nicht den ganzen Request scheitern
+  }
+
+  // 3. PDF kann unter /api/members/[id]/dunning/handoff-pdf abgerufen werden
+  return NextResponse.json({
+    ok: true,
+    handoff,
+    pdf_url: `/api/members/${memberId}/dunning/handoff-pdf?handoff_id=${handoff.id}`,
+    next_step: provider === 'manual'
+      ? 'PDF herunterladen und manuell an Inkasso-Anbieter senden.'
+      : `Provider-API-Integration für ${provider} folgt in eigenem Sprint. Aktuell: PDF runterladen + manuell ans Provider-System übermitteln.`,
+  })
+}

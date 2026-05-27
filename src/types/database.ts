@@ -366,6 +366,18 @@ export interface Database {
           portal_token_hash: string | null
           portal_token_expires_at: string | null
           portal_token_rotated_at: string | null
+          parent_first_name: string | null
+          parent_last_name: string | null
+          parent_email: string | null
+          parent_phone: string | null
+          parent_relationship: string | null
+          parent_signature_data: string | null
+          parent_signed_at: string | null
+          parent_consent_ip: string | null
+          parent_consent_user_agent: string | null
+          parent_consent_text: string | null
+          parent_id_document_type: string | null
+          sole_custody_declared: boolean
         }
         Insert: {
           gym_id: string
@@ -412,6 +424,18 @@ export interface Database {
           portal_token_hash?: string | null
           portal_token_expires_at?: string | null
           portal_token_rotated_at?: string | null
+          parent_first_name?: string | null
+          parent_last_name?: string | null
+          parent_email?: string | null
+          parent_phone?: string | null
+          parent_relationship?: string | null
+          parent_signature_data?: string | null
+          parent_signed_at?: string | null
+          parent_consent_ip?: string | null
+          parent_consent_user_agent?: string | null
+          parent_consent_text?: string | null
+          parent_id_document_type?: string | null
+          sole_custody_declared?: boolean
         }
         Update: {
           first_name?: string
@@ -460,7 +484,25 @@ export interface Database {
           portal_token_hash?: string | null
           portal_token_expires_at?: string | null
           portal_token_rotated_at?: string | null
+          parent_first_name?: string | null
+          parent_last_name?: string | null
+          parent_email?: string | null
+          parent_phone?: string | null
+          parent_relationship?: string | null
+          parent_signature_data?: string | null
+          parent_signed_at?: string | null
+          parent_consent_ip?: string | null
+          parent_consent_user_agent?: string | null
+          parent_consent_text?: string | null
+          parent_id_document_type?: string | null
+          sole_custody_declared?: boolean
         }
+        Relationships: Rel[]
+      }
+      dunning_handoffs: {
+        Row: { id: string; gym_id: string; member_id: string; provider: string; status: string; amount_cents: number; reference_id: string | null; pdf_storage_path: string | null; notes: string | null; initiated_at: string; initiated_by: string | null; exported_at: string | null; sent_at: string | null; accepted_at: string | null; closed_at: string | null; last_status_change_at: string; provider_response: unknown | null }
+        Insert: { gym_id: string; member_id: string; provider: string; status?: string; amount_cents: number; reference_id?: string | null; pdf_storage_path?: string | null; notes?: string | null; initiated_by?: string | null }
+        Update: { provider?: string; status?: string; amount_cents?: number; reference_id?: string | null; pdf_storage_path?: string | null; notes?: string | null; exported_at?: string | null; sent_at?: string | null; accepted_at?: string | null; closed_at?: string | null; last_status_change_at?: string; provider_response?: unknown | null }
         Relationships: Rel[]
       }
       dunning_actions: {
@@ -707,7 +749,16 @@ export interface Database {
         Relationships: Rel[]
       }
     }
-    Views: Record<string, never>
+    Views: {
+      members_trainer_view: {
+        Row: { id: string; gym_id: string; first_name: string; last_name: string; belt: Belt; stripes: number | null; is_active: boolean; join_date: string | null; date_of_birth: string | null; parent_first_name: string | null; parent_phone: string | null; notes: string | null; punch_units_remaining: number | null; punch_units_total: number | null }
+        Relationships: Rel[]
+      }
+      members_with_age: {
+        Row: { id: string; gym_id: string; first_name: string; last_name: string; date_of_birth: string | null; age_years: number | null; is_minor: boolean; has_parent_signature: boolean }
+        Relationships: Rel[]
+      }
+    } & Record<string, never>
     Functions: {
       save_stripe_account: { Args: { p_gym_id: string; p_stripe_account_id: string }; Returns: void }
       increment_invoice_counter: { Args: { p_gym_id: string }; Returns: number }
