@@ -14,6 +14,8 @@ import { BillingSection } from './BillingSection'
 import { TournamentsSection } from './TournamentsSection'
 import { PunchCardSection } from './PunchCardSection'
 import { ContractLifecycleSection } from './ContractSection'
+import { ParentSignatureSection } from './ParentSignatureSection'
+import { DunningHandoffSection } from './DunningHandoffSection'
 import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck, FileText } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -55,6 +57,8 @@ interface Member {
   punch_card_purchased_at: string | null
   plan_id: string | null
   stripe_subscription_id: string | null
+  dunning_level: number | null
+  dunning_amount_cents: number | null
 }
 
 interface Promotion {
@@ -646,6 +650,15 @@ export default function MemberDetailPage() {
         memberCreatedAt={member.join_date}
       />
 
+      {/* Eltern-Co-Sign (Feature #1, 2026-05-27) — sichtbar bei Minderjährigen.
+          BGB §§ 1626/1629: Vertrag mit Minderjährigen braucht Eltern-Sig. */}
+      <ParentSignatureSection
+        memberId={member.id}
+        dateOfBirth={member.date_of_birth}
+        firstName={member.first_name}
+        lastName={member.last_name}
+      />
+
       {/* Vertrag (Epic 1) — Migration 0014_contracts_and_pauses.
           Aktueller Vertrag aus member_contracts; Pause-Mechanik mit auto-Verlängerung. */}
       <ContractLifecycleSection memberId={member.id} />
@@ -657,6 +670,14 @@ export default function MemberDetailPage() {
         initialRemaining={member.punch_units_remaining}
         initialTotal={member.punch_units_total}
         initialPurchasedAt={member.punch_card_purchased_at}
+      />
+
+      {/* Inkasso-Übergabe (Feature #2/#3, 2026-05-27) — Stufe 4 nach internem
+          3-Stufen-Dunning. Provider: Sport Alliance / Fair Pay / EOS / etc. */}
+      <DunningHandoffSection
+        memberId={member.id}
+        dunningLevel={member.dunning_level ?? 0}
+        dunningAmountCents={member.dunning_amount_cents ?? null}
       />
 
       {/* Tournament-Tracking — Audit 2026-05-14: Owner kann Turnier-Antritte
