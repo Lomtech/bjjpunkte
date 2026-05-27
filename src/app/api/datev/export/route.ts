@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   // Resolve gym for this owner
   const { data: gym } = await (authedClient as ReturnType<typeof createClient>)
     .from('gyms')
-    .select('id, name, datev_beraternummer, datev_mandantennummer, is_kleinunternehmer')
+    .select('id, name, datev_beraternummer, datev_mandantennummer, is_kleinunternehmer, datev_debitor_account')
     .eq('owner_id', user.id)
     .single()
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
@@ -41,6 +41,7 @@ export async function GET(req: Request) {
     datev_beraternummer: string | null
     datev_mandantennummer: string | null
     is_kleinunternehmer: boolean | null
+    datev_debitor_account: string | null
   }
 
   // Date range
@@ -120,9 +121,14 @@ export async function GET(req: Request) {
     const gegenkonto = gymData.is_kleinunternehmer ? '8200' : '8400'
     const buSchluessel = gymData.is_kleinunternehmer ? '40' : ''  // BU 40 = §19 UStG
 
+    // Debitorenkonto: gym-konfigurierbar via gyms.datev_debitor_account
+    // (Default 10000 = SKR03 Standard-Debitor). Steuerberater kann pro Studio
+    // anpassen (z.B. separate Sammel-Konten pro Niederlassung).
+    const debitor = gymData.datev_debitor_account?.trim() || '10000'
+
     return [
       betrag, 'H', 'EUR', '', '', '',
-      '10000',       // Debitorenkonto (generisch)
+      debitor,
       gegenkonto,
       buSchluessel,
       belegdatum, beleg1, '', '', `"${text}"`,

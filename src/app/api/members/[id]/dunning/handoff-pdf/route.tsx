@@ -71,7 +71,7 @@ export async function GET(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: gym } = await (service.from('gyms') as any)
     .select(
-      'id, name, address, phone, email, tax_number, bank_iban_enc',
+      'id, name, address, phone, email, tax_number, bank_iban_enc, dunning_interest_basisrate_pct, dunning_interest_surcharge_pct',
     )
     .eq('owner_id', user.id)
     .maybeSingle()
@@ -137,6 +137,8 @@ export async function GET(
       email: gym.email,
       tax_number: gym.tax_number,
       iban: getIbanFromGym(gym),
+      dunning_interest_basisrate_pct: gym.dunning_interest_basisrate_pct,
+      dunning_interest_surcharge_pct: gym.dunning_interest_surcharge_pct,
     },
     dunningActions,
     totalAmount,

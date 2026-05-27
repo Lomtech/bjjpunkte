@@ -24,6 +24,11 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import React from 'react'
+import {
+  calculateInterestCents,
+  daysBetween,
+  formatInterestRateDe,
+} from '@/lib/dunning-interest'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -51,6 +56,10 @@ export interface HandoffPdfGym {
   email: string | null
   tax_number: string | null
   iban: string | null
+  /** §247 BGB Basiszinssatz in % (default 2.27, Stand 2025-07). */
+  dunning_interest_basisrate_pct?: number | null
+  /** §288 BGB Aufschlag (5% Verbraucher, 9% B2B). */
+  dunning_interest_surcharge_pct?: number | null
 }
 
 export interface HandoffPdfAction {
@@ -388,6 +397,9 @@ interface HandoffPdfProps extends RenderHandoffArgs {
   issuedAt: Date
   feesCents: number
   startedAt: string | null
+  interestCents: number
+  interestDays: number
+  interestRateLabel: string
 }
 
 function HandoffDossierPdf({
@@ -399,11 +411,15 @@ function HandoffDossierPdf({
   issuedAt,
   feesCents,
   startedAt,
+  interestCents,
+  interestDays,
+  interestRateLabel,
 }: HandoffPdfProps) {
   const fullName = `${member.first_name} ${member.last_name}`.trim()
   const studioName = gym.name ?? 'Studio'
   const issuedFmt = formatDate(issuedAt)
-  const grandTotal = totalAmount + feesCents
+  // Gesamtforderung: Hauptforderung + Mahngebühren + berechnete Verzugszinsen
+  const grandTotal = totalAmount + feesCents + interestCents
 
   return (
     <Document
@@ -515,10 +531,10 @@ function HandoffDossierPdf({
               <Text style={styles.amountVal}>{formatEur(feesCents)}</Text>
             </View>
             <View style={styles.amountRow}>
-              <Text style={styles.amountKey}>Verzugszinsen</Text>
-              <Text style={styles.amountVal}>
-                nach §288 BGB ab {formatDate(startedAt)}
+              <Text style={styles.amountKey}>
+                Verzugszinsen ({interestRateLabel}, {interestDays} Tage)
               </Text>
+              <Text style={styles.amountVal}>{formatEur(interestCents)}</Text>
             </View>
             <View style={styles.amountTotalRow}>
               <Text style={styles.amountTotalKey}>Gesamtforderung</Text>
@@ -528,9 +544,10 @@ function HandoffDossierPdf({
             </View>
           </View>
           <Text style={styles.noteText}>
-            Verzugszinsen sind hier NICHT berechnet. Der Zinslauf beginnt nach
-            §288 BGB ab dem oben angegebenen Verzugsdatum und ist vom
-            Inkasso-Dienstleister zu ermitteln.
+            Verzugszinsen berechnet ab {formatDate(startedAt)} bis {formatDate(issuedAt.toISOString())} ({interestDays} Tage)
+            nach §§ 247, 288 BGB: Hauptforderung × ({interestRateLabel}) × Tage / 365.
+            Bei längerem Zinslauf bis zur tatsächlichen Zahlung erhöht sich der Betrag weiter — vom
+            Inkasso-Dienstleister fortzuschreiben.
           </Text>
         </View>
 
@@ -724,6 +741,21 @@ export async function renderHandoffPdf(
     ? firstReminder.performed_at
     : sortedAsc[0]?.performed_at ?? null
 
+  // Verzugszinsen berechnen (Sprint 2026-05-27): §§ 247, 288 BGB.
+  // Gym-konfigurierbar via gyms.dunning_interest_basisrate_pct + _surcharge_pct.
+  // Wenn kein startedAt → keine Zinsen (z.B. payment_received vor erster Mahnung).
+  const basisratePct = args.gym.dunning_interest_basisrate_pct ?? 2.27
+  const surchargePct = args.gym.dunning_interest_surcharge_pct ?? 5.0
+  const interestDays = startedAt ? daysBetween(startedAt, issuedAt) : 0
+  const interestCalc = calculateInterestCents({
+    amountCents: args.totalAmount,
+    daysOverdue: interestDays,
+    basisratePct,
+    surchargePct,
+  })
+  const interestCents = interestCalc.interestCents
+  const interestRateLabel = formatInterestRateDe(basisratePct, surchargePct)
+
   return renderToStream(
     <HandoffDossierPdf
       {...args}
@@ -731,6 +763,9 @@ export async function renderHandoffPdf(
       issuedAt={issuedAt}
       feesCents={feesCents}
       startedAt={startedAt}
+      interestCents={interestCents}
+      interestDays={interestDays}
+      interestRateLabel={interestRateLabel}
     />,
   )
 }

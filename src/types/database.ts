@@ -164,6 +164,9 @@ export interface Database {
           datev_beraternummer: string | null
           datev_mandantennummer: string | null
           datev_sachkontenlänge: number | null
+          datev_debitor_account: string
+          dunning_interest_basisrate_pct: number
+          dunning_interest_surcharge_pct: number
           // GPS check-in
           latitude: number | null
           longitude: number | null
@@ -236,6 +239,9 @@ export interface Database {
           datev_beraternummer?: string | null
           datev_mandantennummer?: string | null
           datev_sachkontenlänge?: number | null
+          datev_debitor_account?: string
+          dunning_interest_basisrate_pct?: number
+          dunning_interest_surcharge_pct?: number
           latitude?: number | null
           longitude?: number | null
           gps_radius_meters?: number | null
@@ -303,6 +309,9 @@ export interface Database {
           datev_beraternummer?: string | null
           datev_mandantennummer?: string | null
           datev_sachkontenlänge?: number | null
+          datev_debitor_account?: string
+          dunning_interest_basisrate_pct?: number
+          dunning_interest_surcharge_pct?: number
           latitude?: number | null
           longitude?: number | null
           gps_radius_meters?: number | null
