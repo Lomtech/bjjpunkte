@@ -363,6 +363,9 @@ export interface Database {
           punch_units_remaining: number | null
           punch_units_total: number | null
           punch_card_purchased_at: string | null
+          portal_token_hash: string | null
+          portal_token_expires_at: string | null
+          portal_token_rotated_at: string | null
         }
         Insert: {
           gym_id: string
@@ -406,6 +409,9 @@ export interface Database {
           punch_units_remaining?: number | null
           punch_units_total?: number | null
           punch_card_purchased_at?: string | null
+          portal_token_hash?: string | null
+          portal_token_expires_at?: string | null
+          portal_token_rotated_at?: string | null
         }
         Update: {
           first_name?: string
@@ -451,6 +457,9 @@ export interface Database {
           punch_units_remaining?: number | null
           punch_units_total?: number | null
           punch_card_purchased_at?: string | null
+          portal_token_hash?: string | null
+          portal_token_expires_at?: string | null
+          portal_token_rotated_at?: string | null
         }
         Relationships: Rel[]
       }
