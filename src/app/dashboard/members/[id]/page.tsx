@@ -16,6 +16,8 @@ import { PunchCardSection } from './PunchCardSection'
 import { ContractLifecycleSection } from './ContractSection'
 import { ParentSignatureSection } from './ParentSignatureSection'
 import { DunningHandoffSection } from './DunningHandoffSection'
+import { PrivateInvoiceSection } from './PrivateInvoiceSection'
+import { LegacyContractBanner } from './LegacyContractBanner'
 import { ExternalLink, Copy, Check, Undo2, Phone, Mail, MessageCircle, Pencil, Trash2, Users, Award, CreditCard, History, CalendarDays, StickyNote, Link2, UserCheck, FileText } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -650,6 +652,10 @@ export default function MemberDetailPage() {
         memberCreatedAt={member.join_date}
       />
 
+      {/* Legacy-Vertrag-Banner (Sprint 2026-05-27) — zeigt sich nur wenn der
+          aktive Vertrag via Excel-Import angelegt wurde. */}
+      <LegacyContractBanner memberId={member.id} />
+
       {/* Eltern-Co-Sign (Feature #1, 2026-05-27) — sichtbar bei Minderjährigen.
           BGB §§ 1626/1629: Vertrag mit Minderjährigen braucht Eltern-Sig. */}
       <ParentSignatureSection
@@ -671,6 +677,10 @@ export default function MemberDetailPage() {
         initialTotal={member.punch_units_total}
         initialPurchasedAt={member.punch_card_purchased_at}
       />
+
+      {/* Privattraining + Ad-Hoc-Rechnungen (Sprint 2026-05-27).
+          Multi-Position, USt-Sätze, Gutschriften (Stornos), eigene Invoice-Nummern. */}
+      <PrivateInvoiceSection memberId={member.id} />
 
       {/* Inkasso-Übergabe (Feature #2/#3, 2026-05-27) — Stufe 4 nach internem
           3-Stufen-Dunning. Provider: Sport Alliance / Fair Pay / EOS / etc. */}
