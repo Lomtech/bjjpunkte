@@ -57,7 +57,7 @@ export function DatevSection({ initialBeraternummer, initialMandantennummer }: D
     const sur = parseFloat(surcharge.replace(',', '.'))
     // Server-side update via /api/gym/settings — umgeht CORS-Probleme die manche
     // Browser-Extensions auf direkten PATCH zu supabase.co triggern
-    const res = await fetch('/api/gym/settings', {
+    const res = await fetch('/api/gym/update', {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

@@ -53,16 +53,26 @@ export function DunningSection({
     }
     setSaving(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setSaving(false); setError('Nicht angemeldet'); return }
     const lateFeeCents = Math.round(feeEur * 100)
-    const { error: dbError } = await supabase.from('gyms').update({
-      dunning_late_fee_cents: lateFeeCents,
-      dunning_days_to_level_2: daysL2,
-      dunning_days_to_level_3: daysL3,
-    }).eq('owner_id', user?.id ?? '')
+    // Server-side update via /api/gym/settings (CORS-resistent gegen Browser-Extensions)
+    const res = await fetch('/api/gym/update', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        dunning_late_fee_cents: lateFeeCents,
+        dunning_days_to_level_2: daysL2,
+        dunning_days_to_level_3: daysL3,
+      }),
+    })
     setSaving(false)
-    if (dbError) {
-      setError(dbError.message)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setError(err.error ?? 'Update fehlgeschlagen')
       return
     }
     setSaved(true); setTimeout(() => setSaved(false), 2000)

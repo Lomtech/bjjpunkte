@@ -45,10 +45,19 @@ export function GpsSection({ initialLat, initialLng, initialRadius }: GpsSection
     if (lat === null || lng === null) return
     setSaving(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({
-      latitude: lat, longitude: lng, gps_radius_meters: radius,
-    }).eq('owner_id', user?.id ?? '')
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setSaving(false); return }
+    // Server-side update via /api/gym/settings (CORS-resistent)
+    await fetch('/api/gym/update', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        latitude: lat, longitude: lng, gps_radius_meters: radius,
+      }),
+    })
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2500)
   }
 

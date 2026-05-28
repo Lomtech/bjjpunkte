@@ -40,12 +40,21 @@ export function LegalSection({
   async function handleSave() {
     setSaving(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('gyms').update({
-      legal_name: legalName || null,
-      legal_address: legalAddress || null,
-      legal_email: legalEmail || null,
-    }).eq('owner_id', user?.id ?? '')
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setSaving(false); return }
+    // Server-side update via /api/gym/settings (CORS-resistent)
+    await fetch('/api/gym/update', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        legal_name: legalName || null,
+        legal_address: legalAddress || null,
+        legal_email: legalEmail || null,
+      }),
+    })
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
 
