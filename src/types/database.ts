@@ -545,6 +545,12 @@ export interface Database {
           checkout_url: string | null
           invoice_number: string | null
           member_name: string | null
+          kind: string
+          description: string | null
+          due_date: string | null
+          issued_at: string | null
+          credits_payment_id: string | null
+          tax_rate_pct: number
         }
         Insert: {
           gym_id: string
@@ -558,6 +564,12 @@ export interface Database {
           checkout_url?: string | null
           invoice_number?: string | null
           member_name?: string | null
+          kind?: string
+          description?: string | null
+          due_date?: string | null
+          issued_at?: string | null
+          credits_payment_id?: string | null
+          tax_rate_pct?: number
         }
         Update: {
           status?: string

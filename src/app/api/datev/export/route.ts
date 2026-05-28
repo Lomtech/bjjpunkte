@@ -54,7 +54,7 @@ export async function GET(req: Request) {
   const supabase = createServiceClient()
   const { data: payments, error } = await supabase
     .from('payments')
-    .select('id, amount_cents, paid_at, invoice_number, member_id, members(first_name, last_name)')
+    .select('id, amount_cents, paid_at, invoice_number, member_id, kind, members(first_name, last_name)')
     .eq('gym_id', gymData.id)
     .eq('status', 'paid')
     .gte('paid_at', from)
@@ -113,8 +113,21 @@ export async function GET(req: Request) {
 
     const d          = new Date(pRow.paid_at as string)
     const belegdatum = `${p2(d.getDate())}${p2(d.getMonth()+1)}`
-    const betrag     = ((pRow.amount_cents as number) / 100).toFixed(2).replace('.', ',')
-    const text       = `Mitgliedsbeitrag ${memberName}`.substring(0, 60).replace(/[";]/g, ' ')
+    const kind       = (pRow.kind as string) ?? 'subscription'
+    const isCredit   = kind === 'credit_note'
+
+    // Gutschriften: Betrag IMMER positiv im DATEV-Stapel, aber Soll/Haben umgedreht
+    // (S statt H = Storno-Buchung). DATEV erwartet positive Beträge im Feld "Umsatz".
+    const amountAbs  = Math.abs(pRow.amount_cents as number)
+    const betrag     = (amountAbs / 100).toFixed(2).replace('.', ',')
+    const sollHaben  = isCredit ? 'S' : 'H'
+
+    const textBase = isCredit
+      ? `Gutschrift ${memberName}`
+      : kind === 'one_off'
+        ? `Privatleistung ${memberName}`
+        : `Mitgliedsbeitrag ${memberName}`
+    const text       = textBase.substring(0, 60).replace(/[";]/g, ' ')
     const beleg1     = ((pRow.invoice_number ?? (pRow.id as string).substring(0, 20)) as string).replace(/[";]/g, '')
 
     // SKR03: 8400 = Erlöse (steuerpflichtig 19%), 8200 = Erlöse Kleinunternehmer
@@ -122,12 +135,10 @@ export async function GET(req: Request) {
     const buSchluessel = gymData.is_kleinunternehmer ? '40' : ''  // BU 40 = §19 UStG
 
     // Debitorenkonto: gym-konfigurierbar via gyms.datev_debitor_account
-    // (Default 10000 = SKR03 Standard-Debitor). Steuerberater kann pro Studio
-    // anpassen (z.B. separate Sammel-Konten pro Niederlassung).
     const debitor = gymData.datev_debitor_account?.trim() || '10000'
 
     return [
-      betrag, 'H', 'EUR', '', '', '',
+      betrag, sollHaben, 'EUR', '', '', '',
       debitor,
       gegenkonto,
       buSchluessel,
