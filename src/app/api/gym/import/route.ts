@@ -352,6 +352,63 @@ export async function POST(req: Request) {
     }
   }
 
+  // ── Members — pass 1b: member_contracts row für jeden importierten Member ─
+  // Sprint 2026-05-27: Migration legt Vertrags-Row mit is_legacy=true an.
+  // Owner kann via Dashboard sehen welche Verträge noch keine Portal-Sig haben
+  // und Members einen Link zur Neusignatur schicken. Original-Vertrag bleibt
+  // rechtsgültig (Hybrid-Migration).
+  if (Array.isArray(members) && members.length > 0 && memberIds.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contractRows = members.map((m: any, i: number) => {
+      if (!memberIds[i]) return null
+      // start_date: contract_signed_at oder join_date oder heute
+      const startDate = m.contract_signed_at?.slice(0, 10)
+        ?? m.join_date
+        ?? new Date().toISOString().slice(0, 10)
+      // initial_term_months: 0 = unbefristet, sonst aus Plan oder Excel
+      const months = m.contract_months ?? 0
+      // original_end_date: aus Excel oder berechnet
+      let originalEnd: string | null = null
+      let effectiveEnd: string | null = null
+      if (m.contract_end_date) {
+        originalEnd = String(m.contract_end_date).slice(0, 10)
+        effectiveEnd = originalEnd
+      } else if (months > 0) {
+        const d = new Date(startDate)
+        d.setMonth(d.getMonth() + months)
+        originalEnd = d.toISOString().slice(0, 10)
+        effectiveEnd = originalEnd
+      }
+      return {
+        gym_id: gym.id,
+        member_id: memberIds[i],
+        start_date: startDate,
+        initial_term_months: months,
+        original_end_date: originalEnd,
+        effective_end_date: effectiveEnd,
+        status: 'active',
+        is_first_term: months > 0,
+        monthly_fee_cents: m.monthly_fee_override_cents ?? null,
+        notice_period_days: 30,
+        notice_period_days_after_first_term: 90,
+        contract_signed_at: m.contract_signed_at ?? null,
+        is_legacy: true,
+        imported_at: new Date().toISOString(),
+        legacy_source: `excel-import-${new Date().toISOString().slice(0, 10)}`,
+      }
+    }).filter(Boolean)
+
+    if (contractRows.length > 0) {
+      const CONTRACT_CHUNK = 100
+      for (let i = 0; i < contractRows.length; i += CONTRACT_CHUNK) {
+        const chunk = contractRows.slice(i, i + CONTRACT_CHUNK)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: cErr } = await (svc.from('member_contracts') as any).insert(chunk)
+        if (cErr) errors.push(`member_contracts batch ${i}: ${cErr.message}`)
+      }
+    }
+  }
+
   // ── Members — pass 2: link parent_member_id (parallel) ───────────────────
   if (Array.isArray(members) && members.length > 0) {
     const parentLinks = members
