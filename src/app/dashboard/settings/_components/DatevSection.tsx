@@ -18,25 +18,32 @@ export function DatevSection({ initialBeraternummer, initialMandantennummer }: D
   const [debitor, setDebitor] = useState('10000')
   const [basisRate, setBasisRate] = useState('2.27')
   const [surcharge, setSurcharge] = useState('5.00')
+  const [accountantEmail, setAccountantEmail] = useState('')
+  const [dispatchEnabled, setDispatchEnabled] = useState(false)
+  const [sendDay, setSendDay] = useState(1)
+  const [lastDispatched, setLastDispatched] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     setBeraternummer(initialBeraternummer ?? '')
     setMandantennummer(initialMandantennummer ?? '')
-    // Lade Debitor + Verzugszinsen direkt
     ;(async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase.from('gyms') as any)
-        .select('datev_debitor_account, dunning_interest_basisrate_pct, dunning_interest_surcharge_pct')
+        .select('datev_debitor_account, dunning_interest_basisrate_pct, dunning_interest_surcharge_pct, accountant_email, accountant_dispatch_enabled, accountant_send_day, accountant_last_dispatched_at')
         .eq('owner_id', user.id).maybeSingle()
       if (data) {
         setDebitor(data.datev_debitor_account ?? '10000')
         setBasisRate(String(data.dunning_interest_basisrate_pct ?? '2.27'))
         setSurcharge(String(data.dunning_interest_surcharge_pct ?? '5.00'))
+        setAccountantEmail(data.accountant_email ?? '')
+        setDispatchEnabled(Boolean(data.accountant_dispatch_enabled))
+        setSendDay(data.accountant_send_day ?? 1)
+        setLastDispatched(data.accountant_last_dispatched_at ?? null)
       }
     })()
   }, [initialBeraternummer, initialMandantennummer])
@@ -55,6 +62,9 @@ export function DatevSection({ initialBeraternummer, initialMandantennummer }: D
       datev_debitor_account: debitor.trim() || '10000',
       dunning_interest_basisrate_pct: isFinite(basis) ? basis : 2.27,
       dunning_interest_surcharge_pct: isFinite(sur) ? sur : 5.00,
+      accountant_email: accountantEmail.trim() || null,
+      accountant_dispatch_enabled: dispatchEnabled && Boolean(accountantEmail.trim()),
+      accountant_send_day: Math.max(1, Math.min(28, sendDay)),
     }).eq('owner_id', user.id)
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
   }
@@ -119,6 +129,44 @@ export function DatevSection({ initialBeraternummer, initialMandantennummer }: D
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="border-t border-zinc-100 pt-4 mt-2">
+          <h4 className="text-sm font-semibold text-zinc-900 mb-1">Steuerberater-Versand</h4>
+          <p className="text-xs text-zinc-500 mb-3">
+            Wenn aktiviert: jeden Monat am gewählten Tag werden alle Rechnungen + Gutschriften des Vormonats automatisch an die hinterlegte E-Mail-Adresse verschickt (als PDF-Anhänge).
+          </p>
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1.5">Steuerberater-E-Mail</label>
+              <input type="email" value={accountantEmail} onChange={e => setAccountantEmail(e.target.value)}
+                placeholder="steuerberater@kanzlei.de" className={inputCls} maxLength={320} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1.5">Versand am Tag</label>
+              <select value={sendDay} onChange={e => setSendDay(parseInt(e.target.value, 10))}
+                className={inputCls}>
+                {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                  <option key={d} value={d}>{d}.</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input type="checkbox" checked={dispatchEnabled} onChange={e => setDispatchEnabled(e.target.checked)}
+              className="mt-0.5" />
+            <span className="text-sm text-zinc-700">
+              Monatlich automatisch verschicken
+              {dispatchEnabled && !accountantEmail.trim() && (
+                <span className="block text-xs text-amber-700 mt-0.5">⚠️ E-Mail-Adresse erforderlich, sonst wird nicht versandt.</span>
+              )}
+            </span>
+          </label>
+          {lastDispatched && (
+            <p className="text-xs text-zinc-500 mt-2">
+              Zuletzt versandt: {new Date(lastDispatched).toLocaleString('de-DE')}
+            </p>
+          )}
         </div>
 
         <button type="button" onClick={handleSave} disabled={saving} className={saveBtnCls}>

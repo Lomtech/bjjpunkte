@@ -18,6 +18,10 @@
       "schedule": "30 7 * * *"
     },
     {
+      "path": "/api/cron/accountant-dispatch",
+      "schedule": "0 6 * * *"
+    },
+    {
       "path": "/api/cron/dunning-escalation",
       "schedule": "0 8 * * *"
     },
@@ -61,6 +65,9 @@
     },
     "src/app/api/cron/lead-followups/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/accountant-dispatch/route.ts": {
+      "maxDuration": 300
     },
     "src/app/api/cron/dunning-escalation/route.ts": {
       "maxDuration": 60
