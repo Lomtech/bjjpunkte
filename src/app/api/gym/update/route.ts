@@ -29,7 +29,10 @@ const ALLOWED_FIELDS = new Set<string>([
   // Pricing-default (Legacy — eigentlich pro Plan in membership_plans)
   'monthly_fee_cents',
   // Public-Page
-  'slug', 'logo_url', 'website_url',
+  'slug', 'logo_url', 'website_url', 'hero_title', 'hero_subtitle',
+  'hero_image_url', 'hero_image_position', 'accent_color',
+  'about_blocks', 'video_urls', 'public_email', 'public_phone',
+  'public_address', 'social_instagram', 'social_facebook', 'social_youtube',
   // Class-/Belt-Konfig
   'class_types', 'sport_type',
   'belt_system', 'belt_system_enabled', 'stripes_enabled',

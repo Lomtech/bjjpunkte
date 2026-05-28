@@ -361,9 +361,19 @@ export default function WebsitePage() {
       setSaving(s => ({ ...s, slug: false }))
       return
     }
-    const { error: slugErr } = await supabase.from('gyms').update({ slug: clean }).eq('id', id)
+    // Server-side update via /api/gym/update (CORS-resistent)
+    const { data: { session } } = await supabase.auth.getSession()
+    const slugRes = await fetch('/api/gym/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+      body: JSON.stringify({ slug: clean }),
+    })
     setSaving(s => ({ ...s, slug: false }))
-    if (slugErr) { setSlugError(`Fehler: ${slugErr.message}`); return }
+    if (!slugRes.ok) {
+      const err = await slugRes.json().catch(() => ({}))
+      setSlugError(`Fehler: ${err.error ?? 'Update fehlgeschlagen'}`)
+      return
+    }
     setGym((g: typeof gym) => g ? { ...g, slug: clean } : g)
     setSaved(s => ({ ...s, slug: true }))
     setTimeout(() => setSaved(s => ({ ...s, slug: false })), 2500)
@@ -375,11 +385,18 @@ export default function WebsitePage() {
     setSaving(s => ({ ...s, [key]: true }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = createClient() as any
-    const { error } = await supabase.from('gyms').update(fields).eq('id', id)
+    const { data: { session } } = await supabase.auth.getSession()
+    // Server-side update via /api/gym/update (CORS-resistent gegen Browser-Extensions)
+    const res = await fetch('/api/gym/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+      body: JSON.stringify(fields),
+    })
     setSaving(s => ({ ...s, [key]: false }))
-    if (error) {
-      console.error('[saveSection]', key, error)
-      toast.error(`Fehler beim Speichern: ${error.message}`, { retry: () => saveSection(key, fields) })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      console.error('[saveSection]', key, err)
+      toast.error(`Fehler beim Speichern: ${err.error ?? 'Update fehlgeschlagen'}`, { retry: () => saveSection(key, fields) })
       return
     }
     setSaved(s => ({ ...s, [key]: true }))
