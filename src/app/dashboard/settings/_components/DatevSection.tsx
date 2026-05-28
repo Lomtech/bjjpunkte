@@ -51,22 +51,35 @@ export function DatevSection({ initialBeraternummer, initialMandantennummer }: D
   async function handleSave() {
     setSaving(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setSaving(false); return }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setSaving(false); return }
     const basis = parseFloat(basisRate.replace(',', '.'))
     const sur = parseFloat(surcharge.replace(',', '.'))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('gyms') as any).update({
-      datev_beraternummer: beraternummer || null,
-      datev_mandantennummer: mandantennummer || null,
-      datev_debitor_account: debitor.trim() || '10000',
-      dunning_interest_basisrate_pct: isFinite(basis) ? basis : 2.27,
-      dunning_interest_surcharge_pct: isFinite(sur) ? sur : 5.00,
-      accountant_email: accountantEmail.trim() || null,
-      accountant_dispatch_enabled: dispatchEnabled && Boolean(accountantEmail.trim()),
-      accountant_send_day: Math.max(1, Math.min(28, sendDay)),
-    }).eq('owner_id', user.id)
-    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000)
+    // Server-side update via /api/gym/settings — umgeht CORS-Probleme die manche
+    // Browser-Extensions auf direkten PATCH zu supabase.co triggern
+    const res = await fetch('/api/gym/settings', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        datev_beraternummer: beraternummer || null,
+        datev_mandantennummer: mandantennummer || null,
+        datev_debitor_account: debitor.trim() || '10000',
+        dunning_interest_basisrate_pct: isFinite(basis) ? basis : 2.27,
+        dunning_interest_surcharge_pct: isFinite(sur) ? sur : 5.00,
+        accountant_email: accountantEmail.trim() || null,
+        accountant_dispatch_enabled: dispatchEnabled && Boolean(accountantEmail.trim()),
+        accountant_send_day: Math.max(1, Math.min(28, sendDay)),
+      }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      setSaved(true); setTimeout(() => setSaved(false), 2000)
+    } else {
+      console.error('[settings] save failed', await res.text())
+    }
   }
 
   return (
