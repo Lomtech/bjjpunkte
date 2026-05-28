@@ -60,13 +60,68 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     portal_token: string | null; contract_end_date: string | null
   }
 
-  // ── Contract check ─────────────────────────────────────────────────────────
-  // If the member has a contract that hasn't ended yet, schedule cancellation
-  // at contract end instead of cancelling immediately.
+  // ── Contract + Kündigungsfrist (Sprint 2026-05-27) ─────────────────────────
+  // Bevorzugt member_contracts (neue Vertragslogik mit Pausen + Kündigungsfrist).
+  // Fallback: legacy members.contract_end_date (für Members ohne contracts row).
+  //
+  // Kündigungsfrist-Logik (BGB-konform):
+  // - In Erstlaufzeit: notice_period_days (z.B. 30)
+  // - Nach Erstlaufzeit: notice_period_days_after_first_term (z.B. 90 für Quartal)
+  // - effective_end = max(today + notice_period, contract.effective_end_date)
+  //   → bei laufendem Erstvertrag: kann nicht vor Vertragsende kündigen
+  //   → bei abgelaufenem Erstvertrag mit auto_renew: notice_period entscheidet
   const now = new Date()
-  const contractEnd = m.contract_end_date ? new Date(m.contract_end_date) : null
-  const hasActiveContract = contractEnd !== null && contractEnd > now
-  const cancelAtTs = hasActiveContract ? Math.floor(contractEnd.getTime() / 1000) : null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: contractRow } = await (supabase.from('member_contracts') as any)
+    .select('id, effective_end_date, original_end_date, is_first_term, notice_period_days, notice_period_days_after_first_term, status')
+    .eq('member_id', m.id)
+    .in('status', ['active', 'paused'])
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const activeContract = contractRow as null | {
+    id: string
+    effective_end_date: string | null
+    original_end_date: string | null
+    is_first_term: boolean
+    notice_period_days: number
+    notice_period_days_after_first_term: number
+    status: string
+  }
+
+  // Welche Notice-Period? In-First-Term oder nach Erstlaufzeit?
+  const noticeDays = activeContract
+    ? (activeContract.is_first_term
+        ? activeContract.notice_period_days
+        : activeContract.notice_period_days_after_first_term)
+    : 0
+
+  const noticeEnd = noticeDays > 0
+    ? new Date(now.getTime() + noticeDays * 24 * 60 * 60 * 1000)
+    : null
+  const contractEnd = activeContract?.effective_end_date
+    ? new Date(activeContract.effective_end_date)
+    : (m.contract_end_date ? new Date(m.contract_end_date) : null)
+
+  // Effektives Ende: das LÄNGERE von Notice-Period-Ende und Contract-Ende.
+  // Beispiel 3-Monate-Frist (90d) bei 24-Monate-Vertrag:
+  //   - Member kündigt Monat 6 → contract.effective_end = Monat 24 → wirkt Vertragsende (länger)
+  //   - Member kündigt Monat 21 → notice = Monat 24 (drei davor) → wirkt Vertragsende
+  //   - Member kündigt Monat 23 → notice = Monat 26 → Vertrag wird VERLÄNGERT um 2 Monate
+  //   - Member kündigt nach Erstlaufzeit (auto_renew): notice (3 Mon) entscheidet
+  let effectiveEnd: Date | null = null
+  if (contractEnd && noticeEnd) {
+    effectiveEnd = noticeEnd > contractEnd ? noticeEnd : contractEnd
+  } else if (contractEnd) {
+    effectiveEnd = contractEnd
+  } else if (noticeEnd) {
+    effectiveEnd = noticeEnd
+  }
+
+  const hasActiveContract = effectiveEnd !== null && effectiveEnd > now
+  const cancelAtTs = hasActiveContract ? Math.floor(effectiveEnd!.getTime() / 1000) : null
 
   // ── 1. Cancel / schedule Stripe subscription ───────────────────────────────
   let stripeCancelledId: string | null = null   // immediately cancelled
@@ -134,6 +189,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   // ── 2. Update member in DB ─────────────────────────────────────────────────
   const nowIso = now.toISOString()
+  const effectiveEndIso = effectiveEnd ? effectiveEnd.toISOString().slice(0, 10) : null
 
   if (hasActiveContract && (stripeScheduledId || !m.stripe_subscription_id)) {
     // Contract running → member stays active until contract end, just mark as cancelling
@@ -152,6 +208,35 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       stripe_subscription_id:    null,
       subscription_status:       stripeCancelledId ? 'cancelled' : 'none',
     }).eq('id', m.id)
+  }
+
+  // ── 2b. Update member_contracts (Sprint 2026-05-27) ───────────────────────
+  // Bei aktiver Vertrags-Row: status → 'cancelled_pending' bis effective_end,
+  // effective_end_date auf das berechnete Datum setzen (kann durch Notice-Period
+  // verlängert sein über das ursprüngliche Vertragsende hinaus).
+  // Plus: contract_terminations row als Audit-Trail (Member-initiated, auto-accepted).
+  if (activeContract && effectiveEndIso) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('member_contracts') as any)
+      .update({
+        status: hasActiveContract ? 'cancelled_pending' : 'cancelled',
+        effective_end_date: effectiveEndIso,
+      })
+      .eq('id', activeContract.id)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('contract_terminations') as any).insert({
+      contract_id: activeContract.id,
+      member_id: m.id,
+      gym_id: m.gym_id,
+      requested_by_role: 'member',
+      termination_kind: 'regular',
+      reason_text: note || 'Vom Mitglied über das Portal gekündigt.',
+      effective_date: effectiveEndIso,
+      status: 'accepted',     // Self-Service ist auto-accepted — Owner kann via Dashboard withdrawen
+      accepted_at: nowIso,
+      created_at: nowIso,
+    })
   }
 
   const fullName  = `${m.first_name} ${m.last_name}`

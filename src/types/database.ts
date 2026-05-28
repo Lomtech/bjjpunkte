@@ -529,6 +529,7 @@ export interface Database {
         Update: never
         Relationships: Rel[]
       }
+      payments_extra_meta: { Row: { kind: string; description: string | null; due_date: string | null; issued_at: string | null }; Insert: { kind?: string; description?: string | null; due_date?: string | null; issued_at?: string | null }; Update: { kind?: string; description?: string | null; due_date?: string | null; issued_at?: string | null }; Relationships: Rel[] }
       payments: {
         Row: {
           id: string
