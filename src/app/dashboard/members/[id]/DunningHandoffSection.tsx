@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react'
 import { Scale, Plus, X, FileDown, Check, AlertCircle } from 'lucide-react'
 import { useToast } from '@/components/Toast'
+import { createClient } from '@/lib/supabase/client'
 
 type Provider = 'sport_alliance' | 'fair_pay' | 'eos' | 'creditreform' | 'riverty' | 'manual' | 'other'
 type HandoffStatus = 'initiated' | 'pdf_exported' | 'sent_to_provider' | 'accepted' | 'rejected' | 'paid' | 'written_off' | 'closed'
@@ -101,7 +102,11 @@ export function DunningHandoffSection({ memberId, dunningLevel, dunningAmountCen
   const [notes, setNotes] = useState('')
 
   async function load() {
-    const res = await fetch(`/api/members/${memberId}/dunning/handoffs`, { credentials: 'include' })
+    const sb = createClient()
+    const { data: { session } } = await sb.auth.getSession()
+    const res = await fetch(`/api/members/${memberId}/dunning/handoffs`, {
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
+    })
     if (!res.ok) { setLoading(false); return }
     const json = await res.json()
     setHandoffs(json.handoffs ?? [])
@@ -117,10 +122,14 @@ export function DunningHandoffSection({ memberId, dunningLevel, dunningAmountCen
       return
     }
     setSaving(true)
+    const sb2 = createClient()
+    const { data: { session: sess2 } } = await sb2.auth.getSession()
     const res = await fetch(`/api/members/${memberId}/dunning/handoffs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sess2?.access_token ?? ''}`,
+      },
       body: JSON.stringify({
         provider,
         amount_cents: Math.round(amount * 100),
@@ -141,10 +150,14 @@ export function DunningHandoffSection({ memberId, dunningLevel, dunningAmountCen
   }
 
   async function updateStatus(handoff: Handoff, newStatus: HandoffStatus) {
+    const sb3 = createClient()
+    const { data: { session: sess3 } } = await sb3.auth.getSession()
     const res = await fetch(`/api/dunning/handoffs/${handoff.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sess3?.access_token ?? ''}`,
+      },
       body: JSON.stringify({ status: newStatus }),
     })
     if (!res.ok) {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { updateMember } from '@/lib/api/member-update'
 import { BeltBadge } from '@/components/BeltBadge'
 import { ArrowRight, Award } from 'lucide-react'
 import type { BeltSystem } from '@/lib/belt-system'
@@ -52,7 +53,13 @@ export function PromoteButton({
       previous_belt: currentBelt, previous_stripes: currentStripes,
       new_belt: next.belt, new_stripes: next.stripes,
     })
-    await (supabase.from('members') as any).update({ belt: next.belt, stripes: next.stripes }).eq('id', memberId)
+    try {
+      await updateMember(memberId, { belt: next.belt, stripes: next.stripes })
+    } catch (e) {
+      alert((e as Error).message)
+      setLoading(false)
+      return
+    }
     setSuccess(true)
     setLoading(false)
     setTimeout(() => {

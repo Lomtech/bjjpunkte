@@ -4,6 +4,7 @@ import { useState, useEffect, useId } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { updateMember } from '@/lib/api/member-update'
 import { Save } from 'lucide-react'
 import type { Belt, MembershipSource } from '@/types/database'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
@@ -123,7 +124,9 @@ export default function EditMemberPage() {
       ? Math.round(parseFloat(form.monthly_fee_override_cents.replace(',', '.')) * 100)
       : null
 
-    const { error: err } = await (supabase.from('members') as any).update({
+    let err: { message: string } | null = null
+    try {
+      await updateMember(id, {
       first_name:                form.first_name.trim(),
       last_name:                 form.last_name.trim(),
       email:                     form.email.trim().toLowerCase() || null,
@@ -140,7 +143,10 @@ export default function EditMemberPage() {
       monthly_fee_override_cents: overrideCents,
       parent_member_id: parentMemberId || null,
       membership_source:         form.membership_source,
-    }).eq('id', id)
+      })
+    } catch (e) {
+      err = { message: (e as Error).message }
+    }
 
     if (err) { setError(err.message); setSaving(false); return }
     router.push(`/dashboard/members/${id}`)

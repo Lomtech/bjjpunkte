@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { updateMember } from '@/lib/api/member-update'
 import Link from 'next/link'
 import { BeltBadge } from '@/components/BeltBadge'
 import type { Belt } from '@/types/database'
@@ -292,13 +293,16 @@ export default function MemberDetailPage() {
   }
 
   async function doClearCancellation() {
-    const supabase = createClient()
-    await supabase.from('members').update({
-      cancellation_requested_at: null,
-      cancellation_note: null,
-      is_active: false,
-    }).eq('id', id)
-    setMember(m => m ? { ...m, cancellation_requested_at: null, cancellation_note: null, is_active: false } : m)
+    try {
+      await updateMember(id, {
+        cancellation_requested_at: null,
+        cancellation_note: null,
+        is_active: false,
+      })
+      setMember(m => m ? { ...m, cancellation_requested_at: null, cancellation_note: null, is_active: false } : m)
+    } catch (e) {
+      alert((e as Error).message)
+    }
   }
 
   function handleClearPlanRequest() {
@@ -1111,11 +1115,15 @@ function ContractSection({
 
   async function save() {
     setSaving(true)
-    const supabase = createClient()
-    await supabase.from('members').update({ contract_end_date: value || null }).eq('id', memberId)
-    onUpdated(value || null)
-    setSaving(false)
-    setEditing(false)
+    try {
+      await updateMember(memberId, { contract_end_date: value || null })
+      onUpdated(value || null)
+      setEditing(false)
+    } catch (e) {
+      alert((e as Error).message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const now = new Date()

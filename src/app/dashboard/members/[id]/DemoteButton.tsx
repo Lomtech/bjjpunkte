@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { updateMember } from '@/lib/api/member-update'
 import { BeltBadge } from '@/components/BeltBadge'
 import { ArrowLeft, ChevronDown } from 'lucide-react'
 import type { BeltSystem } from '@/lib/belt-system'
@@ -51,7 +52,13 @@ export function DemoteButton({
       previous_belt: currentBelt, previous_stripes: currentStripes,
       new_belt: prev.belt, new_stripes: prev.stripes,
     })
-    await (supabase.from('members') as any).update({ belt: prev.belt, stripes: prev.stripes }).eq('id', memberId)
+    try {
+      await updateMember(memberId, { belt: prev.belt, stripes: prev.stripes })
+    } catch (e) {
+      alert((e as Error).message)
+      setLoading(false)
+      return
+    }
     setSuccess(true)
     setLoading(false)
     setOpen(false)
