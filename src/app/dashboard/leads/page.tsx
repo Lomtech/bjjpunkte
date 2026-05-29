@@ -440,14 +440,14 @@ export default function LeadsPage() {
           { label: lang === 'en' ? 'Trial done'        : 'Probetraining absolviert', value: trialDone,      pct: tDoneRate,  tone: 'amber' },
           { label: lang === 'en' ? 'Converted'         : 'Mitglied geworden', value: converted,      pct: convRate,   tone: 'emerald' },
         ]
-        const TONE: Record<string, string> = {
-          zinc:    'bg-zinc-100   text-zinc-700',
-          amber:   'bg-amber-100  text-amber-800',
-          emerald: 'bg-emerald-100 text-emerald-800',
+        const TONE: Record<string, { bar: string; chip: string }> = {
+          zinc:    { bar: 'bg-zinc-400',   chip: 'bg-zinc-50    text-zinc-700' },
+          amber:   { bar: 'bg-amber-400',  chip: 'bg-amber-50   text-amber-800' },
+          emerald: { bar: 'bg-emerald-500',chip: 'bg-emerald-50 text-emerald-800' },
         }
         return (
           <div className="mb-4 bg-white rounded-2xl border border-zinc-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between gap-2 flex-wrap">
               <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
                 {lang === 'en' ? 'Conversion funnel' : 'Conversion-Funnel'}
               </h2>
@@ -455,40 +455,50 @@ export default function LeadsPage() {
                 {lang === 'en' ? 'How leads move toward membership' : 'Wie Leads zur Mitgliedschaft werden'}
               </p>
             </div>
-            <div className="p-5 space-y-2.5">
+            {/* Responsive Grid: 1 col mobile, 2 sm, 4 xl. Bei Platzmangel umbrechen. */}
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
               {FUNNEL.map((row, idx) => {
                 const isFirst = idx === 0
                 const stageRate = isFirst ? null : row.pct
                 const widthPct = isFirst ? 100 : pct(row.value, totalLeads)
+                const tone = TONE[row.tone]
                 return (
-                  <div key={row.label}>
-                    <div className="flex items-center justify-between mb-1 text-xs">
-                      <span className="font-semibold text-zinc-700">{row.label}</span>
-                      <span className="tabular-nums text-zinc-500">
-                        <span className="font-black text-zinc-900">{row.value}</span>
-                        {stageRate !== null && (
-                          <span className="ml-2 text-[10px] text-zinc-400">
-                            {stageRate}% {lang === 'en' ? 'conversion' : 'Übergang'}
-                          </span>
-                        )}
-                      </span>
+                  <div
+                    key={row.label}
+                    className="rounded-xl border border-zinc-200 bg-white p-3 min-w-0"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 truncate">
+                      {row.label}
+                    </p>
+                    <div className="mt-1 flex items-baseline gap-2">
+                      <span className="text-2xl font-black text-zinc-900 tabular-nums">{row.value}</span>
+                      {stageRate !== null && (
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${tone.chip}`}>
+                          {stageRate}%
+                        </span>
+                      )}
                     </div>
-                    <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+                    <div className="mt-2 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${TONE[row.tone]}`}
+                        className={`h-full rounded-full transition-all ${tone.bar}`}
                         style={{ width: `${widthPct}%` }}
                       />
                     </div>
                   </div>
                 )
               })}
-              {/* Lost-Rate als Warnung */}
+              {/* Lost-Rate als 5. Karte wenn relevant */}
               {lost > 0 && (
-                <div className="pt-3 mt-2 border-t border-zinc-100 flex items-center justify-between text-[11px]">
-                  <span className="text-zinc-500">{lang === 'en' ? 'Lost / churned' : 'Verloren / nicht angefangen'}</span>
-                  <span className="font-mono text-rose-600">
-                    {lost} ({lostRate}%)
-                  </span>
+                <div className="rounded-xl border border-rose-200 bg-rose-50/40 p-3 min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-600 truncate">
+                    {lang === 'en' ? 'Lost / churned' : 'Verloren'}
+                  </p>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-rose-700 tabular-nums">{lost}</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                      {lostRate}%
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
