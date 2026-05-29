@@ -18,9 +18,11 @@ export default function RegisterPage() {
   const [gymName,  setGymName]  = useState('')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
+  const [website,  setWebsite]  = useState('') // Honeypot — wird nie sichtbar gerendert
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
+  const [pendingConfirm, setPendingConfirm] = useState(false)
 
   const PERKS = en
     ? [
@@ -67,7 +69,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gymName, email, password }),
+      body: JSON.stringify({ gymName, email, password, website }),
     })
     const json = await res.json()
     if (!res.ok) {
@@ -75,17 +77,10 @@ export default function RegisterPage() {
       setLoading(false); return
     }
 
-    const supabase = createClient()
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    if (signInError) {
-      setError(en ? 'Account created — please sign in.' : 'Konto erstellt — bitte melde dich an.')
-      setLoading(false)
-      router.push('/login')
-      return
-    }
-
-    router.push('/dashboard')
-    router.refresh()
+    // Neuer Flow: Sup schickt Confirm-Mail, User muss klicken bevor Login geht.
+    // Keine signInWithPassword mehr direkt nach Register.
+    setPendingConfirm(true)
+    setLoading(false)
   }
 
   return (
@@ -226,7 +221,37 @@ export default function RegisterPage() {
               <div className="flex-1 h-px bg-zinc-100" />
             </div>
 
+            {pendingConfirm ? (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
+                <div className="flex items-center gap-2 font-bold mb-2">
+                  <Check size={16} />
+                  {en ? 'Check your inbox' : 'E-Mail-Postfach prüfen'}
+                </div>
+                <p>
+                  {en
+                    ? `We sent a confirmation link to ${email}. Click it to activate your gym, then sign in.`
+                    : `Wir haben einen Bestätigungs-Link an ${email} geschickt. Klick ihn an, um dein Gym freizuschalten, dann melde dich an.`}
+                </p>
+                <Link
+                  href="/login"
+                  className="mt-4 inline-flex items-center gap-1.5 text-emerald-700 underline font-semibold"
+                >
+                  {en ? 'Go to login' : 'Zum Login'} <ArrowRight size={14} />
+                </Link>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Honeypot — versteckt vor Menschen, Bots fuellen aus */}
+              <input
+                type="text"
+                name="website"
+                value={website}
+                onChange={e => setWebsite(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="absolute opacity-0 pointer-events-none w-0 h-0 -left-[9999px]"
+              />
               <div>
                 <label htmlFor="register-gym-name" className="block text-sm font-semibold text-zinc-700 mb-1.5">
                   {en ? 'Gym name' : 'Gym-Name'}
@@ -274,6 +299,7 @@ export default function RegisterPage() {
                   : <>{en ? 'Create gym' : 'Gym erstellen'} <ArrowRight size={15} /></>}
               </button>
             </form>
+            )}
 
             <p className="text-center mt-5 text-zinc-400 text-xs">
               {en
