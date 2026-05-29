@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useId } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserPlus, Trash2, MessageCircle, Phone, Mail, Pencil, Link2 } from 'lucide-react'
+import { UserPlus, Trash2, MessageCircle, Phone, Mail, Pencil, Link2, Search, X } from 'lucide-react'
 import Link from 'next/link'
 
 import { toWaPhone } from '@/lib/phone'
@@ -203,6 +203,17 @@ export default function LeadsPage() {
   const [showForm, setShowForm]     = useState(false)
   const [saving, setSaving]         = useState(false)
 
+  // Such- & Filter-State (analog zu /dashboard/members)
+  const [search, setSearch]                 = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [statusFilter, setStatusFilter]     = useState<LeadStatus | 'all'>('all')
+  const [sourceFilter, setSourceFilter]     = useState<LeadSource | 'all'>('all')
+  const [dueFilter, setDueFilter]           = useState<'all' | 'overdue' | 'today' | 'tomorrow'>('all')
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 250)
+    return () => clearTimeout(t)
+  }, [search])
+
   // inline edit state
   const [editNotes, setEditNotes]   = useState<Record<string, string>>({})
 
@@ -370,12 +381,37 @@ export default function LeadsPage() {
     return acc
   }, {} as Record<LeadStatus, number>)
 
-  // Sort leads: by status order, then by created_at desc
-  const sorted = [...leads].sort((a, b) => {
+  // Such-Filter — multi-field, case-insensitive
+  const filtered = leads.filter(l => {
+    if (statusFilter !== 'all' && l.status !== statusFilter) return false
+    if (sourceFilter !== 'all' && l.source !== sourceFilter) return false
+    if (dueFilter !== 'all') {
+      const d = dueClassification(l.next_action_at)
+      if (dueFilter === 'overdue' && d !== 'overdue') return false
+      if (dueFilter === 'today'   && d !== 'today')   return false
+      if (dueFilter === 'tomorrow'&& d !== 'tomorrow')return false
+    }
+    if (debouncedSearch) {
+      const hay = [
+        l.first_name, l.last_name, l.email, l.phone, l.notes,
+        l.referred_by, l.lost_reason, SOURCE_LABELS[l.source], STATUS_LABELS[l.status],
+      ].filter(Boolean).join(' ').toLowerCase()
+      if (!hay.includes(debouncedSearch)) return false
+    }
+    return true
+  })
+
+  // Sort: by status order, then by created_at desc
+  const sorted = [...filtered].sort((a, b) => {
     const si = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
     if (si !== 0) return si
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
+
+  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (sourceFilter !== 'all' ? 1 : 0) + (dueFilter !== 'all' ? 1 : 0) + (debouncedSearch ? 1 : 0)
+  function clearAllFilters() {
+    setSearch(''); setStatusFilter('all'); setSourceFilter('all'); setDueFilter('all')
+  }
 
   if (loading) return <div className="flex items-center justify-center h-full text-zinc-400 text-sm">{t('common', 'loading')}</div>
 
@@ -408,15 +444,125 @@ export default function LeadsPage() {
         </button>
       </div>
 
-      {/* KPI chips */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {STATUS_ORDER.map(s => (
-          <span key={s} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${STATUS_COLORS[s]}`}>
-            {STATUS_LABELS[s]}
-            <span className="font-bold">{counts[s]}</span>
-          </span>
-        ))}
+      {/* Suche */}
+      <div className="relative mb-3">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+        <input
+          type="search"
+          placeholder={lang === 'en'
+            ? 'Search by name, email, phone, notes…'
+            : 'Name, E-Mail, Telefon, Notiz suchen…'}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-white border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 shadow-sm"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-zinc-100 text-zinc-400"
+            aria-label="Suche zurücksetzen"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
+
+      {/* Status-Filter-Chips (klickbar) — "Alle" + STATUS_ORDER */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        <button
+          onClick={() => setStatusFilter('all')}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors ${
+            statusFilter === 'all'
+              ? 'bg-zinc-900 text-white border-zinc-900'
+              : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+          }`}
+        >
+          {lang === 'en' ? 'All' : 'Alle'}
+          <span className="font-bold">{leads.length}</span>
+        </button>
+        {STATUS_ORDER.map(s => {
+          const isActive = statusFilter === s
+          return (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(isActive ? 'all' : s)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                isActive
+                  ? 'bg-zinc-900 text-white border-zinc-900'
+                  : STATUS_COLORS[s] + ' hover:opacity-80'
+              }`}
+            >
+              {STATUS_LABELS[s]}
+              <span className="font-bold">{counts[s]}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Source + Due Sekundär-Filter */}
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mr-1">
+          {lang === 'en' ? 'Source' : 'Quelle'}
+        </span>
+        {(['all', 'walk-in', 'referral', 'instagram', 'website', 'signup_link', 'public_page', 'gym_qr', 'other'] as const).map(key => {
+          const isActive = sourceFilter === key
+          const label = key === 'all' ? (lang === 'en' ? 'All' : 'Alle') : (SOURCE_LABELS[key as LeadSource] ?? key)
+          return (
+            <button
+              key={key}
+              onClick={() => setSourceFilter(key as LeadSource | 'all')}
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
+                isActive
+                  ? 'bg-zinc-900 text-white border-zinc-900'
+                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider ml-3 mr-1">
+          {lang === 'en' ? 'Due' : 'Fällig'}
+        </span>
+        {(['all', 'overdue', 'today', 'tomorrow'] as const).map(key => {
+          const isActive = dueFilter === key
+          const label = key === 'all' ? (lang === 'en' ? 'All' : 'Alle')
+            : key === 'overdue' ? (lang === 'en' ? 'Overdue' : 'Überfällig')
+            : key === 'today'   ? (lang === 'en' ? 'Today'   : 'Heute')
+            : (lang === 'en' ? 'Tomorrow' : 'Morgen')
+          return (
+            <button
+              key={key}
+              onClick={() => setDueFilter(key)}
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${
+                isActive
+                  ? key === 'overdue' ? 'bg-rose-600 text-white border-rose-600'
+                    : key === 'today' ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-zinc-900 text-white border-zinc-900'
+                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+        {activeFiltersCount > 0 && (
+          <button
+            onClick={clearAllFilters}
+            className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-500 hover:text-zinc-900 underline"
+          >
+            <X size={12} /> {lang === 'en' ? 'Reset' : 'Zurücksetzen'}
+          </button>
+        )}
+      </div>
+
+      {/* Treffer-Counter wenn Filter aktiv */}
+      {activeFiltersCount > 0 && (
+        <p className="text-xs text-zinc-500 mb-3">
+          <span className="font-bold text-zinc-900">{sorted.length}</span>{' '}
+          {lang === 'en' ? `match${sorted.length === 1 ? '' : 'es'} for active filters` : `Treffer für aktive Filter`}
+        </p>
+      )}
 
       {/* Probetraining-Conversion-Funnel —
           Misst, wie effektiv das Studio neue Leads in Mitglieder konvertiert.
@@ -478,7 +624,8 @@ export default function LeadsPage() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-2 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                    {/* Mini-Balken: Container max. 50% Karten-Breite, Fill dynamisch */}
+                    <div className="mt-2 h-1.5 w-1/2 bg-zinc-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${tone.bar}`}
                         style={{ width: `${widthPct}%` }}
