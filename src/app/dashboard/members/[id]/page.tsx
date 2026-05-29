@@ -810,7 +810,7 @@ function ContractDownloadButton({ memberId, kind }: { memberId: string; kind: 'm
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { setErr('Nicht eingeloggt'); return }
 
-      const res = await fetch(`/api/members/${memberId}/contract?kind=${kind}`, {
+      const res = await fetch(`/api/members/${memberId}/contract/pdf?kind=${kind}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
       if (!res.ok) {

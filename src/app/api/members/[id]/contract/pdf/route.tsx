@@ -35,7 +35,7 @@ async function authenticateUser(req: Request): Promise<{ id: string } | null> {
 }
 
 /**
- * GET /api/members/[id]/contract?kind=membership|wellpass|trial
+ * GET /api/members/[id]/contract/pdf?kind=membership|wellpass|trial
  *
  * Rendert den unterzeichneten Vertrag als PDF — Owner-only, RLS via gym_id.
  *
