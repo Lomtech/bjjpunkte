@@ -631,9 +631,9 @@ export default function LeadsPage() {
           </button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
           {sorted.map(lead => (
-            <div key={lead.id} className="bg-white rounded-2xl border border-zinc-200 shadow-sm px-5 py-4">
+            <div key={lead.id} className="bg-white rounded-2xl border border-zinc-200 shadow-sm px-5 py-4 min-w-0">
               <div className="flex items-start gap-3">
                 {/* Avatar */}
                 <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
