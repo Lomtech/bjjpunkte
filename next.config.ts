@@ -7,11 +7,11 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://browser.sentry-cdn.com",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://browser.sentry-cdn.com https://challenges.cloudflare.com",
       "img-src 'self' data: https: blob:",
       "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com https://*.sentry.io",
-      "frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://youtube.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com https://*.sentry.io https://in-otel.hyperdx.io https://cdn.growthbook.io",
+      "frame-src https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://youtube.com https://challenges.cloudflare.com",
       // Audit 2026-05-11: frame-ancestors moderner als X-Frame-Options.
       // Browser nutzt frame-ancestors wenn beides gesetzt; X-Frame-Options bleibt für Legacy.
       "frame-ancestors 'none'",

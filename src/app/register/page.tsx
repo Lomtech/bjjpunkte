@@ -1,14 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import Script from 'next/script'
 import { createClient } from '@/lib/supabase/client'
 import { LogoMark } from '@/components/Logo'
 import { ArrowRight, Check } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+
+// Sprint Phase-1 (2026-05-31): Cloudflare Turnstile als 5. Bot-Defense.
+// Site-Key kommt aus NEXT_PUBLIC_TURNSTILE_SITE_KEY. Wenn nicht gesetzt,
+// wird das Widget nicht gerendert — Server skippt Verifikation entsprechend.
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? ''
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (el: HTMLElement, opts: { sitekey: string; callback: (token: string) => void; theme?: 'light' | 'dark' | 'auto' }) => string
+      reset: (widgetId?: string) => void
+    }
+  }
+}
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -23,6 +38,30 @@ export default function RegisterPage() {
   const [loading,  setLoading]  = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
   const [pendingConfirm, setPendingConfirm] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const turnstileRef = useRef<HTMLDivElement>(null)
+  const widgetIdRef = useRef<string | null>(null)
+
+  // Turnstile widget initialisieren wenn Site-Key + Script geladen
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !turnstileRef.current) return
+    let cancelled = false
+    const tryRender = () => {
+      if (cancelled) return
+      if (!window.turnstile || !turnstileRef.current) {
+        setTimeout(tryRender, 200)
+        return
+      }
+      if (widgetIdRef.current) return
+      widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: (tok) => setTurnstileToken(tok),
+        theme: 'auto',
+      })
+    }
+    tryRender()
+    return () => { cancelled = true }
+  }, [])
 
   const PERKS = en
     ? [
@@ -69,7 +108,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gymName, email, password, website }),
+      body: JSON.stringify({ gymName, email, password, website, turnstileToken }),
     })
     const json = await res.json()
     if (!res.ok) {
@@ -84,6 +123,15 @@ export default function RegisterPage() {
   }
 
   return (
+    <>
+      {TURNSTILE_SITE_KEY && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          strategy="afterInteractive"
+          async
+          defer
+        />
+      )}
     <div className="min-h-screen flex flex-col lg:flex-row bg-white">
 
       {/* ── Left panel (desktop only) ── */}
@@ -298,6 +346,11 @@ export default function RegisterPage() {
                   ? (en ? 'Creating…' : 'Wird erstellt…')
                   : <>{en ? 'Create gym' : 'Gym erstellen'} <ArrowRight size={15} /></>}
               </button>
+              {TURNSTILE_SITE_KEY && (
+                <div className="mt-3 flex justify-center">
+                  <div ref={turnstileRef} />
+                </div>
+              )}
             </form>
             )}
 
@@ -310,5 +363,6 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

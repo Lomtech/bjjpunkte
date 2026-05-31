@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { applyRateLimit } from '@/lib/rate-limit-handler'
+import { verifyTurnstileToken } from '@/lib/turnstile'
 
 // POST /api/auth/register — Owner-Signup fuer neues Gym.
 //
@@ -47,11 +48,25 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Ungültige Anfrage' }, { status: 400 })
-  const { gymName, email, password, website } = body as {
+  const { gymName, email, password, website, turnstileToken } = body as {
     gymName?: string
     email?: string
     password?: string
     website?: string // Honeypot
+    turnstileToken?: string // Cloudflare Turnstile
+  }
+
+  // Sprint Phase-1 (2026-05-31): Turnstile als 5. Bot-Defense-Schicht.
+  // Skip ist OK wenn TURNSTILE_SECRET_KEY nicht gesetzt — Dev/staging.
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+                ?? req.headers.get('x-real-ip')
+                ?? null
+  const turnstile = await verifyTurnstileToken(turnstileToken, clientIp)
+  if (!turnstile.success) {
+    return NextResponse.json(
+      { error: 'CAPTCHA-Verifizierung fehlgeschlagen, bitte erneut versuchen' },
+      { status: 400 },
+    )
   }
 
   // Honeypot — silent 200 (Bot weiss nicht dass es gemerkt wurde)

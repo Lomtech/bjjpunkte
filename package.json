@@ -18,6 +18,12 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@growthbook/growthbook": "^1.6.5",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",
+    "@opentelemetry/resources": "^2.7.1",
+    "@opentelemetry/sdk-trace-base": "^2.7.1",
+    "@opentelemetry/semantic-conventions": "^1.41.1",
     "@react-pdf/renderer": "^4.5.1",
     "@sentry/nextjs": "^10.51.0",
     "@supabase/ssr": "^0.10.2",
@@ -25,6 +31,7 @@
     "@types/qrcode": "^1.5.6",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
+    "@vercel/otel": "^2.1.2",
     "framer-motion": "^12.38.0",
     "inngest": "^4.5.0",
     "lucide-react": "^1.13.0",
@@ -37,6 +44,7 @@
     "stripe": "^22.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -45,6 +53,7 @@
     "dotenv-cli": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "fast-check": "^4.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
