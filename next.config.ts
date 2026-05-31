@@ -57,6 +57,12 @@ const nextConfig: NextConfig = {
   },
 
   // Reduziert JS-Bundle-Größe — wichtig für Core Web Vitals (LCP, INP).
+  // Sprint Hetzner (2026-05-30): output: 'standalone' produziert eine self-
+  // contained build in .next/standalone/ inkl. minimaler node_modules — ideal
+  // fuer Docker-Image (~150MB statt 1.2GB). Vercel ignoriert das Flag, also
+  // safe parallel zu deploy.yml (Vercel-Build).
+  output: 'standalone',
+
   // Next.js wandelt Wildcard-Imports in Tree-shake-fähige Imports um.
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react'],

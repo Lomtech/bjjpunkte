@@ -1,0 +1,97 @@
+# Deploy zu Coolify auf Hetzner.
+#
+# Sprint Hetzner (2026-05-30). PARALLEL zu deploy.yml (Vercel) — beide
+# werden auf push:main triggered. Erst nach Cutover (vercel.json crons leer,
+# DNS umgelegt) wird deploy.yml geloescht.
+#
+# Voraussetzungen (Lom muss in GitHub Secrets setzen):
+#   COOLIFY_API_TOKEN     — aus Coolify-UI: Profile → API Tokens → New
+#   COOLIFY_WEBHOOK_URL   — aus Coolify-UI: Application → Webhooks → "Deploy Webhook"
+#   COOLIFY_APP_UUID      — UUID der Application aus Coolify-UI
+#   COOLIFY_BASE_URL      — z.B. https://coolify.osss.pro (oder Tailscale-Host)
+
+name: Deploy to Coolify (Hetzner)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Nicht parallel zu sich selbst — sonst Race Conditions im Coolify-Queue
+concurrency:
+  group: coolify-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # ENABLE flag: solange auf false, laeuft Workflow nicht. Nach Cutover auf
+    # true setzen, Vercel-Workflow loeschen.
+    if: ${{ vars.COOLIFY_ENABLED == 'true' }}
+
+    steps:
+      - name: Trigger Coolify Deploy Webhook
+        id: trigger
+        run: |
+          set -euo pipefail
+          DEPLOY_ID=$(curl -fsSL -X POST \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.COOLIFY_BASE_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}&force=false" \
+            | jq -r '.deployments[0].deployment_uuid')
+          echo "deploy_id=$DEPLOY_ID" >> "$GITHUB_OUTPUT"
+          echo "🚀 Coolify Deploy: $DEPLOY_ID"
+
+      - name: Wait for deployment + verify
+        id: wait
+        run: |
+          set -euo pipefail
+          DEPLOY_ID="${{ steps.trigger.outputs.deploy_id }}"
+          API="${{ secrets.COOLIFY_BASE_URL }}/api/v1/deployments/$DEPLOY_ID"
+          TOKEN="Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}"
+
+          # Poll bis Deployment fertig — max 12 Min (Build dauert ~2-4 Min)
+          for i in {1..72}; do
+            STATUS=$(curl -fsSL -H "$TOKEN" "$API" | jq -r '.status')
+            echo "[$i/72] Status: $STATUS"
+            case "$STATUS" in
+              finished) echo "✓ Deploy success"; exit 0 ;;
+              failed|cancelled) echo "✖ Deploy $STATUS"; exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "✖ Timeout — Deploy nicht innerhalb 12 Min fertig"
+          exit 1
+
+      - name: Smoke-Test (post-deploy)
+        run: |
+          set -euo pipefail
+          URL="${{ vars.PRODUCTION_URL || 'https://www.osss.pro' }}"
+
+          # Health-Check
+          HEALTH=$(curl -fsSL -o /dev/null -w "%{http_code}" "$URL/api/health")
+          [[ "$HEALTH" == "200" ]] || { echo "✖ Health-Check failed ($HEALTH)"; exit 1; }
+
+          # Landing-Page laedt
+          LANDING=$(curl -fsSL -o /dev/null -w "%{http_code}" "$URL/")
+          [[ "$LANDING" == "200" ]] || { echo "✖ Landing failed ($LANDING)"; exit 1; }
+
+          # Robots
+          ROBOTS=$(curl -fsSL -o /dev/null -w "%{http_code}" "$URL/robots.txt")
+          [[ "$ROBOTS" == "200" ]] || { echo "⚠ robots.txt failed ($ROBOTS) — non-fatal"; }
+
+          echo "✓ Smoke-Tests passed"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## 🚀 Coolify Deploy ${{ job.status }}"
+            echo ""
+            echo "**Commit:** \`${{ github.sha }}\`"
+            echo "**Message:** ${{ github.event.head_commit.message }}"
+            echo "**Deploy-ID:** \`${{ steps.trigger.outputs.deploy_id }}\`"
+            echo "**Logs:** ${{ secrets.COOLIFY_BASE_URL }}/applications/${{ secrets.COOLIFY_APP_UUID }}"
+          } >> $GITHUB_STEP_SUMMARY
