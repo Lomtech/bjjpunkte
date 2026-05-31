@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database, TerminationKind, TerminationReasonCategory } from '@/types/database'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -21,15 +24,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: contractId } = await params
-  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authClient(auth.token)
+  const gym = auth.gym
 
   const { data: contract } = await supabase
     .from('member_contracts').select('id, gym_id').eq('id', contractId).eq('gym_id', gym.id).maybeSingle()
@@ -62,7 +60,7 @@ export async function POST(
     p_reason_text: body.reason_text.trim(),
     p_effective_date: body.effective_date,
     p_reason_category: category,
-    p_user_id: user.id,
+    p_user_id: auth.user.id,
   })
 
   if (error) {

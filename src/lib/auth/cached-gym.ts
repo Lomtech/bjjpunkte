@@ -23,6 +23,8 @@ export interface CachedGym {
   name: string | null
   // signup_enabled steuert ob Public-Pages aktiv sind — wird oft mit-gelesen
   signup_enabled: boolean | null
+  // Stripe-Connect Account-ID für Subscription/Checkout-Endpoints
+  stripe_account_id: string | null
 }
 
 function ownerKey(ownerId: string): string {
@@ -50,7 +52,7 @@ export async function getCachedGymForOwner(
   const svc = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (svc.from('gyms') as any)
-    .select('id, name, signup_enabled')
+    .select('id, name, signup_enabled, stripe_account_id')
     .eq('owner_id', ownerId)
     .maybeSingle()
 

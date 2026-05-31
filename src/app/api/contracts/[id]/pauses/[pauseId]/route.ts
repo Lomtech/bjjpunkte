@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -17,15 +20,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; pauseId: string }> }
 ) {
   const { id: contractId, pauseId } = await params
-  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authClient(auth.token)
+  const gym = auth.gym
 
   // Verify Pause gehört zu Owner-Vertrag (RLS würde es auch blocken, aber klare 404)
   const { data: pause } = await supabase
@@ -45,7 +43,7 @@ export async function PATCH(
   const { data, error } = await supabase.rpc('close_contract_pause', {
     p_pause_id: pauseId,
     p_paused_until: body.paused_until,
-    p_user_id: user.id,
+    p_user_id: auth.user.id,
   })
 
   if (error) {

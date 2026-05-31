@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function authClient(accessToken: string) {
   return createClient(
@@ -15,17 +18,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-
-  const authHeader = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const { data: gym } = await (supabase.from('gyms') as any).select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authClient(auth.token)
+  const gym = auth.gym
 
   const { data: plan } = await (supabase.from('membership_plans') as any)
     .select('id, stripe_price_id, stripe_product_id')

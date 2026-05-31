@@ -4,6 +4,9 @@ import type { Database } from '@/types/database'
 import Stripe from 'stripe'
 import { getAppUrl } from '@/lib/app-url'
 import { sendWhatsApp } from '@/lib/whatsapp'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -15,17 +18,14 @@ function authClient(accessToken: string) {
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: memberId } = await params
-  const authHeader = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  // Get gym
-  const { data: gym } = await supabase.from('gyms').select('id, name, email, stripe_account_id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authClient(auth.token)
+  // gym.email is not in CachedGym — fetch it inline (cached gym has id/name/stripe_account_id/signup_enabled)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: gymEmailRow } = await (supabase.from('gyms') as any)
+    .select('email').eq('id', auth.gym.id).maybeSingle()
+  const gym = { id: auth.gym.id, name: auth.gym.name ?? '', stripe_account_id: auth.gym.stripe_account_id, email: gymEmailRow?.email ?? null }
 
   // Get member (verify ownership)
   const { data: member } = await supabase.from('members')

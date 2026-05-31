@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { withApiHandler } from '@/lib/api/with-error-handler'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function authedClient(accessToken: string) {
   return createClient(
@@ -15,18 +18,10 @@ export const PUT = withApiHandler('classes.byId.put', async (req: Request, { par
   const { searchParams } = new URL(req.url)
   const scope = searchParams.get('scope') // 'single' | 'future' | 'all'
 
-  const authHeader = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authedClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  // Defense-in-depth: verify class belongs to the authenticated user's gym
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
-  const gymId = gym.id
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authedClient(auth.token)
+  const gymId = auth.gym.id
 
   const body = await req.json()
 
@@ -125,18 +120,10 @@ export const DELETE = withApiHandler('classes.byId.delete', async (req: Request,
   const { searchParams } = new URL(req.url)
   const scope = searchParams.get('scope') // 'single' | 'future' | 'all'
 
-  const authHeader = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authedClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  // Defense-in-depth: verify class belongs to the authenticated user's gym
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
-  const gymId = gym.id
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authedClient(auth.token)
+  const gymId = auth.gym.id
 
   if (scope === 'delete_all' || scope === 'future' || scope === 'all') {
     const { data: cls } = await supabase

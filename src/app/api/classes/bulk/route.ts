@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { withApiHandler } from '@/lib/api/with-error-handler'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function authedClient(accessToken: string) {
   return createClient(
@@ -33,16 +36,10 @@ function toHHMM(iso: string) {
  * De-duplicates recurring series — one row per series (earliest occurrence).
  */
 export const GET = withApiHandler('classes.bulk.get', async (req: Request) => {
-  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authedClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: gym } = await (supabase.from('gyms') as any).select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authedClient(auth.token)
+  const gym = auth.gym
 
   const now = new Date().toISOString()
 
@@ -99,17 +96,10 @@ export const GET = withApiHandler('classes.bulk.get', async (req: Request) => {
  * Use GET first to download a CSV backup.
  */
 export const DELETE = withApiHandler('classes.bulk.delete', async (req: Request) => {
-  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const anonClient = authedClient(accessToken)
-  const { data: { user } } = await anonClient.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
   const svc = serviceClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: gym } = await (svc.from('gyms') as any).select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const gym = auth.gym
 
   const now = new Date().toISOString()
 

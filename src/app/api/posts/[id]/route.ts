@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function getSupabase(token: string) {
   return createClient(
@@ -9,20 +12,11 @@ function getSupabase(token: string) {
   )
 }
 
-async function getGymId(supabase: ReturnType<typeof getSupabase>, token: string) {
-  const { data: { user } } = await supabase.auth.getUser(token)
-  if (!user) return null
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  return gym?.id ?? null
-}
-
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-  const supabase = getSupabase(token)
-  const gymId = await getGymId(supabase, token)
-  if (!gymId) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = getSupabase(auth.token)
 
   const body = await req.json()
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
@@ -31,11 +25,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if ('cover_url'    in body) patch.cover_url    = body.cover_url
   if ('published_at' in body) patch.published_at = body.published_at
 
-  const { data, error } = await supabase
-    .from('posts')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from('posts') as any)
     .update(patch)
     .eq('id', id)
-    .eq('gym_id', gymId)
+    .eq('gym_id', auth.gym.id)
     .select()
     .single()
 
@@ -45,13 +39,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-  const supabase = getSupabase(token)
-  const gymId = await getGymId(supabase, token)
-  if (!gymId) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = getSupabase(auth.token)
 
-  const { error } = await supabase.from('posts').delete().eq('id', id).eq('gym_id', gymId)
+  const { error } = await supabase.from('posts').delete().eq('id', id).eq('gym_id', auth.gym.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
 }

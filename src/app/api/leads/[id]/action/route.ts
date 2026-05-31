@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
 
 // POST /api/leads/[id]/action
 //   { action_type: 'mark_done' | 'contacted' | 'qualified' | 'trial_scheduled'
@@ -41,15 +42,10 @@ function getSupabase(token: string) {
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = getSupabase(token)
-  const { data: { user } } = await supabase.auth.getUser(token)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 401 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = getSupabase(auth.token)
+  const gym = auth.gym
 
   // Lead holen — RLS filtert auf das Gym des Owners, plus explizite gym_id-Prüfung
   // damit Frontend-Bugs (z.B. veraltete IDs) als 404 zurückkommen statt 500.

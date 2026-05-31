@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database, CommunicationMethod } from '@/types/database'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -17,15 +20,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string; tid: string }> }
 ) {
   const { id: contractId, tid: terminationId } = await params
-  const accessToken = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authClient(auth.token)
+  const gym = auth.gym
 
   // Verify Termination gehört zum Owner-Vertrag
   const { data: termination } = await supabase
@@ -55,7 +53,7 @@ export async function POST(
       : 'portal' as CommunicationMethod
     rpcResult = await supabase.rpc('accept_contract_termination', {
       p_termination_id: terminationId,
-      p_user_id: user.id,
+      p_user_id: auth.user.id,
       p_communication_method: method,
     })
   } else if (action === 'reject') {
@@ -65,12 +63,12 @@ export async function POST(
     rpcResult = await supabase.rpc('reject_contract_termination', {
       p_termination_id: terminationId,
       p_rejected_reason: body.rejected_reason.trim(),
-      p_user_id: user.id,
+      p_user_id: auth.user.id,
     })
   } else {
     rpcResult = await supabase.rpc('withdraw_contract_termination', {
       p_termination_id: terminationId,
-      p_user_id: user.id,
+      p_user_id: auth.user.id,
     })
   }
 

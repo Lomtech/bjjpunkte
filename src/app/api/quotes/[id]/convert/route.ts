@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 // POST /api/quotes/[id]/convert
 //
@@ -20,15 +23,10 @@ function getSupabase(token: string) {
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: quoteId } = await params
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = getSupabase(token)
-  const { data: { user } } = await supabase.auth.getUser(token)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = getSupabase(auth.token)
+  const gym = auth.gym
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: quote } = await (supabase.from('quotes') as any)

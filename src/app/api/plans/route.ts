@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function authClient(accessToken: string) {
   return createClient(
@@ -11,17 +14,10 @@ function authClient(accessToken: string) {
 }
 
 export async function POST(req: Request) {
-  const authHeader = req.headers.get('Authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
-  if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
-  if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-
-  const { data: gym } = await (supabase.from('gyms') as any).select('id, name, stripe_account_id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
-  const gymData = gym as { id: string; name: string; stripe_account_id: string | null }
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
+  const supabase = authClient(auth.token)
+  const gymData = { id: auth.gym.id, name: auth.gym.name ?? '', stripe_account_id: auth.gym.stripe_account_id }
 
   const { name, description, price_cents, billing_interval, contract_months } = await req.json()
   if (!name) return NextResponse.json({ error: 'Name fehlt' }, { status: 400 })
