@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { applyRateLimit } from '@/lib/rate-limit-handler'
+import { getCachedUser } from '@/lib/auth/cached-user'
 import type { Database } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
@@ -56,10 +57,14 @@ export async function PATCH(req: Request) {
   const rl = await applyRateLimit(req, { kind: 'gym-update', limit: 30, windowSec: 60 })
   if (rl) return rl
 
-  // Bearer-Auth
+  // Bearer-Auth (Redis-cached, Sprint A 2026-05-30)
   const authHeader = req.headers.get('Authorization')
   const accessToken = authHeader?.replace('Bearer ', '')
   if (!accessToken) {
+    return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+  }
+  const user = await getCachedUser(accessToken)
+  if (!user) {
     return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
   }
   const sb = createSupabaseClient<Database>(
@@ -67,10 +72,6 @@ export async function PATCH(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
   )
-  const { data: { user } } = await sb.auth.getUser(accessToken)
-  if (!user) {
-    return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
-  }
 
   // Body parsen + Whitelist-Filter
   const body = await req.json().catch(() => ({})) as Record<string, unknown>

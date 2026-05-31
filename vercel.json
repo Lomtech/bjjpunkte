@@ -89,6 +89,9 @@
     },
     "src/app/api/cron/apply-price-changes/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/inngest/route.ts": {
+      "maxDuration": 300
     }
   }
 }

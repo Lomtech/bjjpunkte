@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getCachedUser } from '@/lib/auth/cached-user'
 
 // PATCH /api/members/[id]/update
 //
@@ -42,9 +43,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const token = req.headers.get('Authorization')?.replace('Bearer ', '')
   if (!token) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
-  const authClient = getSupabase(token)
-  const { data: { user } } = await authClient.auth.getUser(token)
+  // Redis-cached: spart ~50–150ms pro Call (Sprint A 2026-05-30)
+  const user = await getCachedUser(token)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
+  const authClient = getSupabase(token)
 
   const { data: gym } = await authClient
     .from('gyms').select('id').eq('owner_id', user.id).maybeSingle()

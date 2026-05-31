@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { AVV_VERSION } from '@/lib/legal/avv-meta'
+import { getCachedUser } from '@/lib/auth/cached-user'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,13 +30,9 @@ export async function GET(req: Request) {
     const authHeader = req.headers.get('Authorization')
     const accessToken = authHeader?.replace('Bearer ', '')
     if (accessToken) {
-      const sb = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
-      )
-      const { data } = await sb.auth.getUser(accessToken)
-      userId = data.user?.id ?? null
+      // Redis-cached, Sprint A 2026-05-30
+      const cached = await getCachedUser(accessToken)
+      userId = cached?.id ?? null
     } else {
       const sb = await createServerClient()
       const { data } = await sb.auth.getUser()

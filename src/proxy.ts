@@ -18,10 +18,13 @@ const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 // - /api/stripe/webhook: Stripe prüft eigene HMAC-Signatur
 // - /api/public/*:       Öffentliche Endpoints, oft Klicks von externen Sites
 // - /api/cron/*:         Cron-Jobs (Bearer-Auth via CRON_SECRET)
+// - /api/inngest:        Inngest-Serve-Handler — HMAC-Auth via X-Inngest-Signature
+//                        (Sync-PUT + Invocation-POST aus Inngest-Cloud)
 const CSRF_WHITELIST_PREFIXES = [
   '/api/stripe/webhook',
   '/api/public/',
   '/api/cron/',
+  '/api/inngest',
 ]
 
 function buildAllowedOrigins(): Set<string> {
