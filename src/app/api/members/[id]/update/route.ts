@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCachedUser } from '@/lib/auth/cached-user'
+import { getCachedGymForOwner } from '@/lib/auth/cached-gym'
 
 // PATCH /api/members/[id]/update
 //
@@ -48,8 +49,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
   const authClient = getSupabase(token)
 
-  const { data: gym } = await authClient
-    .from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
+  // Sprint B 2026-05-30: Redis-cached Owner→Gym-Resolution
+  const gym = await getCachedGymForOwner(user.id)
   if (!gym) return NextResponse.json({ error: 'Gym nicht gefunden' }, { status: 404 })
 
   // Verify member gehoert zum gym

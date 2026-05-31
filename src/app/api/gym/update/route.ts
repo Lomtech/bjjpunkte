@@ -3,6 +3,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { applyRateLimit } from '@/lib/rate-limit-handler'
 import { getCachedUser } from '@/lib/auth/cached-user'
+import { invalidateGym } from '@/lib/auth/cached-gym'
 import type { Database } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
@@ -101,6 +102,9 @@ export async function PATCH(req: Request) {
   if (!data || data.length === 0) {
     return NextResponse.json({ error: 'Kein Gym für diesen User gefunden' }, { status: 404 })
   }
+
+  // Sprint B 2026-05-30: Cache-Invalidation nach Schreibvorgang
+  await invalidateGym({ ownerId: user.id, gymId: data[0]?.id })
 
   return NextResponse.json({ ok: true, updated_fields: Object.keys(updates) })
 }

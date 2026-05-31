@@ -5,6 +5,10 @@ import type { Database } from '@/types/database'
 import { sendMemberPaymentFailedEmail } from '@/lib/notify'
 import { sendDunningMail } from '@/lib/dunning-mail'
 import { PRICING_TIERS, type PlanKey } from '@/lib/pricing'
+import {
+  isStripeEventProcessed,
+  markStripeEventProcessed,
+} from '@/lib/stripe/webhook-idempotency'
 
 // Plan-Member-Limits derived from PRICING_TIERS (single-source-of-truth).
 // Without this derivation the webhook drifts away from /pricing whenever
@@ -95,6 +99,14 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
+  // Redis L1-Idempotency (Sprint B 2026-05-30): wenn der Webhook schon
+  // erfolgreich verarbeitet wurde, sehen wir das in Redis sofort und sparen
+  // 2 DB-Roundtrips. Cache-TTL 24h, Stripe retried max 3 Tage — DB-Tabelle
+  // bleibt source of truth für die längeren Replays.
+  if (await isStripeEventProcessed(event.id)) {
+    return NextResponse.json({ received: true, duplicate: true, layer: 'redis' })
+  }
+
   // Transactional-outbox pattern. Two-phase event processing:
   //
   //   Phase 1 (claim):    INSERT stripe_events row with processed_at = NULL.
@@ -149,6 +161,8 @@ export async function POST(req: Request) {
       // recovery branch and re-run idempotent side-effects.
       console.error('[webhook] markProcessed failed:', markErr)
     }
+    // Redis L1 (Sprint B 2026-05-30) — best-effort, kein await-fail
+    await markStripeEventProcessed(event!.id)
   }
 
   try {

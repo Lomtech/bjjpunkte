@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createAuthClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCachedUser } from '@/lib/auth/cached-user'
+import { getCachedGymForOwner } from '@/lib/auth/cached-gym'
 
 // Bearer-Auth statt Cookie-Auth (CORS-resistent gegen Browser-Extensions).
 function authSupabase(token: string) {
@@ -40,7 +41,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
   const supabase = authSupabase(token)
 
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
+  const gym = await getCachedGymForOwner(user.id)
   if (!gym) return NextResponse.json({ error: 'Kein Gym' }, { status: 404 })
 
   const service = createServiceClient()
@@ -70,7 +71,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
   const supabase = authSupabase(token)
 
-  const { data: gym } = await supabase.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
+  const gym = await getCachedGymForOwner(user.id)
   if (!gym) return NextResponse.json({ error: 'Kein Gym' }, { status: 404 })
 
   // Verify member belongs to gym
