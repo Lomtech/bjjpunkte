@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient as createSupabase } from '@supabase/supabase-js'
+import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+
+// Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
 function serviceClient() {
   return createSupabase(
@@ -9,22 +12,10 @@ function serviceClient() {
 }
 
 export async function POST(req: Request) {
-  // Accept token from Authorization header (sent by client) or fall back to cookie-based check
-  const bearer = req.headers.get('authorization')?.replace('Bearer ', '').trim()
+  const auth = await resolveOwnerGym(req)
+  if ('error' in auth) return auth.error
   const admin = serviceClient()
-
-  if (!bearer) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Verify the JWT token
-  const { data: { user }, error: authError } = await admin.auth.getUser(bearer)
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const { data: gym } = await admin.from('gyms').select('id').eq('owner_id', user.id).maybeSingle()
-  if (!gym) return NextResponse.json({ error: 'Gym not found' }, { status: 404 })
+  const gym = auth.gym
 
   const form = await req.formData()
   const file = form.get('file') as File | null

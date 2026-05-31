@@ -3,6 +3,10 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import type { Database } from '@/types/database'
+import { getCachedUser } from '@/lib/auth/cached-user'
+
+// Sprint D 2026-05-30: getCachedUser fuer Auth-Cache. Gym-Lookup bleibt
+// direkt, weil ueber gymId-URL-Param geht (nicht owner→gym)
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -21,7 +25,7 @@ export async function POST(req: Request) {
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
+  const user = await getCachedUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { memberId, gymId, memberEmail, memberName, amountCents } = await req.json()
@@ -137,7 +141,7 @@ export async function DELETE(req: Request) {
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
+  const user = await getCachedUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { memberId } = await req.json()

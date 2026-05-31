@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
+import { getCachedUser } from '@/lib/auth/cached-user'
+
+// Sprint D 2026-05-30: getCachedUser für Auth-Cache (Owner-Gym braucht
+// stripe_account_id direkt — wir holen es inline statt CachedGym, da
+// stripe_account_id Update-Flow das Cache invalidieren müsste)
 
 function authClient(accessToken: string) {
   return createClient(
@@ -21,7 +26,7 @@ export async function GET(req: Request) {
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
+  const user = await getCachedUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { data: gym } = await supabase
@@ -63,7 +68,7 @@ export async function POST(req: Request) {
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
+  const user = await getCachedUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { data: gym } = await supabase
@@ -154,7 +159,7 @@ export async function DELETE(req: Request) {
   if (!accessToken) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const supabase = authClient(accessToken)
-  const { data: { user } } = await supabase.auth.getUser(accessToken)
+  const user = await getCachedUser(accessToken)
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   await supabase.from('gyms').update({ stripe_account_id: null }).eq('owner_id', user.id)
