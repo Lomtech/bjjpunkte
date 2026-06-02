@@ -54,4 +54,6 @@ next-env.d.ts
 /compliance/avv/
 /compliance/breach-log.md
 *.signed.pdf
-.analysis/
+
+# osss-audit Rust build artifacts (binary ist re-buildable)
+/tools/osss-audit/target/

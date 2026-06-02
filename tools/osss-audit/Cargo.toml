@@ -1,0 +1,18 @@
+[package]
+name = "osss-audit"
+version = "0.1.0"
+edition = "2024"
+description = "Atomic drift-audit for osss.pro — checks the gaps the Python audit tools don't cover"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+walkdir = "2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
