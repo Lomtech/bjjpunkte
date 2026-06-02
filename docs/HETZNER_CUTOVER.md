@@ -169,7 +169,7 @@ Warte ~2 Min auf DNS-Propagation.
 ### 3.1 Vercel-Env exportieren
 
 ```bash
-cd ~/Developer/bjjpunkte
+cd ~/Developer/osss.pro
 export VERCEL_TOKEN="<dein-vercel-token>"
 ./scripts/migrate-env-from-vercel.sh > coolify-env.txt
 
@@ -215,7 +215,7 @@ Bei Erfolg: Coolify zeigt grünen Status. Health-Check sollte nach ~30s OK sein.
 ### 4.1 Smoke-Test laufen lassen
 
 ```bash
-cd ~/Developer/bjjpunkte
+cd ~/Developer/osss.pro
 chmod +x scripts/smoke-test.sh
 ./scripts/smoke-test.sh https://staging.osss.pro
 ```
@@ -298,7 +298,7 @@ TTL 300s → Propagation in ~5 Min.
 
 ### 5.6 Stripe-Webhook-URL bestaetigen
 
-Stripe-Dashboard → Developers → Webhooks → bjjpunkte:
+Stripe-Dashboard → Developers → Webhooks → osss-pro:
 - Endpoint URL bleibt `https://www.osss.pro/api/stripe/webhook`
 - Nur DNS-Backend hat gewechselt — Webhook funktioniert weiter
 - Test-Event senden zur Verifikation
@@ -323,7 +323,7 @@ Bei Failure → siehe Rollback (Phase 7).
 
 ### 6.1 Vercel-Deployments pausieren — NICHT loeschen
 
-Vercel-Dashboard → bjjpunkte → Settings → General → "Pause Deployments"
+Vercel-Dashboard → osss-pro → Settings → General → "Pause Deployments"
 
 Effekt: laufendes Deployment bleibt erreichbar, aber kein neuer Build.
 
@@ -362,12 +362,12 @@ Sentry, Coolify-Logs, Inngest-Dashboard.
 
 ## Phase 7 — Final (Vercel archivieren) — Nach 48h ohne Probleme
 
-Vercel-Dashboard → bjjpunkte → Settings → Advanced → "Delete Project"
+Vercel-Dashboard → osss-pro → Settings → Advanced → "Delete Project"
 (ODER nur archivieren — Vercel hat keine Archiv-Funktion, aber du kannst es einfach pausiert lassen)
 
 `coolify-env.txt` lokal loeschen:
 ```bash
-shred -u ~/Developer/bjjpunkte/coolify-env.txt 2>/dev/null || rm ~/Developer/bjjpunkte/coolify-env.txt
+shred -u ~/Developer/osss.pro/coolify-env.txt 2>/dev/null || rm ~/Developer/osss.pro/coolify-env.txt
 ```
 
 ---
@@ -443,7 +443,7 @@ Hetzner-Backups laufen automatisch (wenn aktiviert). Einmal pro Quartal:
 ## DSGVO-Audit nach Cutover
 
 ```bash
-cd ~/Developer/bjjpunkte
+cd ~/Developer/osss.pro
 dsgvo-audit . --min low
 ```
 

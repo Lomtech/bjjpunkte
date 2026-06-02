@@ -80,7 +80,7 @@ export async function DELETE(
       .single()
 
     if (wlMember?.email && cls) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bjjpunkte.vercel.app'
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.osss.pro'
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {

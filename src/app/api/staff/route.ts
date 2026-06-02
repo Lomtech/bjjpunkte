@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
   let emailSent = false
   if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bjjpunkte.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.osss.pro'
     const inviteUrl = `${appUrl}/staff/accept?token=${staff.invite_token}`
     const emailRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',

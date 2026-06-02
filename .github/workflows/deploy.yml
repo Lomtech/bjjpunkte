@@ -1,8 +1,8 @@
 name: Deploy to Vercel
 
 # Robuster CI-driven Deploy. Webhook-unabhängig — wir rufen Vercel direkt
-# über die offizielle CLI auf. Lief ein Webhook-Problem (gesehen 2026-05-28
-# bei bjjpunkte: gh push triggerte keine Vercel-Builds mehr), würde dieser
+# über die offizielle CLI auf. Lief ein Webhook-Problem (gesehen 2026-05-28:
+# gh push triggerte keine Vercel-Builds mehr), würde dieser
 # Workflow trotzdem deployen.
 
 on:

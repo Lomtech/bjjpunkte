@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   const code       = searchParams.get('code')
   const stateParam = searchParams.get('state')
   const error      = searchParams.get('error')
-  const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://bjjpunkte.vercel.app'
+  const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.osss.pro'
 
   if (error) {
     return NextResponse.redirect(`${appUrl}/dashboard/settings?stripe_error=${encodeURIComponent(error)}`)

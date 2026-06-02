@@ -43,7 +43,7 @@ Step-Workflow refactored wird (Sprint F-Kandidat).
 
 3. **Vercel-Env-Vars setzen** (Production + Preview)
    ```bash
-   vercel link --token=$VERCEL_TOKEN --yes --project bjjpunkte
+   vercel link --token=$VERCEL_TOKEN --yes --project osss-pro
    echo "$INNGEST_EVENT_KEY"   | vercel env add INNGEST_EVENT_KEY production
    echo "$INNGEST_SIGNING_KEY" | vercel env add INNGEST_SIGNING_KEY production
    # Optional auch für preview, sonst Branch-Deploys können nicht syncen:

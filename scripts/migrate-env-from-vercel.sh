@@ -29,7 +29,7 @@ cd "$(dirname "$0")/.."
 
 # Falls Repo noch nicht verlinkt
 if [[ ! -f .vercel/project.json ]]; then
-  vercel link --token="$TOKEN" --yes --project bjjpunkte >/dev/null
+  vercel link --token="$TOKEN" --yes --project osss-pro >/dev/null
 fi
 
 # Production-Env nach Stdout

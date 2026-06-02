@@ -31,7 +31,6 @@ function buildAllowedOrigins(): Set<string> {
   const origins = new Set<string>([
     'https://www.osss.pro',
     'https://osss.pro',
-    'https://bjjpunkte.vercel.app',
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',

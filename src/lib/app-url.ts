@@ -12,7 +12,7 @@ export function getAppUrl(): string {
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL
   }
-  return 'https://bjjpunkte.vercel.app'
+  return 'https://www.osss.pro'
 }
 
 export function getWebhookUrl(): string {
