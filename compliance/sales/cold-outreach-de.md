@@ -493,8 +493,8 @@ hat das gefressen?"
 ```text
 „Magicline-Basis liegt bei ~70 EUR, das stimmt. Aber: SEPA-Modul kostet extra,
 DATEV-Export kostet extra, Wellpass-Anbindung kostet extra. Real landest du bei
-180-250 EUR fuer eine vergleichbare Konfiguration. Bei osss.pro ist alles im
-89-149 EUR-Tarif drin. Ich kann dir die Kalkulation in 5 Min nebeneinander zeigen
+180-250 EUR fuer eine vergleichbare Konfiguration. Bei osss.pro ist alles fuer
+49 EUR/Monat drin (39 EUR im Jahresabo). Ich kann dir die Kalkulation in 5 Min nebeneinander zeigen
 — willst du?"
 ```
 **Eskalation:** Wenn er die Kalkulation ablehnt — Preis ist Vorwand, echter Einwand
@@ -535,9 +535,9 @@ keine 30-Seiten-Praesentation**. „Schicken Sie Infos" ist oft hoeflicher Brush
 
 **Antwort:**
 ```text
-„Klar: bis 30 Mitglieder kostenlos, ab 31 Mitglieder gibt's drei Tarife — 49 EUR,
-89 EUR, 149 EUR pro Monat. Welcher fuer [STUDIO] passt, haengt von Mitgliederzahl
-und Funktionen ab. Sag mir kurz: wie viele aktive Mitglieder, und braucht ihr
+„Klar: 49 EUR pro Monat — flat, unbegrenzte Mitglieder. Oder 39 EUR/Monat im
+Jahresabo (spart 120 EUR/Jahr). 14 Tage kostenlos testen, keine Karte noetig,
+keine Mindestlaufzeit. Sag mir kurz: wie viele aktive Mitglieder, und braucht ihr
 Wellpass-Anbindung?"
 ```
 > **Wichtig:** Preis **nicht verstecken**. Wer beim Preis blockiert, blockiert
@@ -714,10 +714,10 @@ Pflichtinhalte (Footer):
 
 | Tarif | Mitglieder | Preis/Monat | Haupt-Features |
 |-------|------------|-------------|----------------|
-| Free | bis 30 | 0 EUR | Basis-Mitgliederverwaltung, SEPA, Mitglieder-Portal |
-| Starter | bis 100 | 49 EUR | + Inkasso-Workflow, DATEV-Export |
-| Business | bis 300 | 89 EUR | + Wellpass/Hansefit/EGYM, Multi-Trainer |
-| Pro | unbegrenzt | 149 EUR | + Multi-Standort, API, eIDAS-Vertraege |
+| Standard | unbegrenzt | 49 EUR (39 EUR jaehrlich) | Alles inklusive: SEPA, Mitglieder-Portal, Inkasso-Workflow, DATEV-Export, Wellpass/Hansefit/EGYM, Multi-Trainer, eIDAS-Vertraege |
+
+> 14 Tage kostenlos testen, keine Karte noetig, keine Mindestlaufzeit.
+> Single-Tier seit 2026-05 (Commit cdd7f1a) — kein Free-/Staffel-Modell mehr.
 
 **Stripe Connect Way 1**: Studios bekommen direktes Stripe-Konto, osss.pro nimmt
 **0% Plattformgebuehr** — Stripe-Standardgebuehren (1,2% + 0,35 EUR fuer SEPA) gehen

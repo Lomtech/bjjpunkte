@@ -102,7 +102,7 @@ Mitgliedsstudios des [Verbandsname] interessant sein dürfte:
     DSFA-Vorlage als Anlage
   - Stripe-SEPA-Anbindung mit 0 % Plattformgebühr (Studio behält Stripe-Konto)
   - Wellpass-, Hansefit- und EGYM-Schnittstelle (Check-in-Synchronisation)
-  - Free-Tier bis 30 Mitglieder, danach gestaffelt 49 / 89 / 149 € pro Monat
+  - 49 € pro Monat (39 € im Jahresabo), unbegrenzte Mitglieder, 14 Tage kostenlos testen
 
 Ich möchte Ihnen drei Optionen einer möglichen Zusammenarbeit vorstellen, die
 sich an ähnlichen Modellen anderer Branchenverbände orientieren (s. Anlage 1).
@@ -273,7 +273,7 @@ lom@osss.pro | [Telefon]
 | **Listing-Beitrag pro Jahr** | **200–500 €** je nach Verbands-Reichweite |
 
 > **ROI-Schwelle:** ab 2 Pilot-Studios pro Jahr; bezahlt sich in der Regel
-> bereits beim ersten zahlenden Studio (49–149 €/Monat).
+> bereits beim ersten zahlenden Studio (49 €/Monat, 39 € im Jahresabo).
 
 ### Paket Silber: Listing + Newsletter
 

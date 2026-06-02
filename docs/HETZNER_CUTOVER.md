@@ -72,7 +72,7 @@ Inbound Rules:
 ssh root@<SERVER-IP>
 
 # Hardening-Script aus Repo (oder im Repo direkt auf scripts/hetzner-hardening.sh)
-curl -fsSL https://raw.githubusercontent.com/Lomtech/bjjpunkte/main/scripts/hetzner-hardening.sh > hardening.sh
+curl -fsSL https://raw.githubusercontent.com/Lomtech/osss.pro/main/scripts/hetzner-hardening.sh > hardening.sh
 chmod +x hardening.sh
 ./hardening.sh
 ```
@@ -127,7 +127,7 @@ Im Browser: `http://<server-tailscale-ip>:8000`
 
 Coolify-UI:
 - Sources → New → "GitHub App"
-- Coolify oeffnet GitHub-Tab → "Install on Lomtech/bjjpunkte" → Bestaetigen
+- Coolify oeffnet GitHub-Tab → "Install on Lomtech/osss.pro" → Bestaetigen
 - Nach Installation: Source erscheint in Coolify als "verfuegbar"
 
 ### 2.2 Project + Environment
@@ -142,7 +142,7 @@ Coolify → Projects → New
 
 ```
 Resources → New → Application → "Public Repository" (oder via GitHub-App)
-  Source: github.com/Lomtech/bjjpunkte (Branch: main)
+  Source: github.com/Lomtech/osss.pro (Branch: main)
   Build Pack: Dockerfile (auto-erkannt)
   Domain: staging.osss.pro     ← ERST staging, nicht production!
   Port: 3000

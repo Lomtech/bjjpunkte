@@ -367,8 +367,8 @@ function PilotDeal({ primarySport }: { primarySport: string }) {
             Feedback — was funktioniert, was nervt, was fehlt.
           </p>
           <p>
-            <strong>4. Nach 6 Monaten</strong> entscheidest du frei: weitermachen für 0-99 €/Monat
-            (je nach Größe), oder aufhören und alle Daten als Export mitnehmen.
+            <strong>4. Nach 6 Monaten</strong> entscheidest du frei: weitermachen für 49 €/Monat
+            (oder 39 € im Jahresabo, unbegrenzte Mitglieder), oder aufhören und alle Daten als Export mitnehmen.
           </p>
         </div>
       </div>
@@ -423,7 +423,7 @@ function Objections() {
     },
     {
       obj: '„Was kostet das danach?"',
-      reply: '0 bis 99 € pro Monat je nach Mitgliederzahl. Bis 30 Mitglieder kostenlos für immer. 50 Mitglieder = 29 €. 150 = 59 €. Unbegrenzt = 99 €. Keine Plattform-Gebühr auf eure Beiträge. Aber: erst nach den 6 Pilot-Monaten — und du entscheidest dann frei.',
+      reply: '49 € pro Monat — flat, egal wie viele Mitglieder. Oder 39 €/Monat im Jahresabo (spart 120 €/Jahr). 14 Tage kostenlos testen, keine Karte nötig. Keine Plattform-Gebühr auf eure Beiträge. Aber: erst nach den 6 Pilot-Monaten — und du entscheidest dann frei.',
     },
     {
       obj: '„Schick mir Infos per Mail."',

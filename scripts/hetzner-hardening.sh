@@ -3,7 +3,7 @@
 #
 # Auf einem frischen Ubuntu 24.04 LTS als root ausfuehren:
 #   ssh root@<server-ip>
-#   curl -fsSL https://raw.githubusercontent.com/Lomtech/bjjpunkte/main/scripts/hetzner-hardening.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Lomtech/osss.pro/main/scripts/hetzner-hardening.sh | bash
 #
 # Macht:
 #   - System-Updates + unattended-upgrades fuer Security-Patches
@@ -153,10 +153,10 @@ cat <<'DONE'
 ║     # Coolify-UI nur noch via Tailscale-IP erreichbar              ║
 ║                                                                    ║
 ║  3. GitHub-Source in Coolify hinzufuegen (Sources → GitHub App)   ║
-║     → bjjpunkte-Repo verlinken                                     ║
+║     → osss.pro-Repo verlinken                                      ║
 ║                                                                    ║
 ║  4. Application anlegen:                                           ║
-║     → Repository: Lomtech/bjjpunkte, Branch: main                  ║
+║     → Repository: Lomtech/osss.pro, Branch: main                   ║
 ║     → Build: Dockerfile (auto-erkannt)                             ║
 ║     → Domain: staging.osss.pro (erst staging!)                     ║
 ║     → Health Check: /api/health                                    ║

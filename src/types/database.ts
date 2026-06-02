@@ -99,6 +99,8 @@ export interface Database {
           logo_url: string | null
           monthly_fee_cents: number | null
           created_at: string
+          // Onboarding lifecycle (verified present in live DB 2026-06-02: timestamptz, nullable)
+          onboarding_completed_at: string | null
           slug: string | null
           // Stripe Connect
           stripe_account_id: string | null
