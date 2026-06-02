@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import type { Database } from '@/types/database'
 import { getCachedUser } from '@/lib/auth/cached-user'
+import { isValidAmountCents, normalizeFeePercent, contractEndUnixSeconds } from '@/lib/billing/checkout-math'
 
 // Sprint D 2026-05-30: getCachedUser fuer Auth-Cache. Gym-Lookup bleibt
 // direkt, weil ueber gymId-URL-Param geht (nicht owner→gym)
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
 
   const { memberId, gymId, memberEmail, memberName, amountCents } = await req.json()
-  if (typeof amountCents !== 'number' || !Number.isInteger(amountCents) || amountCents < 100) {
+  if (!isValidAmountCents(amountCents, 100)) {
     return NextResponse.json({ error: 'Mindestbetrag: 1,00 € (muss eine ganze Zahl in Cent sein)' }, { status: 400 })
   }
 
@@ -62,17 +63,11 @@ export async function POST(req: Request) {
       .eq('id', planId)
       .single()
     const months = (planData as any)?.contract_months as number | null
-    if (months && months > 0) {
-      const end = new Date()
-      end.setDate(1)
-      end.setMonth(end.getMonth() + months)
-      cancelAt = Math.floor(end.getTime() / 1000)
-    }
+    cancelAt = contractEndUnixSeconds(new Date(), months)
   }
 
   const appUrl = getAppUrl()
-  const rawFee = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0')
-  const platformFeePercent = Number.isFinite(rawFee) ? Math.max(0, rawFee) : 0
+  const platformFeePercent = normalizeFeePercent(process.env.STRIPE_PLATFORM_FEE_PERCENT)
   const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
 
   // Verify existing customer is on connected account; recreate if not

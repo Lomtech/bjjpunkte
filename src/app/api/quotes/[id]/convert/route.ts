@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveOwnerGym } from '@/lib/auth/owner-gym-auth'
+import { isConvertibleQuoteStatus, formatInvoiceNumber, invoiceDueDateISO } from '@/lib/billing/checkout-math'
 
 // Sprint D 2026-05-30: resolveOwnerGym mit Redis-Cache
 
@@ -34,7 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!quote || quote.gym_id !== gym.id) {
     return NextResponse.json({ error: 'Angebot nicht gefunden' }, { status: 404 })
   }
-  if (!['draft', 'sent', 'accepted'].includes(quote.status)) {
+  if (!isConvertibleQuoteStatus(quote.status)) {
     return NextResponse.json({ error: `Angebot mit Status ${quote.status} kann nicht konvertiert werden` }, { status: 400 })
   }
   if (quote.converted_payment_id) {
@@ -53,11 +54,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: counter } = await (supabase.rpc as any)('increment_invoice_counter', { p_gym_id: gym.id })
-  const year = new Date().getFullYear()
-  const invoiceNumber = `${year}-${String(counter ?? 1).padStart(4, '0')}`
+  const invoiceNumber = formatInvoiceNumber(new Date().getFullYear(), counter)
 
   const nowIso = new Date().toISOString()
-  const dueIso = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const dueIso = invoiceDueDateISO(Date.now(), 14)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: payment, error: pErr } = await (supabase.from('payments') as any).insert({

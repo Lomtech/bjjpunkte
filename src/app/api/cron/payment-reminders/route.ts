@@ -5,6 +5,7 @@ import { sendWhatsApp } from '@/lib/whatsapp'
 import { cronGuard } from '@/lib/cron-guard'
 import { withCronSentry } from '@/lib/cron/with-sentry'
 import { fmtEur } from '@/lib/date-format'
+import { reminderCta } from '@/lib/billing/checkout-math'
 import {
   enqueueNotificationsBatch,
   notificationQueueEnabled,
@@ -48,8 +49,7 @@ function reminderEmailHtml({
   checkoutUrl: string | null
 }) {
   const amount   = fmtEur(amountCents / 100)
-  const ctaUrl   = checkoutUrl ?? portalUrl ?? ''
-  const ctaLabel = checkoutUrl ? 'Jetzt bezahlen' : 'Zum Mitgliederportal'
+  const { url: ctaUrl, label: ctaLabel } = reminderCta(checkoutUrl, portalUrl)
 
   return `<!DOCTYPE html>
 <html lang="de">

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { dedupKey } from '@/lib/billing/checkout-math'
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -30,12 +31,6 @@ async function pLimit<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[
   }
   await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, run))
   return results
-}
-
-// Composite dedup key: prefer payment_intent, fall back to identity+amount+minute.
-function dedupKey(piId: string | null, identity: string, amountCents: number, paidAt: string): string {
-  if (piId) return `pi:${piId}`
-  return `m:${identity}:${amountCents}:${paidAt.slice(0, 16)}`
 }
 
 // POST /api/stripe/sync-payments

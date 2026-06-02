@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
+import { isValidAmountCents, normalizeFeePercent, platformFeeCents } from '@/lib/billing/checkout-math'
 import type { Database } from '@/types/database'
 
 function authClient(accessToken: string) {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
 
   const { memberId, gymId, memberEmail, memberName, amountCents } = await req.json()
 
-  if (typeof amountCents !== 'number' || !Number.isInteger(amountCents) || amountCents < 50) {
+  if (!isValidAmountCents(amountCents, 50)) {
     return NextResponse.json({ error: 'Ungültiger Betrag (Minimum: 0,50 €, muss eine ganze Zahl in Cent sein)' }, { status: 400 })
   }
 
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
   let customerId = memberData?.stripe_customer_id
 
   const appUrl = getAppUrl()
-  const platformFeePercent = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENT ?? '0') || 0
+  const platformFeePercent = normalizeFeePercent(process.env.STRIPE_PLATFORM_FEE_PERCENT)
   const stripeOpts = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
 
   try {
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
     }
 
     if (connectedAccountId) {
-      const fee = Math.round(amountCents * platformFeePercent / 100)
+      const fee = platformFeeCents(amountCents, platformFeePercent)
       sessionParams.payment_intent_data = {
         ...(fee > 0 ? { application_fee_amount: fee } : {}),
       }

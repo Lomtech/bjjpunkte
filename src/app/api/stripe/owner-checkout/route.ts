@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAppUrl } from '@/lib/app-url'
 import type { Database } from '@/types/database'
 import { STANDARD_TIER, FREE_TRIAL_DAYS, type PlanKey } from '@/lib/pricing'
+import { ownerPlanPriceCents } from '@/lib/billing/checkout-math'
 
 function authClient(accessToken: string) {
   return createClient<Database>(
@@ -13,12 +14,10 @@ function authClient(accessToken: string) {
   )
 }
 
-// Single-source-of-truth: pricing comes from src/lib/pricing.ts.
-// 2026-05 single-tier model: Standard 49 €/Mo monthly · 39 €/Mo annual.
-// 14-day trial via subscription_data.trial_period_days, no card required up-front.
-const PLAN_PRICE_MONTHLY = STANDARD_TIER.monthlyCents
-// Annual = 39 €/Mo × 12 = 468 €/year. Stripe charges full year upfront.
-const PLAN_PRICE_ANNUAL  = STANDARD_TIER.annualMonthlyCents * 12
+// Single-source-of-truth: pricing comes from src/lib/pricing.ts via
+// ownerPlanPriceCents() (src/lib/billing/checkout-math.ts). 2026-05 single-tier
+// model: Standard 49 €/Mo monthly · 39 €/Mo annual. 14-day trial via
+// subscription_data.trial_period_days, no card required up-front.
 
 export async function POST(req: Request) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
@@ -69,7 +68,7 @@ export async function POST(req: Request) {
           currency:     'eur',
           product_data: { name: annual ? `${STANDARD_TIER.name} (Jährlich)` : `${STANDARD_TIER.name} Plan` },
           recurring:    { interval: annual ? 'year' : 'month' },
-          unit_amount:  annual ? PLAN_PRICE_ANNUAL : PLAN_PRICE_MONTHLY,
+          unit_amount:  ownerPlanPriceCents(annual),
         },
         quantity: 1,
       }],
