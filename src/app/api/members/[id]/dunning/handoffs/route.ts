@@ -3,6 +3,7 @@ import { createClient as createAuthClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCachedUser } from '@/lib/auth/cached-user'
 import { getCachedGymForOwner } from '@/lib/auth/cached-gym'
+import { getApiProvider, buildReference, type InkassoCase } from '@/lib/inkasso'
 
 // Bearer-Auth statt Cookie-Auth (CORS-resistent gegen Browser-Extensions).
 function authSupabase(token: string) {
@@ -77,7 +78,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Verify member belongs to gym
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: member } = await (supabase.from('members') as any)
-    .select('id, gym_id').eq('id', memberId).maybeSingle()
+    .select('id, gym_id, first_name, last_name, email, phone, date_of_birth, address')
+    .eq('id', memberId).maybeSingle()
   if (!member || member.gym_id !== gym.id) {
     return NextResponse.json({ error: 'Mitglied nicht gefunden' }, { status: 404 })
   }
@@ -137,13 +139,66 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Best-effort — handoff selbst ist drin, lass nicht den ganzen Request scheitern
   }
 
-  // 3. PDF kann unter /api/members/[id]/dunning/handoff-pdf abgerufen werden
+  // 3. API-Übergabe — NUR wenn für diesen Anbieter ein Provider-Adapter mit
+  //    Credentials registriert ist. Sonst (manual / kein Vertrag): PDF-Fallback,
+  //    Verhalten unverändert. Fehler hier sind nicht-fatal (handoff bleibt drin).
+  let current = handoff
+  let nextStep =
+    provider === 'manual'
+      ? 'PDF herunterladen und manuell an Inkasso-Anbieter senden.'
+      : `Kein API-Vertrag für ${provider} konfiguriert — PDF herunterladen + manuell ans Provider-System übermitteln.`
+
+  const apiProvider = getApiProvider(provider)
+  if (apiProvider) {
+    const inkassoCase: InkassoCase = {
+      handoffId: handoff.id,
+      gymId: gym.id,
+      memberId,
+      amountCents: amount_cents,
+      reference: buildReference(gym.id, handoff.id),
+      debtor: {
+        firstName: member.first_name ?? '',
+        lastName: member.last_name ?? '',
+        email: member.email,
+        phone: member.phone,
+        dateOfBirth: member.date_of_birth,
+        street: member.address,
+      },
+      creditor: { gymName: gym.name ?? 'Studio' },
+      notes,
+    }
+    const submitRes = await apiProvider.submitCase(inkassoCase).catch((e: unknown) => ({
+      ok: false as const,
+      status: 'initiated' as const,
+      raw: { error: String(e) },
+      error: e instanceof Error ? e.message : 'submit failed',
+    }))
+
+    const patch = submitRes.ok
+      ? {
+          status: submitRes.status,
+          reference_id: submitRes.referenceId ?? null,
+          provider_response: submitRes.raw,
+          sent_at: nowIso,
+          last_status_change_at: nowIso,
+        }
+      : { provider_response: submitRes.raw, last_status_change_at: nowIso }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const upd = await (service.from('dunning_handoffs') as any)
+      .update(patch).eq('id', handoff.id).select().single()
+    if (!upd.error && upd.data) current = upd.data
+
+    nextStep = submitRes.ok
+      ? `Fall an ${provider} übergeben (Referenz ${submitRes.referenceId}). Status-Updates kommen per Webhook.`
+      : `Übergabe an ${provider} fehlgeschlagen: ${submitRes.error}. PDF-Fallback verfügbar.`
+  }
+
+  // 4. PDF bleibt unter /api/members/[id]/dunning/handoff-pdf abrufbar
   return NextResponse.json({
     ok: true,
-    handoff,
+    handoff: current,
     pdf_url: `/api/members/${memberId}/dunning/handoff-pdf?handoff_id=${handoff.id}`,
-    next_step: provider === 'manual'
-      ? 'PDF herunterladen und manuell an Inkasso-Anbieter senden.'
-      : `Provider-API-Integration für ${provider} folgt in eigenem Sprint. Aktuell: PDF runterladen + manuell ans Provider-System übermitteln.`,
+    next_step: nextStep,
   })
 }
