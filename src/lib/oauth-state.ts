@@ -13,7 +13,9 @@
 const ALGO = { name: 'HMAC', hash: 'SHA-256' }
 
 async function getKey(): Promise<CryptoKey> {
-  const secret = process.env.OAUTH_STATE_SECRET ?? process.env.NEXTAUTH_SECRET ?? ''
+  // OAUTH_STATE_SECRET ist die kanonische Var. Der NEXTAUTH_SECRET-Fallback
+  // war ein Legacy-Überbleibsel — osss nutzt Supabase Auth, nicht NextAuth.
+  const secret = process.env.OAUTH_STATE_SECRET ?? ''
   if (!secret) throw new Error('OAUTH_STATE_SECRET env var is required')
   const enc = new TextEncoder()
   return crypto.subtle.importKey('raw', enc.encode(secret), ALGO, false, ['sign', 'verify'])

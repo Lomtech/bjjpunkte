@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { applyRateLimit } from '@/lib/rate-limit-handler'
 import { verifyTurnstileToken } from '@/lib/turnstile'
+import { getAppUrl } from '@/lib/app-url'
 
 // POST /api/auth/register — Owner-Signup fuer neues Gym.
 //
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
   // Sup schickt automatisch Confirm-Mail, email_confirmed_at bleibt null
   // bis User klickt. signInWithPassword wirft 'Email not confirmed' bis dahin.
   const pub = publicClient()
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://osss.pro'
+  const siteUrl = getAppUrl()  // kanonische Domain (NEXT_PUBLIC_APP_URL) — konsistent mit dem Rest der App
   const { data: userData, error: userError } = await pub.auth.signUp({
     email: email.trim().toLowerCase(),
     password,

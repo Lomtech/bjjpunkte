@@ -26,7 +26,7 @@ export const paymentReminders = wrapCron({
 })
 
 export const birthdayGreetings = wrapCron({
-  id: 'birthday-greetings',
+  id: 'birthday',  // muss zum vercel.json-Cron-Pfad /api/cron/birthday matchen (Shadow-Mode-Mapping)
   name: 'Tägliche Geburtstags-Glückwünsche an Mitglieder',
   cron: '0 8 * * *',
   endpoint: 'birthday',

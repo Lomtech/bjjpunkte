@@ -57,3 +57,6 @@ next-env.d.ts
 
 # osss-audit Rust build artifacts (binary ist re-buildable)
 /tools/osss-audit/target/
+
+# Supabase CLI temp artifacts
+supabase/.temp/

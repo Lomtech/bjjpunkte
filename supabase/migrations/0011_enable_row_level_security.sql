@@ -36,7 +36,7 @@ SET search_path = public
 AS $$
   SELECT id FROM public.gyms WHERE owner_id = auth.uid()
   UNION
-  SELECT gym_id FROM public.gym_staff WHERE user_id = auth.uid() AND is_active = TRUE
+  SELECT gym_id FROM public.gym_staff WHERE user_id = auth.uid() AND accepted_at IS NOT NULL
 $$;
 
 REVOKE ALL ON FUNCTION public.current_user_gym_ids() FROM PUBLIC;
